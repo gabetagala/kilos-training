@@ -1370,12 +1370,9 @@ body {
    DATA SAFETY NOTICE — task #16: sticky footer outside scroll
 ══════════════════════════════════════════ */
 .data-notice {
-  padding: 16px 0 12px;
+  padding: 20px 0 12px;
   border-top: 1px solid var(--line);
-  margin-top: 24px;
-  position: sticky; bottom: 70px; /* task #16: stays visible above nav while scrolling */
-  background: var(--bg);
-  z-index: 5;
+  margin-top: 8px;
 }
 .dn-top {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
