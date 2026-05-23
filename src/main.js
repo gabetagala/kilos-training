@@ -1,3 +1,4 @@
+import { inject } from '@vercel/analytics';
 import html2canvas from 'html2canvas';
 import { EXERCISES_DB, COACHES_DATA, LEGENDS_DATA, FAMOUS_WODS, SHUFFLE_PLANS, MUSCLES, MUSCLES_ALL } from './data.js';
 import {
@@ -9,6 +10,9 @@ import {
   getSession, signInWithGoogle, signOut,
   pushData, pullAndMerge,
 } from './supabase.js';
+
+// Initialize Vercel Analytics
+inject();
 
 // ─── STORAGE ──────────────────────────────────────────────────────────────────
 const get = (k) => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } };
