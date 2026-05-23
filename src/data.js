@@ -537,3 +537,91 @@ export const SHUFFLE_PLANS = {
 
 export const MUSCLES = ['Chest', 'Back', 'Legs', 'Shoulders', 'Biceps', 'Triceps', 'Core'];
 export const MUSCLES_ALL = ['Chest', 'Back', 'Legs', 'Shoulders', 'Biceps', 'Triceps', 'Core', 'Olympic', 'CrossFit'];
+
+// ─── Famous CrossFit WODs ──────────────────────────────────────────────────────
+// Structure matches the cfData expected by beginCFWorkout().
+export const FAMOUS_WODS = [
+  // ── THE GIRLS ──────────────────────────────────────────────────────────────
+  {
+    name: 'FRAN', category: 'Girls',
+    type: 'fortime', badge: 'FOR TIME', description: '21-15-9 FOR TIME',
+    sets: [21, 15, 9],
+    movements: [{ name: 'Thruster (42.5/30kg)' }, { name: 'Pull-Up' }],
+  },
+  {
+    name: 'CINDY', category: 'Girls',
+    type: 'amrap', badge: 'AMRAP', timeCap: 20, description: 'AMRAP 20 MIN',
+    movements: [{ name: 'Pull-Up', reps: 5 }, { name: 'Push-Up', reps: 10 }, { name: 'Air Squat', reps: 15 }],
+  },
+  {
+    name: 'HELEN', category: 'Girls',
+    type: 'rounds', badge: 'RFT', rounds: 3, description: '3 ROUNDS FOR TIME',
+    movements: [{ name: '400m Run', unit: 'run' }, { name: 'KB Swing (24/16kg)', reps: 21 }, { name: 'Pull-Up', reps: 12 }],
+  },
+  {
+    name: 'GRACE', category: 'Girls',
+    type: 'fortime', badge: 'FOR TIME', description: '30 REPS FOR TIME',
+    movements: [{ name: 'Clean & Jerk (60/40kg)', reps: 30 }],
+  },
+  {
+    name: 'ISABEL', category: 'Girls',
+    type: 'fortime', badge: 'FOR TIME', description: '30 REPS FOR TIME',
+    movements: [{ name: 'Snatch (60/40kg)', reps: 30 }],
+  },
+  {
+    name: 'DIANE', category: 'Girls',
+    type: 'fortime', badge: 'FOR TIME', description: '21-15-9 FOR TIME',
+    sets: [21, 15, 9],
+    movements: [{ name: 'Deadlift (102.5/70kg)' }, { name: 'Handstand Push-Up' }],
+  },
+  {
+    name: 'ELIZABETH', category: 'Girls',
+    type: 'fortime', badge: 'FOR TIME', description: '21-15-9 FOR TIME',
+    sets: [21, 15, 9],
+    movements: [{ name: 'Clean (60/40kg)' }, { name: 'Ring Dip' }],
+  },
+  {
+    name: 'ANNIE', category: 'Girls',
+    type: 'fortime', badge: 'FOR TIME', description: '50-40-30-20-10 FOR TIME',
+    sets: [50, 40, 30, 20, 10],
+    movements: [{ name: 'Double-Under' }, { name: 'Sit-Up' }],
+  },
+  {
+    name: 'JACKIE', category: 'Girls',
+    type: 'fortime', badge: 'FOR TIME', description: 'FOR TIME',
+    movements: [{ name: '1000m Row' }, { name: 'Thruster (20/15kg)', reps: 50 }, { name: 'Pull-Up', reps: 30 }],
+  },
+  {
+    name: 'CHELSEA', category: 'Girls',
+    type: 'emom', badge: 'EMOM', rounds: 30, intervalSecs: 60, description: 'EMOM 30 MIN',
+    movements: [{ name: 'Pull-Up', reps: 5 }, { name: 'Push-Up', reps: 10 }, { name: 'Air Squat', reps: 15 }],
+  },
+  // ── HERO WODS ──────────────────────────────────────────────────────────────
+  {
+    name: 'MURPH', category: 'Hero',
+    type: 'fortime', badge: 'FOR TIME', description: 'FOR TIME (vest optional)',
+    movements: [
+      { name: '1 Mile Run', unit: 'run' }, { name: 'Pull-Up', reps: 100 },
+      { name: 'Push-Up', reps: 200 }, { name: 'Air Squat', reps: 300 },
+      { name: '1 Mile Run', unit: 'run' },
+    ],
+  },
+  {
+    name: 'DT', category: 'Hero',
+    type: 'rounds', badge: 'RFT', rounds: 5, description: '5 ROUNDS FOR TIME',
+    movements: [
+      { name: 'Deadlift (70/47.5kg)', reps: 12 },
+      { name: 'Hang Power Clean (70/47.5kg)', reps: 9 },
+      { name: 'Push Jerk (70/47.5kg)', reps: 6 },
+    ],
+  },
+  {
+    name: 'RYAN', category: 'Hero',
+    type: 'rounds', badge: 'RFT', rounds: 5, description: '5 ROUNDS FOR TIME',
+    movements: [
+      { name: 'Overhead Squat (61/43kg)', reps: 7 },
+      { name: 'Pull-Up', reps: 12 },
+      { name: 'Thruster (43/29kg)', reps: 7 },
+    ],
+  },
+];

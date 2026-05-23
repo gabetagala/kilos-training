@@ -53,23 +53,22 @@
           </div>
         </div>
         <div class="quick-start">
-          <div class="section-label">Quick Start</div>
-          <div class="qs-chips">
-            <button class="qs-chip" data-muscle="Chest">Chest</button>
-            <button class="qs-chip" data-muscle="Back">Back</button>
-            <button class="qs-chip" data-muscle="Legs">Legs</button>
-            <button class="qs-chip" data-muscle="Shoulders">Shoulders</button>
-            <button class="qs-chip" data-muscle="Arms">Arms</button>
-            <button class="qs-chip" data-muscle="Core">Core</button>
-          </div>
-          <div class="section-label qs-more-label">More</div>
+          <div class="section-label">Start</div>
           <div class="quick-btns">
-            <button class="quick-btn" id="btn-custom">
-              <div class="qb-left"><div class="qb-title">Custom</div><div class="qb-sub">Build your own</div></div>
+            <button class="quick-btn qs-highlight" id="btn-qs-open">
+              <div class="qb-left"><div class="qb-title">Quick Start</div><div class="qb-sub">Pick a muscle, start immediately</div></div>
               <div class="qb-arrow">→</div>
             </button>
-            <button class="quick-btn" id="btn-coaches-home">
-              <div class="qb-left"><div class="qb-title">Coaches</div><div class="qb-sub">Local coach programs</div></div>
+            <button class="quick-btn" id="btn-legends-open">
+              <div class="qb-left"><div class="qb-title">Legends</div><div class="qb-sub">Train like the greats</div></div>
+              <div class="qb-arrow">→</div>
+            </button>
+            <button class="quick-btn" id="btn-cf-open">
+              <div class="qb-left"><div class="qb-title">CrossFit</div><div class="qb-sub">Famous benchmark workouts</div></div>
+              <div class="qb-arrow">→</div>
+            </button>
+            <button class="quick-btn" id="btn-custom">
+              <div class="qb-left"><div class="qb-title">Custom</div><div class="qb-sub">Build your own session</div></div>
               <div class="qb-arrow">→</div>
             </button>
             <button class="quick-btn" id="btn-resume">
@@ -81,13 +80,6 @@
         <div class="recent-section">
           <div class="section-label">Recent sessions</div>
           <div id="recent-list"></div>
-        </div>
-
-        <!-- Legends section — train like the greats -->
-        <div class="legends-home">
-          <div class="section-label">Legends</div>
-          <div class="legend-tabs" id="home-legend-tabs"></div>
-          <div id="home-legend-content"></div>
         </div>
 
         <!-- Data safety notice -->
@@ -104,14 +96,14 @@
         <input type="file" id="import-file" accept=".json" style="display:none">
       </div>
 
-      <!-- COACHES -->
+      <!-- COACHES — Coming Soon -->
       <div id="coaches" class="screen">
-        <div class="coaches-header">
-          <h1>Local<br>Coaches</h1>
-          <p>Programs from coaches who know the game.</p>
+        <div class="coming-soon-screen">
+          <div class="cs-eyebrow">Coming Soon</div>
+          <h1 class="cs-title">LOCAL<br>COACHES</h1>
+          <p class="cs-body">We're working with local coaches and athletes to bring you real programs from people who actually know the game. Stay tuned.</p>
+          <div class="cs-sig">— Gabe</div>
         </div>
-        <div class="athlete-tabs" id="coach-tabs"></div>
-        <div id="coach-content"></div>
       </div>
 
       <!-- BUILD -->
@@ -270,9 +262,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         <span>Home</span>
       </button>
-      <button class="nav-btn" data-screen="coaches">
+      <button class="nav-btn nav-btn-soon" data-screen="coaches">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         <span>Coaches</span>
+        <span class="nav-soon">SOON</span>
       </button>
       <button class="nav-btn" data-screen="build">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -390,11 +383,49 @@
       </div>
     </div>
 
+    <!-- ─── QUICK START PAGE ─── -->
+    <div class="page-overlay" id="qs-page">
+      <div class="page-header">
+        <button class="page-back" id="qs-back">← Back</button>
+        <div class="page-title">QUICK START</div>
+      </div>
+      <div class="page-content">
+        <div class="section-label" style="margin-bottom:14px">Pick a muscle group</div>
+        <div class="qs-page-chips" id="qs-page-chips"></div>
+      </div>
+    </div>
+
+    <!-- ─── LEGENDS PAGE ─── -->
+    <div class="page-overlay" id="legends-page">
+      <div class="page-header">
+        <button class="page-back" id="legends-back">← Back</button>
+        <div class="page-title">LEGENDS</div>
+      </div>
+      <div class="page-content">
+        <div class="legend-tabs" id="legends-page-tabs"></div>
+        <div class="legend-era" id="legends-page-era"></div>
+        <div id="legends-page-content"></div>
+      </div>
+    </div>
+
+    <!-- ─── CROSSFIT PAGE ─── -->
+    <div class="page-overlay" id="cf-page">
+      <div class="page-header">
+        <button class="page-back" id="cf-back">← Back</button>
+        <div class="page-title">CROSSFIT</div>
+      </div>
+      <div class="page-content" id="cf-page-content"></div>
+    </div>
+
     <!-- ─── PR LOG MODAL — log current bests ─── -->
     <div class="modal-overlay" id="pr-log-modal">
       <div class="modal-sheet pr-log-sheet">
         <div class="pr-log-title">LOG YOUR LIFTS</div>
         <div class="pr-log-sub">Enter your current best weight. Skips anything left blank.</div>
+        <div class="pr-log-tabs">
+          <button class="pr-tab active" data-tab="strength">Strength</button>
+          <button class="pr-tab" data-tab="olympic">Olympic &amp; CF</button>
+        </div>
         <div id="pr-log-inputs" class="pr-log-inputs"></div>
         <div class="pr-log-actions">
           <button class="pr-log-save" id="pr-log-save">Save →</button>

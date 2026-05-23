@@ -265,6 +265,12 @@ body {
 .nav-btn svg { width: 20px; height: 20px; }
 .nav-btn.active svg { stroke-width: 2.5; }
 .nav-btn span { font-size: 9px; font-family: 'Space Mono', monospace; text-transform: uppercase; letter-spacing: 0.06em; }
+.nav-soon {
+  font-family: 'Space Mono', monospace; font-size: 6px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: rgba(255,255,255,0.3);
+  border: 1px solid rgba(255,255,255,0.15); border-radius: 2px;
+  padding: 1px 4px; line-height: 1.4; margin-top: -2px;
+}
 
 /* ══════════════════════════════════════════
    HOME
@@ -375,27 +381,8 @@ body {
 .qb-title { font-family: 'Bebas Neue', sans-serif; font-size: 34px; line-height: 0.92; letter-spacing: 0.02em; text-transform: uppercase; }
 .qb-sub   { font-size: 9px; font-family: 'Space Mono', monospace; color: var(--grey); text-transform: uppercase; letter-spacing: 0.08em; }
 .qb-arrow { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--grey); line-height: 1; }
-/* ── Quick Start muscle chips — inline on home screen ── */
-.qs-chips {
-  display: flex; flex-wrap: wrap; gap: 8px;
-  margin-top: 2px; margin-bottom: 4px;
-}
-.qs-chip {
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 10px 18px;
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 18px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text);
-  cursor: pointer;
-  transition: background 0.1s, border-color 0.1s, transform 0.1s;
-  -webkit-tap-highlight-color: transparent;
-}
-.qs-chip:active { transform: scale(0.95); background: var(--bg3); border-color: var(--white); }
-.qs-more-label { padding-top: 20px; margin-bottom: 16px; display: block; }
+/* ── Quick Start highlight — first button in the start list ── */
+.quick-btn.qs-highlight .qb-title { color: var(--white); }
 
 /* Recent — editorial: name left, big volume right */
 .recent-section .label, .recent-section .section-label { padding-top: 24px; margin-bottom: 16px; display: block; }
@@ -432,6 +419,30 @@ body {
   letter-spacing: 0.04em; text-transform: uppercase; color: var(--text);
 }
 .coaches-header p  { font-size: 9px; font-family: 'Space Mono', monospace; color: var(--grey); margin-top: 8px; text-transform: uppercase; letter-spacing: 0.12em; }
+
+/* Coming soon screen */
+.coming-soon-screen {
+  padding: 48px 24px 100px;
+  display: flex; flex-direction: column;
+}
+.cs-eyebrow {
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.12em; color: var(--grey);
+  margin-bottom: 12px;
+}
+.cs-title {
+  font-family: 'Bebas Neue', sans-serif; font-size: 64px; line-height: 0.92;
+  letter-spacing: 0.04em; text-transform: uppercase; color: var(--text);
+  margin-bottom: 24px;
+}
+.cs-body {
+  font-size: 13px; color: var(--grey); line-height: 1.7;
+  max-width: 300px; margin-bottom: 24px;
+}
+.cs-sig {
+  font-family: 'Space Mono', monospace; font-size: 10px;
+  color: rgba(255,255,255,0.3); letter-spacing: 0.06em;
+}
 
 /* Coach specialty tag (replaces athlete era) */
 .coach-specialty { font-family: 'Space Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--grey); margin-bottom: 20px; display: block; padding-top: 4px; }
@@ -638,8 +649,21 @@ body {
 .pr-log-sub {
   font-size: 9px; font-family: 'Space Mono', monospace;
   color: var(--grey); text-transform: uppercase; letter-spacing: 0.08em;
-  line-height: 1.7; padding: 0 20px 16px;
+  line-height: 1.7; padding: 0 20px 12px;
 }
+/* PR tabs */
+.pr-log-tabs {
+  display: flex; gap: 0; padding: 0 20px 0;
+  border-bottom: 1px solid var(--line); margin-bottom: 0;
+}
+.pr-tab {
+  background: none; border: none; border-bottom: 2px solid transparent;
+  margin-bottom: -1px; padding: 10px 16px 10px 0;
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--grey);
+  cursor: pointer; transition: color 0.12s, border-color 0.12s;
+}
+.pr-tab.active { color: var(--white); border-color: var(--white); }
 .pr-log-inputs { padding: 0 20px; }
 .pr-log-row {
   display: flex; align-items: center; justify-content: space-between;
@@ -1203,10 +1227,58 @@ body {
 }
 
 /* ══════════════════════════════════════════
-   LEGENDS — home screen
+   PAGE OVERLAYS — QS / Legends / CrossFit
 ══════════════════════════════════════════ */
-.legends-home { padding-top: 24px; margin-bottom: 4px; }
-.legends-home > .section-label { margin-bottom: 12px; display: block; }
+.page-overlay {
+  position: absolute; inset: 0; z-index: 250;
+  background: var(--bg);
+  display: flex; flex-direction: column; overflow: hidden;
+  transform: translateX(100%);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+.page-overlay.open { transform: translateX(0); }
+
+.page-header {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 24px 14px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.page-back {
+  background: none; border: none; color: var(--grey);
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  cursor: pointer; padding: 0; flex-shrink: 0;
+}
+.page-title {
+  font-family: 'Bebas Neue', sans-serif; font-size: 24px;
+  letter-spacing: 0.04em; line-height: 1;
+}
+.page-content {
+  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 24px 24px max(80px, env(safe-area-inset-bottom));
+}
+
+/* Quick Start page chips */
+.qs-page-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.qs-page-chip {
+  background: none; border: 1px solid var(--border); border-radius: 4px;
+  padding: 13px 22px;
+  font-family: 'Bebas Neue', sans-serif; font-size: 22px;
+  letter-spacing: 0.04em; text-transform: uppercase; color: var(--text);
+  cursor: pointer; transition: background 0.1s, border-color 0.1s, transform 0.08s;
+  -webkit-tap-highlight-color: transparent;
+}
+.qs-page-chip:active { transform: scale(0.95); background: var(--bg3); border-color: var(--white); }
+
+/* Legend era sub-label */
+.legend-era {
+  font-family: 'Space Mono', monospace; font-size: 8px;
+  color: var(--grey); text-transform: uppercase; letter-spacing: 0.1em;
+  margin-bottom: 16px;
+}
+
 .legend-tabs {
   display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;
   overflow-x: auto; -webkit-overflow-scrolling: touch;
@@ -1791,4 +1863,7 @@ body {
 
   /* PR log modal clips to phone frame on desktop */
   #pr-log-modal { position: absolute; }
+
+  /* Page overlays already use position:absolute — they clip naturally */
+  /* (no override needed; .page-overlay is absolute by default) */
 }
