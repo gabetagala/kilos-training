@@ -463,6 +463,8 @@ document.getElementById('btn-resume').addEventListener('click', () => {
 function renderCoaches() {
   const tabsEl   = document.getElementById('coach-tabs');
   const contentEl = document.getElementById('coach-content');
+  // Coaches screen is currently "Coming Soon" — no tabs/content to render
+  if (!tabsEl || !contentEl) return;
   tabsEl.innerHTML = '';
   contentEl.innerHTML = '';
 
@@ -2159,7 +2161,7 @@ function pickTier(tierId) {
   });
   closeOnboarding();
   renderHome();
-  if (isFirstTime) setTimeout(showBetaWelcome, 500);
+  // Beta welcome now fires BEFORE onboarding (new first-run flow) — do not re-trigger here
 }
 
 // Main view: tap Full Gym or Bodyweight → immediate save; tap Custom → chip view
@@ -2235,7 +2237,7 @@ document.getElementById('ob-skip').addEventListener('click', () => {
     renderHome();
   }
   closeOnboarding();
-  if (isFirstTime) setTimeout(showBetaWelcome, 500);
+  // Beta welcome now fires BEFORE onboarding (new first-run flow) — do not re-trigger here
 });
 
 // Profile button on home screen
