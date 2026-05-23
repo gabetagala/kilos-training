@@ -416,6 +416,41 @@
   </div>
 </div>
 
+<!-- ─── BETA WELCOME — shown once after first onboarding ─── -->
+<div id="beta-welcome" class="bw-overlay">
+  <div class="bw-card">
+    <div class="bw-hi" id="bw-hi">Hi Athlete!</div>
+    <div class="bw-title">WELCOME TO<br>KILOS TRAINING</div>
+    <p class="bw-body">We're in beta and <strong>so happy to have you on board.</strong> If you notice anything off — a bug, something that feels weird, anything at all — just tap the message icon and send me a quick note. I read every single one and fix things fast.</p>
+    <button class="bw-cta" id="bw-cta">Let's train →</button>
+  </div>
+</div>
+
+<!-- ─── FEEDBACK FLOAT BUTTON ─── -->
+<button id="feedback-btn" class="feedback-float" aria-label="Send feedback">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" aria-hidden="true">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </svg>
+</button>
+
+<!-- ─── FEEDBACK SHEET ─── -->
+<div id="feedback-sheet" class="fb-overlay">
+  <div class="fb-card">
+    <div class="fb-handle"></div>
+    <div class="fb-header">
+      <div class="fb-title">QUICK MESSAGE</div>
+      <button class="fb-close" id="fb-close">✕</button>
+    </div>
+    <p class="fb-sub">Straight to Gabe. Bug, idea, anything.</p>
+    <textarea id="fb-text" class="fb-textarea" placeholder="What did you notice?" maxlength="500" rows="4"></textarea>
+    <div class="fb-footer">
+      <span class="fb-chars"><span id="fb-count">0</span>/500</span>
+      <button class="fb-send" id="fb-send">Send →</button>
+    </div>
+    <div class="fb-status" id="fb-status"></div>
+  </div>
+</div>
+
 <script type="module" src="/src/main.js"></script>
 </body>
 </html>
