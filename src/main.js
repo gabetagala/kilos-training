@@ -434,19 +434,17 @@ function startCoachWorkout(coachId, workoutName) {
 }
 
 function beginCFWorkout(name, cfData) {
-  requireName(() => {
-    newPRsThisSession = [];
-    activeWorkout = { name, type: cfData.type, cf: cfData };
-    cfCurrentRound    = 0;
-    cfRoundsCompleted = 0;
-    cfMovementsDone   = new Set();
-    cfRoundLog        = [];
-    workoutStartTime  = Date.now();
-    totalWeightMoved  = 0;
-    sessionSets       = 0;
-    stopTimer();
-    goScreen('active');
-  });
+  newPRsThisSession = [];
+  activeWorkout = { name, type: cfData.type, cf: cfData };
+  cfCurrentRound    = 0;
+  cfRoundsCompleted = 0;
+  cfMovementsDone   = new Set();
+  cfRoundLog        = [];
+  workoutStartTime  = Date.now();
+  totalWeightMoved  = 0;
+  sessionSets       = 0;
+  stopTimer();
+  goScreen('active');
 }
 
 // ─── BUILD ────────────────────────────────────────────────────────────────────
@@ -831,7 +829,7 @@ const NAME_KEY = 'kilos-name';
 const getUserName = () => get(NAME_KEY);
 const saveUserName = (n) => set(NAME_KEY, (n || '').trim() || 'Athlete');
 
-let _npCallback = null; // pending workout to launch after name captured
+let _npCallback = null; // callback to run after name is captured (e.g. open equipment onboarding)
 
 function requireName(callback) {
   if (getUserName()) { callback(); return; }
@@ -863,38 +861,32 @@ document.getElementById('np-input').addEventListener('keydown', e => {
 document.getElementById('np-google-btn').addEventListener('click', async () => {
   const typed = document.getElementById('np-input').value.trim();
   if (typed) saveUserName(typed);
+  _npCallback = null; // clear — Google redirect will reload the app
   closeNamePrompt();
-  await signInWithGoogle();
-  // Auth redirect handles the rest; workout will be re-triggered by user
-  // after they return, so we just clear the pending callback here
-  _npCallback = null;
+  await signInWithGoogle(); // triggers redirect; page reloads on return
 });
 
 // ─── ACTIVE WORKOUT ───────────────────────────────────────────────────────────
 function beginWorkout(name, type, exercises) {
-  requireName(() => {
-    newPRsThisSession = [];
-    activeWorkout = { name, type, exercises };
-    currentExIdx = 0;
-    currentSetIdx = 0;
-    workoutStartTime = Date.now();
-    totalWeightMoved = 0;
-    sessionSets = 0;
-    stopTimer();
-    goScreen('active');
-  });
+  newPRsThisSession = [];
+  activeWorkout = { name, type, exercises };
+  currentExIdx = 0;
+  currentSetIdx = 0;
+  workoutStartTime = Date.now();
+  totalWeightMoved = 0;
+  sessionSets = 0;
+  stopTimer();
+  goScreen('active');
 }
 
 function beginCardioWorkout(name, cardioType, target, notes) {
-  requireName(() => {
-    newPRsThisSession = [];
-    activeWorkout = { name, type: 'cardio', cardioType, target, notes, startTime: Date.now() };
-    workoutStartTime = Date.now();
-    totalWeightMoved = 0;
-    sessionSets = 0;
-    stopTimer();
-    goScreen('active');
-  });
+  newPRsThisSession = [];
+  activeWorkout = { name, type: 'cardio', cardioType, target, notes, startTime: Date.now() };
+  workoutStartTime = Date.now();
+  totalWeightMoved = 0;
+  sessionSets = 0;
+  stopTimer();
+  goScreen('active');
 }
 
 const CF_TYPES = new Set(['emom', 'amrap', 'rounds', 'fortime']);
@@ -2067,10 +2059,11 @@ document.getElementById('btn-profile').addEventListener('click', openOnboarding)
 renderHome();
 renderCoaches();
 
-// Show onboarding on first launch (after a brief delay for the home screen to render)
+// On first visit: name prompt → then equipment onboarding if needed.
+// requireName() calls callback immediately if name already saved (returning user).
 setTimeout(() => {
-  const profile = getProfile();
-  if (!profile.setupComplete) {
-    openOnboarding();
-  }
-}, 200);
+  requireName(() => {
+    const profile = getProfile();
+    if (!profile.setupComplete) openOnboarding();
+  });
+}, 300);
