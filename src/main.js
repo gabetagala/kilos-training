@@ -1955,25 +1955,68 @@ function pickTier(tierId) {
   });
   closeOnboarding();
   renderHome();
-  if (isFirstTime) setTimeout(showBetaWelcome, 300);
+  if (isFirstTime) setTimeout(showBetaWelcome, 500);
 }
 
-// Main view: tap Full Gym or Bodyweight → immediate save; tap Custom → sub-view
+// Main view: tap Full Gym or Bodyweight → immediate save; tap Custom → chip view
 document.getElementById('ob-tiers-main').addEventListener('click', e => {
   const card = e.target.closest('[data-tier]');
   if (!card) return;
   const tier = card.dataset.tier;
   if (tier === 'custom') {
+    obSelectedEquipment = new Set();
+    renderEquipmentChips();
     showObView('custom');
   } else {
     pickTier(tier);
   }
 });
 
-// Custom sub-view: tap any card → immediate save
-document.getElementById('ob-tiers-custom').addEventListener('click', e => {
-  const card = e.target.closest('[data-tier]');
-  if (card) pickTier(card.dataset.tier);
+// ─── CUSTOM EQUIPMENT CHECKLIST ──────────────────────────────────────────────
+const EQUIPMENT_ITEMS = [
+  { id: 'dumbbells',  label: 'Dumbbells' },
+  { id: 'barbell',    label: 'Barbell' },
+  { id: 'squat-rack', label: 'Squat / Power Rack' },
+  { id: 'bench',      label: 'Weight Bench' },
+  { id: 'pull-up',    label: 'Pull-up Bar' },
+  { id: 'cables',     label: 'Cable Machine' },
+  { id: 'bands',      label: 'Resistance Bands' },
+  { id: 'kettlebell', label: 'Kettlebells' },
+  { id: 'machines',   label: 'Gym Machines' },
+  { id: 'dip-bars',   label: 'Dip Bars' },
+  { id: 'rings',      label: 'Gymnastic Rings' },
+  { id: 'trx',        label: 'TRX / Suspension' },
+];
+
+let obSelectedEquipment = new Set();
+
+function renderEquipmentChips() {
+  const grid = document.getElementById('ob-eq-grid');
+  grid.innerHTML = EQUIPMENT_ITEMS.map(item => `
+    <button class="ob-eq-chip${obSelectedEquipment.has(item.id) ? ' selected' : ''}" data-eq="${item.id}">
+      ${item.label}
+    </button>
+  `).join('');
+  grid.querySelectorAll('.ob-eq-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const id = chip.dataset.eq;
+      if (obSelectedEquipment.has(id)) { obSelectedEquipment.delete(id); chip.classList.remove('selected'); }
+      else { obSelectedEquipment.add(id); chip.classList.add('selected'); }
+    });
+  });
+}
+
+function equipmentToTier(selected) {
+  const s = [...selected];
+  if (s.includes('cables') || s.includes('machines')) return 'full-gym';
+  if (s.includes('barbell') && s.includes('squat-rack')) return 'barbell-rack';
+  if (s.includes('dumbbells') || s.includes('barbell') || s.includes('kettlebell')) return 'home-dumbbells';
+  if (s.includes('bands')) return 'bands';
+  return 'bodyweight';
+}
+
+document.getElementById('ob-eq-done').addEventListener('click', () => {
+  pickTier(equipmentToTier(obSelectedEquipment));
 });
 
 // Back button: return to main view
@@ -1988,7 +2031,7 @@ document.getElementById('ob-skip').addEventListener('click', () => {
     renderHome();
   }
   closeOnboarding();
-  if (isFirstTime) setTimeout(showBetaWelcome, 300);
+  if (isFirstTime) setTimeout(showBetaWelcome, 500);
 });
 
 // Profile button on home screen

@@ -17,8 +17,18 @@
 </head>
 <body>
 <div id="phone-frame">
-  <div id="dynamic-island"></div>
   <div id="app">
+    <!-- Desktop browser bar — hidden on mobile -->
+    <div id="browser-bar">
+      <div class="bb-dots"><span></span><span></span><span></span></div>
+      <div class="bb-url">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        kilostraining.app
+      </div>
+      <div class="bb-spacer"></div>
+    </div>
+    <!-- Dynamic island — only shown on desktop inside the app frame -->
+    <div id="dynamic-island"></div>
     <!-- Blurred background shapes — gives the soft organic depth from the reference -->
     <div class="bg-blob bg-blob-1"></div>
     <div class="bg-blob bg-blob-2"></div>
@@ -312,23 +322,13 @@
           </div>
         </div>
 
-        <!-- View B: Custom sub-options -->
+        <!-- View B: Custom equipment checklist -->
         <div class="ob-view" id="ob-view-custom">
           <div class="ob-label">WHAT DO YOU HAVE?</div>
-          <div class="ob-tier-list" id="ob-tiers-custom">
-            <button class="ob-tier-card" data-tier="home-dumbbells">
-              <div class="ob-tier-name">Home + Dumbbells</div>
-              <div class="ob-tier-desc">Dumbbells, bench, optional pull-up bar</div>
-            </button>
-            <button class="ob-tier-card" data-tier="barbell-rack">
-              <div class="ob-tier-name">Barbell + Rack</div>
-              <div class="ob-tier-desc">Home power rack, no cables or machines</div>
-            </button>
-            <button class="ob-tier-card" data-tier="bands">
-              <div class="ob-tier-name">Resistance Bands</div>
-              <div class="ob-tier-desc">Bands and door anchor only</div>
-            </button>
+          <div class="ob-eq-grid" id="ob-eq-grid">
+            <!-- chips rendered by JS -->
           </div>
+          <button class="ob-done-btn" id="ob-eq-done">Done →</button>
         </div>
 
       </div>
