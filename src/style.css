@@ -89,12 +89,6 @@ body {
     color: rgba(255,255,255,0.18); text-transform: uppercase; letter-spacing: 0.14em;
     border: 1px solid rgba(255,255,255,0.12); padding: 3px 8px;
   }
-  #dynamic-island {
-    display: block; position: absolute; top: 10px;
-    left: 50%; transform: translateX(-50%);
-    width: 120px; height: 34px; background: #000; border-radius: 20px; z-index: 200;
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04);
-  }
   .modal-overlay { position: absolute; }
   /* NOTE: #nav, .np-overlay, .bw-overlay, .fb-overlay, .feedback-float
      overrides are at the END of this file — after their base rules — so
@@ -184,14 +178,6 @@ body {
   }
   .bb-spacer { width: 52px; } /* balance the dots side */
 
-  /* Dynamic island — sits just below browser bar */
-  #dynamic-island {
-    display: block;
-    position: absolute; top: 54px; left: 50%; transform: translateX(-50%);
-    width: 120px; height: 34px; background: #000; border-radius: 20px; z-index: 200;
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04);
-  }
-
   #desktop-tagline {
     display: block;
     position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
@@ -264,7 +250,7 @@ body {
   backdrop-filter: saturate(160%) blur(20px);
   -webkit-backdrop-filter: saturate(160%) blur(20px);
   border-top: 1px solid rgba(255,255,255,0.06);
-  display: flex; padding: 10px 0 max(44px, env(safe-area-inset-bottom));
+  display: flex; padding: 10px 0 max(12px, env(safe-area-inset-bottom));
 }
 .nav-btn {
   flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
@@ -389,13 +375,27 @@ body {
 .qb-title { font-family: 'Bebas Neue', sans-serif; font-size: 34px; line-height: 0.92; letter-spacing: 0.02em; text-transform: uppercase; }
 .qb-sub   { font-size: 9px; font-family: 'Space Mono', monospace; color: var(--grey); text-transform: uppercase; letter-spacing: 0.08em; }
 .qb-arrow { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--grey); line-height: 1; }
-/* Shuffle — separated by a slightly thicker top border */
-.quick-btn.shuffle {
-  border-top: 1px solid rgba(255,255,255,0.12);
-  margin-top: 6px;
+/* ── Quick Start muscle chips — inline on home screen ── */
+.qs-chips {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-top: 2px; margin-bottom: 4px;
 }
-.quick-btn.shuffle .qb-title { color: var(--white); }
-.quick-btn.shuffle .qb-arrow { color: var(--grey); }
+.qs-chip {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 18px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.qs-chip:active { transform: scale(0.95); background: var(--bg3); border-color: var(--white); }
+.qs-more-label { padding-top: 20px; margin-bottom: 16px; display: block; }
 
 /* Recent — editorial: name left, big volume right */
 .recent-section .label, .recent-section .section-label { padding-top: 24px; margin-bottom: 16px; display: block; }

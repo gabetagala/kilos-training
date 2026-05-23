@@ -310,7 +310,27 @@ function renderMuscleFrequency() {
     </div>`;
 }
 
-document.getElementById('btn-shuffle').addEventListener('click', openShuffle);
+// Quick Start — muscle chips tap directly into a workout (no modal needed)
+function quickStartWorkout(muscle) {
+  if (!SHUFFLE_PLANS[muscle]) return;
+  const profile = getActiveProfile();
+  const plan = sortByFeel(SHUFFLE_PLANS[muscle]);
+  const exercises = dedupeExercises(plan.map(e => {
+    const resolved = resolveExercise(e.name, profile);
+    return {
+      name: resolved.name,
+      originalName: resolved.reason !== 'none' ? resolved.original : null,
+      sets: e.sets, reps: String(e.reps), rest: e.rest,
+      logs: Array.from({ length: e.sets }, () => ({ weight: '', reps: '', done: false })),
+    };
+  }));
+  beginWorkout(`${muscle} Day`, 'strength', exercises);
+}
+
+document.querySelectorAll('.qs-chip').forEach(chip => {
+  chip.addEventListener('click', () => quickStartWorkout(chip.dataset.muscle));
+});
+
 document.getElementById('btn-custom').addEventListener('click', () => goScreen('build'));
 document.getElementById('btn-coaches-home').addEventListener('click', () => goScreen('coaches'));
 document.getElementById('btn-resume').addEventListener('click', () => {
