@@ -97,6 +97,9 @@ body {
   }
   #nav { position: absolute; border-radius: 0 0 44px 44px; }
   .modal-overlay { position: absolute; }
+  /* Overlays that are position:fixed on mobile → absolute inside phone frame on desktop */
+  .np-overlay, .bw-overlay, .fb-overlay { position: absolute; }
+  .feedback-float { position: absolute; }
 }
 #desktop-tagline { display: none; }
 
