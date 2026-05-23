@@ -59,8 +59,7 @@
             <button class="qs-chip" data-muscle="Back">Back</button>
             <button class="qs-chip" data-muscle="Legs">Legs</button>
             <button class="qs-chip" data-muscle="Shoulders">Shoulders</button>
-            <button class="qs-chip" data-muscle="Biceps">Biceps</button>
-            <button class="qs-chip" data-muscle="Triceps">Triceps</button>
+            <button class="qs-chip" data-muscle="Arms">Arms</button>
             <button class="qs-chip" data-muscle="Core">Core</button>
           </div>
           <div class="section-label qs-more-label">More</div>
@@ -82,6 +81,13 @@
         <div class="recent-section">
           <div class="section-label">Recent sessions</div>
           <div id="recent-list"></div>
+        </div>
+
+        <!-- Legends section — train like the greats -->
+        <div class="legends-home">
+          <div class="section-label">Legends</div>
+          <div class="legend-tabs" id="home-legend-tabs"></div>
+          <div id="home-legend-content"></div>
         </div>
 
         <!-- Data safety notice -->
@@ -119,7 +125,6 @@
         </div>
         <div class="build-mode-toggle">
           <button class="build-mode-btn active" data-mode="strength">Strength</button>
-          <button class="build-mode-btn" data-mode="cardio">Cardio</button>
           <button class="build-mode-btn" data-mode="crossfit">CrossFit</button>
         </div>
         <input class="workout-name-input" id="custom-name" type="text" placeholder="Workout name..." autocomplete="off">
@@ -133,23 +138,6 @@
           <div class="section-label build-exercises-label">Exercises</div>
           <div id="exercise-list"></div>
           <button class="add-exercise-btn" id="btn-add-exercise">+ Add Exercise</button>
-        </div>
-
-        <!-- Cardio -->
-        <div id="cardio-section" style="display:none">
-          <div class="section-label">Activity type</div>
-          <div class="cardio-type-grid">
-            <label class="cardio-type-opt"><input type="radio" name="cardio-type" id="cardio-type" value="Run" checked><span>Run</span></label>
-            <label class="cardio-type-opt"><input type="radio" name="cardio-type" value="Bike"><span>Bike</span></label>
-            <label class="cardio-type-opt"><input type="radio" name="cardio-type" value="Walk"><span>Walk</span></label>
-            <label class="cardio-type-opt"><input type="radio" name="cardio-type" value="Row"><span>Row</span></label>
-            <label class="cardio-type-opt"><input type="radio" name="cardio-type" value="Swim"><span>Swim</span></label>
-            <label class="cardio-type-opt"><input type="radio" name="cardio-type" value="Other"><span>Other</span></label>
-          </div>
-          <div class="section-label build-cardio-label">Target (optional)</div>
-          <input class="workout-name-input" id="cardio-target" type="text" placeholder="e.g. 5km, 30 min..." autocomplete="off" style="font-size:16px;font-style:normal;margin-bottom:12px">
-          <div class="section-label">Notes</div>
-          <textarea class="cardio-notes-input" id="cardio-notes" placeholder="Route, pace goal, how you feel..."></textarea>
         </div>
 
         <!-- CrossFit -->
@@ -398,6 +386,19 @@
         <div class="share-actions">
           <button class="share-btn primary" id="btn-share">Share</button>
           <button class="share-btn secondary" id="btn-close-share">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── PR LOG MODAL — log current bests ─── -->
+    <div class="modal-overlay" id="pr-log-modal">
+      <div class="modal-sheet pr-log-sheet">
+        <div class="pr-log-title">LOG YOUR LIFTS</div>
+        <div class="pr-log-sub">Enter your current best weight. Skips anything left blank.</div>
+        <div id="pr-log-inputs" class="pr-log-inputs"></div>
+        <div class="pr-log-actions">
+          <button class="pr-log-save" id="pr-log-save">Save →</button>
+          <span class="modal-cancel" id="btn-close-pr-log">Cancel</span>
         </div>
       </div>
     </div>

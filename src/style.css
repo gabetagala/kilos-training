@@ -608,11 +608,64 @@ body {
 .export-btn:active { color: var(--white); }
 
 /* PR row */
-.pr-row { display: flex; gap: 0; border-bottom: 1px solid var(--line); margin-bottom: 24px; }
+.pr-row { display: flex; gap: 0; border-bottom: 1px solid var(--line); margin-bottom: 24px; flex-wrap: wrap; }
 .pr-card { flex: 1; padding: 16px 0; border-right: 1px solid var(--line); }
 .pr-card:last-child { border-right: none; }
 .pr-card .pr-val   { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 0.04em; }
 .pr-card .pr-label { font-size: 9px; font-family: 'Space Mono', monospace; color: var(--grey); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.08em; }
+.pr-card-add { cursor: pointer; opacity: 0.45; transition: opacity 0.1s; }
+.pr-card-add:active { opacity: 1; }
+.pr-add-icon { font-family: 'Bebas Neue', sans-serif; }
+
+/* PR empty state */
+.pr-empty { padding: 16px 0 20px; border-bottom: 1px solid var(--line); margin-bottom: 24px; }
+.pr-empty p { font-size: 9px; font-family: 'Space Mono', monospace; color: var(--grey); text-transform: uppercase; letter-spacing: 0.08em; line-height: 1.8; margin-bottom: 14px; }
+.pr-log-cta {
+  background: none; border: 1px solid var(--border);
+  padding: 10px 20px;
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text); cursor: pointer; transition: background 0.1s, border-color 0.1s;
+}
+.pr-log-cta:active { background: var(--bg3); border-color: var(--white); }
+
+/* PR log modal */
+.pr-log-sheet { padding: 0 0 24px; max-height: 85vh; overflow-y: auto; }
+.pr-log-title {
+  font-family: 'Bebas Neue', sans-serif; font-size: 40px;
+  letter-spacing: 0.02em; padding: 24px 20px 4px; line-height: 1;
+}
+.pr-log-sub {
+  font-size: 9px; font-family: 'Space Mono', monospace;
+  color: var(--grey); text-transform: uppercase; letter-spacing: 0.08em;
+  line-height: 1.7; padding: 0 20px 16px;
+}
+.pr-log-inputs { padding: 0 20px; }
+.pr-log-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; border-bottom: 1px solid var(--line);
+}
+.pr-log-label { font-size: 13px; color: var(--text); flex: 1; min-width: 0; padding-right: 12px; }
+.pr-log-input-wrap { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.pr-log-input {
+  width: 72px; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 4px; padding: 8px 10px; font-size: 15px;
+  color: var(--white); text-align: right; outline: none;
+  transition: border-color 0.15s; caret-color: var(--white);
+}
+.pr-log-input:focus { border-color: rgba(255,255,255,0.35); }
+.pr-log-unit {
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  color: var(--grey); text-transform: uppercase;
+}
+.pr-log-actions { padding: 0 20px; }
+.pr-log-save {
+  width: 100%; margin-top: 16px;
+  background: var(--white); color: var(--bg); border: none;
+  font-family: 'Bebas Neue', sans-serif; font-size: 20px;
+  padding: 16px; cursor: pointer; transition: opacity 0.15s;
+}
+.pr-log-save:active { opacity: 0.85; }
 
 .history-empty .big-num { font-family: 'Bebas Neue', sans-serif; font-size: 140px; opacity: 0.05; line-height: 1; letter-spacing: 0.02em; }
 .history-empty p { font-size: 9px; font-family: 'Space Mono', monospace; color: var(--grey); margin-top: 12px; line-height: 1.8; }
@@ -1147,6 +1200,48 @@ body {
   letter-spacing: 0.08em;
   color: var(--grey2);
   flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════
+   LEGENDS — home screen
+══════════════════════════════════════════ */
+.legends-home { padding-top: 24px; margin-bottom: 4px; }
+.legends-home > .section-label { margin-bottom: 12px; display: block; }
+.legend-tabs {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+}
+.legend-tab {
+  background: none; border: 1px solid var(--border); border-radius: 4px;
+  padding: 7px 14px; font-family: 'Space Mono', monospace; font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--grey);
+  cursor: pointer; transition: all 0.1s; white-space: nowrap; flex-shrink: 0;
+}
+.legend-tab.active { border-color: var(--white); color: var(--white); background: var(--bg3); }
+.legend-wcard {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 16px 0; border-bottom: 1px solid var(--line);
+  cursor: pointer; transition: opacity 0.1s;
+}
+.legend-wcard:active { opacity: 0.65; }
+.legend-wcard:last-child { border-bottom: none; }
+.lwc-left { flex: 1; min-width: 0; }
+.lwc-name { font-size: 15px; font-weight: 700; line-height: 1.1; margin-bottom: 4px; }
+.lwc-exlist {
+  font-size: 10px; color: var(--grey);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+.lwc-meta {
+  font-family: 'Space Mono', monospace; font-size: 8px;
+  color: var(--grey); text-transform: uppercase; letter-spacing: 0.08em;
+}
+.lwc-right { text-align: right; flex-shrink: 0; }
+.lwc-sets { font-family: 'Bebas Neue', sans-serif; font-size: 28px; line-height: 1; }
+.lwc-sets-lbl {
+  font-family: 'Space Mono', monospace; font-size: 8px;
+  color: var(--grey); text-transform: uppercase; letter-spacing: 0.06em;
 }
 
 /* ══════════════════════════════════════════
@@ -1693,4 +1788,7 @@ body {
 
   /* Feedback float button stays inside frame */
   .feedback-float { position: absolute; }
+
+  /* PR log modal clips to phone frame on desktop */
+  #pr-log-modal { position: absolute; }
 }

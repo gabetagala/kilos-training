@@ -1,4 +1,4 @@
-import { EXERCISES_DB, COACHES_DATA, SHUFFLE_PLANS, MUSCLES, MUSCLES_ALL } from './data.js';
+import { EXERCISES_DB, COACHES_DATA, LEGENDS_DATA, SHUFFLE_PLANS, MUSCLES, MUSCLES_ALL } from './data.js';
 import {
   EQUIPMENT_TIERS,
   getProfile, saveProfile, getActiveProfile, resolveExercise,
@@ -183,6 +183,7 @@ function renderHome() {
   renderWeekStrip();
   renderMuscleFrequency();
   renderRecent();
+  renderLegends();
   updateStreak();
   renderDataNotice();
   document.getElementById('resume-sub').textContent = activeWorkout ? activeWorkout.name : 'No active session';
@@ -269,6 +270,66 @@ function renderRecent() {
       </div>
     </div>`;
   }).join('');
+}
+
+// ─── LEGENDS (home screen) ────────────────────────────────────────────────────
+let selectedLegendId = null;
+
+function renderLegends() {
+  const tabsEl   = document.getElementById('home-legend-tabs');
+  const contentEl = document.getElementById('home-legend-content');
+  if (!tabsEl || !contentEl) return;
+
+  // Filter Zyzz out — keeping the greats
+  const legends = LEGENDS_DATA.filter(l => l.id !== 'zyzz');
+  if (!selectedLegendId) selectedLegendId = legends[0]?.id;
+
+  // Tabs
+  tabsEl.innerHTML = legends.map(l => `
+    <button class="legend-tab${selectedLegendId === l.id ? ' active' : ''}" data-lid="${l.id}">
+      ${l.name.split(' ').pop()}
+    </button>
+  `).join('');
+  tabsEl.querySelectorAll('.legend-tab').forEach(btn => {
+    btn.addEventListener('click', () => { selectedLegendId = btn.dataset.lid; renderLegends(); });
+  });
+
+  // Workout cards
+  const legend = legends.find(l => l.id === selectedLegendId);
+  if (!legend) return;
+  contentEl.innerHTML = legend.workouts.map(w => `
+    <div class="legend-wcard" data-lid="${legend.id}" data-wname="${w.name}">
+      <div class="lwc-left">
+        <div class="lwc-name">${w.name}</div>
+        <div class="lwc-exlist">${w.exercises.slice(0,4).map(e => e.name).join(' · ')}${w.exercises.length > 4 ? ' …' : ''}</div>
+        <div class="lwc-meta">${w.badge} · ${w.exercises.length} exercises</div>
+      </div>
+      <div class="lwc-right">
+        <div class="lwc-sets">${w.exercises.reduce((s, e) => s + e.sets, 0)}</div>
+        <div class="lwc-sets-lbl">sets</div>
+      </div>
+    </div>
+  `).join('');
+  contentEl.querySelectorAll('.legend-wcard').forEach(card => {
+    card.addEventListener('click', () => startLegendWorkout(card.dataset.lid, card.dataset.wname));
+  });
+}
+
+function startLegendWorkout(legendId, workoutName) {
+  const legend = LEGENDS_DATA.find(l => l.id === legendId);
+  const workout = legend?.workouts.find(w => w.name === workoutName);
+  if (!workout) return;
+  const profile = getActiveProfile();
+  const exercises = dedupeExercises(workout.exercises.map(e => {
+    const resolved = resolveExercise(e.name, profile);
+    return {
+      name: resolved.name,
+      originalName: resolved.reason !== 'none' ? resolved.original : null,
+      sets: e.sets, reps: String(e.reps), rest: e.rest || 90,
+      logs: Array.from({ length: e.sets }, () => ({ weight: '', reps: '', done: false })),
+    };
+  }));
+  beginWorkout(workout.name, 'strength', exercises);
 }
 
 function renderMuscleFrequency() {
@@ -474,7 +535,6 @@ function renderBuild() {
     btn.classList.toggle('active', btn.dataset.mode === buildMode);
   });
   document.getElementById('strength-section').style.display   = buildMode === 'strength'  ? '' : 'none';
-  document.getElementById('cardio-section').style.display     = buildMode === 'cardio'    ? '' : 'none';
   document.getElementById('crossfit-section').style.display   = buildMode === 'crossfit'  ? '' : 'none';
 
   if (buildMode === 'crossfit') {
@@ -543,8 +603,7 @@ function renderExerciseList() {
   const startWrap = document.getElementById('build-start-wrap');
   if (!buildExercises.length) {
     el.innerHTML = '<div class="empty-state">No exercises yet — add one below.</div>';
-    // Keep start button visible in cardio mode (no exercises needed)
-    startWrap.style.display = buildMode === 'cardio' ? 'block' : 'none';
+    startWrap.style.display = 'none';
     return;
   }
   startWrap.style.display = 'block';
@@ -613,8 +672,6 @@ document.querySelectorAll('.build-mode-btn').forEach(btn => {
     buildExercises = [];
     cfMovements    = [];
     selectedMuscles = [];
-    const startWrap = document.getElementById('build-start-wrap');
-    startWrap.style.display = buildMode === 'cardio' ? 'block' : 'none';
     renderBuild();
   });
 });
@@ -660,15 +717,7 @@ function saveCustomWorkout() {
 }
 
 function startCustomWorkout() {
-  const name = document.getElementById('custom-name').value || (buildMode === 'cardio' ? 'Cardio Session' : buildMode === 'crossfit' ? 'My WOD' : 'My Workout');
-
-  if (buildMode === 'cardio') {
-    const cardioType = document.querySelector('input[name="cardio-type"]:checked')?.value || 'Run';
-    const cardioTarget = document.getElementById('cardio-target').value;
-    const cardioNotes = document.getElementById('cardio-notes').value;
-    beginCardioWorkout(`${cardioType}${cardioTarget ? ' · ' + cardioTarget : ''}`, cardioType, cardioTarget, cardioNotes);
-    return;
-  }
+  const name = document.getElementById('custom-name').value || (buildMode === 'crossfit' ? 'My WOD' : 'My Workout');
 
   if (buildMode === 'crossfit') {
     if (!cfMovements.length) return;
@@ -1697,15 +1746,26 @@ function renderHistory() {
   const prs = Object.entries(prMap).filter(([, v]) => v > 0);
   document.getElementById('pr-count').textContent = `${prs.length} PRs`;
 
-  document.getElementById('pr-row').innerHTML = prs
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(([name, val]) => `
-      <div class="pr-card">
-        <div class="pr-val">${val}kg</div>
-        <div class="pr-label">${name.split(' ').slice(-1)[0]}</div>
-      </div>
-    `).join('');
+  if (!prs.length) {
+    document.getElementById('pr-row').innerHTML = `
+      <div class="pr-empty">
+        <p>Log your current bests — unlocks weight suggestions and warmup plans.</p>
+        <button class="pr-log-cta" id="btn-log-prs-h">Log my lifts →</button>
+      </div>`;
+    document.getElementById('btn-log-prs-h').addEventListener('click', openPRLog);
+  } else {
+    document.getElementById('pr-row').innerHTML = `
+      ${prs.sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name, val]) => `
+        <div class="pr-card">
+          <div class="pr-val">${val}kg</div>
+          <div class="pr-label">${name.split(' ').slice(-1)[0]}</div>
+        </div>`).join('')}
+      <div class="pr-card pr-card-add" id="btn-add-prs">
+        <div class="pr-val pr-add-icon">+</div>
+        <div class="pr-label">Add</div>
+      </div>`;
+    document.getElementById('btn-add-prs').addEventListener('click', openPRLog);
+  }
 
   const listEl = document.getElementById('history-list');
   if (!history.length) {
@@ -1771,6 +1831,53 @@ function renderHistory() {
     });
   });
 }
+
+// ─── PR LOG MODAL ─────────────────────────────────────────────────────────────
+const PR_LOG_EXERCISES = [
+  'Barbell Bench Press',
+  'Barbell Back Squat',
+  'Conventional Deadlift',
+  'Barbell Overhead Press',
+  'Barbell Row (Overhand)',
+  'Weighted Pull-Up',
+  'Romanian Deadlift',
+  'Incline Dumbbell Press',
+  'Hip Thrust (Barbell)',
+];
+
+function openPRLog() {
+  const prMap = getPRMap();
+  const container = document.getElementById('pr-log-inputs');
+  container.innerHTML = PR_LOG_EXERCISES.map(name => `
+    <div class="pr-log-row">
+      <label class="pr-log-label">${name}</label>
+      <div class="pr-log-input-wrap">
+        <input type="number" class="pr-log-input" data-ex="${name}"
+          placeholder="—" value="${prMap[name] || ''}"
+          inputmode="decimal" min="0" step="0.5">
+        <span class="pr-log-unit">kg</span>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('pr-log-modal').classList.add('open');
+}
+
+document.getElementById('pr-log-save').addEventListener('click', () => {
+  const prMap = getPRMap();
+  document.querySelectorAll('.pr-log-input').forEach(input => {
+    const val = parseFloat(input.value);
+    if (val > 0) prMap[input.dataset.ex] = val;
+  });
+  set('prMap', prMap);
+  document.getElementById('pr-log-modal').classList.remove('open');
+  renderHistory();
+});
+document.getElementById('btn-close-pr-log').addEventListener('click', () => {
+  document.getElementById('pr-log-modal').classList.remove('open');
+});
+document.getElementById('pr-log-modal').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('open');
+});
 
 // Export CSV
 document.getElementById('btn-export').addEventListener('click', () => {
