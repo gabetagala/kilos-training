@@ -434,17 +434,19 @@ function startCoachWorkout(coachId, workoutName) {
 }
 
 function beginCFWorkout(name, cfData) {
-  newPRsThisSession = [];
-  activeWorkout = { name, type: cfData.type, cf: cfData };
-  cfCurrentRound    = 0;
-  cfRoundsCompleted = 0;
-  cfMovementsDone   = new Set();
-  cfRoundLog        = [];
-  workoutStartTime  = Date.now();
-  totalWeightMoved  = 0;
-  sessionSets       = 0;
-  stopTimer();
-  goScreen('active');
+  requireName(() => {
+    newPRsThisSession = [];
+    activeWorkout = { name, type: cfData.type, cf: cfData };
+    cfCurrentRound    = 0;
+    cfRoundsCompleted = 0;
+    cfMovementsDone   = new Set();
+    cfRoundLog        = [];
+    workoutStartTime  = Date.now();
+    totalWeightMoved  = 0;
+    sessionSets       = 0;
+    stopTimer();
+    goScreen('active');
+  });
 }
 
 // ─── BUILD ────────────────────────────────────────────────────────────────────
@@ -824,27 +826,75 @@ document.getElementById('btn-close-shuffle').addEventListener('click', () => {
   });
 });
 
+// ─── NAME PROMPT — fires once before first workout ────────────────────────────
+const NAME_KEY = 'kilos-name';
+const getUserName = () => get(NAME_KEY);
+const saveUserName = (n) => set(NAME_KEY, (n || '').trim() || 'Athlete');
+
+let _npCallback = null; // pending workout to launch after name captured
+
+function requireName(callback) {
+  if (getUserName()) { callback(); return; }
+  _npCallback = callback;
+  const overlay = document.getElementById('name-prompt');
+  overlay.classList.add('open');
+  // Hide Google button if Supabase not configured
+  document.getElementById('np-google-wrap').style.display = isConfigured ? '' : 'none';
+  setTimeout(() => document.getElementById('np-input').focus(), 320);
+}
+
+function closeNamePrompt() {
+  document.getElementById('name-prompt').classList.remove('open');
+}
+
+// "Just save on this device →"
+document.getElementById('np-local-btn').addEventListener('click', () => {
+  saveUserName(document.getElementById('np-input').value);
+  closeNamePrompt();
+  if (_npCallback) { _npCallback(); _npCallback = null; }
+});
+
+// Enter key on name input = same as local button
+document.getElementById('np-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('np-local-btn').click();
+});
+
+// "Continue with Google · sync across devices"
+document.getElementById('np-google-btn').addEventListener('click', async () => {
+  const typed = document.getElementById('np-input').value.trim();
+  if (typed) saveUserName(typed);
+  closeNamePrompt();
+  await signInWithGoogle();
+  // Auth redirect handles the rest; workout will be re-triggered by user
+  // after they return, so we just clear the pending callback here
+  _npCallback = null;
+});
+
 // ─── ACTIVE WORKOUT ───────────────────────────────────────────────────────────
 function beginWorkout(name, type, exercises) {
-  newPRsThisSession = [];
-  activeWorkout = { name, type, exercises };
-  currentExIdx = 0;
-  currentSetIdx = 0;
-  workoutStartTime = Date.now();
-  totalWeightMoved = 0;
-  sessionSets = 0;
-  stopTimer();
-  goScreen('active');
+  requireName(() => {
+    newPRsThisSession = [];
+    activeWorkout = { name, type, exercises };
+    currentExIdx = 0;
+    currentSetIdx = 0;
+    workoutStartTime = Date.now();
+    totalWeightMoved = 0;
+    sessionSets = 0;
+    stopTimer();
+    goScreen('active');
+  });
 }
 
 function beginCardioWorkout(name, cardioType, target, notes) {
-  newPRsThisSession = [];
-  activeWorkout = { name, type: 'cardio', cardioType, target, notes, startTime: Date.now() };
-  workoutStartTime = Date.now();
-  totalWeightMoved = 0;
-  sessionSets = 0;
-  stopTimer();
-  goScreen('active');
+  requireName(() => {
+    newPRsThisSession = [];
+    activeWorkout = { name, type: 'cardio', cardioType, target, notes, startTime: Date.now() };
+    workoutStartTime = Date.now();
+    totalWeightMoved = 0;
+    sessionSets = 0;
+    stopTimer();
+    goScreen('active');
+  });
 }
 
 const CF_TYPES = new Set(['emom', 'amrap', 'rounds', 'fortime']);
