@@ -1,7 +1,7 @@
 import html2canvas from 'html2canvas';
 import { EXERCISES_DB, COACHES_DATA, LEGENDS_DATA, FAMOUS_WODS, SHUFFLE_PLANS, MUSCLES, MUSCLES_ALL } from './data.js';
 import {
-  EQUIPMENT_TIERS,
+  EQUIPMENT_TIERS, INJURY_TYPES,
   getProfile, saveProfile, getActiveProfile, resolveExercise,
 } from './personalization.js';
 import {
@@ -13,6 +13,35 @@ import {
 // ─── STORAGE ──────────────────────────────────────────────────────────────────
 const get = (k) => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } };
 const set = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+// ─── PERSISTENCE KEYS ────────────────────────────────────────────────────────
+const ACTIVE_STATE_KEY = 'kilos-active-state';
+
+function saveActiveState() {
+  if (!activeWorkout) { try { localStorage.removeItem(ACTIVE_STATE_KEY); } catch {} return; }
+  set(ACTIVE_STATE_KEY, {
+    activeWorkout, currentExIdx, currentSetIdx,
+    workoutStartTime, totalWeightMoved, sessionSets,
+    cfCurrentRound, cfRoundsCompleted, cfRoundLog,
+    cfMovementsDone: [...cfMovementsDone],
+  });
+}
+
+function loadActiveState() {
+  const s = get(ACTIVE_STATE_KEY);
+  if (!s || !s.activeWorkout) return false;
+  activeWorkout      = s.activeWorkout;
+  currentExIdx       = s.currentExIdx || 0;
+  currentSetIdx      = s.currentSetIdx || 0;
+  workoutStartTime   = s.workoutStartTime || Date.now();
+  totalWeightMoved   = s.totalWeightMoved || 0;
+  sessionSets        = s.sessionSets || 0;
+  cfCurrentRound     = s.cfCurrentRound || 0;
+  cfRoundsCompleted  = s.cfRoundsCompleted || 0;
+  cfRoundLog         = s.cfRoundLog || [];
+  cfMovementsDone    = new Set(s.cfMovementsDone || []);
+  return true;
+}
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let activeWorkout = null;
@@ -47,7 +76,19 @@ let cfRoundsCompleted = 0;
 let cfMovementsDone = new Set(); // indices complete in current round
 let cfRoundLog      = [];        // [bool] one per EMOM round
 
-// (ring removed — bold type timer)
+// ─── UNIT SYSTEM ─────────────────────────────────────────────────────────────
+const UNIT_KEY = 'kilos-unit';
+function getUnit() { return get(UNIT_KEY) || 'kg'; }
+function isLbs() { return getUnit() === 'lbs'; }
+function toDisplayWeight(kg) {
+  if (!isLbs()) return kg;
+  return kg ? Math.round(parseFloat(kg) * 2.2046 * 4) / 4 : kg; // round to nearest 0.25 lbs
+}
+function fromDisplayWeight(val) {
+  if (!isLbs()) return val;
+  return val ? Math.round(parseFloat(val) / 2.2046 * 10) / 10 : val;
+}
+function weightUnit() { return isLbs() ? 'lbs' : 'kg'; }
 
 // ─── AUDIO ────────────────────────────────────────────────────────────────────
 let audioCtx;
@@ -196,7 +237,12 @@ function renderHome() {
   renderRecent();
   updateStreak();
   renderDataNotice();
+  const resumeBtn = document.getElementById('btn-resume');
   document.getElementById('resume-sub').textContent = activeWorkout ? activeWorkout.name : 'No active session';
+  if (resumeBtn) {
+    resumeBtn.classList.toggle('resume-active', !!activeWorkout);
+    resumeBtn.style.order = activeWorkout ? '-1' : '';
+  }
 
   // Profile indicator
   const profile = getActiveProfile();
@@ -212,6 +258,22 @@ function renderHome() {
     header.insertAdjacentElement('afterend', tag);
   }
   tag.textContent = `${tierLabel}${injuryLabel}`;
+
+  // Unit toggle (kg ↔ lbs) — injected next to profile tag
+  let unitBtn = document.getElementById('unit-toggle-btn');
+  if (!unitBtn) {
+    unitBtn = document.createElement('button');
+    unitBtn.id = 'unit-toggle-btn';
+    unitBtn.className = 'unit-toggle-btn';
+    tag.insertAdjacentElement('afterend', unitBtn);
+    unitBtn.addEventListener('click', () => {
+      set(UNIT_KEY, isLbs() ? 'kg' : 'lbs');
+      renderHome();
+      if (activeWorkout) renderSetLog();
+    });
+  }
+  unitBtn.textContent = isLbs() ? 'kg' : 'lbs';
+  unitBtn.title = `Switch to ${isLbs() ? 'kg' : 'lbs'}`;
 
   matchWordmarkWidth();
 }
@@ -291,11 +353,35 @@ function closePage(id) { document.getElementById(id).classList.remove('open'); }
 // ── Quick Start page ──────────────────────────────────────────────────────────
 const QS_MUSCLES = Object.keys(SHUFFLE_PLANS);
 
+function getMuscleDaysAgo(muscle) {
+  const history = get('workoutHistory') || [];
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  for (let i = history.length - 1; i >= 0; i--) {
+    const h = history[i];
+    if (h.type !== 'strength') continue;
+    const hasMusc = (h.exercises || []).some(ex => {
+      const dbEx = EXERCISES_DB.find(e => e.name === ex.name);
+      return dbEx?.group?.toLowerCase() === muscle.toLowerCase();
+    });
+    if (hasMusc) {
+      const d = new Date(h.date); d.setHours(0, 0, 0, 0);
+      return Math.round((today - d) / 864e5);
+    }
+  }
+  return null;
+}
+
 function renderQSPage() {
   const el = document.getElementById('qs-page-chips');
-  el.innerHTML = QS_MUSCLES.map(m => `
-    <button class="qs-page-chip" data-muscle="${m}">${m}</button>
-  `).join('');
+  el.innerHTML = QS_MUSCLES.map(m => {
+    const days = getMuscleDaysAgo(m);
+    let badge = '', cls = '';
+    if (days === null) { cls = 'qs-fresh'; badge = '<span class="qs-chip-badge">fresh</span>'; }
+    else if (days === 0) { cls = 'qs-hot'; badge = '<span class="qs-chip-badge">today</span>'; }
+    else if (days <= 2) { cls = 'qs-warm'; badge = `<span class="qs-chip-badge">${days}d ago</span>`; }
+    else { cls = 'qs-ready'; badge = `<span class="qs-chip-badge">${days}d</span>`; }
+    return `<button class="qs-page-chip ${cls}" data-muscle="${m}">${m}${badge}</button>`;
+  }).join('');
   el.querySelectorAll('.qs-page-chip').forEach(chip => {
     chip.addEventListener('click', () => {
       closePage('qs-page');
@@ -318,8 +404,9 @@ function renderLegendsPage() {
   const contentEl = document.getElementById('legends-page-content');
 
   tabsEl.innerHTML = legends.map(l => `
-    <button class="legend-tab${selectedLegendId === l.id ? ' active' : ''}" data-lid="${l.id}">
-      ${l.name.split(' ').pop()}
+    <button class="legend-tab${selectedLegendId === l.id ? ' active' : ''}" data-lid="${l.id}" title="${l.name}${l.era ? ' · ' + l.era : ''}">
+      <span class="lt-name">${l.name.split(' ').pop()}</span>
+      ${l.era ? `<span class="lt-era">${l.era.replace(/[()]/g, '').split(' ')[0]}</span>` : ''}
     </button>
   `).join('');
   tabsEl.querySelectorAll('.legend-tab').forEach(btn => {
@@ -390,7 +477,7 @@ function renderCFPage() {
         </div>
         <div class="lwc-right">
           <div class="lwc-sets">${w.movements?.length || 0}</div>
-          <div class="lwc-sets-lbl">moves</div>
+          <div class="lwc-sets-lbl">${(w.movements?.length || 0) === 1 ? 'move' : 'moves'}</div>
         </div>
       </div>`;
     }).join('')}
@@ -600,6 +687,7 @@ function beginCFWorkout(name, cfData) {
   totalWeightMoved  = 0;
   sessionSets       = 0;
   stopTimer();
+  saveActiveState();
   goScreen('active');
 }
 
@@ -1020,6 +1108,7 @@ function beginWorkout(name, type, exercises) {
   totalWeightMoved = 0;
   sessionSets = 0;
   stopTimer();
+  saveActiveState();
   goScreen('active');
 }
 
@@ -1030,6 +1119,7 @@ function beginCardioWorkout(name, cardioType, target, notes) {
   totalWeightMoved = 0;
   sessionSets = 0;
   stopTimer();
+  saveActiveState();
   goScreen('active');
 }
 
@@ -1336,9 +1426,13 @@ function advanceCFRound() {
 
 function renderExNav() {
   const pills = document.getElementById('ex-nav-pills');
-  pills.innerHTML = activeWorkout.exercises.map((_, i) => `
-    <div class="ex-nav-pill${i === currentExIdx ? ' active' : ''}" data-idx="${i}"></div>
-  `).join('');
+  const nextEx = activeWorkout.exercises[currentExIdx + 1];
+  pills.innerHTML = `
+    ${activeWorkout.exercises.map((_, i) => `
+      <div class="ex-nav-pill${i === currentExIdx ? ' active' : ''}" data-idx="${i}"></div>
+    `).join('')}
+    ${nextEx ? `<span class="ex-nav-next">Up: ${nextEx.name}</span>` : ''}
+  `;
   pills.querySelectorAll('.ex-nav-pill').forEach(p => {
     p.addEventListener('click', () => jumpToEx(parseInt(p.dataset.idx)));
   });
@@ -1387,6 +1481,17 @@ function renderCurrentExercise() {
     setsEl.insertAdjacentElement('afterend', hint);
   }
 
+  // Next exercise preview (task #25)
+  document.getElementById('next-ex-preview')?.remove();
+  const nextEx = activeWorkout.exercises[currentExIdx + 1];
+  if (nextEx) {
+    const nextPreview = document.createElement('div');
+    nextPreview.id = 'next-ex-preview';
+    nextPreview.className = 'next-ex-preview';
+    nextPreview.textContent = `Next: ${nextEx.name}`;
+    document.querySelector('.exercise-display').appendChild(nextPreview);
+  }
+
   // Swap exercise button — lets user replace current exercise mid-session
   const swapBtn = document.createElement('button');
   swapBtn.id = 'btn-swap-ex';
@@ -1426,6 +1531,8 @@ function renderCurrentExercise() {
         </div>`).join('')}
       </div>`;
     warmupEl.querySelector('.warmup-header').addEventListener('click', () => warmupEl.classList.toggle('open'));
+    // Open warmup by default on the first exercise (task #9)
+    if (currentExIdx === 0) warmupEl.classList.add('open');
     document.querySelector('.set-log-title').insertAdjacentElement('afterend', warmupEl);
   }
 }
@@ -1434,17 +1541,24 @@ function renderSetLog() {
   const ex = activeWorkout.exercises[currentExIdx];
   const lastSession = getLastSession(ex.name);
   const suggestion = suggestNextWeight(lastSession, ex.reps);
+  const unit = weightUnit();
   const rows = document.getElementById('set-log-rows');
   rows.innerHTML = (suggestion
-    ? `<div class="overload-hint">→ Try ${suggestion}kg today</div>`
+    ? `<div class="overload-hint">
+         <span class="oh-arrow">↑</span>
+         <span class="oh-text">Try <strong>${isLbs() ? toDisplayWeight(suggestion) : suggestion}${unit}</strong> today</span>
+         <span class="oh-sub">+2.5${unit} progressive overload</span>
+       </div>`
     : '') + ex.logs.map((log, i) => {
     const prev = lastSession?.[i];
-    const wPlaceholder = prev?.weight ? `${prev.weight}` : 'kg';
+    const dispPrevW = prev?.weight ? toDisplayWeight(prev.weight) : null;
+    const wPlaceholder = dispPrevW ? `${dispPrevW}` : unit;
     const rPlaceholder = prev?.reps ? `${prev.reps}` : ex.reps;
-    const prevHint = prev?.weight ? `<span class="log-prev">Last: ${prev.weight}kg × ${prev.reps}</span>` : '';
+    const prevHint = dispPrevW ? `<span class="log-prev">Last: ${dispPrevW}${unit} × ${prev.reps}</span>` : '';
+    const dispLogW = log.weight ? toDisplayWeight(log.weight) : '';
     return `<div class="log-row">
       <span class="log-set-num">${i + 1}</span>
-      <input class="log-input" type="number" placeholder="${wPlaceholder}" value="${log.weight}"
+      <input class="log-input" type="number" placeholder="${wPlaceholder}" value="${dispLogW}"
         data-idx="${i}" data-field="weight" inputmode="decimal">
       <span class="log-x">×</span>
       <input class="log-input" type="text" placeholder="${rPlaceholder}" value="${log.reps}"
@@ -1458,7 +1572,13 @@ function renderSetLog() {
 
   rows.querySelectorAll('.log-input').forEach(input => {
     input.addEventListener('input', () => {
-      activeWorkout.exercises[currentExIdx].logs[parseInt(input.dataset.idx)][input.dataset.field] = input.value;
+      const idx = parseInt(input.dataset.idx);
+      const field = input.dataset.field;
+      // Convert lbs back to kg for storage
+      const val = (field === 'weight' && isLbs())
+        ? (input.value ? String(fromDisplayWeight(input.value)) : '')
+        : input.value;
+      activeWorkout.exercises[currentExIdx].logs[idx][field] = val;
     });
   });
   rows.querySelectorAll('.log-done').forEach(btn => {
@@ -1492,6 +1612,7 @@ function toggleSetDone(setIdx) {
 
     stopTimer();
     startTimer(ex.rest, 'rest');
+    saveActiveState();
   }
   renderSetLog();
 }
@@ -1499,13 +1620,13 @@ function toggleSetDone(setIdx) {
 document.getElementById('btn-prev-ex').addEventListener('click', () => {
   if (!activeWorkout || activeWorkout.type === 'cardio' || currentExIdx <= 0) return;
   currentExIdx--; currentSetIdx = 0; stopTimer(); renderCurrentExercise(); renderExNav();
+  saveActiveState();
 });
 document.getElementById('btn-next-ex').addEventListener('click', () => {
   if (!activeWorkout || activeWorkout.type === 'cardio' || currentExIdx >= activeWorkout.exercises.length - 1) return;
   currentExIdx++; currentSetIdx = 0; stopTimer(); renderCurrentExercise(); renderExNav();
+  saveActiveState();
 });
-document.getElementById('nav-prev').addEventListener('click', () => document.getElementById('btn-prev-ex').click());
-document.getElementById('nav-next').addEventListener('click', () => document.getElementById('btn-next-ex').click());
 
 // ─── TIMER ────────────────────────────────────────────────────────────────────
 function setTimerText(time, phase) {
@@ -1712,7 +1833,30 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ─── FINISH ───────────────────────────────────────────────────────────────────
-document.getElementById('btn-finish').addEventListener('click', finishWorkout);
+document.getElementById('btn-finish').addEventListener('click', () => {
+  if (!activeWorkout) return;
+  // Guard: if no sets logged yet, show 0-data warning in confirm sub-text (task #3)
+  const hasSets = activeWorkout.exercises
+    ? activeWorkout.exercises.some(e => e.logs?.some(l => l.done))
+    : false;
+  const isCFOrCardio = !activeWorkout.exercises;
+  const sub = document.getElementById('finish-confirm-sub');
+  if (sub) {
+    if (!hasSets && !isCFOrCardio) {
+      sub.textContent = 'No sets logged yet — you sure you want to end?';
+    } else {
+      sub.textContent = 'This will end your session and save it.';
+    }
+  }
+  document.getElementById('finish-confirm').classList.add('open');
+});
+document.getElementById('btn-finish-yes').addEventListener('click', () => {
+  document.getElementById('finish-confirm').classList.remove('open');
+  finishWorkout();
+});
+document.getElementById('btn-finish-no').addEventListener('click', () => {
+  document.getElementById('finish-confirm').classList.remove('open');
+});
 
 function finishWorkout() {
   if (!activeWorkout) return;
@@ -1753,8 +1897,10 @@ function finishWorkout() {
 
   lastFinishedWorkout = completed;
   lastFinishedEntry = entry;
-  showShareCard(completed, durationStr, entry);
   activeWorkout = null;
+  saveActiveState(); // clear persisted active state
+  renderHome();      // update Resume button
+  showShareCard(completed, durationStr, entry);
 }
 
 function showShareCard(workout, duration, entry) {
@@ -2225,7 +2371,8 @@ function openOnboarding() {
 function showObView(view) {
   document.getElementById('ob-view-main').classList.toggle('active', view === 'main');
   document.getElementById('ob-view-custom').classList.toggle('active', view === 'custom');
-  // Back button: visible only in custom sub-view
+  document.getElementById('ob-view-injuries').classList.toggle('active', view === 'injuries');
+  // Back button: visible in custom and injuries sub-views
   document.getElementById('ob-back').classList.toggle('hidden', view === 'main');
 }
 
@@ -2233,17 +2380,46 @@ function closeOnboarding() {
   document.getElementById('onboarding-modal').classList.remove('open');
 }
 
+let _pendingTier = null;
+
 function pickTier(tierId) {
-  const isFirstTime = !getProfile().setupComplete;
+  // Store tier, then advance to injury step
+  _pendingTier = tierId;
+  renderInjuryChips();
+  showObView('injuries');
+}
+
+function commitTier() {
   saveProfile({
-    equipmentTier: tierId,
-    injuries: getProfile().injuries || [],
+    equipmentTier: _pendingTier || 'full-gym',
+    injuries: [...obSelectedInjuries],
     setupComplete: true,
     setupDate: new Date().toISOString(),
   });
+  _pendingTier = null;
   closeOnboarding();
   renderHome();
 }
+
+let obSelectedInjuries = new Set();
+
+function renderInjuryChips() {
+  const grid = document.getElementById('ob-injury-grid');
+  grid.innerHTML = INJURY_TYPES.map(inj => `
+    <button class="ob-eq-chip${obSelectedInjuries.has(inj.id) ? ' selected' : ''}" data-inj="${inj.id}">
+      ${inj.label}
+    </button>
+  `).join('');
+  grid.querySelectorAll('.ob-eq-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const id = chip.dataset.inj;
+      if (obSelectedInjuries.has(id)) { obSelectedInjuries.delete(id); chip.classList.remove('selected'); }
+      else { obSelectedInjuries.add(id); chip.classList.add('selected'); }
+    });
+  });
+}
+
+document.getElementById('ob-injury-done').addEventListener('click', commitTier);
 
 // Main view: tap Full Gym or Bodyweight → immediate save; tap Custom → chip view
 document.getElementById('ob-tiers-main').addEventListener('click', e => {
@@ -2306,8 +2482,20 @@ document.getElementById('ob-eq-done').addEventListener('click', () => {
   pickTier(equipmentToTier(obSelectedEquipment));
 });
 
-// Back button: return to main view
-document.getElementById('ob-back').addEventListener('click', () => showObView('main'));
+// Back button: return to appropriate view
+document.getElementById('ob-back').addEventListener('click', () => {
+  const injuriesActive = document.getElementById('ob-view-injuries').classList.contains('active');
+  if (injuriesActive) {
+    // If custom equipment was selected, go back to custom; otherwise main
+    if (_pendingTier === equipmentToTier(obSelectedEquipment) && obSelectedEquipment.size > 0) {
+      showObView('custom');
+    } else {
+      showObView('main');
+    }
+  } else {
+    showObView('main');
+  }
+});
 
 // Skip: close immediately, default to full-gym if not previously set
 document.getElementById('ob-skip').addEventListener('click', () => {
@@ -2413,10 +2601,25 @@ fbSend.addEventListener('click', async () => {
   }
 });
 
+// ─── COACHES NOTIFY ───────────────────────────────────────────────────────────
+document.getElementById('btn-coaches-notify')?.addEventListener('click', function () {
+  const status = document.getElementById('coaches-notify-status');
+  const notified = get('coaches-notify');
+  if (notified) { if (status) status.textContent = 'You\'re already on the list.'; return; }
+  set('coaches-notify', new Date().toISOString());
+  this.textContent = 'You\'re on the list ✓';
+  this.disabled = true;
+  if (status) status.textContent = 'We\'ll let you know when local coaches go live.';
+});
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
+// Restore in-progress workout from localStorage (task #1)
+if (loadActiveState()) {
+  renderHome();           // update Resume button + streak
+  renderActiveScreen();   // rebuild active workout UI
+}
 renderHome();
 renderCoaches();
-
 
 // Active placeholder → go home
 document.getElementById('ap-go-home')?.addEventListener('click', () => goScreen('home'));
@@ -2426,7 +2629,9 @@ document.getElementById('ap-go-home')?.addEventListener('click', () => goScreen(
 // Returning user: all skipped (beta-seen + name already saved)
 function runPostNameFlow() {
   const profile = getProfile();
-  if (!profile.setupComplete) openOnboarding();
+  // Only open onboarding for true first-timers — not returning users who happened
+  // to clear a single key or have a partial profile from an older app version.
+  if (!profile.setupComplete && !profile.equipmentTier) openOnboarding();
 }
 
 setTimeout(() => {

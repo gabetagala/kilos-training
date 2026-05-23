@@ -7,11 +7,16 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="KILOS">
 <meta name="theme-color" content="#222222">
+<!-- Favicon — SVG master (scales to any size, used by modern browsers) -->
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<!-- Fallback PNGs for older browsers and specific platform sizes -->
+<link rel="icon" type="image/png" sizes="48x48"   href="/icons/icon-48.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
 <link rel="shortcut icon" href="/icons/icon-192.png">
 <link rel="manifest" href="/manifest.json">
-<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<!-- Apple touch icon — used when saved to iOS home screen -->
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
 <title>KILOS TRAINING — Train Heavy. Free Forever.</title>
 
 <!-- Open Graph -->
@@ -34,6 +39,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/src/style.css">
+<!-- FOUC prevention: set wordmark letter-spacing before JS splits into spans -->
+<style>
+  .hw-training { letter-spacing: 0.245em; }
+</style>
 </head>
 <body>
 <div id="phone-frame">
@@ -126,6 +135,8 @@
           <h1 class="cs-title">LOCAL<br>COACHES</h1>
           <p class="cs-body">We're working with local coaches and athletes to bring you real programs from people who actually know the game. Stay tuned.</p>
           <div class="cs-sig">— Gabe</div>
+          <button class="cs-notify-btn" id="btn-coaches-notify">Notify me when it's live →</button>
+          <div class="cs-notify-status" id="coaches-notify-status"></div>
         </div>
       </div>
 
@@ -236,9 +247,7 @@
           <button class="active-finish" id="btn-finish">Finish</button>
         </div>
         <div class="exercise-nav" id="exercise-nav">
-          <button class="ex-nav-btn" id="nav-prev">← Prev</button>
           <div class="ex-nav-pills" id="ex-nav-pills"></div>
-          <button class="ex-nav-btn" id="nav-next">Next →</button>
         </div>
         <!-- BOLD TYPE TIMER -->
         <div class="exercise-display" id="exercise-display">
@@ -347,6 +356,28 @@
           <button class="ob-done-btn" id="ob-eq-done">Done →</button>
         </div>
 
+        <!-- View C: Injury flags -->
+        <div class="ob-view" id="ob-view-injuries">
+          <div class="ob-label">ANY LIMITATIONS?</div>
+          <div class="ob-injury-hint">We'll swap exercises that stress these areas. Tap all that apply.</div>
+          <div class="ob-injury-grid" id="ob-injury-grid">
+            <!-- chips rendered by JS -->
+          </div>
+          <button class="ob-done-btn" id="ob-injury-done">Looks good →</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ─── FINISH CONFIRM DIALOG ─── -->
+    <div class="confirm-overlay" id="finish-confirm">
+      <div class="confirm-sheet">
+        <div class="confirm-title">FINISH WORKOUT?</div>
+        <div class="confirm-sub" id="finish-confirm-sub">This will end your session and save it.</div>
+        <div class="confirm-actions">
+          <button class="confirm-yes" id="btn-finish-yes">Yes, finish</button>
+          <button class="confirm-no" id="btn-finish-no">Keep going</button>
+        </div>
       </div>
     </div>
 

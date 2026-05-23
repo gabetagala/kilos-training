@@ -1,22 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
-  <rect width="48" height="48" rx="10" fill="#222222"/>
-  <!-- KILOS in condensed bold — matches home wordmark style -->
-  <text
-    x="24" y="29"
-    font-family="Impact, 'Arial Black', Arial, sans-serif"
-    font-size="20"
-    font-weight="900"
-    text-anchor="middle"
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Squircle background — ~23% radius matches iOS/Android icon spec -->
+  <rect width="512" height="512" rx="118" ry="118" fill="#222222"/>
+  <!--
+    K mark — single white polygon.
+    Shape: rectangle with a V-notch cut into the right side at the vertical midpoint.
+    Left vertical edge = spine of the K.
+    Upper diagonal = upper arm of K.
+    Lower diagonal = lower arm of K.
+    Notch depth ≈ 42% of mark width for a bold, deep cut.
+  -->
+  <polygon
+    points="120,120 396,120 280,256 396,392 120,392"
     fill="#ffffff"
-    letter-spacing="-0.5"
-  >KILOS</text>
-  <!-- TRAINING tracked below -->
-  <text
-    x="24" y="38"
-    font-family="'Courier New', monospace"
-    font-size="5"
-    text-anchor="middle"
-    fill="rgba(255,255,255,0.45)"
-    letter-spacing="2.5"
-  >TRAINING</text>
+  />
 </svg>

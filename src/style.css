@@ -1367,12 +1367,15 @@ body {
 }
 
 /* ══════════════════════════════════════════
-   DATA SAFETY NOTICE — home screen bottom
+   DATA SAFETY NOTICE — task #16: sticky footer outside scroll
 ══════════════════════════════════════════ */
 .data-notice {
-  padding: 20px 0 12px;
+  padding: 16px 0 12px;
   border-top: 1px solid var(--line);
-  margin-top: 8px;
+  margin-top: 24px;
+  position: sticky; bottom: 70px; /* task #16: stays visible above nav while scrolling */
+  background: var(--bg);
+  z-index: 5;
 }
 .dn-top {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -1465,7 +1468,7 @@ body {
 .history-item.expanded { background: var(--bg2); padding: 16px 12px 4px; margin: 0 -12px; }
 
 /* ══════════════════════════════════════════
-   PROGRESSIVE OVERLOAD HINT
+   PROGRESSIVE OVERLOAD HINT (base — enhanced by task #24 override below)
 ══════════════════════════════════════════ */
 .overload-hint {
   font-family: 'Space Mono', monospace;
@@ -1944,4 +1947,243 @@ body {
   /* Page overlays already use position:absolute — they clip naturally */
   /* (no override needed; .page-overlay is absolute by default) */
 
+}
+
+/* ══════════════════════════════════════════
+   TASK #2 — FINISH CONFIRM DIALOG
+══════════════════════════════════════════ */
+.confirm-overlay {
+  display: none; position: fixed; inset: 0; z-index: 700;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  align-items: flex-end; justify-content: center;
+}
+.confirm-overlay.open { display: flex; }
+.confirm-sheet {
+  width: 100%; max-width: 430px;
+  background: #1c1c1c;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding: 28px 24px max(28px, env(safe-area-inset-bottom));
+  animation: sheetIn 0.24s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+.confirm-title {
+  font-family: 'Bebas Neue', sans-serif; font-size: 36px;
+  letter-spacing: 0.04em; line-height: 1; margin-bottom: 8px;
+}
+.confirm-sub {
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--grey); line-height: 1.7; margin-bottom: 24px;
+}
+.confirm-actions { display: flex; flex-direction: column; gap: 10px; }
+.confirm-yes {
+  background: var(--white); color: var(--bg); border: none;
+  font-family: 'Bebas Neue', sans-serif; font-size: 20px;
+  letter-spacing: 0.03em; padding: 16px; cursor: pointer;
+  transition: opacity 0.15s;
+}
+.confirm-yes:active { opacity: 0.85; }
+.confirm-no {
+  background: none; border: none; color: var(--grey);
+  font-family: 'Space Mono', monospace; font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  padding: 10px; cursor: pointer; transition: color 0.15s;
+}
+.confirm-no:active { color: var(--white); }
+
+/* ══════════════════════════════════════════
+   TASK #5 — ONBOARDING INJURY VIEW
+══════════════════════════════════════════ */
+.ob-injury-hint {
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--grey); line-height: 1.7; margin-bottom: 20px;
+}
+.ob-injury-grid {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  margin-bottom: 24px;
+}
+
+/* ══════════════════════════════════════════
+   TASK #6 — QUICK START CHIP MUSCLE RECENCY
+══════════════════════════════════════════ */
+.qs-chip-badge {
+  display: inline-block; font-size: 8px;
+  font-family: 'Space Mono', monospace;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  margin-left: 8px; opacity: 0.55;
+  vertical-align: middle;
+}
+.qs-page-chip.qs-hot .qs-chip-badge { color: #e57373; opacity: 0.9; }
+.qs-page-chip.qs-warm .qs-chip-badge { color: #ffb74d; opacity: 0.9; }
+.qs-page-chip.qs-ready .qs-chip-badge { color: #81c784; opacity: 0.9; }
+.qs-page-chip.qs-fresh .qs-chip-badge { opacity: 0.4; }
+
+/* ══════════════════════════════════════════
+   TASK #7 — NEXT EXERCISE LABEL IN NAV
+══════════════════════════════════════════ */
+.ex-nav-next {
+  font-family: 'Space Mono', monospace; font-size: 8px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--grey); margin-left: 12px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; max-width: 140px;
+}
+
+/* ══════════════════════════════════════════
+   TASK #8 — UNIT TOGGLE BUTTON
+══════════════════════════════════════════ */
+.unit-toggle-btn {
+  background: none; border: 1px solid var(--line);
+  font-family: 'Space Mono', monospace; font-size: 8px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--grey); padding: 3px 7px; cursor: pointer;
+  margin-left: 8px;
+  transition: border-color 0.15s, color 0.15s;
+}
+.unit-toggle-btn:active { border-color: var(--white); color: var(--white); }
+
+/* ══════════════════════════════════════════
+   TASK #10 — RESUME BUTTON ELEVATION
+══════════════════════════════════════════ */
+#btn-resume.resume-active {
+  border-top: 1px solid var(--line);
+  background: rgba(255,255,255,0.04);
+}
+#btn-resume.resume-active .qb-title { color: var(--white); }
+#btn-resume.resume-active .qb-arrow { color: var(--white); }
+
+/* ══════════════════════════════════════════
+   TASK #11 — PROMINENT "LOG MY LIFTS" CTA
+══════════════════════════════════════════ */
+.pr-log-cta {
+  background: var(--white) !important; color: var(--bg) !important;
+  border: none !important;
+  padding: 14px 28px !important;
+  font-family: 'Bebas Neue', sans-serif !important;
+  font-size: 18px !important; letter-spacing: 0.03em !important;
+  text-transform: uppercase; cursor: pointer;
+  transition: opacity 0.15s;
+  display: block; width: 100%;
+}
+.pr-log-cta:active { opacity: 0.85 !important; }
+
+/* ══════════════════════════════════════════
+   TASK #13 — SWAP EXERCISE BUTTON (enhanced)
+══════════════════════════════════════════ */
+.swap-ex-btn {
+  background: none !important;
+  border: 1px solid var(--line) !important;
+  font-family: 'Space Mono', monospace !important;
+  font-size: 9px !important; text-transform: uppercase !important;
+  letter-spacing: 0.1em !important; color: var(--grey) !important;
+  cursor: pointer !important;
+  padding: 8px 24px !important; display: block !important;
+  margin: 6px 0 10px !important;
+  transition: border-color 0.15s, color 0.15s !important;
+  width: calc(100% - 48px) !important; margin-left: 24px !important;
+}
+.swap-ex-btn:active { border-color: var(--white) !important; color: var(--white) !important; }
+
+/* ══════════════════════════════════════════
+   TASK #15 — STICKY "START WORKOUT" BUTTON
+══════════════════════════════════════════ */
+#build-start-wrap {
+  position: sticky !important;
+  bottom: 80px !important;
+  margin: 0 -24px !important;
+  padding: 0 24px !important;
+  background: linear-gradient(transparent, var(--bg) 30%) !important;
+  z-index: 10 !important;
+  padding-top: 24px !important;
+}
+#build-start-wrap .start-workout-btn { margin-top: 0 !important; }
+
+/* ══════════════════════════════════════════
+   TASK #17 — COACHES NOTIFY BUTTON
+══════════════════════════════════════════ */
+.cs-notify-btn {
+  margin-top: 24px; background: var(--white); color: var(--bg); border: none;
+  font-family: 'Bebas Neue', sans-serif; font-size: 20px;
+  letter-spacing: 0.02em; padding: 14px 24px;
+  cursor: pointer; transition: opacity 0.15s; align-self: flex-start;
+}
+.cs-notify-btn:active { opacity: 0.85; }
+.cs-notify-btn:disabled { opacity: 0.45; cursor: default; }
+.cs-notify-status {
+  font-family: 'Space Mono', monospace; font-size: 8px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--grey); margin-top: 10px; line-height: 1.7;
+}
+
+/* ══════════════════════════════════════════
+   TASK #18 — LEGENDS TAB ERA/SPORT CONTEXT
+══════════════════════════════════════════ */
+.legend-tab { display: flex !important; flex-direction: column !important; align-items: flex-start !important; white-space: normal !important; }
+.lt-name { white-space: nowrap; }
+.lt-era {
+  font-family: 'Space Mono', monospace; font-size: 7px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--grey); margin-top: 2px; line-height: 1;
+}
+.legend-tab.active .lt-era { color: rgba(255,255,255,0.5); }
+
+/* ══════════════════════════════════════════
+   TASK #19 — FEEDBACK FLOAT BUTTON POSITION
+   (fixes overlap with nav bar)
+══════════════════════════════════════════ */
+.feedback-float {
+  bottom: 80px !important; /* nav bar ~64px + 16px clearance */
+}
+
+/* ══════════════════════════════════════════
+   TASK #21 — PR LOG MODAL SCROLL AFFORDANCE
+══════════════════════════════════════════ */
+.pr-log-sheet {
+  position: relative;
+}
+.pr-log-sheet::after {
+  content: '';
+  position: sticky; bottom: 0;
+  display: block; height: 32px;
+  background: linear-gradient(transparent, #1c1c1c);
+  pointer-events: none;
+}
+.pr-log-inputs { max-height: 55vh; overflow-y: auto; }
+
+/* ══════════════════════════════════════════
+   TASK #24 — OVERLOAD HINT (more prominent)
+══════════════════════════════════════════ */
+.overload-hint {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px !important; color: var(--white) !important;
+  background: rgba(255,255,255,0.06);
+  border-left: 2px solid var(--white);
+  padding: 10px 12px !important; margin-bottom: 8px !important;
+  border-bottom: none !important;
+}
+.oh-arrow { font-size: 16px; color: var(--white); flex-shrink: 0; }
+.oh-text { flex: 1; }
+.oh-text strong { color: var(--white); }
+.oh-sub {
+  font-size: 8px; color: var(--grey);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+/* ══════════════════════════════════════════
+   TASK #25 — NEXT EXERCISE PREVIEW
+══════════════════════════════════════════ */
+.next-ex-preview {
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--grey); padding: 0 24px 6px;
+  display: block;
+}
+
+/* ══════════════════════════════════════════
+   DESKTOP OVERRIDES (must come last)
+══════════════════════════════════════════ */
+@media (min-width: 600px) {
+  .confirm-overlay { position: absolute; }
 }
