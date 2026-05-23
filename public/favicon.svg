@@ -1,14 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
-  <!-- Dark background matching the app -->
   <rect width="48" height="48" rx="10" fill="#222222"/>
-  <!-- Clean white K letterform -->
-  <text
-    x="24" y="36"
-    font-family="Arial Black, Arial, sans-serif"
-    font-weight="900"
-    font-size="34"
-    text-anchor="middle"
-    fill="#ffffff"
-    letter-spacing="-1"
-  >K</text>
+  <g fill="#ffffff">
+    <!-- Spine -->
+    <rect x="11" y="9" width="7" height="30"/>
+    <!-- Upper arm -->
+    <polygon points="18,16 18,24 39,9 35,9"/>
+    <!-- Lower arm -->
+    <polygon points="18,24 18,32 35,39 39,39"/>
+  </g>
 </svg>
