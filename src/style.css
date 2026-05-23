@@ -277,15 +277,43 @@ body {
 ══════════════════════════════════════════ */
 #home { padding: 0 24px 100px; }
 
-/* ── Home hero — full dark, editorial ── */
+/* ── Home hero — off-white panel ── */
 .home-hero {
   margin: 0 -24px;
   padding: 0 24px 0;
-  background: transparent;
+  background: var(--off);
+  color: var(--bg);
   position: relative;
   overflow: hidden;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid rgba(0,0,0,0.08);
 }
+/* Flip child colours to dark-on-light */
+.home-hero .home-header   { border-bottom-color: rgba(0,0,0,0.07); }
+.home-hero .hw-kilos      { color: var(--bg); }
+.home-hero .hw-training   { color: rgba(0,0,0,0.38); }
+.home-hero .streak-chip   { color: rgba(0,0,0,0.4); }
+.home-hero .streak-chip.warm { color: rgba(0,0,0,0.6); }
+.home-hero .streak-chip.hot  { color: var(--bg); }
+.home-hero .profile-btn   { border-color: rgba(0,0,0,0.15); color: rgba(0,0,0,0.45); }
+.home-hero .profile-btn:active { border-color: var(--bg); color: var(--bg); }
+.home-hero .profile-tag   { color: rgba(0,0,0,0.35); border-bottom-color: rgba(0,0,0,0.06); }
+.home-hero .week-strip    { border-bottom: none; padding-bottom: 24px; }
+.home-hero .section-label { color: rgba(0,0,0,0.55); }
+.home-hero .day-cell      { border-bottom-color: rgba(0,0,0,0.1); }
+.home-hero .day-cell.today { border-bottom-color: var(--bg); }
+.home-hero .day-cell.done  { border-bottom-color: rgba(0,0,0,0.18); }
+.home-hero .day-cell.today.done { border-bottom-color: var(--bg); }
+.home-hero .day-cell .day-name  { color: rgba(0,0,0,0.55); }
+.home-hero .day-cell .day-dot   { background: rgba(0,0,0,0.16); }
+.home-hero .day-cell.today .day-dot { background: var(--bg); }
+.home-hero .day-cell.done .day-dot  { background: var(--bg); }
+.home-hero .day-cell.today.done .day-dot { background: var(--bg); }
+.home-hero .muscle-freq-section { border-bottom: none; padding-top: 16px; padding-bottom: 4px; }
+.home-hero .mf-cell       { border-right-color: rgba(0,0,0,0.07); }
+.home-hero .mf-muscle     { color: rgba(0,0,0,0.38); }
+.home-hero .mf-cell.hot   .mf-days { color: var(--bg); }
+.home-hero .mf-cell.warm  .mf-days { color: rgba(0,0,0,0.65); }
+.home-hero .mf-cell.fresh .mf-days { color: rgba(0,0,0,0.22); }
 
 /* ── History hero — stays off-white ── */
 .screen-hero {
@@ -330,9 +358,9 @@ body {
 }
 .hw-training {
   font-family: 'Space Mono', monospace;
-  font-size: 8px; letter-spacing: 0.32em;
+  font-size: 9px; letter-spacing: 0.32em; /* JS overrides letter-spacing to match KILOS width */
   text-transform: uppercase; color: var(--grey);
-  margin-top: 5px;
+  margin-top: 5px; display: block;
 }
 .home-utils {
   display: flex; align-items: center; gap: 10px;

@@ -183,6 +183,16 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
 });
 
 // ─── HOME ─────────────────────────────────────────────────────────────────────
+function matchWordmarkWidth() {
+  const kilosEl    = document.querySelector('.hw-kilos');
+  const trainingEl = document.querySelector('.hw-training');
+  if (!kilosEl || !trainingEl) return;
+  trainingEl.style.letterSpacing = '0';          // reset to measure natural width
+  const gap = kilosEl.offsetWidth - trainingEl.offsetWidth;
+  const chars = trainingEl.textContent.length;   // 8 for "TRAINING"
+  trainingEl.style.letterSpacing = `${gap / chars}px`;
+}
+
 function renderHome() {
   renderWeekStrip();
   renderMuscleFrequency();
@@ -205,6 +215,9 @@ function renderHome() {
     header.insertAdjacentElement('afterend', tag);
   }
   tag.textContent = `${tierLabel}${injuryLabel}`;
+
+  // Stretch TRAINING to match KILOS width — wait for fonts then re-check on resize
+  document.fonts.ready.then(matchWordmarkWidth);
 }
 
 function renderWeekStrip() {
@@ -2411,6 +2424,7 @@ renderCoaches();
 
 // Active placeholder → go home
 document.getElementById('ap-go-home')?.addEventListener('click', () => goScreen('home'));
+window.addEventListener('resize', matchWordmarkWidth);
 
 // ─── FIRST-RUN FLOW ───────────────────────────────────────────────────────────
 // New user:      Beta announcement → Name prompt → Equipment onboarding
