@@ -55,10 +55,6 @@
         </div>
         <div class="quick-start">
           <div class="section-label">Start</div>
-          <div class="hint-inline" id="hint-start">
-            Quick Start builds your session in one tap. Log weight + reps in the Active tab, then tap Finish.
-            <button class="hint-x" id="hint-start-x">×</button>
-          </div>
           <div class="quick-btns">
             <button class="quick-btn qs-highlight" id="btn-qs-open">
               <div class="qb-left"><div class="qb-title">Quick Start</div><div class="qb-sub">Pick a muscle, start immediately</div></div>
@@ -255,10 +251,6 @@
         <div id="cf-log" style="display:none;height:290px;overflow-y:auto;padding:0 24px 88px;flex-shrink:0;"></div>
         <div class="set-log" id="set-log">
           <div class="set-log-title">Log sets</div>
-          <div class="hint-inline hint-inline--log" id="hint-setlog">
-            Enter weight + reps, then tap Done to record each set.
-            <button class="hint-x" id="hint-setlog-x">×</button>
-          </div>
           <div id="set-log-rows"></div>
         </div>
         <div id="cardio-log-section" style="display:none">
@@ -501,6 +493,19 @@
         <div class="fb-status" id="fb-status"></div>
       </div>
     </div><!-- /#feedback-sheet -->
+
+    <!-- ─── GUIDED TOUR ─── -->
+    <div id="tour-backdrop" class="tour-backdrop" style="display:none"></div>
+    <div id="coach-tip" class="coach-tip" style="display:none" role="dialog" aria-modal="true">
+      <div class="ct-step" id="ct-step"></div>
+      <div class="ct-title" id="ct-title"></div>
+      <div class="ct-body" id="ct-body"></div>
+      <div class="ct-actions">
+        <button class="ct-skip" id="ct-skip">Skip tour</button>
+        <button class="ct-next" id="ct-next">Next →</button>
+      </div>
+      <div class="ct-arrow" id="ct-arrow"></div>
+    </div>
 
   </div><!-- /#app -->
 </div><!-- /#phone-frame -->

@@ -1870,24 +1870,74 @@ body {
 .fb-status.ok  { color: #4caf50; }
 .fb-status.err { color: #e57373; }
 
-/* ─── HINT INLINE STRIPS ─── */
-.hint-inline {
-  display: flex; align-items: flex-start; justify-content: space-between;
-  gap: 12px;
+/* ─── GUIDED TOUR — coach tip callouts ─── */
+.tour-backdrop {
+  position: absolute; inset: 0; z-index: 290;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(1px);
+  -webkit-backdrop-filter: blur(1px);
+}
+.coach-tip {
+  position: absolute; z-index: 300;
+  width: 252px;
+  background: #1a1a1a;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 16px 18px 14px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.8);
+  animation: ctEntrance 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes ctEntrance {
+  from { opacity: 0; transform: scale(0.85) translateY(6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.ct-step {
+  font-family: 'Space Mono', monospace; font-size: 8px;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 8px;
+}
+.ct-title {
+  font-family: 'Bebas Neue', sans-serif; font-size: 22px;
+  letter-spacing: 0.04em; color: var(--white);
+  line-height: 1; margin-bottom: 8px;
+}
+.ct-body {
   font-family: 'Space Mono', monospace; font-size: 9px;
-  text-transform: uppercase; letter-spacing: 0.07em; line-height: 1.6;
-  color: var(--grey);
-  border-left: 2px solid var(--accent);
-  padding: 8px 10px 8px 12px;
-  margin: 6px 0 14px;
+  letter-spacing: 0.05em; text-transform: uppercase;
+  line-height: 1.7; color: var(--text2); margin-bottom: 14px;
 }
-.hint-inline--log { margin: 0 0 8px; }
-.hint-x {
+.ct-actions {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.ct-skip {
   background: none; border: none; color: var(--grey);
-  font-size: 16px; line-height: 1; cursor: pointer; flex-shrink: 0;
-  padding: 0; opacity: 0.6; transition: opacity 0.15s;
+  font-family: 'Space Mono', monospace; font-size: 8px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  cursor: pointer; padding: 0;
 }
-.hint-x:active { opacity: 1; }
+.ct-next {
+  background: var(--accent); color: #fff; border: none;
+  font-family: 'Bebas Neue', sans-serif; font-size: 18px;
+  letter-spacing: 0.04em; padding: 6px 16px; cursor: pointer;
+  border-radius: 3px; transition: opacity 0.15s;
+}
+.ct-next:active { opacity: 0.8; }
+/* Arrow triangle */
+.ct-arrow {
+  position: absolute; width: 0; height: 0; pointer-events: none;
+}
+.ct-arrow.up {
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid var(--accent);
+  top: -8px;
+}
+.ct-arrow.down {
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid var(--accent);
+  bottom: -8px;
+}
 
 /* ─── ACTIVE SCREEN EMPTY STATE ─── */
 .active-placeholder {
@@ -1935,4 +1985,8 @@ body {
 
   /* Page overlays already use position:absolute — they clip naturally */
   /* (no override needed; .page-overlay is absolute by default) */
+
+  /* Tour / coach tips clip to phone frame */
+  .tour-backdrop,
+  .coach-tip { position: absolute; }
 }
