@@ -287,36 +287,50 @@
     <!-- ONBOARDING -->
     <div class="ob-overlay" id="onboarding-modal">
       <div class="ob-sheet">
-        <div class="ob-steps">
-          <div class="ob-step" id="ob-dot-0"></div>
-          <div class="ob-step" id="ob-dot-1"></div>
-          <div class="ob-step" id="ob-dot-2"></div>
+
+        <div class="ob-header">
+          <button class="ob-back" id="ob-back">← Back</button>
+          <button class="ob-skip" id="ob-skip">Skip</button>
         </div>
 
-        <!-- Step 0: Equipment -->
-        <div class="ob-page" id="ob-page-0">
+        <!-- View A: Main — Full Gym / Bodyweight / Custom -->
+        <div class="ob-view" id="ob-view-main">
           <div class="ob-label">WHERE DO YOU TRAIN?</div>
-          <div class="ob-sub">We'll pick exercises that fit your setup.</div>
-          <div class="ob-tier-list" id="ob-tiers"></div>
+          <div class="ob-tier-list" id="ob-tiers-main">
+            <button class="ob-tier-card" data-tier="full-gym">
+              <div class="ob-tier-name">Full Gym</div>
+              <div class="ob-tier-desc">Commercial gym · all machines &amp; cables</div>
+            </button>
+            <button class="ob-tier-card" data-tier="bodyweight">
+              <div class="ob-tier-name">Bodyweight</div>
+              <div class="ob-tier-desc">No equipment · parks, hotels, home floor</div>
+            </button>
+            <button class="ob-tier-card ob-tier-custom" data-tier="custom">
+              <div class="ob-tier-name">Custom</div>
+              <div class="ob-tier-desc">Home setup · pick what you've got →</div>
+            </button>
+          </div>
         </div>
 
-        <!-- Step 1: Injuries -->
-        <div class="ob-page" id="ob-page-1">
-          <div class="ob-label">ANYTHING WE SHOULD KNOW?</div>
-          <div class="ob-sub">We'll suggest safer alternatives.<br>Skip if nothing applies.</div>
-          <div class="ob-injury-chips" id="ob-injuries"></div>
+        <!-- View B: Custom sub-options -->
+        <div class="ob-view" id="ob-view-custom">
+          <div class="ob-label">WHAT DO YOU HAVE?</div>
+          <div class="ob-tier-list" id="ob-tiers-custom">
+            <button class="ob-tier-card" data-tier="home-dumbbells">
+              <div class="ob-tier-name">Home + Dumbbells</div>
+              <div class="ob-tier-desc">Dumbbells, bench, optional pull-up bar</div>
+            </button>
+            <button class="ob-tier-card" data-tier="barbell-rack">
+              <div class="ob-tier-name">Barbell + Rack</div>
+              <div class="ob-tier-desc">Home power rack, no cables or machines</div>
+            </button>
+            <button class="ob-tier-card" data-tier="bands">
+              <div class="ob-tier-name">Resistance Bands</div>
+              <div class="ob-tier-desc">Bands and door anchor only</div>
+            </button>
+          </div>
         </div>
 
-        <!-- Step 2: Done -->
-        <div class="ob-page" id="ob-page-2">
-          <div class="ob-done-big">READY.</div>
-          <div class="ob-sub">Your profile is set.<br>Change it anytime from the home screen.</div>
-        </div>
-
-        <div class="ob-bottom">
-          <button class="ob-cta" id="ob-next">Continue →</button>
-          <span class="ob-skip" id="ob-skip">Skip</span>
-        </div>
       </div>
     </div>
 

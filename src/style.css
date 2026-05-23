@@ -934,125 +934,69 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: max(48px, env(safe-area-inset-top)) 28px max(32px, env(safe-area-inset-bottom));
+  padding: max(52px, env(safe-area-inset-top)) 24px max(32px, env(safe-area-inset-bottom));
   overflow-y: auto;
 }
 
-/* Step dots */
-.ob-steps {
+/* Header: back (hidden on main view) + skip */
+.ob-header {
   display: flex;
-  gap: 6px;
-  margin-bottom: 44px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
 }
-.ob-step {
-  width: 20px; height: 2px;
-  background: var(--grey2);
-  transition: background 0.2s;
+.ob-back {
+  background: none; border: none;
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--grey); cursor: pointer; padding: 0;
+  transition: color 0.15s;
 }
-.ob-step.done { background: var(--white); }
-
-/* Page visibility */
-.ob-page { display: none; flex-direction: column; flex: 1; }
-.ob-page.active { display: flex; }
-
-/* Typography */
-.ob-label {
-  font-family: 'Space Mono', monospace;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--grey);
-  margin-bottom: 12px;
-}
-.ob-sub {
-  font-family: 'Space Mono', monospace;
-  font-size: 9px;
-  color: var(--grey);
-  line-height: 1.8;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: 28px;
-}
-.ob-done-big {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(80px, 22vw, 110px);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  line-height: 1;
-  margin-bottom: 20px;
-}
-
-/* Equipment tier cards */
-.ob-tier-list { display: flex; flex-direction: column; gap: 10px; }
-.ob-tier-card {
-  border: 1px solid var(--line);
-  padding: 16px 18px;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, transform 0.1s, opacity 0.1s;
-}
-.ob-tier-card.selected { border-color: var(--white); background: var(--bg3); }
-.ob-tier-card:active { transform: scale(0.98); opacity: 0.8; }
-.ob-tier-name {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 26px;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  line-height: 1;
-}
-.ob-tier-desc {
-  font-family: 'Space Mono', monospace;
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--grey);
-  margin-top: 4px;
-}
-
-/* Injury chips */
-.ob-injury-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.ob-injury-chip {
-  padding: 9px 16px;
-  border: 1px solid var(--line);
-  font-family: 'Space Mono', monospace;
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
-  color: var(--grey);
-}
-.ob-injury-chip.selected { border-color: var(--white); color: var(--white); background: var(--bg3); }
-
-/* Bottom actions */
-.ob-bottom { margin-top: auto; padding-top: 24px; }
-.ob-cta {
-  width: 100%;
-  background: var(--white);
-  color: var(--bg);
-  border: none;
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 20px;
-  text-transform: uppercase;
-  letter-spacing: 0.01em;
-  padding: 18px;
-  cursor: pointer;
-  transition: opacity 0.15s, transform 0.1s;
-}
-.ob-cta:active { transform: scale(0.98); opacity: 0.9; }
-.ob-cta:disabled { opacity: 0.25; cursor: default; }
+.ob-back:active { color: var(--white); }
+.ob-back.hidden { visibility: hidden; pointer-events: none; }
 .ob-skip {
-  display: block;
-  text-align: center;
-  font-family: 'Space Mono', monospace;
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--grey);
-  cursor: pointer;
-  padding: 14px 0 4px;
+  background: none; border: none;
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--grey); cursor: pointer; padding: 0;
   transition: color 0.15s;
 }
 .ob-skip:active { color: var(--white); }
+
+/* Views */
+.ob-view { display: none; flex-direction: column; flex: 1; }
+.ob-view.active { display: flex; }
+
+/* Label */
+.ob-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.14em; color: var(--grey);
+  margin-bottom: 20px;
+}
+
+/* Equipment tier cards — tap = immediate save */
+.ob-tier-list { display: flex; flex-direction: column; gap: 10px; }
+.ob-tier-card {
+  width: 100%; text-align: left;
+  background: none; border: 1px solid var(--line);
+  padding: 18px 20px; cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+}
+.ob-tier-card:active { transform: scale(0.98); border-color: var(--white); background: var(--bg3); }
+.ob-tier-custom .ob-tier-desc::after { content: ' →'; }
+.ob-tier-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px; text-transform: uppercase;
+  letter-spacing: 0.02em; line-height: 1;
+  color: var(--text);
+}
+.ob-tier-desc {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--grey);
+  margin-top: 5px;
+}
 
 /* Profile indicator on home — equipment tag */
 .profile-tag {

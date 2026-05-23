@@ -1,6 +1,6 @@
 import { EXERCISES_DB, COACHES_DATA, SHUFFLE_PLANS, MUSCLES, MUSCLES_ALL } from './data.js';
 import {
-  EQUIPMENT_TIERS, INJURY_TYPES,
+  EQUIPMENT_TIERS,
   getProfile, saveProfile, getActiveProfile, resolveExercise,
 } from './personalization.js';
 import {
@@ -1926,130 +1926,66 @@ if (supabase) {
 }
 
 // ─── ONBOARDING ───────────────────────────────────────────────────────────────
-let obStep = 0;
-let obTier = null;
-let obInjuries = [];
+// Two views: main (Full Gym / Bodyweight / Custom) and custom sub-options.
+// Tapping any final tier card immediately saves and closes — no Continue button.
 
 function openOnboarding() {
-  const profile = getProfile();
-  obStep = 0;
-  obTier = profile.equipmentTier || null;
-  obInjuries = [...(profile.injuries || [])];
-  renderObStep();
+  showObView('main');
   document.getElementById('onboarding-modal').classList.add('open');
 }
 
-function renderObStep() {
-  // Step dots
-  document.querySelectorAll('.ob-step').forEach((dot, i) => {
-    dot.classList.toggle('done', i < obStep);
-    dot.style.background = i === obStep ? 'var(--white)' : i < obStep ? 'var(--grey2)' : 'var(--grey2)';
-    // active step dot is white
-    dot.style.background = i <= obStep ? 'var(--white)' : 'var(--grey2)';
-  });
-
-  // Pages
-  document.querySelectorAll('.ob-page').forEach((p, i) => {
-    p.classList.toggle('active', i === obStep);
-  });
-
-  // CTA + skip
-  const nextBtn = document.getElementById('ob-next');
-  const skipEl = document.getElementById('ob-skip');
-
-  if (obStep === 0) {
-    nextBtn.textContent = 'Continue →';
-    nextBtn.disabled = !obTier;
-    skipEl.textContent = 'Skip setup';
-    skipEl.style.display = 'block';
-    renderObTiers();
-  } else if (obStep === 1) {
-    nextBtn.textContent = 'Continue →';
-    nextBtn.disabled = false;
-    skipEl.textContent = 'No injuries — skip';
-    skipEl.style.display = 'block';
-    renderObInjuryChips();
-  } else {
-    nextBtn.textContent = 'Start Training →';
-    nextBtn.disabled = false;
-    skipEl.style.display = 'none';
-  }
-}
-
-function renderObTiers() {
-  const el = document.getElementById('ob-tiers');
-  el.innerHTML = EQUIPMENT_TIERS.map(t => `
-    <div class="ob-tier-card${obTier === t.id ? ' selected' : ''}" data-tier="${t.id}">
-      <div class="ob-tier-name">${t.label}</div>
-      <div class="ob-tier-desc">${t.description}</div>
-    </div>
-  `).join('');
-  el.querySelectorAll('.ob-tier-card').forEach(card => {
-    card.addEventListener('click', () => {
-      obTier = card.dataset.tier;
-      el.querySelectorAll('.ob-tier-card').forEach(c => c.classList.toggle('selected', c === card));
-      document.getElementById('ob-next').disabled = false;
-    });
-  });
-}
-
-function renderObInjuryChips() {
-  const el = document.getElementById('ob-injuries');
-  el.innerHTML = INJURY_TYPES.map(inj => `
-    <div class="ob-injury-chip${obInjuries.includes(inj.id) ? ' selected' : ''}" data-injury="${inj.id}">
-      ${inj.label}
-    </div>
-  `).join('');
-  el.querySelectorAll('.ob-injury-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      const id = chip.dataset.injury;
-      if (obInjuries.includes(id)) {
-        obInjuries = obInjuries.filter(x => x !== id);
-        chip.classList.remove('selected');
-      } else {
-        obInjuries.push(id);
-        chip.classList.add('selected');
-      }
-    });
-  });
+function showObView(view) {
+  document.getElementById('ob-view-main').classList.toggle('active', view === 'main');
+  document.getElementById('ob-view-custom').classList.toggle('active', view === 'custom');
+  // Back button: visible only in custom sub-view
+  document.getElementById('ob-back').classList.toggle('hidden', view === 'main');
 }
 
 function closeOnboarding() {
   document.getElementById('onboarding-modal').classList.remove('open');
 }
 
-function completeOnboarding() {
+function pickTier(tierId) {
+  const profile = getProfile();
   saveProfile({
-    equipmentTier: obTier || 'full-gym',
-    injuries: obInjuries,
+    equipmentTier: tierId,
+    injuries: profile.injuries || [],
     setupComplete: true,
     setupDate: new Date().toISOString(),
   });
   closeOnboarding();
-  renderHome(); // refresh profile tag
+  renderHome();
 }
 
-document.getElementById('ob-next').addEventListener('click', () => {
-  if (obStep < 2) {
-    obStep++;
-    renderObStep();
+// Main view: tap Full Gym or Bodyweight → immediate save; tap Custom → sub-view
+document.getElementById('ob-tiers-main').addEventListener('click', e => {
+  const card = e.target.closest('[data-tier]');
+  if (!card) return;
+  const tier = card.dataset.tier;
+  if (tier === 'custom') {
+    showObView('custom');
   } else {
-    completeOnboarding();
+    pickTier(tier);
   }
 });
 
+// Custom sub-view: tap any card → immediate save
+document.getElementById('ob-tiers-custom').addEventListener('click', e => {
+  const card = e.target.closest('[data-tier]');
+  if (card) pickTier(card.dataset.tier);
+});
+
+// Back button: return to main view
+document.getElementById('ob-back').addEventListener('click', () => showObView('main'));
+
+// Skip: close immediately, default to full-gym if not previously set
 document.getElementById('ob-skip').addEventListener('click', () => {
-  if (obStep === 0) {
-    // Skip entire onboarding — default to Full Gym, no injuries
-    obTier = 'full-gym';
-    obInjuries = [];
-    completeOnboarding();
-  } else if (obStep === 1) {
-    // Skip injuries only — keep selected tier, move to confirmation
-    obInjuries = [];
-    obStep = 2;
-    renderObStep();
+  const profile = getProfile();
+  if (!profile.setupComplete) {
+    saveProfile({ equipmentTier: 'full-gym', injuries: [], setupComplete: true });
+    renderHome();
   }
+  closeOnboarding();
 });
 
 // Profile button on home screen
