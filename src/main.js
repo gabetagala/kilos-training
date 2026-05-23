@@ -2242,14 +2242,20 @@ document.getElementById('ob-skip').addEventListener('click', () => {
 document.getElementById('btn-profile').addEventListener('click', openOnboarding);
 
 // ─── BETA WELCOME ─────────────────────────────────────────────────────────────
-function showBetaWelcome() {
-  const name = getUserName();
-  document.getElementById('bw-hi').textContent = name ? `Hi ${name}!` : 'Hi!';
+// Fires once on first ever visit, before name prompt + onboarding.
+const BETA_SEEN_KEY = 'kilos-beta-seen';
+
+let _bwCallback = null;
+
+function showBetaWelcome(callback) {
+  _bwCallback = callback || null;
   document.getElementById('beta-welcome').classList.add('open');
 }
 
 document.getElementById('bw-cta').addEventListener('click', () => {
+  set(BETA_SEEN_KEY, '1');
   document.getElementById('beta-welcome').classList.remove('open');
+  if (_bwCallback) { const cb = _bwCallback; _bwCallback = null; cb(); }
 });
 
 // ─── FEEDBACK ─────────────────────────────────────────────────────────────────
@@ -2327,11 +2333,22 @@ fbSend.addEventListener('click', async () => {
 renderHome();
 renderCoaches();
 
-// On first visit: name prompt → then equipment onboarding if needed.
-// requireName() calls callback immediately if name already saved (returning user).
+// ─── FIRST-RUN FLOW ───────────────────────────────────────────────────────────
+// New user:      Beta announcement → Name prompt → Equipment onboarding
+// Returning user: all skipped (beta-seen + name already saved)
+function runPostNameFlow() {
+  const profile = getProfile();
+  if (!profile.setupComplete) openOnboarding();
+}
+
 setTimeout(() => {
-  requireName(() => {
-    const profile = getProfile();
-    if (!profile.setupComplete) openOnboarding();
-  });
+  if (!get(BETA_SEEN_KEY)) {
+    // Brand new visitor — show beta welcome first, then chain into name + onboarding
+    showBetaWelcome(() => {
+      requireName(runPostNameFlow);
+    });
+  } else {
+    // Returning user — skip beta welcome, show name prompt if somehow missing
+    requireName(runPostNameFlow);
+  }
 }, 300);
