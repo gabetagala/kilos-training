@@ -55,6 +55,10 @@
         </div>
         <div class="quick-start">
           <div class="section-label">Start</div>
+          <div class="hint-inline" id="hint-start">
+            Quick Start builds your session in one tap. Log weight + reps in the Active tab, then tap Finish.
+            <button class="hint-x" id="hint-start-x">×</button>
+          </div>
           <div class="quick-btns">
             <button class="quick-btn qs-highlight" id="btn-qs-open">
               <div class="qb-left"><div class="qb-title">Quick Start</div><div class="qb-sub">Pick a muscle, start immediately</div></div>
@@ -203,6 +207,12 @@
 
       <!-- ACTIVE -->
       <div id="active" class="screen">
+        <!-- No-workout empty state -->
+        <div id="active-placeholder" class="active-placeholder" style="display:none">
+          <div class="ap-label">NO SESSION<br>ACTIVE</div>
+          <p class="ap-hint">Start from Home or build a custom session.</p>
+          <button class="ap-cta" id="ap-go-home">Go to Home →</button>
+        </div>
         <div class="active-header">
           <div class="wordmark" style="font-size:20px">KILOS <span>TRAINING</span></div>
           <button class="active-finish" id="btn-finish">Finish</button>
@@ -245,6 +255,10 @@
         <div id="cf-log" style="display:none;height:290px;overflow-y:auto;padding:0 24px 88px;flex-shrink:0;"></div>
         <div class="set-log" id="set-log">
           <div class="set-log-title">Log sets</div>
+          <div class="hint-inline hint-inline--log" id="hint-setlog">
+            Enter weight + reps, then tap Done to record each set.
+            <button class="hint-x" id="hint-setlog-x">×</button>
+          </div>
           <div id="set-log-rows"></div>
         </div>
         <div id="cardio-log-section" style="display:none">
@@ -378,7 +392,7 @@
           </div>
         </div>
         <div class="share-actions">
-          <button class="share-btn primary" id="btn-share">📸 Save Photo</button>
+          <button class="share-btn primary" id="btn-share">Save Photo</button>
           <button class="share-btn secondary" id="btn-close-share">Close</button>
         </div>
       </div>
@@ -438,7 +452,7 @@
     <!-- ─── NAME PROMPT — fires on first visit ─── -->
     <div id="name-prompt" class="np-overlay">
       <div class="np-card">
-        <div class="np-eyebrow">Hi friends! 👋</div>
+        <div class="np-eyebrow">First things first.</div>
         <div class="np-title">WHAT'S YOUR NAME?</div>
         <input type="text" id="np-input" class="np-input" placeholder="Your name"
                autocomplete="given-name" autocorrect="off" autocapitalize="words" />
@@ -455,7 +469,7 @@
     <!-- ─── BETA WELCOME — shown once on first ever visit, before name prompt ─── -->
     <div id="beta-welcome" class="bw-overlay">
       <div class="bw-card">
-        <div class="bw-badge">🏋️ BETA ACCESS</div>
+        <div class="bw-badge">BETA ACCESS</div>
         <div class="bw-title">WELCOME TO KILOS TRAINING.</div>
         <p class="bw-body">Train heavy. Track everything. Free forever.<br><br>You're one of the first people inside. If anything feels off — a bug, something weird, anything — just tap the message icon and send me a quick note. I'll fix it right away.</p>
         <div class="bw-sig">— Gabe</div>

@@ -1039,18 +1039,22 @@ function showCardioUI(show) {
   document.getElementById('cardio-log-section').style.display = show ? '' : 'none';
 }
 
+function setActiveWorkoutUI(visible) {
+  const ids = ['exercise-nav', 'exercise-display', 'set-log', 'cf-log', 'cf-meta', 'cardio-log-section'];
+  const cls = ['.timer-block', '.timer-controls'];
+  ids.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = visible ? '' : 'none'; });
+  cls.forEach(sel => { const el = document.querySelector(sel); if (el) el.style.display = visible ? '' : 'none'; });
+  const ph = document.getElementById('active-placeholder');
+  if (ph) ph.style.display = visible ? 'none' : 'flex';
+}
+
 function renderActiveScreen() {
   if (!activeWorkout) {
-    showStrengthUI(true);
-    showCFUI(false);
-    showCardioUI(false);
-    document.getElementById('current-ex-name').textContent = 'No active workout';
-    document.getElementById('current-ex-sets').textContent = 'Pick a program or build your own';
-    document.getElementById('ex-nav-pills').innerHTML = '';
-    document.getElementById('set-log-rows').innerHTML = '';
+    setActiveWorkoutUI(false);
     resetTimerDisplay(0);
     return;
   }
+  setActiveWorkoutUI(true);
 
   if (CF_TYPES.has(activeWorkout.type)) {
     renderCFActive();
@@ -1815,7 +1819,7 @@ document.getElementById('btn-share').addEventListener('click', async () => {
   } catch (e) {
     console.warn('Share failed', e);
   }
-  btn.textContent = '📸 Save Photo';
+  btn.textContent = 'Save Photo';
   btn.disabled = false;
   document.getElementById('share-modal').classList.remove('open');
   goScreen('home');
@@ -1847,7 +1851,7 @@ async function shareWorkoutImage(canvas, workoutName) {
           await navigator.share({
             files: [file],
             title: 'KILOS TRAINING',
-            text: `Crushed ${workoutName} 💪 #kilostraining`,
+            text: `${workoutName} · #kilostraining`,
           });
         } catch (e) {
           if (e.name !== 'AbortError') _downloadCanvas(canvas);
@@ -2389,7 +2393,7 @@ fbSend.addEventListener('click', async () => {
 
   fbSend.disabled = false;
   if (ok) {
-    fbStatus.textContent = 'Sent! Thanks 🙏';
+    fbStatus.textContent = 'Sent. Thanks.';
     fbStatus.className = 'fb-status ok';
     fbTextarea.value = '';
     fbCount.textContent = '0';
@@ -2403,6 +2407,26 @@ fbSend.addEventListener('click', async () => {
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 renderHome();
 renderCoaches();
+
+// ─── HINTS ────────────────────────────────────────────────────────────────────
+function initHints() {
+  [
+    { el: 'hint-start',  dismiss: 'hint-start-x',  key: 'hint-start'  },
+    { el: 'hint-setlog', dismiss: 'hint-setlog-x', key: 'hint-setlog' },
+  ].forEach(({ el, dismiss, key }) => {
+    const elNode = document.getElementById(el);
+    if (!elNode) return;
+    if (get(key)) { elNode.style.display = 'none'; return; }
+    document.getElementById(dismiss)?.addEventListener('click', () => {
+      set(key, '1');
+      elNode.style.display = 'none';
+    });
+  });
+}
+initHints();
+
+// Active placeholder → go home
+document.getElementById('ap-go-home')?.addEventListener('click', () => goScreen('home'));
 
 // ─── FIRST-RUN FLOW ───────────────────────────────────────────────────────────
 // New user:      Beta announcement → Name prompt → Equipment onboarding

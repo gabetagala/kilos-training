@@ -1870,6 +1870,50 @@ body {
 .fb-status.ok  { color: #4caf50; }
 .fb-status.err { color: #e57373; }
 
+/* ─── HINT INLINE STRIPS ─── */
+.hint-inline {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px;
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.07em; line-height: 1.6;
+  color: var(--grey);
+  border-left: 2px solid var(--accent);
+  padding: 8px 10px 8px 12px;
+  margin: 6px 0 14px;
+}
+.hint-inline--log { margin: 0 0 8px; }
+.hint-x {
+  background: none; border: none; color: var(--grey);
+  font-size: 16px; line-height: 1; cursor: pointer; flex-shrink: 0;
+  padding: 0; opacity: 0.6; transition: opacity 0.15s;
+}
+.hint-x:active { opacity: 1; }
+
+/* ─── ACTIVE SCREEN EMPTY STATE ─── */
+.active-placeholder {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: flex-start; justify-content: center;
+  padding: 0 24px 80px;
+}
+.ap-label {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(56px, 16vw, 76px);
+  letter-spacing: 0.02em; line-height: 0.88;
+  color: var(--grey); margin-bottom: 16px;
+}
+.ap-hint {
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--grey2); margin-bottom: 28px; line-height: 1.6;
+}
+.ap-cta {
+  background: var(--white); color: var(--bg); border: none;
+  font-family: 'Bebas Neue', sans-serif; font-size: 22px;
+  letter-spacing: 0.03em; padding: 12px 24px; cursor: pointer;
+  transition: opacity 0.15s;
+}
+.ap-cta:active { opacity: 0.85; }
+
 /* ─────────────────────────────────────────────────────────────────────────────
    DESKTOP POSITION OVERRIDES — must live here, after ALL base rules,
    so the cascade wins over any position:fixed defined above.
