@@ -68,25 +68,20 @@ body {
 }
 #dynamic-island { display: none; }
 
+/* ── Desktop: phone-frame shell + labels (does NOT set #app size — that comes after base #app rule) ── */
 @media (min-width: 600px) {
-  /* ── Desktop shell — branded phone-in-browser ── */
   #phone-frame {
     display: flex; align-items: center; justify-content: center;
-    /* Subtle radial glow behind the phone */
     background:
       radial-gradient(ellipse 60% 50% at 50% 50%, rgba(255,255,255,0.025) 0%, transparent 70%),
       var(--bg);
   }
-
-  /* Wordmark — top left */
   #phone-frame::before {
     content: 'KILOS TRAINING';
     position: fixed; top: 24px; left: 32px;
     font-family: 'Bebas Neue', sans-serif; font-size: 18px;
     color: rgba(255,255,255,0.18); letter-spacing: 0.06em;
   }
-
-  /* Beta tag — top right */
   #phone-frame::after {
     content: 'BETA';
     position: fixed; top: 26px; right: 32px;
@@ -94,39 +89,15 @@ body {
     color: rgba(255,255,255,0.18); text-transform: uppercase; letter-spacing: 0.14em;
     border: 1px solid rgba(255,255,255,0.12); padding: 3px 8px;
   }
-
-  /* Dynamic island pill */
   #dynamic-island {
     display: block; position: absolute; top: 10px;
     left: 50%; transform: translateX(-50%);
     width: 120px; height: 34px; background: #000; border-radius: 20px; z-index: 200;
     box-shadow: inset 0 1px 3px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04);
   }
-
-  /* Phone shell */
-  #app {
-    width: 390px; height: 844px; max-height: calc(100vh - 80px);
-    border-radius: 48px; overflow: hidden; position: relative; flex-shrink: 0;
-    box-shadow:
-      0 0 0 1px #2e2e2e,
-      0 0 0 3px #1a1a1a,
-      0 0 0 4px #3a3a3a,
-      0 48px 96px rgba(0,0,0,0.8);
-  }
-
   #nav { position: absolute; border-radius: 0 0 44px 44px; }
   .modal-overlay { position: absolute; }
-
-  /* Tagline below the phone */
-  #desktop-tagline {
-    display: block;
-    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
-    font-family: 'Space Mono', monospace; font-size: 9px;
-    text-transform: uppercase; letter-spacing: 0.14em;
-    color: rgba(255,255,255,0.14); white-space: nowrap;
-  }
 }
-/* Hide tagline on mobile */
 #desktop-tagline { display: none; }
 
 /* ─── APP SHELL ─── */
@@ -170,6 +141,26 @@ body {
 @media (prefers-reduced-motion: no-preference) {
   #app::after { animation: filmGrain 8s steps(1) infinite; }
 }
+/* ── Desktop: #app phone shell — MUST come after base #app rule above ── */
+@media (min-width: 600px) {
+  #app {
+    width: 390px; height: 844px; max-height: calc(100vh - 80px);
+    border-radius: 48px; overflow: hidden; position: relative; flex-shrink: 0;
+    box-shadow:
+      0 0 0 1px #2e2e2e,
+      0 0 0 3px #1a1a1a,
+      0 0 0 4px #3a3a3a,
+      0 48px 96px rgba(0,0,0,0.8);
+  }
+  #desktop-tagline {
+    display: block;
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+    font-family: 'Space Mono', monospace; font-size: 9px;
+    text-transform: uppercase; letter-spacing: 0.14em;
+    color: rgba(255,255,255,0.14); white-space: nowrap;
+  }
+}
+
 /* ── Blurred background blobs — soft organic depth, like the reference ── */
 .bg-blob {
   position: absolute;
