@@ -1,126 +1,86 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <defs>
-    <filter id="app-blur" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="18"/>
+    <filter id="soft-blur">
+      <feGaussianBlur stdDeviation="12"/>
     </filter>
-    <radialGradient id="vignette" cx="50%" cy="50%" r="60%">
-      <stop offset="0%" stop-color="#222222" stop-opacity="0"/>
-      <stop offset="100%" stop-color="#222222" stop-opacity="0.82"/>
-    </radialGradient>
-    <clipPath id="clip">
+    <clipPath id="page-clip">
       <rect width="1200" height="630"/>
     </clipPath>
   </defs>
 
-  <!-- Base background -->
+  <!-- ── Base: dark app background ── -->
   <rect width="1200" height="630" fill="#222222"/>
 
-  <!-- ── Blurred app UI layer ── -->
-  <g filter="url(#app-blur)" clip-path="url(#clip)">
-    <!-- Off-white home hero panel -->
-    <rect x="340" y="-20" width="520" height="240" fill="#f5f5f3"/>
-
-    <!-- KILOS wordmark block inside hero -->
-    <rect x="364" y="30" width="200" height="72" rx="2" fill="#222222" opacity="0.9"/>
-    <rect x="364" y="112" width="120" height="8" rx="1" fill="#222222" opacity="0.25"/>
-
-    <!-- Week strip inside hero -->
-    <rect x="364" y="140" width="468" height="1" fill="#222222" opacity="0.08"/>
-    <rect x="364" y="158" width="52" height="42" rx="2" fill="#222222" opacity="0.05"/>
-    <rect x="424" y="158" width="52" height="42" rx="2" fill="#222222" opacity="0.05"/>
-    <rect x="484" y="158" width="52" height="42" rx="2" fill="#222222" opacity="0.05"/>
-    <rect x="544" y="158" width="52" height="42" rx="2" fill="#222222" opacity="0.12"/>
-    <rect x="604" y="158" width="52" height="42" rx="2" fill="#222222" opacity="0.05"/>
-    <rect x="664" y="158" width="52" height="42" rx="2" fill="#222222" opacity="0.05"/>
-    <rect x="724" y="158" width="52" height="42" rx="2" fill="#222222" opacity="0.05"/>
-
-    <!-- Start section — dark bg -->
-    <rect x="340" y="220" width="520" height="400" fill="#222222"/>
-
-    <!-- Section label line -->
-    <rect x="364" y="255" width="60" height="7" rx="2" fill="#ffffff" opacity="0.15"/>
-
-    <!-- Quick Start button row -->
-    <rect x="364" y="282" width="472" height="1" fill="#ffffff" opacity="0.08"/>
-    <rect x="364" y="283" width="260" height="40" rx="2" fill="#ffffff" opacity="0.04"/>
-    <rect x="786" y="295" width="20" height="16" rx="1" fill="#ffffff" opacity="0.1"/>
-
-    <!-- Second row -->
-    <rect x="364" y="338" width="472" height="1" fill="#ffffff" opacity="0.08"/>
-    <rect x="364" y="339" width="200" height="40" rx="2" fill="#ffffff" opacity="0.04"/>
-
-    <!-- Third row -->
-    <rect x="364" y="393" width="472" height="1" fill="#ffffff" opacity="0.08"/>
-    <rect x="364" y="394" width="180" height="40" rx="2" fill="#ffffff" opacity="0.04"/>
-
-    <!-- Timer on active screen (right side) -->
-    <rect x="900" y="80" width="220" height="440" fill="#1a1a1a"/>
-    <rect x="920" y="120" width="180" height="2" fill="#ffffff" opacity="0.08"/>
-    <rect x="920" y="148" width="96" height="180" rx="2" fill="#ffffff" opacity="0.06"/>
-    <rect x="920" y="358" width="180" height="2" fill="#ffffff" opacity="0.08"/>
-    <rect x="920" y="380" width="140" height="30" rx="2" fill="#ffffff" opacity="0.04"/>
-    <rect x="920" y="420" width="120" height="30" rx="2" fill="#ffffff" opacity="0.04"/>
-
-    <!-- Nav bar across bottom -->
-    <rect x="290" y="560" width="640" height="60" fill="#111111"/>
-    <rect x="340" y="575" width="44" height="36" rx="3" fill="#ffffff" opacity="0.08"/>
-    <rect x="402" y="575" width="44" height="36" rx="3" fill="#ffffff" opacity="0.04"/>
-    <rect x="464" y="575" width="44" height="36" rx="3" fill="#ffffff" opacity="0.04"/>
-    <rect x="526" y="575" width="44" height="36" rx="3" fill="#ffffff" opacity="0.04"/>
-    <rect x="588" y="575" width="44" height="36" rx="3" fill="#ffffff" opacity="0.04"/>
+  <!-- ── Blurred ghost of the app behind the card (far edges) ── -->
+  <g filter="url(#soft-blur)" opacity="0.35" clip-path="url(#page-clip)">
+    <!-- Left ghost column -->
+    <rect x="60" y="0" width="240" height="240" fill="#f5f5f3"/>
+    <rect x="80" y="260" width="200" height="50" rx="3" fill="#ffffff" opacity="0.06"/>
+    <rect x="80" y="322" width="180" height="50" rx="3" fill="#ffffff" opacity="0.06"/>
+    <rect x="80" y="384" width="160" height="50" rx="3" fill="#ffffff" opacity="0.06"/>
+    <!-- Right ghost column -->
+    <rect x="900" y="0" width="240" height="240" fill="#f5f5f3"/>
+    <rect x="920" y="260" width="200" height="50" rx="3" fill="#ffffff" opacity="0.06"/>
+    <rect x="920" y="322" width="180" height="50" rx="3" fill="#ffffff" opacity="0.06"/>
   </g>
 
-  <!-- Vignette -->
-  <rect width="1200" height="630" fill="url(#vignette)"/>
+  <!-- ── Dark fade over the ghost edges ── -->
+  <rect x="0" y="0" width="340" height="630" fill="#222222" opacity="0.78"/>
+  <rect x="860" y="0" width="340" height="630" fill="#222222" opacity="0.78"/>
 
-  <!-- Extra darkening on far edges -->
-  <rect width="220" height="630" fill="#222222" opacity="0.7"/>
-  <rect x="980" width="220" height="630" fill="#222222" opacity="0.7"/>
-
-  <!-- Purple accent bar — top -->
+  <!-- ── Purple accent line — top ── -->
   <rect width="1200" height="4" fill="#863bff"/>
 
-  <!-- ── K logo mark — centered ── -->
-  <rect x="546" y="202" width="108" height="108" rx="18" fill="#1a1a1a"/>
-  <text
-    x="600" y="282"
-    font-family="Arial Black, Arial, sans-serif"
-    font-weight="900"
-    font-size="78"
-    text-anchor="middle"
-    fill="#ffffff"
-    letter-spacing="-1"
-  >K</text>
+  <!-- ── Central home-screen card ── -->
+  <!-- White hero panel — exactly like the app hero -->
+  <rect x="340" y="60" width="520" height="260" fill="#f5f5f3"/>
 
-  <!-- ── Wordmark ── -->
+  <!-- KILOS — large Bebas-style condensed wordmark -->
   <text
-    x="600" y="360"
-    font-family="Arial Black, Impact, sans-serif"
+    x="370" y="196"
+    font-family="Impact, 'Arial Black', Arial, sans-serif"
+    font-size="148"
     font-weight="900"
-    font-size="56"
-    text-anchor="middle"
-    letter-spacing="6"
-    fill="#ffffff"
+    fill="#222222"
+    letter-spacing="-3"
   >KILOS</text>
+
+  <!-- TRAINING — small tracked, same width treatment -->
   <text
-    x="600" y="396"
-    font-family="Arial, Helvetica, sans-serif"
+    x="370" y="290"
+    font-family="'Courier New', Courier, monospace"
     font-size="13"
-    text-anchor="middle"
-    letter-spacing="14"
-    fill="rgba(255,255,255,0.38)"
+    fill="rgba(0,0,0,0.38)"
+    letter-spacing="17.4"
   >TRAINING</text>
 
-  <!-- Tagline -->
-  <text
-    x="600" y="438"
-    font-family="monospace"
-    font-size="12"
-    text-anchor="middle"
-    letter-spacing="3"
-    fill="rgba(255,255,255,0.22)"
-  >TRAIN HEAVY · FREE FOREVER</text>
+  <!-- White panel bottom separator line -->
+  <rect x="340" y="316" width="520" height="1" fill="rgba(0,0,0,0.08)"/>
 
-  <!-- Purple accent bar — bottom -->
+  <!-- ── Dark section below panel — start buttons ── -->
+  <rect x="340" y="317" width="520" height="257" fill="#222222"/>
+
+  <!-- Section label -->
+  <text x="368" y="354" font-family="'Courier New', monospace" font-size="10" fill="rgba(255,255,255,0.28)" letter-spacing="3">START</text>
+
+  <!-- Button rows -->
+  <rect x="368" y="365" width="464" height="1" fill="rgba(255,255,255,0.07)"/>
+  <text x="368" y="400" font-family="Impact, 'Arial Black', sans-serif" font-size="28" fill="#ffffff" letter-spacing="0.5">Quick Start</text>
+  <text x="808" y="400" font-family="Arial, sans-serif" font-size="22" fill="rgba(255,255,255,0.28)" text-anchor="end">→</text>
+
+  <rect x="368" y="410" width="464" height="1" fill="rgba(255,255,255,0.07)"/>
+  <text x="368" y="444" font-family="Impact, 'Arial Black', sans-serif" font-size="28" fill="rgba(255,255,255,0.55)" letter-spacing="0.5">Legends</text>
+  <text x="808" y="444" font-family="Arial, sans-serif" font-size="22" fill="rgba(255,255,255,0.18)" text-anchor="end">→</text>
+
+  <rect x="368" y="454" width="464" height="1" fill="rgba(255,255,255,0.07)"/>
+  <text x="368" y="488" font-family="Impact, 'Arial Black', sans-serif" font-size="28" fill="rgba(255,255,255,0.4)" letter-spacing="0.5">CrossFit</text>
+  <text x="808" y="488" font-family="Arial, sans-serif" font-size="22" fill="rgba(255,255,255,0.14)" text-anchor="end">→</text>
+
+  <rect x="368" y="498" width="464" height="1" fill="rgba(255,255,255,0.07)"/>
+
+  <!-- Tagline at bottom of card -->
+  <text x="600" y="546" font-family="'Courier New', monospace" font-size="11" text-anchor="middle" fill="rgba(255,255,255,0.18)" letter-spacing="3">TRAIN HEAVY · FREE FOREVER</text>
+
+  <!-- ── Purple accent line — bottom ── -->
   <rect y="626" width="1200" height="4" fill="#863bff"/>
 </svg>
