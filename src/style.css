@@ -277,8 +277,17 @@ body {
 ══════════════════════════════════════════ */
 #home { padding: 0 24px 100px; }
 
-/* ── Shared white hero panel — Home + History ── */
-.home-hero,
+/* ── Home hero — full dark, editorial ── */
+.home-hero {
+  margin: 0 -24px;
+  padding: 0 24px 0;
+  background: transparent;
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+}
+
+/* ── History hero — stays off-white ── */
 .screen-hero {
   margin: 0 -24px;
   padding: 0 24px 24px;
@@ -287,11 +296,8 @@ body {
   position: relative;
   overflow: hidden;
   border-bottom: 1px solid rgba(0,0,0,0.08);
-  /* Safety net — ensures all white heroes are at least the same height */
   min-height: 186px;
 }
-
-/* ── History hero (screen-hero) — text flips to dark on off-white ── */
 .screen-hero h1             { color: var(--bg); }
 .screen-hero .section-label,
 .screen-hero .label         { color: rgba(0,0,0,0.55); }
@@ -302,43 +308,35 @@ body {
 .screen-hero .export-btn:active  { color: var(--bg); }
 .screen-hero .pr-chip            { color: rgba(0,0,0,0.35); }
 
-/* PR section — lives on dark background below the History hero */
+/* PR section */
 .history-pr-label { padding-top: 24px; margin-bottom: 16px; display: block; }
 
-/* ── White hero panel ── */
-
-/* Color overrides — everything inside the white panel flips to dark */
-.home-hero .home-header   { border-bottom-color: rgba(0,0,0,0.07); }
-.home-hero .wordmark      { color: var(--bg); }
-.home-hero .streak-chip   { color: rgba(0,0,0,0.4); }
-.home-hero .streak-chip.warm { color: rgba(0,0,0,0.6); }
-.home-hero .streak-chip.hot  { color: var(--bg); }
-.home-hero .profile-btn   { border-color: rgba(0,0,0,0.15); color: rgba(0,0,0,0.45); }
-.home-hero .profile-btn:active { border-color: var(--bg); color: var(--bg); }
-.home-hero .profile-tag   { color: rgba(0,0,0,0.35); border-bottom-color: rgba(0,0,0,0.06); }
-.home-hero .week-strip    { border-bottom: none; padding-bottom: 0; }
-.home-hero .section-label { color: rgba(0,0,0,0.55); }
-.home-hero .day-cell      { border-bottom-color: rgba(0,0,0,0.1); }
-.home-hero .day-cell.today { border-bottom-color: var(--bg); }
-.home-hero .day-cell.done  { border-bottom-color: rgba(0,0,0,0.18); }
-.home-hero .day-cell.today.done { border-bottom-color: var(--bg); }
-.home-hero .day-cell .day-name  { color: rgba(0,0,0,0.55); }
-.home-hero .day-cell .day-dot   { background: rgba(0,0,0,0.16); }
-.home-hero .day-cell.today .day-dot { background: var(--bg); }
-.home-hero .day-cell.done .day-dot  { background: var(--bg); }
-.home-hero .day-cell.today.done .day-dot { background: var(--bg); }
-/* Muscle frequency inside hero */
+/* Muscle freq inside dark home hero */
 .home-hero .muscle-freq-section { border-bottom: none; padding-top: 16px; padding-bottom: 4px; }
-.home-hero .mf-cell       { border-right-color: rgba(0,0,0,0.07); }
-.home-hero .mf-muscle     { color: rgba(0,0,0,0.38); }
-.home-hero .mf-cell.hot   .mf-days { color: var(--bg); }
-.home-hero .mf-cell.warm  .mf-days { color: rgba(0,0,0,0.65); }
-.home-hero .mf-cell.fresh .mf-days { color: rgba(0,0,0,0.22); }
+.home-hero .week-strip { border-bottom: none; padding-bottom: 24px; }
 
+/* ── Home wordmark — brand statement ── */
 .home-header {
   padding: max(20px, env(safe-area-inset-top)) 0 20px;
   border-bottom: 1px solid var(--line); margin-bottom: 0;
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: flex-end; justify-content: space-between;
+}
+.home-wordmark { display: flex; flex-direction: column; line-height: 1; }
+.hw-kilos {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(56px, 17vw, 76px);
+  line-height: 0.86; letter-spacing: 0.01em;
+  color: var(--white);
+}
+.hw-training {
+  font-family: 'Space Mono', monospace;
+  font-size: 8px; letter-spacing: 0.32em;
+  text-transform: uppercase; color: var(--grey);
+  margin-top: 5px;
+}
+.home-utils {
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 4px; /* align with wordmark baseline */
 }
 .streak-chip { font-family: 'Space Mono', monospace; font-size: 9px; color: var(--grey); letter-spacing: 0.08em; text-transform: uppercase; transition: color 0.3s; }
 .streak-chip.warm { color: var(--text); }
@@ -1870,75 +1868,6 @@ body {
 .fb-status.ok  { color: #4caf50; }
 .fb-status.err { color: #e57373; }
 
-/* ─── GUIDED TOUR — coach tip callouts ─── */
-.tour-backdrop {
-  position: absolute; inset: 0; z-index: 290;
-  background: rgba(0,0,0,0.55);
-  backdrop-filter: blur(1px);
-  -webkit-backdrop-filter: blur(1px);
-}
-.coach-tip {
-  position: absolute; z-index: 300;
-  width: 252px;
-  background: #1a1a1a;
-  border: 1px solid var(--accent);
-  border-radius: 6px;
-  padding: 16px 18px 14px;
-  box-shadow: 0 16px 48px rgba(0,0,0,0.8);
-  animation: ctEntrance 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-@keyframes ctEntrance {
-  from { opacity: 0; transform: scale(0.85) translateY(6px); }
-  to   { opacity: 1; transform: scale(1) translateY(0); }
-}
-.ct-step {
-  font-family: 'Space Mono', monospace; font-size: 8px;
-  letter-spacing: 0.16em; text-transform: uppercase;
-  color: var(--accent); margin-bottom: 8px;
-}
-.ct-title {
-  font-family: 'Bebas Neue', sans-serif; font-size: 22px;
-  letter-spacing: 0.04em; color: var(--white);
-  line-height: 1; margin-bottom: 8px;
-}
-.ct-body {
-  font-family: 'Space Mono', monospace; font-size: 9px;
-  letter-spacing: 0.05em; text-transform: uppercase;
-  line-height: 1.7; color: var(--text2); margin-bottom: 14px;
-}
-.ct-actions {
-  display: flex; align-items: center; justify-content: space-between;
-}
-.ct-skip {
-  background: none; border: none; color: var(--grey);
-  font-family: 'Space Mono', monospace; font-size: 8px;
-  text-transform: uppercase; letter-spacing: 0.1em;
-  cursor: pointer; padding: 0;
-}
-.ct-next {
-  background: var(--accent); color: #fff; border: none;
-  font-family: 'Bebas Neue', sans-serif; font-size: 18px;
-  letter-spacing: 0.04em; padding: 6px 16px; cursor: pointer;
-  border-radius: 3px; transition: opacity 0.15s;
-}
-.ct-next:active { opacity: 0.8; }
-/* Arrow triangle */
-.ct-arrow {
-  position: absolute; width: 0; height: 0; pointer-events: none;
-}
-.ct-arrow.up {
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-bottom: 8px solid var(--accent);
-  top: -8px;
-}
-.ct-arrow.down {
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-top: 8px solid var(--accent);
-  bottom: -8px;
-}
-
 /* ─── ACTIVE SCREEN EMPTY STATE ─── */
 .active-placeholder {
   flex: 1; display: flex; flex-direction: column;
@@ -1986,7 +1915,4 @@ body {
   /* Page overlays already use position:absolute — they clip naturally */
   /* (no override needed; .page-overlay is absolute by default) */
 
-  /* Tour / coach tips clip to phone frame */
-  .tour-backdrop,
-  .coach-tip { position: absolute; }
 }

@@ -2234,7 +2234,6 @@ function pickTier(tierId) {
   });
   closeOnboarding();
   renderHome();
-  if (isFirstTime) startTour(); // guide new users through the app
 }
 
 // Main view: tap Full Gym or Bodyweight → immediate save; tap Custom → chip view
@@ -2309,7 +2308,6 @@ document.getElementById('ob-skip').addEventListener('click', () => {
     saveProfile({ equipmentTier: 'full-gym', injuries: [], setupComplete: true });
     renderHome();
     closeOnboarding();
-    startTour();
   } else {
     closeOnboarding();
   }
@@ -2410,132 +2408,6 @@ fbSend.addEventListener('click', async () => {
 renderHome();
 renderCoaches();
 
-// ─── GUIDED TOUR ──────────────────────────────────────────────────────────────
-const TOUR_KEY = 'kilos-tour-done';
-
-const TOUR_STEPS = [
-  {
-    targetId: 'btn-qs-open',
-    placement: 'below',
-    step: '01 / 04',
-    title: 'QUICK START',
-    body: 'Pick a muscle group and your session is built instantly — exercises matched to your equipment.',
-    next: 'Next →',
-  },
-  {
-    targetId: 'btn-custom',
-    placement: 'below',
-    step: '02 / 04',
-    title: 'BUILD YOUR OWN',
-    body: 'Name it, add exercises, tap Start. Your saved sessions show up here on Home.',
-    next: 'Next →',
-  },
-  {
-    targetSelector: '[data-screen="active"]',
-    placement: 'above',
-    step: '03 / 04',
-    title: 'ACTIVE TAB',
-    body: 'Once a session starts, the Active tab shows your timer. Log weight + reps → tap Done for each set.',
-    next: 'Next →',
-  },
-  {
-    targetSelector: '[data-screen="history"]',
-    placement: 'above',
-    step: '04 / 04',
-    title: 'HISTORY & PRS',
-    body: 'Every session saves automatically. Personal records update in real time as you lift.',
-    next: "Let's train →",
-  },
-];
-
-let _tourStep = 0;
-
-function _tourTarget(step) {
-  if (step.targetId)       return document.getElementById(step.targetId);
-  if (step.targetSelector) return document.querySelector(step.targetSelector);
-  return null;
-}
-
-function showTourStep(idx) {
-  const step = TOUR_STEPS[idx];
-  const target = _tourTarget(step);
-  if (!target) { endTour(); return; }
-
-  const tipEl    = document.getElementById('coach-tip');
-  const backdrop = document.getElementById('tour-backdrop');
-  const appEl    = document.getElementById('app');
-
-  document.getElementById('ct-step').textContent  = step.step;
-  document.getElementById('ct-title').textContent = step.title;
-  document.getElementById('ct-body').textContent  = step.body;
-  document.getElementById('ct-next').textContent  = step.next;
-
-  backdrop.style.display = 'block';
-
-  // Position relative to #app using bounding rects
-  const appRect    = appEl.getBoundingClientRect();
-  const targetRect = target.getBoundingClientRect();
-  const TIP_W = 252;
-  const TIP_H = 168; // approx
-
-  const relTop    = targetRect.top  - appRect.top;
-  const relLeft   = targetRect.left - appRect.left;
-  const relBottom = relTop + targetRect.height;
-
-  // Horizontal: centre on target, clamp within app
-  let left = relLeft + targetRect.width / 2 - TIP_W / 2;
-  left = Math.max(12, Math.min(left, appRect.width - TIP_W - 12));
-
-  let top, arrowDir;
-  if (step.placement === 'below') {
-    top      = relBottom + 12;
-    arrowDir = 'up';
-    // If tooltip would clip bottom, flip above
-    if (top + TIP_H > appRect.height - 80) {
-      top      = relTop - TIP_H - 12;
-      arrowDir = 'down';
-    }
-  } else {
-    top      = relTop - TIP_H - 12;
-    arrowDir = 'down';
-    if (top < 8) { top = relBottom + 12; arrowDir = 'up'; }
-  }
-
-  tipEl.style.top     = `${top}px`;
-  tipEl.style.left    = `${left}px`;
-  tipEl.style.display = 'block';
-
-  // Arrow: horizontally align with target centre
-  const arrowEl  = document.getElementById('ct-arrow');
-  arrowEl.className = `ct-arrow ${arrowDir}`;
-  const arrowLeft = Math.max(10, Math.min(
-    relLeft + targetRect.width / 2 - left - 8,
-    TIP_W - 26
-  ));
-  arrowEl.style.left = `${arrowLeft}px`;
-}
-
-function advanceTour() {
-  _tourStep++;
-  if (_tourStep >= TOUR_STEPS.length) { endTour(); return; }
-  showTourStep(_tourStep);
-}
-
-function endTour() {
-  set(TOUR_KEY, '1');
-  document.getElementById('coach-tip').style.display    = 'none';
-  document.getElementById('tour-backdrop').style.display = 'none';
-}
-
-function startTour() {
-  if (get(TOUR_KEY)) return;
-  _tourStep = 0;
-  // Small delay so Home has fully rendered
-  setTimeout(() => showTourStep(0), 400);
-}
-
-document.getElementById('ct-next')?.addEventListener('click', advanceTour);
-document.getElementById('ct-skip')?.addEventListener('click', endTour);
 
 // Active placeholder → go home
 document.getElementById('ap-go-home')?.addEventListener('click', () => goScreen('home'));
