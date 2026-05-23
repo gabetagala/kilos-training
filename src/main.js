@@ -1996,8 +1996,8 @@ document.getElementById('btn-profile').addEventListener('click', openOnboarding)
 
 // ─── BETA WELCOME ─────────────────────────────────────────────────────────────
 function showBetaWelcome() {
-  const name = getUserName() || 'Athlete';
-  document.getElementById('bw-hi').textContent = `Hi ${name}!`;
+  const name = getUserName();
+  document.getElementById('bw-hi').textContent = name ? `Hi ${name}!` : 'Hi!';
   document.getElementById('beta-welcome').classList.add('open');
 }
 
