@@ -1,3 +1,4 @@
+import html2canvas from 'html2canvas';
 import { EXERCISES_DB, COACHES_DATA, LEGENDS_DATA, FAMOUS_WODS, SHUFFLE_PLANS, MUSCLES, MUSCLES_ALL } from './data.js';
 import {
   EQUIPMENT_TIERS,
@@ -1778,15 +1779,30 @@ function showShareCard(workout, duration, entry) {
       <div class="sc-stat"><div class="val">${sessionSets}</div><div class="lbl">Sets Done</div></div>
       <div class="sc-stat"><div class="val">${duration}</div><div class="lbl">Duration</div></div>
     `;
-    document.getElementById('sc-exercise-list').innerHTML = prBadge + workout.exercises
+    // Only show exercises where at least one set was actually completed
+    const doneExercises = (workout.exercises || []).filter(e =>
+      e.logs?.some(l => l.done)
+    );
+    document.getElementById('sc-exercise-list').innerHTML = prBadge + doneExercises
       .slice(0, 5)
-      .map(e => `<div class="sc-ex-item"><span>${e.name}</span><span>${e.sets} sets</span></div>`)
+      .map(e => {
+        const doneLogs = e.logs.filter(l => l.done);
+        // Best set by weight × reps
+        const best = doneLogs.reduce((b, l) => {
+          const vol = (parseFloat(l.weight) || 0) * (parseInt(l.reps) || 0);
+          return vol > b.vol ? { weight: l.weight, reps: l.reps, vol } : b;
+        }, { vol: 0 });
+        const stat = best.weight
+          ? `${best.weight}kg × ${best.reps || '?'}`
+          : `${doneLogs.length} sets`;
+        return `<div class="sc-ex-item"><span>${e.name}</span><span>${stat}</span></div>`;
+      })
       .join('');
   }
   document.getElementById('share-modal').classList.add('open');
-  // Pre-generate canvas so Save Photo tap is instant
+  // Pre-generate screenshot so Save Photo tap is instant
   pendingShareCanvas = null;
-  generateWorkoutCanvas(workout, entry).then(c => { pendingShareCanvas = c; });
+  generateWorkoutCanvas().then(c => { pendingShareCanvas = c; });
 }
 
 document.getElementById('btn-share').addEventListener('click', async () => {
@@ -1794,7 +1810,7 @@ document.getElementById('btn-share').addEventListener('click', async () => {
   btn.textContent = 'Saving…';
   btn.disabled = true;
   try {
-    const canvas = pendingShareCanvas || await generateWorkoutCanvas(lastFinishedWorkout, lastFinishedEntry);
+    const canvas = pendingShareCanvas || await generateWorkoutCanvas();
     await shareWorkoutImage(canvas, lastFinishedWorkout?.name || 'My Workout');
   } catch (e) {
     console.warn('Share failed', e);
@@ -1810,135 +1826,15 @@ document.getElementById('btn-close-share').addEventListener('click', () => {
 });
 
 // ─── WORKOUT SHARE IMAGE ──────────────────────────────────────────────────────
-async function generateWorkoutCanvas(workout, entry) {
-  await document.fonts.load('400 64px "Bebas Neue"');
-
-  const W = 1080, H = 1920;
-  const canvas = document.createElement('canvas');
-  canvas.width = W; canvas.height = H;
-  const ctx = canvas.getContext('2d');
-
-  // Background
-  ctx.fillStyle = '#111111';
-  ctx.fillRect(0, 0, W, H);
-
-  // Purple accent bar — top
-  ctx.fillStyle = '#863bff';
-  ctx.fillRect(0, 0, W, 6);
-
-  // Header row: wordmark + date
-  ctx.fillStyle = 'rgba(255,255,255,0.22)';
-  ctx.font = '400 26px "Space Mono", monospace';
-  ctx.textAlign = 'left';
-  ctx.fillText('KILOS TRAINING', 80, 100);
-
-  const dateStr = entry?.date
-    ? new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()
-    : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
-  ctx.fillStyle = 'rgba(255,255,255,0.22)';
-  ctx.font = '400 22px "Space Mono", monospace';
-  ctx.textAlign = 'right';
-  ctx.fillText(dateStr, W - 80, 100);
-
-  // Thin rule
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(80, 125); ctx.lineTo(W - 80, 125); ctx.stroke();
-
-  // Workout name — huge
-  ctx.fillStyle = '#ffffff';
-  ctx.textAlign = 'left';
-  const fontSize = 124;
-  ctx.font = `400 ${fontSize}px "Bebas Neue", sans-serif`;
-  const maxW = W - 160;
-  const words = (workout?.name || 'Workout').split(' ');
-  let line = '', curY = 310;
-  for (const word of words) {
-    const test = line ? `${line} ${word}` : word;
-    if (ctx.measureText(test).width > maxW && line) {
-      ctx.fillText(line, 80, curY); line = word; curY += fontSize + 8;
-    } else { line = test; }
-  }
-  ctx.fillText(line, 80, curY);
-  curY += 65;
-
-  // Stats row
-  const isCFw = CF_TYPES.has(workout?.type);
-  const stats = isCFw
-    ? [
-        { val: entry?.duration || '—', lbl: 'DURATION' },
-        { val: String(entry?.cfRoundsCompleted ?? '—'), lbl: workout.type === 'amrap' ? 'ROUNDS' : 'DONE' },
-        { val: workout.cf?.badge || workout.type?.toUpperCase() || '—', lbl: 'FORMAT' },
-      ]
-    : [
-        { val: String(Math.round(entry?.totalWeight || 0)), lbl: 'KG VOL' },
-        { val: String(entry?.sets || 0), lbl: 'SETS' },
-        { val: entry?.duration || '—', lbl: 'TIME' },
-      ];
-
-  const sw = (W - 160) / 3;
-  stats.forEach((s, i) => {
-    const sx = 80 + i * sw + sw / 2;
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '400 84px "Bebas Neue", sans-serif';
-    ctx.fillText(s.val, sx, curY + 84);
-    ctx.fillStyle = 'rgba(255,255,255,0.32)';
-    ctx.font = '400 20px "Space Mono", monospace';
-    ctx.fillText(s.lbl, sx, curY + 120);
+async function generateWorkoutCanvas() {
+  const cardEl = document.getElementById('share-card');
+  const canvas = await html2canvas(cardEl, {
+    scale: 3,
+    useCORS: true,
+    logging: false,
+    allowTaint: true,
+    backgroundColor: null,
   });
-  curY += 165;
-
-  // Rule
-  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(80, curY); ctx.lineTo(W - 80, curY); ctx.stroke();
-  curY += 50;
-
-  // Exercise / movement list
-  const items = isCFw
-    ? (workout.cf?.movements || []).slice(0, 7).map(m => ({ l: m.name, r: m.reps ? String(m.reps) : '' }))
-    : (workout.exercises || []).slice(0, 7).map(e => ({ l: e.name, r: `${e.sets} sets` }));
-
-  items.forEach(item => {
-    ctx.fillStyle = 'rgba(255,255,255,0.82)';
-    ctx.font = '400 46px "Bebas Neue", sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText(item.l, 80, curY + 40);
-    if (item.r) {
-      ctx.fillStyle = 'rgba(255,255,255,0.28)';
-      ctx.font = '400 34px "Bebas Neue", sans-serif';
-      ctx.textAlign = 'right';
-      ctx.fillText(item.r, W - 80, curY + 40);
-    }
-    curY += 62;
-  });
-
-  // PR pill
-  if (entry?.newPRs?.length) {
-    curY += 20;
-    const prText = `+${entry.newPRs.length} NEW PR${entry.newPRs.length > 1 ? 'S' : ''} 🏆`;
-    ctx.font = '400 40px "Bebas Neue", sans-serif';
-    const pillW = ctx.measureText(prText).width + 60;
-    ctx.fillStyle = '#863bff';
-    ctx.beginPath();
-    ctx.roundRect ? ctx.roundRect(80, curY, pillW, 62, 8) : (ctx.rect(80, curY, pillW, 62));
-    ctx.fill();
-    ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'left';
-    ctx.fillText(prText, 110, curY + 43);
-  }
-
-  // Bottom hashtag
-  ctx.fillStyle = 'rgba(255,255,255,0.15)';
-  ctx.font = '400 26px "Space Mono", monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText('#kilostraining · free forever', W / 2, H - 90);
-
-  // Purple accent bar — bottom
-  ctx.fillStyle = '#863bff';
-  ctx.fillRect(0, H - 6, W, 6);
-
   return canvas;
 }
 
