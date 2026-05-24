@@ -3044,6 +3044,21 @@ function runPostNameFlow() {
   // Only open onboarding for true first-timers — not returning users who happened
   // to clear a single key or have a partial profile from an older app version.
   if (!profile.setupComplete && !profile.equipmentTier) openOnboarding();
+
+  // ── Coach / preview workout launch ────────────────────────────────────────
+  // Coach preview pages write a workout to this key before redirecting here.
+  // We pick it up after the name/onboarding flow so the experience is clean.
+  const pending = localStorage.getItem('kilos-launch-workout');
+  if (pending) {
+    localStorage.removeItem('kilos-launch-workout');
+    try {
+      const { name, cfData } = JSON.parse(pending);
+      if (name && cfData) {
+        // Small delay so any overlays have time to settle
+        setTimeout(() => beginCFWorkout(name, cfData), 400);
+      }
+    } catch { /* malformed — ignore */ }
+  }
 }
 
 setTimeout(() => {

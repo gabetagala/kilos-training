@@ -495,7 +495,7 @@
       </div>
       <div class="wc-footer">
         <span class="wc-note">Scale pull-ups to jumping C2B. Keep thrusters unbroken.</span>
-        <a class="wc-run" href="https://kilostraining.vercel.app">Run it →</a>
+        <button class="wc-run" onclick="launchWorkout('fullsend')">Run it →</button>
       </div>
     </div>
 
@@ -529,7 +529,7 @@
       </div>
       <div class="wc-footer">
         <span class="wc-note">HYROX simulation. Pace the run. Go unbroken on wall balls.</span>
-        <a class="wc-run" href="https://kilostraining.vercel.app">Run it →</a>
+        <button class="wc-run" onclick="launchWorkout('hyrox')">Run it →</button>
       </div>
     </div>
 
@@ -560,7 +560,7 @@
       </div>
       <div class="wc-footer">
         <span class="wc-note">Rest 90s between rounds. Touch and go on the bar.</span>
-        <a class="wc-run" href="https://kilostraining.vercel.app">Run it →</a>
+        <button class="wc-run" onclick="launchWorkout('cut')">Run it →</button>
       </div>
     </div>
 
@@ -568,16 +568,75 @@
 
   <!-- Sticky bottom CTA -->
   <div class="bottom-cta">
-    <a class="cta-main" href="https://kilostraining.vercel.app">
-      TRAIN WITH KILOS — FREE
-    </a>
+    <button class="cta-main" onclick="launchWorkout('fullsend')">
+      TRY A WORKOUT — FREE
+    </button>
     <div class="cta-sub">
-      Track every session. Free forever. &nbsp;·&nbsp;
+      Runs in KILOS · free forever &nbsp;·&nbsp;
       <a href="https://www.instagram.com/coachcilynm" target="_blank">Follow Coach Cilyn</a>
     </div>
   </div>
 
 </div>
 </div>
+
+<script>
+  const APP = 'https://kilostraining.vercel.app/';
+
+  const WORKOUTS = {
+    fullsend: {
+      name: 'FULL SEND',
+      cfData: {
+        type: 'amrap',
+        timeCap: 20,
+        description: 'AMRAP 20 MIN',
+        badge: 'AMRAP',
+        movements: [
+          { name: 'Chest-to-Bar Pull-ups', reps: '5' },
+          { name: 'Dumbbell Thrusters', reps: '10' },
+          { name: 'Box Jumps', reps: '15' },
+        ],
+      },
+    },
+    hyrox: {
+      name: 'HYROX PREP',
+      cfData: {
+        type: 'fortime',
+        description: 'FOR TIME',
+        badge: 'FOR TIME',
+        movements: [
+          { name: '1km Run', reps: '1' },
+          { name: 'Wall Balls (9kg)', reps: '50' },
+          { name: '1km Row', reps: '1' },
+          { name: 'Burpee Broad Jumps', reps: '50' },
+        ],
+      },
+    },
+    cut: {
+      name: "COACH'S CUT",
+      cfData: {
+        type: 'rounds',
+        rounds: 5,
+        description: '5 ROUNDS FOR TIME',
+        badge: 'RFT',
+        movements: [
+          { name: 'Hang Power Cleans', reps: '10' },
+          { name: 'Push Jerks', reps: '10' },
+          { name: '200m Run', reps: '1' },
+        ],
+      },
+    },
+  };
+
+  function launchWorkout(id) {
+    const w = WORKOUTS[id];
+    if (!w) return;
+    // Store in localStorage — main app picks this up on load and starts the workout
+    localStorage.setItem('kilos-launch-workout', JSON.stringify(w));
+    // Redirect to the app
+    window.location.href = APP;
+  }
+</script>
+
 </body>
 </html>
