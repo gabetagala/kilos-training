@@ -2557,30 +2557,13 @@ document.getElementById('btn-export').addEventListener('click', () => {
   URL.revokeObjectURL(url);
 });
 
-// ─── BACKUP / RESTORE + AUTH ──────────────────────────────────────────────────
+// ─── BACKUP / RESTORE ────────────────────────────────────────────────────────
+// Export/import JSON removed from the public UI — regular users don't need to
+// deal with files. Sync is handled via accounts. The hidden #import-file input
+// is kept for future use (e.g. a developer/settings screen).
 const BACKUP_KEYS = ['workoutHistory', 'prMap', 'volPRMap', 'customWorkouts', 'userProfile'];
 
-// JSON export — manual fallback, always available regardless of auth state
-document.getElementById('btn-export-json').addEventListener('click', () => {
-  const data = { version: 1, exported: new Date().toISOString() };
-  BACKUP_KEYS.forEach(k => { data[k] = get(k) || null; });
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `kilos-backup-${new Date().toISOString().slice(0, 10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  const btn = document.getElementById('btn-export-json');
-  btn.textContent = 'Saved ✓';
-  setTimeout(() => { btn.textContent = 'Export backup'; }, 1800);
-});
-
-document.getElementById('btn-import-json').addEventListener('click', () => {
-  document.getElementById('import-file').click();
-});
-
-document.getElementById('import-file').addEventListener('change', (e) => {
+document.getElementById('import-file')?.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
@@ -2589,15 +2572,10 @@ document.getElementById('import-file').addEventListener('change', (e) => {
       const data = JSON.parse(ev.target.result);
       if (!data.version || !data.exported) throw new Error('Not a KILOS TRAINING backup');
       BACKUP_KEYS.forEach(k => { if (data[k] != null) set(k, data[k]); });
-      // If signed in, push the restored data to the cloud immediately
       await pushData();
-      const btn = document.getElementById('btn-import-json');
-      btn.textContent = 'Restored ✓';
-      setTimeout(() => { btn.textContent = 'Restore'; renderHome(); renderHistory(); }, 1200);
+      renderHome(); renderHistory();
     } catch {
-      const btn = document.getElementById('btn-import-json');
-      btn.textContent = 'Invalid file';
-      setTimeout(() => { btn.textContent = 'Restore'; }, 2000);
+      // silently ignore — no visible error since there's no button to revert text on
     }
     e.target.value = '';
   };
@@ -2615,7 +2593,7 @@ async function renderDataNotice() {
   if (!notice) return;
 
   if (currentUser) {
-    // Signed in — show username (strip @kilostraining.app) or email
+    // Signed in — show username + sync status + sign-out
     const rawEmail = currentUser.email || '';
     const displayId = rawEmail.endsWith('@kilostraining.app')
       ? rawEmail.replace('@kilostraining.app', '')
@@ -2628,35 +2606,20 @@ async function renderDataNotice() {
       <div class="dn-top">
         <span class="dn-label">${syncLabel}</span>
         <div class="dn-btns">
-          <button class="dn-btn" id="btn-export-json">Export backup</button>
           <button class="dn-btn dn-signout" id="btn-signout">Sign out</button>
         </div>
       </div>
       <div class="dn-sub">${pending ? 'Will sync when connection restores' : 'Your data is backed up automatically'}</div>
-      <input type="file" id="import-file" accept=".json" style="display:none">
     `;
-    document.getElementById('btn-export-json').addEventListener('click', () => {
-      const data = { version: 1, exported: new Date().toISOString() };
-      BACKUP_KEYS.forEach(k => { data[k] = get(k) || null; });
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `kilos-backup-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click(); URL.revokeObjectURL(url);
-    });
     document.getElementById('btn-signout').addEventListener('click', async () => {
       await signOut();
       renderDataNotice();
     });
   } else {
-    // Signed out — show sign-in CTA + manual backup as fallback
+    // Signed out — just show the sync CTA (no confusing export/import buttons)
     notice.innerHTML = `
       <div class="dn-top">
         <span class="dn-label">This device only</span>
-        <div class="dn-btns">
-          <button class="dn-btn" id="btn-export-json">Export backup</button>
-          <button class="dn-btn" id="btn-import-json">Restore</button>
-        </div>
       </div>
       ${isConfigured
         ? `<div class="dn-signin-row">
@@ -2665,34 +2628,7 @@ async function renderDataNotice() {
            <div class="dn-sub">No email needed — username + password</div>`
         : `<div class="dn-sub">Create an account to sync across devices — no email needed.</div>`
       }
-      <input type="file" id="import-file" accept=".json" style="display:none">
     `;
-    document.getElementById('btn-export-json')?.addEventListener('click', () => {
-      const data = { version: 1, exported: new Date().toISOString() };
-      BACKUP_KEYS.forEach(k => { data[k] = get(k) || null; });
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `kilos-backup-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click(); URL.revokeObjectURL(url);
-    });
-    document.getElementById('btn-import-json')?.addEventListener('click', () => {
-      document.getElementById('import-file').click();
-    });
-    document.getElementById('import-file')?.addEventListener('change', (e) => {
-      const file = e.target.files[0]; if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        try {
-          const data = JSON.parse(ev.target.result);
-          if (!data.version || !data.exported) throw new Error();
-          BACKUP_KEYS.forEach(k => { if (data[k] != null) set(k, data[k]); });
-          renderHome(); renderHistory();
-        } catch { alert('Not a valid KILOS TRAINING backup file.'); }
-        e.target.value = '';
-      };
-      reader.readAsText(file);
-    });
     document.getElementById('btn-dn-signin')?.addEventListener('click', () => {
       // Open name prompt directly at sign-in step
       _npName = get(NAME_KEY) || '';
