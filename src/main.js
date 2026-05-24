@@ -154,7 +154,85 @@ function showPRToast(exerciseName, weight, reps, type = 'weight') {
   beep(660, 0.15);
   setTimeout(() => beep(880, 0.15), 160);
   setTimeout(() => { toast.classList.remove('show'); }, 2800);
+
+  // PR Celebration flash — bigger moment for weight PRs
+  if (type === 'weight') showPRCelebration(exerciseName, weight, reps);
 }
+
+let _prCelebrateTimer = null;
+function showPRCelebration(exerciseName, weight, reps) {
+  const overlay = document.getElementById('pr-celebrate');
+  document.getElementById('prc-weight').textContent = weight;
+  document.getElementById('prc-unit').textContent = `${weightUnit()} × ${reps}`;
+  document.getElementById('prc-ex').textContent = exerciseName.toUpperCase();
+  overlay.classList.add('open');
+  if (_prCelebrateTimer) clearTimeout(_prCelebrateTimer);
+  _prCelebrateTimer = setTimeout(() => overlay.classList.remove('open'), 3500);
+}
+
+document.getElementById('prc-dismiss').addEventListener('click', () => {
+  document.getElementById('pr-celebrate').classList.remove('open');
+  if (_prCelebrateTimer) clearTimeout(_prCelebrateTimer);
+});
+
+document.getElementById('prc-share').addEventListener('click', () => {
+  document.getElementById('pr-celebrate').classList.remove('open');
+  if (_prCelebrateTimer) clearTimeout(_prCelebrateTimer);
+  // Build share card and open immediately if we have workout state
+  if (activeWorkout) {
+    const elapsed = Math.floor((Date.now() - workoutStartTime) / 1000);
+    const dur = `${Math.floor(elapsed / 60)}:${(elapsed % 60).toString().padStart(2, '0')}`;
+    currentShareData = buildShareData({ workout: activeWorkout, totalWeightMoved, sessionSets, newPRsThisSession, cfRoundsCompleted, cfCurrentRound, duration: dur });
+    currentShareMode = 'dark'; currentShareBgImage = null;
+    document.getElementById('share-bg-dark').classList.add('active');
+    document.getElementById('share-bg-photo').classList.remove('active');
+    document.getElementById('share-modal').classList.add('open');
+    _renderShareCanvas();
+  }
+});
+
+// ─── PLATE CALCULATOR ─────────────────────────────────────────────────────────
+function calcPlates(targetKg) {
+  const barKg = 20; // Standard Olympic bar
+  if (targetKg <= barKg) return { perSide: [], remainder: targetKg };
+  const plates = [25, 20, 15, 10, 5, 2.5, 1.25];
+  let remaining = (targetKg - barKg) / 2;
+  const perSide = [];
+  for (const plate of plates) {
+    while (remaining >= plate - 0.001) {
+      perSide.push(plate);
+      remaining = Math.round((remaining - plate) * 1000) / 1000;
+    }
+  }
+  return { perSide, remainder: Math.round(remaining * 1000) / 1000 };
+}
+
+function renderPlateCalc() {
+  const raw = parseFloat(document.getElementById('plate-input').value);
+  const res = document.getElementById('plate-result');
+  if (!raw || raw <= 0) { res.innerHTML = ''; return; }
+  const kg = isLbs() ? raw / 2.205 : raw;
+  const { perSide, remainder } = calcPlates(Math.round(kg * 2) / 2);
+  const barLine = `<div class="pc-row"><span class="pc-label">Bar</span><span class="pc-val">20 kg</span></div>`;
+  const plateLine = perSide.length
+    ? perSide.map(p => `<div class="pc-row"><span class="pc-label">Each side</span><span class="pc-val">${p} kg</span></div>`).join('')
+    : '';
+  const totalLine = `<div class="pc-row pc-total"><span class="pc-label">Total</span><span class="pc-val">${Math.round(kg * 2) / 2} kg${isLbs() ? ` (${raw} lbs)` : ''}</span></div>`;
+  const warnLine = remainder > 0.1 ? `<div class="pc-warn">Can't make exact weight — nearest: ${Math.round((Math.round(kg*2)/2)*100)/100} kg</div>` : '';
+  res.innerHTML = barLine + plateLine + totalLine + warnLine;
+}
+
+document.getElementById('btn-plate-calc').addEventListener('click', () => {
+  document.getElementById('plate-input').value = '';
+  document.getElementById('plate-result').innerHTML = '';
+  document.getElementById('plate-unit-label').textContent = weightUnit();
+  document.getElementById('plate-modal').classList.add('open');
+  setTimeout(() => document.getElementById('plate-input').focus(), 120);
+});
+document.getElementById('plate-input').addEventListener('input', renderPlateCalc);
+document.getElementById('btn-close-plate').addEventListener('click', () => {
+  document.getElementById('plate-modal').classList.remove('open');
+});
 
 // Suggest the next working weight based on the previous session.
 // If the lifter hit all target reps last time → add 2.5 kg.
@@ -303,15 +381,27 @@ function renderWeekStrip() {
 function updateStreak() {
   const history = get('workoutHistory') || [];
   let streak = 0;
+  let restDayUsed = false; // one grace miss allowed per week
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 90; i++) {
     const d = new Date(today); d.setDate(d.getDate() - i);
     const found = history.find(h => {
       const hd = new Date(h.date); hd.setHours(0, 0, 0, 0);
       return hd.getTime() === d.getTime();
     });
-    if (found) streak++;
-    else if (i > 0) break;
+    if (found) {
+      streak++;
+      // Reset grace once per 7 calendar days of actual training
+      if (streak % 7 === 0) restDayUsed = false;
+    } else if (i > 0) {
+      // Allow one grace miss before breaking the streak
+      if (!restDayUsed) {
+        restDayUsed = true;
+        // Still count it as a "rest day saved" — don't increment streak, just skip
+        continue;
+      }
+      break;
+    }
   }
   const chip = document.getElementById('streak-count');
   chip.textContent = `${streak} day streak`;

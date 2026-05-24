@@ -2222,6 +2222,122 @@ body {
 .share-bg-btn:active { opacity: 0.75; }
 
 /* ══════════════════════════════════════════
+   PR CELEBRATION FLASH
+══════════════════════════════════════════ */
+#pr-celebrate {
+  display: none; position: fixed; inset: 0; z-index: 900;
+  background: #0d0d0d;
+  flex-direction: column; align-items: center; justify-content: center;
+  gap: 0;
+}
+#pr-celebrate.open { display: flex; animation: prFlashIn 0.3s cubic-bezier(0.22,1,0.36,1) forwards; }
+@keyframes prFlashIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.prc-inner {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 40px 32px 0;
+}
+.prc-badge {
+  font-family: 'Space Mono', monospace; font-size: 10px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+  border: 1px solid rgba(255,255,255,0.18);
+  padding: 6px 14px; margin-bottom: 24px;
+}
+.prc-weight {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(96px, 26vw, 160px);
+  line-height: 1; color: #fff; letter-spacing: -0.01em;
+}
+.prc-unit {
+  font-family: 'Space Mono', monospace; font-size: 12px;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: rgba(255,255,255,0.38); margin-top: 8px;
+}
+.prc-ex {
+  font-family: 'Bebas Neue', sans-serif; font-size: 22px;
+  letter-spacing: 0.04em; color: rgba(255,255,255,0.55);
+  margin-top: 16px; text-align: center;
+}
+.prc-share {
+  width: calc(100% - 48px); padding: 18px;
+  background: #fff; color: #0d0d0d; border: none;
+  font-family: 'Bebas Neue', sans-serif; font-size: 22px;
+  letter-spacing: 0.02em; cursor: pointer;
+  margin-bottom: 12px; transition: opacity 0.15s;
+}
+.prc-share:active { opacity: 0.85; }
+.prc-dismiss {
+  background: none; border: none; cursor: pointer;
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.28); padding: 14px;
+  margin-bottom: max(16px, env(safe-area-inset-bottom));
+  transition: color 0.15s;
+}
+.prc-dismiss:active { color: rgba(255,255,255,0.6); }
+
+/* ══════════════════════════════════════════
+   PLATE CALCULATOR
+══════════════════════════════════════════ */
+.plate-sheet {
+  padding: 28px 24px max(28px, env(safe-area-inset-bottom));
+}
+.plate-title {
+  font-family: 'Bebas Neue', sans-serif; font-size: 28px;
+  letter-spacing: 0.04em; margin-bottom: 20px;
+}
+.plate-target-row {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 20px;
+}
+.plate-input {
+  flex: 1; background: transparent;
+  border: none; border-bottom: 1px solid rgba(255,255,255,0.2);
+  color: var(--white); font-size: 36px; font-weight: 700;
+  padding: 4px 0; outline: none; font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: 0.02em;
+}
+.plate-input:focus { border-bottom-color: var(--white); }
+.plate-unit-label {
+  font-family: 'Space Mono', monospace; font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.35);
+}
+.plate-result { margin-bottom: 24px; }
+.pc-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+  font-family: 'Space Mono', monospace; font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.pc-label { color: rgba(255,255,255,0.38); }
+.pc-val { color: var(--white); font-size: 14px; font-weight: 700; }
+.pc-total { border-top: 1px solid rgba(255,255,255,0.15); border-bottom: none; margin-top: 4px; padding-top: 14px; }
+.pc-total .pc-val { font-family: 'Bebas Neue', sans-serif; font-size: 22px; }
+.pc-warn {
+  font-family: 'Space Mono', monospace; font-size: 8px;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: rgba(255,180,80,0.7); margin-top: 8px;
+}
+/* Plate calc button in set log header */
+.set-log-title-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 4px;
+}
+.plate-calc-btn {
+  display: flex; align-items: center; gap: 5px;
+  font-family: 'Space Mono', monospace; font-size: 8px;
+  text-transform: uppercase; letter-spacing: 0.09em;
+  color: rgba(255,255,255,0.35); background: none; border: none;
+  cursor: pointer; padding: 4px 0; transition: color 0.15s;
+}
+.plate-calc-btn:active { color: var(--white); }
+
+/* ══════════════════════════════════════════
    NAME PROMPT V2 — Multi-step additions
 ══════════════════════════════════════════ */
 .np-step { display: flex; flex-direction: column; }

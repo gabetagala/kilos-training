@@ -123,7 +123,7 @@
               <button class="dn-btn" id="btn-import-json">Restore</button>
             </div>
           </div>
-          <div class="dn-sub">Google Sign-In coming — one tap, no password, no catch</div>
+          <div class="dn-sub">Create an account to sync across devices — no email needed.</div>
         </div>
         <input type="file" id="import-file" accept=".json" style="display:none">
       </div>
@@ -281,7 +281,13 @@
         <!-- CF Log — shown instead of set-log for CF workouts -->
         <div id="cf-log" style="display:none;height:290px;overflow-y:auto;padding:0 24px 88px;flex-shrink:0;"></div>
         <div class="set-log" id="set-log">
-          <div class="set-log-title">Log sets</div>
+          <div class="set-log-title-row">
+            <div class="set-log-title">Log sets</div>
+            <button class="plate-calc-btn" id="btn-plate-calc" title="Plate calculator">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="14" height="14"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              Plates
+            </button>
+          </div>
           <div id="set-log-rows"></div>
         </div>
         <div id="cardio-log-section" style="display:none">
@@ -387,6 +393,31 @@
       <div>
         <div class="pr-toast-label">NEW PERSONAL RECORD</div>
         <div class="pr-toast-text"></div>
+      </div>
+    </div>
+
+    <!-- PR Celebration Flash — full-screen on new PR -->
+    <div id="pr-celebrate" class="pr-celebrate">
+      <div class="prc-inner">
+        <div class="prc-badge">NEW PR</div>
+        <div class="prc-weight" id="prc-weight"></div>
+        <div class="prc-unit" id="prc-unit"></div>
+        <div class="prc-ex" id="prc-ex"></div>
+      </div>
+      <button class="prc-share" id="prc-share">Share →</button>
+      <button class="prc-dismiss" id="prc-dismiss">Continue</button>
+    </div>
+
+    <!-- Plate Calculator Modal -->
+    <div class="modal-overlay" id="plate-modal">
+      <div class="modal-sheet plate-sheet">
+        <div class="plate-title">PLATE CALCULATOR</div>
+        <div class="plate-target-row">
+          <input type="number" id="plate-input" class="plate-input" placeholder="Target kg" inputmode="decimal">
+          <span class="plate-unit-label" id="plate-unit-label">kg</span>
+        </div>
+        <div id="plate-result" class="plate-result"></div>
+        <span class="modal-cancel" id="btn-close-plate">Close</span>
       </div>
     </div>
 
