@@ -38,6 +38,33 @@ export async function signInWithGoogle() {
   });
 }
 
+// ─── USERNAME / PASSWORD AUTH (Option B) ────────────────────────────────────
+// Generates a fake email {username}@kilostraining.app so users never see
+// an email address. Disable "Email confirmations" in Supabase dashboard
+// (Auth → Settings → Email) for instant access with no verification step.
+
+function usernameToEmail(username) {
+  return `${username.toLowerCase().replace(/[^a-z0-9_]/g, '')}@kilostraining.app`;
+}
+
+export async function signUpWithPassword(displayName, username, password) {
+  if (!supabase) return { error: { message: 'Sync not configured — data saves locally.' } };
+  const email = usernameToEmail(username);
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { display_name: displayName, username } },
+  });
+  return { data, error };
+}
+
+export async function signInWithPassword(username, password) {
+  if (!supabase) return { error: { message: 'Sync not configured — data saves locally.' } };
+  const email = usernameToEmail(username);
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  return { data, error };
+}
+
 export async function signOut() {
   if (!supabase) return;
   await supabase.auth.signOut();

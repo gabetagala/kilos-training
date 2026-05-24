@@ -1,4 +1,3 @@
-import html2canvas from 'html2canvas';
 import { EXERCISES_DB, COACHES_DATA, LEGENDS_DATA, FAMOUS_WODS, SHUFFLE_PLANS, MUSCLES, MUSCLES_ALL } from './data.js';
 import {
   EQUIPMENT_TIERS, INJURY_TYPES,
@@ -7,8 +6,10 @@ import {
 import {
   supabase, isConfigured,
   getSession, signInWithGoogle, signOut,
+  signUpWithPassword, signInWithPassword,
   pushData, pullAndMerge,
 } from './supabase.js';
+import { renderShareCard, buildShareData } from './shareCard.js';
 
 // ─── STORAGE ──────────────────────────────────────────────────────────────────
 const get = (k) => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } };
@@ -62,9 +63,13 @@ let buildMode = 'strength'; // 'strength' | 'cardio' | 'crossfit'
 let newPRsThisSession = [];
 let exSearchMode = 'add'; // 'add' | 'swap'
 let timerHiddenAt = null;
-let pendingShareCanvas = null;  // pre-generated for instant Save Photo tap
 let lastFinishedWorkout = null;
 let lastFinishedEntry = null;
+
+// ── Share card state ──────────────────────────────────────────────────────────
+let currentShareData = null;
+let currentShareMode = 'dark';
+let currentShareBgImage = null;
 
 // ── CrossFit build state ──────────────────────────────────────────────────────
 let cfFormat = 'emom';  // 'emom' | 'amrap' | 'rounds' | 'fortime'
@@ -1056,20 +1061,19 @@ document.getElementById('btn-close-shuffle').addEventListener('click', () => {
   });
 });
 
-// ─── NAME PROMPT — fires once before first workout ────────────────────────────
+// ─── NAME PROMPT — multi-step: Name → Create Account → Sign In ───────────────
 const NAME_KEY = 'kilos-name';
 const getUserName = () => get(NAME_KEY);
 const saveUserName = (n) => set(NAME_KEY, (n || '').trim() || 'Athlete');
 
-let _npCallback = null; // callback to run after name is captured (e.g. open equipment onboarding)
+let _npCallback = null;
+let _npName = ''; // captured display name from step 1
 
 function requireName(callback) {
   if (getUserName()) { callback(); return; }
   _npCallback = callback;
-  const overlay = document.getElementById('name-prompt');
-  overlay.classList.add('open');
-  // Hide Google button if Supabase not configured
-  document.getElementById('np-google-wrap').style.display = isConfigured ? '' : 'none';
+  npShowStep('name');
+  document.getElementById('name-prompt').classList.add('open');
   setTimeout(() => document.getElementById('np-input').focus(), 320);
 }
 
@@ -1077,25 +1081,126 @@ function closeNamePrompt() {
   document.getElementById('name-prompt').classList.remove('open');
 }
 
-// "Just save on this device →"
-document.getElementById('np-local-btn').addEventListener('click', () => {
-  saveUserName(document.getElementById('np-input').value);
-  closeNamePrompt();
-  if (_npCallback) { _npCallback(); _npCallback = null; }
+function npShowStep(step) {
+  ['name', 'account', 'signin'].forEach(s => {
+    document.getElementById(`np-step-${s}`).style.display = s === step ? '' : 'none';
+  });
+  // Google button only shown on account step if Supabase is configured
+  const googleWrap = document.getElementById('np-google-wrap');
+  if (googleWrap) googleWrap.style.display = (step === 'account' && isConfigured) ? '' : 'none';
+}
+
+function npSetError(id, msg) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = msg;
+}
+
+// Step 1: Next → go to account creation
+document.getElementById('np-btn-next').addEventListener('click', () => {
+  const name = document.getElementById('np-input').value.trim();
+  if (!name) { document.getElementById('np-input').focus(); return; }
+  _npName = name;
+  // Pre-fill username from name (lowercase, no spaces)
+  document.getElementById('np-username').value = name.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9_]/g, '');
+  npShowStep('account');
+  setTimeout(() => document.getElementById('np-username').focus(), 80);
 });
 
-// Enter key on name input = same as local button
 document.getElementById('np-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('np-local-btn').click();
+  if (e.key === 'Enter') document.getElementById('np-btn-next').click();
 });
 
-// "Continue with Google · sync across devices"
-document.getElementById('np-google-btn').addEventListener('click', async () => {
-  const typed = document.getElementById('np-input').value.trim();
-  if (typed) saveUserName(typed);
-  _npCallback = null; // clear — Google redirect will reload the app
+// Step 2: Create account
+document.getElementById('np-btn-create').addEventListener('click', async () => {
+  const username = document.getElementById('np-username').value.trim();
+  const password = document.getElementById('np-password').value;
+  npSetError('np-create-error', '');
+
+  if (!username) { npSetError('np-create-error', 'Pick a username.'); return; }
+  if (password.length < 6) { npSetError('np-create-error', 'Password must be at least 6 characters.'); return; }
+
+  const btn = document.getElementById('np-btn-create');
+  btn.textContent = 'Creating…'; btn.disabled = true;
+
+  const { error } = await signUpWithPassword(_npName, username, password);
+  btn.disabled = false; btn.textContent = 'Create account →';
+
+  if (error) {
+    // Username taken = email already registered
+    const msg = error.message?.includes('already registered')
+      ? 'Username taken — try another.'
+      : error.message || 'Something went wrong.';
+    npSetError('np-create-error', msg);
+    return;
+  }
+
+  saveUserName(_npName);
+  await pullAndMerge();
   closeNamePrompt();
-  await signInWithGoogle(); // triggers redirect; page reloads on return
+  if (_npCallback) { const cb = _npCallback; _npCallback = null; cb(); }
+});
+
+document.getElementById('np-password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('np-btn-create').click();
+});
+
+// Step 2: Skip — just save locally
+document.getElementById('np-local-btn').addEventListener('click', () => {
+  saveUserName(_npName || document.getElementById('np-input').value);
+  closeNamePrompt();
+  if (_npCallback) { const cb = _npCallback; _npCallback = null; cb(); }
+});
+
+// Step 2: Google sign-in
+document.getElementById('np-google-btn').addEventListener('click', async () => {
+  saveUserName(_npName);
+  _npCallback = null;
+  closeNamePrompt();
+  await signInWithGoogle();
+});
+
+// Step 2 → Sign in
+document.getElementById('np-btn-go-signin').addEventListener('click', () => {
+  npSetError('np-create-error', '');
+  npShowStep('signin');
+  setTimeout(() => document.getElementById('np-signin-username').focus(), 80);
+});
+
+// Step 3: Sign in
+document.getElementById('np-btn-signin').addEventListener('click', async () => {
+  const username = document.getElementById('np-signin-username').value.trim();
+  const password = document.getElementById('np-signin-password').value;
+  npSetError('np-signin-error', '');
+
+  if (!username || !password) { npSetError('np-signin-error', 'Enter your username and password.'); return; }
+
+  const btn = document.getElementById('np-btn-signin');
+  btn.textContent = 'Signing in…'; btn.disabled = true;
+
+  const { data, error } = await signInWithPassword(username, password);
+  btn.disabled = false; btn.textContent = 'Sign in →';
+
+  if (error) {
+    npSetError('np-signin-error', 'Wrong username or password.');
+    return;
+  }
+
+  // Restore display name from Supabase user metadata if we don't have one locally
+  const displayName = data?.user?.user_metadata?.display_name || username;
+  saveUserName(displayName);
+  await pullAndMerge();
+  closeNamePrompt();
+  if (_npCallback) { const cb = _npCallback; _npCallback = null; cb(); }
+});
+
+document.getElementById('np-signin-password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('np-btn-signin').click();
+});
+
+// Step 3 → back to create
+document.getElementById('np-btn-go-create').addEventListener('click', () => {
+  npSetError('np-signin-error', '');
+  npShowStep('account');
 });
 
 // ─── ACTIVE WORKOUT ───────────────────────────────────────────────────────────
@@ -1904,72 +2009,69 @@ function finishWorkout() {
 }
 
 function showShareCard(workout, duration, entry) {
-  document.getElementById('sc-date').textContent = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  document.getElementById('sc-workout-name').textContent = workout.name;
+  // Build the data model for the canvas renderer
+  currentShareData = buildShareData({
+    workout,
+    totalWeightMoved,
+    sessionSets,
+    newPRsThisSession,
+    cfRoundsCompleted,
+    cfCurrentRound,
+    duration,
+  });
+  currentShareMode = 'dark';
+  currentShareBgImage = null;
 
-  const prBadge = newPRsThisSession.length
-    ? `<div class="sc-pr-badge">+${newPRsThisSession.length} PR${newPRsThisSession.length > 1 ? 's' : ''}</div>`
-    : '';
+  // Reset UI state
+  document.getElementById('share-bg-dark').classList.add('active');
+  document.getElementById('share-bg-photo').classList.remove('active');
+  document.getElementById('share-bg-file').value = '';
 
-  const isCFWorkout = CF_TYPES.has(workout.type);
-  if (isCFWorkout) {
-    const roundsVal = workout.type === 'amrap' ? cfRoundsCompleted : cfCurrentRound;
-    const roundsLbl = workout.type === 'amrap' ? 'Rounds' : 'Rounds done';
-    document.getElementById('sc-stats').innerHTML = `
-      <div class="sc-stat"><div class="val">${duration}</div><div class="lbl">Duration</div></div>
-      <div class="sc-stat"><div class="val">${roundsVal}</div><div class="lbl">${roundsLbl}</div></div>
-      <div class="sc-stat"><div class="val">${workout.cf?.badge || workout.type.toUpperCase()}</div><div class="lbl">Format</div></div>
-    `;
-    const movs = workout.cf?.movements || [];
-    document.getElementById('sc-exercise-list').innerHTML = prBadge + movs
-      .slice(0, 5)
-      .map(m => `<div class="sc-ex-item"><span>${m.name}</span><span>${m.reps ? m.reps + ' reps' : (m.note || '')}</span></div>`)
-      .join('');
-  } else if (workout.type === 'cardio') {
-    document.getElementById('sc-stats').innerHTML = `
-      <div class="sc-stat"><div class="val">${duration}</div><div class="lbl">Duration</div></div>
-      <div class="sc-stat"><div class="val">${entry.distance || '—'}</div><div class="lbl">Distance</div></div>
-      <div class="sc-stat"><div class="val">${workout.cardioType || 'Cardio'}</div><div class="lbl">Type</div></div>
-    `;
-    document.getElementById('sc-exercise-list').innerHTML = prBadge;
-  } else {
-    document.getElementById('sc-stats').innerHTML = `
-      <div class="sc-stat"><div class="val">${Math.round(totalWeightMoved)}</div><div class="lbl">KG Volume</div></div>
-      <div class="sc-stat"><div class="val">${sessionSets}</div><div class="lbl">Sets Done</div></div>
-      <div class="sc-stat"><div class="val">${duration}</div><div class="lbl">Duration</div></div>
-    `;
-    // Only show exercises where at least one set was actually completed
-    const doneExercises = (workout.exercises || []).filter(e =>
-      e.logs?.some(l => l.done)
-    );
-    document.getElementById('sc-exercise-list').innerHTML = prBadge + doneExercises
-      .slice(0, 5)
-      .map(e => {
-        const doneLogs = e.logs.filter(l => l.done);
-        // Best set by weight × reps
-        const best = doneLogs.reduce((b, l) => {
-          const vol = (parseFloat(l.weight) || 0) * (parseInt(l.reps) || 0);
-          return vol > b.vol ? { weight: l.weight, reps: l.reps, vol } : b;
-        }, { vol: 0 });
-        const stat = best.weight
-          ? `${best.weight}kg × ${best.reps || '?'}`
-          : `${doneLogs.length} sets`;
-        return `<div class="sc-ex-item"><span>${e.name}</span><span>${stat}</span></div>`;
-      })
-      .join('');
-  }
   document.getElementById('share-modal').classList.add('open');
-  // Pre-generate screenshot so Save Photo tap is instant
-  pendingShareCanvas = null;
-  generateWorkoutCanvas().then(c => { pendingShareCanvas = c; });
+
+  // Render immediately
+  _renderShareCanvas();
 }
+
+async function _renderShareCanvas() {
+  const canvas = document.getElementById('share-canvas');
+  if (!canvas || !currentShareData) return;
+  await renderShareCard(canvas, currentShareData, currentShareMode, currentShareBgImage);
+}
+
+document.getElementById('share-bg-dark').addEventListener('click', () => {
+  currentShareMode = 'dark';
+  currentShareBgImage = null;
+  document.getElementById('share-bg-dark').classList.add('active');
+  document.getElementById('share-bg-photo').classList.remove('active');
+  _renderShareCanvas();
+});
+
+document.getElementById('share-bg-photo').addEventListener('click', () => {
+  document.getElementById('share-bg-file').click();
+});
+
+document.getElementById('share-bg-file').addEventListener('change', (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    currentShareBgImage = img;
+    currentShareMode = 'photo';
+    document.getElementById('share-bg-photo').classList.add('active');
+    document.getElementById('share-bg-dark').classList.remove('active');
+    _renderShareCanvas();
+  };
+  img.src = url;
+});
 
 document.getElementById('btn-share').addEventListener('click', async () => {
   const btn = document.getElementById('btn-share');
   btn.textContent = 'Saving…';
   btn.disabled = true;
   try {
-    const canvas = pendingShareCanvas || await generateWorkoutCanvas();
+    const canvas = document.getElementById('share-canvas');
     await shareWorkoutImage(canvas, lastFinishedWorkout?.name || 'My Workout');
   } catch (e) {
     console.warn('Share failed', e);
@@ -1983,19 +2085,6 @@ document.getElementById('btn-close-share').addEventListener('click', () => {
   document.getElementById('share-modal').classList.remove('open');
   goScreen('home');
 });
-
-// ─── WORKOUT SHARE IMAGE ──────────────────────────────────────────────────────
-async function generateWorkoutCanvas() {
-  const cardEl = document.getElementById('share-card');
-  const canvas = await html2canvas(cardEl, {
-    scale: 3,
-    useCORS: true,
-    logging: false,
-    allowTaint: true,
-    backgroundColor: null,
-  });
-  return canvas;
-}
 
 async function shareWorkoutImage(canvas, workoutName) {
   return new Promise((resolve) => {

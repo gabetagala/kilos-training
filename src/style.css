@@ -2179,8 +2179,103 @@ body {
 }
 
 /* ══════════════════════════════════════════
+   SHARE CARD V2 — Canvas-based 9:16
+══════════════════════════════════════════ */
+.share-v2-wrap {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center;
+  padding: 0;
+  overflow: hidden;
+  width: 100%; max-width: 430px;
+  margin: 0 auto;
+}
+.share-canvas-frame {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  width: 100%; overflow: hidden;
+  padding: 16px 20px 0;
+}
+.share-canvas-frame canvas {
+  width: 100%; height: auto;
+  max-height: calc(100vh - 190px);
+  object-fit: contain;
+  border-radius: 4px;
+}
+.share-bg-row {
+  display: flex; gap: 8px; padding: 12px 20px 4px;
+  width: 100%;
+}
+.share-bg-btn {
+  flex: 1; padding: 10px 12px;
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.38);
+  border: 1px solid rgba(255,255,255,0.10);
+  cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.share-bg-btn.active {
+  background: rgba(255,255,255,0.14);
+  color: #fff;
+  border-color: rgba(255,255,255,0.30);
+}
+.share-bg-btn:active { opacity: 0.75; }
+
+/* ══════════════════════════════════════════
+   NAME PROMPT V2 — Multi-step additions
+══════════════════════════════════════════ */
+.np-step { display: flex; flex-direction: column; }
+.np-cta {
+  width: 100%; padding: 18px;
+  background: var(--white); color: var(--bg);
+  border: none; cursor: pointer;
+  font-family: 'Bebas Neue', sans-serif; font-size: 22px;
+  letter-spacing: 0.02em; text-transform: uppercase;
+  margin-top: 16px;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.np-cta:active { opacity: 0.85; transform: scale(0.98); }
+.np-field-hint {
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.35); line-height: 1.7;
+  margin-bottom: 14px;
+}
+.np-error {
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  color: rgba(255,100,100,0.85); text-transform: uppercase;
+  letter-spacing: 0.06em; line-height: 1.5;
+  min-height: 14px; margin-top: 6px;
+}
+.np-divider-wrap {
+  display: flex; flex-direction: column; align-items: center;
+  margin-top: 18px; gap: 10px;
+}
+.np-or {
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.2);
+}
+.np-footer-links {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  margin-top: 14px;
+}
+.np-link {
+  background: none; border: none; cursor: pointer;
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.38); padding: 6px;
+  transition: color 0.15s;
+}
+.np-link:active { color: var(--white); }
+
+/* np-input spacing when stacked */
+.np-step .np-input + .np-input { margin-top: 10px; }
+
+/* ══════════════════════════════════════════
    DESKTOP OVERRIDES (must come last)
 ══════════════════════════════════════════ */
 @media (min-width: 600px) {
   .confirm-overlay { position: absolute; }
+  #share-modal { position: absolute; }
 }
