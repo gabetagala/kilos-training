@@ -89,13 +89,13 @@ export async function renderShareCard(canvas, data, mode = 'dark', bgImage = nul
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  const { workoutName, date, duration, volume, sets, exercises } = data;
+  const { workoutName, date, duration, heroStr, heroLabel, heroSub, sets, exercises, isCF } = data;
 
   // ── Background + K ──
   drawBackground(ctx, mode, bgImage);
   drawGeoK(ctx);
 
-  // ── Top rule (very top) ──
+  // ── Top rule ──
   ctx.fillStyle = 'rgba(255,255,255,0.20)';
   ctx.fillRect(0, 0, W, 2);
 
@@ -113,29 +113,32 @@ export async function renderShareCard(canvas, data, mode = 'dark', bgImage = nul
 
   rule(ctx, 68, 0.12);
 
-  // ── HERO: total KG ──
-  const volStr = volume > 0 ? Math.round(volume).toLocaleString() : duration;
-  const heroLabel = volume > 0 ? 'KG TOTAL' : 'DURATION';
-
+  // ── HERO NUMBER ──
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'left';
-  fitText(ctx, volStr, W - PAD * 2 - 20, 196, `'Bebas Neue', sans-serif`);
-  ctx.fillText(volStr, PAD, 292);
+  fitText(ctx, heroStr, W - PAD * 2 - 20, 196, `'Bebas Neue', sans-serif`);
+  ctx.fillText(heroStr, PAD, 292);
 
+  // Hero label (+ optional sub for CF types like "AMRAP 20 MIN")
   ctx.fillStyle = 'rgba(255,255,255,0.32)';
   ctx.font = `9px 'Space Mono', monospace`;
   ctx.textAlign = 'left';
   ctx.fillText(heroLabel, PAD, 316);
+  if (heroSub) {
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.fillText(heroSub, PAD, 330);
+  }
 
-  // ── WORKOUT NAME (left) + DURATION (right) — same zone, different x ──
+  // ── WORKOUT NAME (left) + secondary stat (right) ──
   const nameStr = workoutName.toUpperCase();
   ctx.fillStyle = 'rgba(255,255,255,0.82)';
   ctx.textAlign = 'left';
   fitText(ctx, nameStr, W * 0.58, 60, `'Bebas Neue', sans-serif`);
   ctx.fillText(nameStr, PAD, 400);
 
-  // Time — right aligned, slightly higher for asymmetry
-  if (volume > 0) {
+  // Show duration top-right unless the hero IS the time (for time / RFT)
+  const heroIsTime = heroLabel === 'FOR TIME' || heroLabel.includes('ROUNDS FOR TIME') || heroLabel === 'DURATION';
+  if (!heroIsTime && duration && duration !== '—') {
     ctx.fillStyle = 'rgba(255,255,255,0.50)';
     ctx.font = `50px 'Bebas Neue', sans-serif`;
     ctx.textAlign = 'right';
@@ -212,28 +215,75 @@ export async function renderShareCard(canvas, data, mode = 'dark', bgImage = nul
 
 // ─── BUILD SHARE DATA ────────────────────────────────────────────────────────
 export function buildShareData({ workout, totalWeightMoved, sessionSets, newPRsThisSession, cfRoundsCompleted, cfCurrentRound, duration }) {
-  const isCF = ['emom', 'amrap', 'rounds', 'fortime'].includes(workout?.type);
-  const isCardio = workout?.type === 'cardio';
+  const type    = workout?.type || 'strength';
+  const isCF    = ['emom', 'amrap', 'rounds', 'fortime'].includes(type);
+  const isCardio = type === 'cardio';
+  const cf      = workout?.cf || {};
 
-  // Exercises with sets×reps stat
+  // ── Hero number + label — changes per workout type ──
+  let heroStr, heroLabel, heroSub;
+
+  if (type === 'amrap') {
+    heroStr   = String(cfRoundsCompleted || 0);
+    heroLabel = 'ROUNDS';
+    heroSub   = `AMRAP ${cf.timeCap || '—'} MIN`;
+  } else if (type === 'fortime') {
+    heroStr   = duration || '—';
+    heroLabel = 'FOR TIME';
+    heroSub   = null;
+  } else if (type === 'emom') {
+    const total = cf.rounds || cf.timeCap || '—';
+    heroStr   = `${cfRoundsCompleted || 0}/${total}`;
+    heroLabel = 'INTERVALS';
+    heroSub   = `EMOM`;
+  } else if (type === 'rounds') {
+    heroStr   = duration || '—';
+    heroLabel = `${cf.rounds || '—'} ROUNDS FOR TIME`;
+    heroSub   = null;
+  } else if (totalWeightMoved > 0) {
+    // Strength — check for Olympic lifts (single heavy sets)
+    const olympicNames = ['snatch', 'clean', 'jerk', 'clean and jerk', 'clean & jerk'];
+    const isOlympic = (workout?.exercises || []).some(e =>
+      olympicNames.some(o => e.name.toLowerCase().includes(o))
+    );
+    if (isOlympic) {
+      // Hero = best single lift weight across all exercises
+      const bestWeight = (workout?.exercises || []).reduce((max, e) => {
+        const top = (e.logs || []).filter(l => l.done)
+          .reduce((m, l) => Math.max(m, parseFloat(l.weight) || 0), 0);
+        return Math.max(max, top);
+      }, 0);
+      heroStr   = bestWeight > 0 ? String(bestWeight) : Math.round(totalWeightMoved).toLocaleString();
+      heroLabel = bestWeight > 0 ? 'KG · BEST LIFT' : 'KG TOTAL';
+      heroSub   = null;
+    } else {
+      heroStr   = Math.round(totalWeightMoved).toLocaleString();
+      heroLabel = 'KG TOTAL';
+      heroSub   = null;
+    }
+  } else {
+    heroStr   = duration || '—';
+    heroLabel = 'DURATION';
+    heroSub   = null;
+  }
+
+  // ── Movement list ──
   const exercises = isCF
-    ? (workout.cf?.movements || []).slice(0, 6).map(m => ({
+    ? (cf.movements || []).slice(0, 6).map(m => ({
         name: m.name,
         stat: m.reps ? `${m.reps} REPS` : '—',
       }))
     : isCardio
     ? []
-    : (workout.exercises || [])
+    : (workout?.exercises || [])
         .filter(e => e.logs?.some(l => l.done))
         .slice(0, 6)
         .map(e => {
           const done = e.logs.filter(l => l.done);
-          const totalSets = done.length;
-          // Best reps from any done set
           const bestReps = done.reduce((max, l) => Math.max(max, parseInt(l.reps) || 0), 0);
           return {
             name: e.name,
-            stat: bestReps ? `${totalSets}×${bestReps}` : `${totalSets} SETS`,
+            stat: bestReps ? `${done.length}×${bestReps}` : `${done.length} SETS`,
           };
         });
 
@@ -241,8 +291,11 @@ export function buildShareData({ workout, totalWeightMoved, sessionSets, newPRsT
     workoutName: workout?.name || 'WORKOUT',
     date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
     duration: duration || '—',
-    volume: Math.round(totalWeightMoved || 0),
+    heroStr,
+    heroLabel,
+    heroSub,
     sets: sessionSets || 0,
     exercises,
+    isCF,
   };
 }
