@@ -1,6 +1,6 @@
 import { EXERCISES_DB, COACHES_DATA, LEGENDS_DATA, FAMOUS_WODS, SHUFFLE_PLANS, MUSCLES, MUSCLES_ALL } from './data.js';
 import {
-  EQUIPMENT_TIERS, INJURY_TYPES,
+  EQUIPMENT_TIERS,
   getProfile, saveProfile, getActiveProfile, resolveExercise,
 } from './personalization.js';
 import {
@@ -336,7 +336,6 @@ function renderHome() {
   const profile = getActiveProfile();
   const tier = EQUIPMENT_TIERS.find(t => t.id === profile.equipmentTier);
   const tierLabel = tier ? tier.label : 'Full Gym';
-  const injuryLabel = profile.injuries.length ? ` · ${profile.injuries.length} limitation${profile.injuries.length > 1 ? 's' : ''}` : '';
   let tag = document.getElementById('profile-tag');
   if (!tag) {
     tag = document.createElement('div');
@@ -345,7 +344,7 @@ function renderHome() {
     const header = document.querySelector('.home-header');
     header.insertAdjacentElement('afterend', tag);
   }
-  tag.textContent = `${tierLabel}${injuryLabel}`;
+  tag.textContent = tierLabel;
 
   // Unit toggle (kg ↔ lbs) — injected next to profile tag
   let unitBtn = document.getElementById('unit-toggle-btn');
@@ -2666,8 +2665,7 @@ function openOnboarding() {
 function showObView(view) {
   document.getElementById('ob-view-main').classList.toggle('active', view === 'main');
   document.getElementById('ob-view-custom').classList.toggle('active', view === 'custom');
-  document.getElementById('ob-view-injuries').classList.toggle('active', view === 'injuries');
-  // Back button: visible in custom and injuries sub-views
+  // Back button: visible only in custom sub-view
   document.getElementById('ob-back').classList.toggle('hidden', view === 'main');
 }
 
@@ -2675,46 +2673,15 @@ function closeOnboarding() {
   document.getElementById('onboarding-modal').classList.remove('open');
 }
 
-let _pendingTier = null;
-
 function pickTier(tierId) {
-  // Store tier, then advance to injury step
-  _pendingTier = tierId;
-  renderInjuryChips();
-  showObView('injuries');
-}
-
-function commitTier() {
   saveProfile({
-    equipmentTier: _pendingTier || 'full-gym',
-    injuries: [...obSelectedInjuries],
+    equipmentTier: tierId || 'full-gym',
     setupComplete: true,
     setupDate: new Date().toISOString(),
   });
-  _pendingTier = null;
   closeOnboarding();
   renderHome();
 }
-
-let obSelectedInjuries = new Set();
-
-function renderInjuryChips() {
-  const grid = document.getElementById('ob-injury-grid');
-  grid.innerHTML = INJURY_TYPES.map(inj => `
-    <button class="ob-eq-chip${obSelectedInjuries.has(inj.id) ? ' selected' : ''}" data-inj="${inj.id}">
-      ${inj.label}
-    </button>
-  `).join('');
-  grid.querySelectorAll('.ob-eq-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      const id = chip.dataset.inj;
-      if (obSelectedInjuries.has(id)) { obSelectedInjuries.delete(id); chip.classList.remove('selected'); }
-      else { obSelectedInjuries.add(id); chip.classList.add('selected'); }
-    });
-  });
-}
-
-document.getElementById('ob-injury-done').addEventListener('click', commitTier);
 
 // Main view: tap Full Gym or Bodyweight → immediate save; tap Custom → chip view
 document.getElementById('ob-tiers-main').addEventListener('click', e => {
@@ -2777,19 +2744,9 @@ document.getElementById('ob-eq-done').addEventListener('click', () => {
   pickTier(equipmentToTier(obSelectedEquipment));
 });
 
-// Back button: return to appropriate view
+// Back button: custom view → main
 document.getElementById('ob-back').addEventListener('click', () => {
-  const injuriesActive = document.getElementById('ob-view-injuries').classList.contains('active');
-  if (injuriesActive) {
-    // If custom equipment was selected, go back to custom; otherwise main
-    if (_pendingTier === equipmentToTier(obSelectedEquipment) && obSelectedEquipment.size > 0) {
-      showObView('custom');
-    } else {
-      showObView('main');
-    }
-  } else {
-    showObView('main');
-  }
+  showObView('main');
 });
 
 // Skip: close immediately, default to full-gym if not previously set
@@ -2830,20 +2787,6 @@ function openProfileSheet() {
       eqGrid.querySelectorAll('.prof-eq-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       saveProfile({ equipmentTier: btn.dataset.tier });
-    });
-  });
-
-  // Injury chips
-  const injGrid = document.getElementById('prof-inj-grid');
-  const currentInjuries = profile.injuries || [];
-  injGrid.innerHTML = INJURY_TYPES.map(inj => `
-    <button class="prof-inj-chip${currentInjuries.includes(inj.id) ? ' active' : ''}" data-inj="${inj.id}">${inj.label}</button>
-  `).join('');
-  injGrid.querySelectorAll('.prof-inj-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      chip.classList.toggle('active');
-      const selected = [...injGrid.querySelectorAll('.prof-inj-chip.active')].map(c => c.dataset.inj);
-      saveProfile({ injuries: selected });
     });
   });
 
