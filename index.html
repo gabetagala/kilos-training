@@ -74,7 +74,8 @@
             </div>
             <div class="home-utils">
               <button class="profile-btn" id="btn-profile" title="Edit profile">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                <span class="profile-btn-name" id="profile-btn-name"></span>
               </button>
               <div class="streak-chip" id="streak-count">0 day streak</div>
             </div>
@@ -597,6 +598,47 @@
         <p class="bw-body">Train heavy. Track everything. Free forever.<br><br>You're in early. If something feels off, the message icon is always there — I read every one.</p>
         <div class="bw-sig">— Gabe</div>
         <button class="bw-cta" id="bw-cta">Let's go →</button>
+      </div>
+    </div>
+
+    <!-- ─── PROFILE SHEET ─── -->
+    <div class="modal-overlay" id="profile-sheet">
+      <div class="modal-sheet prof-sheet">
+
+        <div class="prof-header">
+          <div class="prof-name-row">
+            <input class="prof-name-input" id="prof-name-input" type="text" placeholder="Your name" autocomplete="off" spellcheck="false">
+            <button class="prof-close" id="btn-close-profile">✕</button>
+          </div>
+        </div>
+
+        <!-- Equipment -->
+        <div class="prof-section">
+          <div class="prof-label">WHERE DO YOU TRAIN</div>
+          <div class="prof-eq-grid" id="prof-eq-grid"></div>
+        </div>
+
+        <!-- Injuries -->
+        <div class="prof-section">
+          <div class="prof-label">LIMITATIONS</div>
+          <div class="prof-inj-grid" id="prof-inj-grid"></div>
+        </div>
+
+        <!-- Weight unit -->
+        <div class="prof-section">
+          <div class="prof-label">WEIGHT UNIT</div>
+          <div class="prof-unit-row">
+            <span class="prof-unit-label" id="prof-unit-kg">kg</span>
+            <button class="prof-toggle" id="prof-unit-toggle" role="switch" aria-checked="false">
+              <span class="prof-toggle-thumb"></span>
+            </button>
+            <span class="prof-unit-label" id="prof-unit-lbs">lbs</span>
+          </div>
+        </div>
+
+        <!-- Sync / auth -->
+        <div class="prof-section" id="prof-sync-section"></div>
+
       </div>
     </div>
 

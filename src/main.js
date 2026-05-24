@@ -1242,6 +1242,7 @@ function requireName(callback) {
 
 function closeNamePrompt() {
   document.getElementById('name-prompt').classList.remove('open');
+  renderProfileBtn();
 }
 
 function npShowStep(step) {
@@ -2804,8 +2805,129 @@ document.getElementById('ob-skip').addEventListener('click', () => {
   }
 });
 
-// Profile button on home screen
-document.getElementById('btn-profile').addEventListener('click', openOnboarding);
+// ─── PROFILE SHEET ────────────────────────────────────────────────────────────
+
+function openProfileSheet() {
+  const profile = getProfile();
+
+  // Name
+  const nameInput = document.getElementById('prof-name-input');
+  nameInput.value = get(NAME_KEY) || '';
+
+  // Equipment grid
+  const eqGrid = document.getElementById('prof-eq-grid');
+  eqGrid.innerHTML = EQUIPMENT_TIERS.map(t => `
+    <button class="prof-eq-btn${profile.equipmentTier === t.id ? ' active' : ''}" data-tier="${t.id}">
+      <div>
+        <div class="prof-eq-name">${t.label}</div>
+        <div class="prof-eq-desc">${t.description}</div>
+      </div>
+      <span class="prof-eq-check">✓</span>
+    </button>
+  `).join('');
+  eqGrid.querySelectorAll('.prof-eq-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      eqGrid.querySelectorAll('.prof-eq-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      saveProfile({ equipmentTier: btn.dataset.tier });
+    });
+  });
+
+  // Injury chips
+  const injGrid = document.getElementById('prof-inj-grid');
+  const currentInjuries = profile.injuries || [];
+  injGrid.innerHTML = INJURY_TYPES.map(inj => `
+    <button class="prof-inj-chip${currentInjuries.includes(inj.id) ? ' active' : ''}" data-inj="${inj.id}">${inj.label}</button>
+  `).join('');
+  injGrid.querySelectorAll('.prof-inj-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      chip.classList.toggle('active');
+      const selected = [...injGrid.querySelectorAll('.prof-inj-chip.active')].map(c => c.dataset.inj);
+      saveProfile({ injuries: selected });
+    });
+  });
+
+  // Unit toggle
+  const toggle = document.getElementById('prof-unit-toggle');
+  const kgLabel  = document.getElementById('prof-unit-kg');
+  const lbsLabel = document.getElementById('prof-unit-lbs');
+  const updateUnitUI = () => {
+    const lbs = isLbs();
+    toggle.setAttribute('aria-checked', lbs ? 'true' : 'false');
+    kgLabel.classList.toggle('active', !lbs);
+    lbsLabel.classList.toggle('active', lbs);
+  };
+  updateUnitUI();
+  toggle.onclick = () => {
+    set(UNIT_KEY, isLbs() ? 'kg' : 'lbs');
+    updateUnitUI();
+    renderSetLog(); // update active workout display if any
+  };
+
+  // Sync / auth section
+  const syncSection = document.getElementById('prof-sync-section');
+  if (currentUser) {
+    const rawEmail = currentUser.email || '';
+    const displayId = rawEmail.endsWith('@kilostraining.app')
+      ? rawEmail.replace('@kilostraining.app', '')
+      : rawEmail;
+    syncSection.innerHTML = `
+      <div class="prof-label">ACCOUNT</div>
+      <div class="prof-sync-row">
+        <span class="prof-sync-label">Signed in as <strong>${displayId}</strong></span>
+        <button class="prof-sync-btn danger" id="prof-signout-btn">Sign out</button>
+      </div>
+    `;
+    document.getElementById('prof-signout-btn').addEventListener('click', async () => {
+      await signOut();
+      closeProfileSheet();
+      renderDataNotice();
+    });
+  } else if (isConfigured) {
+    syncSection.innerHTML = `
+      <div class="prof-label">ACCOUNT</div>
+      <div class="prof-sync-row">
+        <span class="prof-sync-label">Data saved on this device only</span>
+        <button class="prof-sync-btn" id="prof-signin-btn">Sign in →</button>
+      </div>
+    `;
+    document.getElementById('prof-signin-btn').addEventListener('click', () => {
+      closeProfileSheet();
+      _npName = get(NAME_KEY) || '';
+      npShowStep('signin');
+      document.getElementById('name-prompt').classList.add('open');
+      setTimeout(() => document.getElementById('np-signin-username')?.focus(), 120);
+    });
+  } else {
+    syncSection.innerHTML = '';
+  }
+
+  document.getElementById('profile-sheet').classList.add('open');
+  setTimeout(() => nameInput.focus(), 200);
+}
+
+function closeProfileSheet() {
+  // Save name on close
+  const val = document.getElementById('prof-name-input').value.trim();
+  if (val) saveUserName(val);
+  document.getElementById('profile-sheet').classList.remove('open');
+  // Refresh name in profile button
+  renderProfileBtn();
+}
+
+function renderProfileBtn() {
+  const name = get(NAME_KEY) || '';
+  const el = document.getElementById('profile-btn-name');
+  if (el) el.textContent = name;
+}
+
+document.getElementById('btn-close-profile').addEventListener('click', closeProfileSheet);
+document.getElementById('profile-sheet').addEventListener('click', e => {
+  if (e.target === document.getElementById('profile-sheet')) closeProfileSheet();
+});
+
+// Profile button on home screen → open profile sheet
+document.getElementById('btn-profile').addEventListener('click', openProfileSheet);
 
 // ─── BETA WELCOME ─────────────────────────────────────────────────────────────
 // Fires once on first ever visit, before name prompt + onboarding.
@@ -2909,6 +3031,7 @@ if (loadActiveState()) {
 }
 renderHome();
 renderCoaches();
+renderProfileBtn();
 
 // Active placeholder → go home
 document.getElementById('ap-go-home')?.addEventListener('click', () => goScreen('home'));

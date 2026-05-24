@@ -371,14 +371,19 @@ body {
 .streak-chip.warm { color: var(--text); }
 .streak-chip.hot  { color: var(--white); }
 .profile-btn {
-  background: none; border: 1px solid var(--border); border-radius: 50%;
-  width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+  background: none; border: 1px solid var(--border); border-radius: 20px;
+  height: 36px; display: flex; align-items: center; justify-content: center;
+  gap: 6px; padding: 0 12px 0 10px;
   cursor: pointer; color: var(--text2); transition: border-color 0.15s, color 0.15s, transform 0.1s;
-  flex-shrink: 0;
-  /* Invisible 4px buffer → 44px total tap target */
-  padding: 4px; margin: -4px;
+  flex-shrink: 0; min-width: 36px;
 }
-.profile-btn:active { border-color: var(--white); color: var(--white); transform: scale(0.9); }
+.profile-btn:active { border-color: var(--white); color: var(--white); transform: scale(0.97); }
+.profile-btn-name {
+  font-family: 'Space Mono', monospace; font-size: 10px;
+  letter-spacing: 0.04em; color: var(--text2);
+  max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.home-hero .profile-btn-name { color: rgba(0,0,0,0.45); }
 
 /* Week strip */
 .week-strip { padding: 24px 0; border-bottom: 1px solid var(--line); margin-bottom: 0; }
@@ -2565,6 +2570,98 @@ body {
 
 /* np-input spacing when stacked */
 .np-step .np-input + .np-input { margin-top: 10px; }
+
+/* ── Profile Sheet ─────────────────────────────────────────────────────────── */
+.prof-sheet {
+  padding: 0; border-radius: 20px 20px 0 0; overflow: hidden;
+  max-height: 88dvh; overflow-y: auto;
+}
+.prof-header {
+  padding: 20px 20px 16px; border-bottom: 1px solid var(--line); position: sticky; top: 0;
+  background: var(--surface); z-index: 1;
+}
+.prof-name-row {
+  display: flex; align-items: center; gap: 12px;
+}
+.prof-name-input {
+  flex: 1; background: none; border: none; outline: none;
+  font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 0.04em;
+  color: var(--white); caret-color: var(--white);
+}
+.prof-name-input::placeholder { color: var(--text2); }
+.prof-close {
+  background: none; border: none; cursor: pointer; color: var(--text2);
+  font-size: 16px; padding: 6px; flex-shrink: 0; transition: color 0.15s;
+}
+.prof-close:active { color: var(--white); }
+.prof-section {
+  padding: 20px 20px 4px; border-bottom: 1px solid var(--line);
+}
+.prof-section:last-child { border-bottom: none; padding-bottom: 40px; }
+.prof-label {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.12em;
+  color: var(--text2); text-transform: uppercase; margin-bottom: 14px;
+}
+/* Equipment grid */
+.prof-eq-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.prof-eq-btn {
+  background: none; border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 14px; cursor: pointer; text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.prof-eq-btn.active { border-color: var(--white); background: rgba(255,255,255,0.04); }
+.prof-eq-name { font-family: 'Bebas Neue', sans-serif; font-size: 17px; letter-spacing: 0.06em; color: var(--white); }
+.prof-eq-desc { font-size: 9px; color: var(--text2); letter-spacing: 0.03em; margin-top: 2px; }
+.prof-eq-check { color: var(--white); font-size: 14px; opacity: 0; transition: opacity 0.15s; }
+.prof-eq-btn.active .prof-eq-check { opacity: 1; }
+/* Injury grid */
+.prof-inj-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.prof-inj-chip {
+  background: none; border: 1px solid var(--border); border-radius: 20px;
+  padding: 6px 14px; cursor: pointer; font-size: 11px; color: var(--text2);
+  letter-spacing: 0.03em; transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.prof-inj-chip.active {
+  border-color: #e57373; color: #e57373; background: rgba(229,115,115,0.08);
+}
+/* Unit toggle */
+.prof-unit-row {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 16px;
+}
+.prof-unit-label {
+  font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 0.1em;
+  color: var(--text2); transition: color 0.15s; min-width: 28px;
+}
+.prof-unit-label.active { color: var(--white); }
+.prof-toggle {
+  width: 44px; height: 26px; border-radius: 13px; border: 1px solid var(--border);
+  background: var(--bg); cursor: pointer; position: relative;
+  transition: background 0.2s, border-color 0.2s; flex-shrink: 0;
+}
+.prof-toggle[aria-checked="true"] { background: var(--white); border-color: var(--white); }
+.prof-toggle-thumb {
+  position: absolute; top: 3px; left: 3px;
+  width: 18px; height: 18px; border-radius: 50%; background: var(--border);
+  transition: transform 0.2s, background 0.2s;
+}
+.prof-toggle[aria-checked="true"] .prof-toggle-thumb {
+  transform: translateX(18px); background: var(--bg);
+}
+/* Sync section in profile */
+.prof-sync-row {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+}
+.prof-sync-label { font-size: 11px; color: var(--text2); }
+.prof-sync-btn {
+  font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  background: none; border: 1px solid var(--border); border-radius: 6px;
+  padding: 6px 12px; cursor: pointer; color: var(--text2);
+  transition: border-color 0.15s, color 0.15s;
+}
+.prof-sync-btn:active { border-color: var(--white); color: var(--white); }
+.prof-sync-btn.danger { border-color: rgba(229,115,115,0.4); color: #e57373; }
 
 /* ══════════════════════════════════════════
    DESKTOP OVERRIDES (must come last)
