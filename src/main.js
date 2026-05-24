@@ -1229,14 +1229,13 @@ const getUserName = () => get(NAME_KEY);
 const saveUserName = (n) => set(NAME_KEY, (n || '').trim() || 'Athlete');
 
 let _npCallback = null;
-let _npName = ''; // captured display name from step 1
 
 function requireName(callback) {
   if (getUserName()) { callback(); return; }
   _npCallback = callback;
-  npShowStep('name');
+  npShowStep('account');
   document.getElementById('name-prompt').classList.add('open');
-  setTimeout(() => document.getElementById('np-input').focus(), 320);
+  setTimeout(() => document.getElementById('np-display-name').focus(), 320);
 }
 
 function closeNamePrompt() {
@@ -1245,7 +1244,7 @@ function closeNamePrompt() {
 }
 
 function npShowStep(step) {
-  ['name', 'account', 'signin'].forEach(s => {
+  ['account', 'signin'].forEach(s => {
     document.getElementById(`np-step-${s}`).style.display = s === step ? '' : 'none';
   });
   // Google button only shown on account step if Supabase is configured
@@ -1258,46 +1257,36 @@ function npSetError(id, msg) {
   if (el) el.textContent = msg;
 }
 
-// Step 1: Next → go to account creation
-document.getElementById('np-btn-next').addEventListener('click', () => {
-  const name = document.getElementById('np-input').value.trim();
-  if (!name) { document.getElementById('np-input').focus(); return; }
-  _npName = name;
-  // Pre-fill username from name (lowercase, no spaces)
-  document.getElementById('np-username').value = name.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9_]/g, '');
-  npShowStep('account');
-  setTimeout(() => document.getElementById('np-username').focus(), 80);
-});
+// Derive username from display name
+function nameToUsername(name) {
+  return name.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9_]/g, '');
+}
 
-document.getElementById('np-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('np-btn-next').click();
-});
-
-// Step 2: Create account
+// Create account
 document.getElementById('np-btn-create').addEventListener('click', async () => {
-  const username = document.getElementById('np-username').value.trim();
+  const displayName = document.getElementById('np-display-name').value.trim();
   const password = document.getElementById('np-password').value;
   npSetError('np-create-error', '');
 
-  if (!username) { npSetError('np-create-error', 'Pick a username.'); return; }
-  if (password.length < 6) { npSetError('np-create-error', 'Password must be at least 6 characters.'); return; }
+  if (!displayName) { document.getElementById('np-display-name').focus(); return; }
+  if (password.length < 6) { npSetError('np-create-error', 'Password needs 6+ characters.'); return; }
 
+  const username = nameToUsername(displayName);
   const btn = document.getElementById('np-btn-create');
   btn.textContent = 'Creating…'; btn.disabled = true;
 
-  const { error } = await signUpWithPassword(_npName, username, password);
+  const { error } = await signUpWithPassword(displayName, username, password);
   btn.disabled = false; btn.textContent = 'Create account →';
 
   if (error) {
-    // Username taken = email already registered
     const msg = error.message?.includes('already registered')
-      ? 'Username taken — try another.'
+      ? 'Name taken — try a different one.'
       : error.message || 'Something went wrong.';
     npSetError('np-create-error', msg);
     return;
   }
 
-  saveUserName(_npName);
+  saveUserName(displayName);
   await pullAndMerge();
   closeNamePrompt();
   if (_npCallback) { const cb = _npCallback; _npCallback = null; cb(); }
@@ -1307,36 +1296,39 @@ document.getElementById('np-password').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('np-btn-create').click();
 });
 
-// Step 2: Skip — just save locally
+// Skip — save locally with just the name
 document.getElementById('np-local-btn').addEventListener('click', () => {
-  saveUserName(_npName || document.getElementById('np-input').value);
+  const name = document.getElementById('np-display-name').value.trim();
+  saveUserName(name || 'Athlete');
   closeNamePrompt();
   if (_npCallback) { const cb = _npCallback; _npCallback = null; cb(); }
 });
 
-// Step 2: Google sign-in
+// Google sign-in
 document.getElementById('np-google-btn').addEventListener('click', async () => {
-  saveUserName(_npName);
+  const name = document.getElementById('np-display-name').value.trim();
+  if (name) saveUserName(name);
   _npCallback = null;
   closeNamePrompt();
   await signInWithGoogle();
 });
 
-// Step 2 → Sign in
+// Account → Sign in
 document.getElementById('np-btn-go-signin').addEventListener('click', () => {
   npSetError('np-create-error', '');
   npShowStep('signin');
   setTimeout(() => document.getElementById('np-signin-username').focus(), 80);
 });
 
-// Step 3: Sign in
+// Sign in
 document.getElementById('np-btn-signin').addEventListener('click', async () => {
-  const username = document.getElementById('np-signin-username').value.trim();
+  const nameInput = document.getElementById('np-signin-username').value.trim();
   const password = document.getElementById('np-signin-password').value;
   npSetError('np-signin-error', '');
 
-  if (!username || !password) { npSetError('np-signin-error', 'Enter your username and password.'); return; }
+  if (!nameInput || !password) { npSetError('np-signin-error', 'Enter your name and password.'); return; }
 
+  const username = nameToUsername(nameInput);
   const btn = document.getElementById('np-btn-signin');
   btn.textContent = 'Signing in…'; btn.disabled = true;
 
@@ -1344,12 +1336,11 @@ document.getElementById('np-btn-signin').addEventListener('click', async () => {
   btn.disabled = false; btn.textContent = 'Sign in →';
 
   if (error) {
-    npSetError('np-signin-error', 'Wrong username or password.');
+    npSetError('np-signin-error', 'Wrong name or password.');
     return;
   }
 
-  // Restore display name from Supabase user metadata if we don't have one locally
-  const displayName = data?.user?.user_metadata?.display_name || username;
+  const displayName = data?.user?.user_metadata?.display_name || nameInput;
   saveUserName(displayName);
   await pullAndMerge();
   closeNamePrompt();
@@ -1360,7 +1351,7 @@ document.getElementById('np-signin-password').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('np-btn-signin').click();
 });
 
-// Step 3 → back to create
+// Sign in → back to create
 document.getElementById('np-btn-go-create').addEventListener('click', () => {
   npSetError('np-signin-error', '');
   npShowStep('account');
@@ -2631,7 +2622,6 @@ async function renderDataNotice() {
     `;
     document.getElementById('btn-dn-signin')?.addEventListener('click', () => {
       // Open name prompt directly at sign-in step
-      _npName = get(NAME_KEY) || '';
       npShowStep('signin');
       document.getElementById('name-prompt').classList.add('open');
       setTimeout(() => document.getElementById('np-signin-username')?.focus(), 120);
@@ -2836,7 +2826,6 @@ function openProfileSheet() {
     `;
     document.getElementById('prof-signin-btn').addEventListener('click', () => {
       closeProfileSheet();
-      _npName = get(NAME_KEY) || '';
       npShowStep('signin');
       document.getElementById('name-prompt').classList.add('open');
       setTimeout(() => document.getElementById('np-signin-username')?.focus(), 120);

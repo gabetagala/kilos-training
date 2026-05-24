@@ -526,26 +526,15 @@
       </div>
     </div>
 
-    <!-- ─── NAME PROMPT — multi-step: Name → Account → Sign In ─── -->
+    <!-- ─── NAME PROMPT — Create Account → Sign In ─── -->
     <div id="name-prompt" class="np-overlay">
       <div class="np-card">
 
-        <!-- Step 1: Name -->
-        <div class="np-step" id="np-step-name">
-          <div class="np-eyebrow">First things first.</div>
-          <div class="np-title">WHAT'S YOUR NAME?</div>
-          <input type="text" id="np-input" class="np-input" placeholder="Your name"
+        <!-- Create account -->
+        <div class="np-step" id="np-step-account">
+          <div class="np-title">LET'S GO.</div>
+          <input type="text" id="np-display-name" class="np-input" placeholder="Your name"
                  autocomplete="given-name" autocorrect="off" autocapitalize="words" />
-          <button class="np-cta" id="np-btn-next">Next →</button>
-        </div>
-
-        <!-- Step 2: Create account -->
-        <div class="np-step" id="np-step-account" style="display:none">
-          <div class="np-eyebrow">Save your data.</div>
-          <div class="np-title">CREATE ACCOUNT</div>
-          <div class="np-field-hint">Choose a username and password — no email needed.</div>
-          <input type="text" id="np-username" class="np-input" placeholder="Username"
-                 autocomplete="username" autocorrect="off" autocapitalize="none" spellcheck="false" />
           <input type="password" id="np-password" class="np-input" placeholder="Password"
                  autocomplete="new-password" />
           <div class="np-error" id="np-create-error"></div>
@@ -559,15 +548,14 @@
           </div>
           <div class="np-footer-links">
             <button class="np-link" id="np-btn-go-signin">Already have an account? Sign in</button>
-            <button class="np-local-btn" id="np-local-btn">Skip — just save on this device</button>
+            <button class="np-local-btn" id="np-local-btn">No account →</button>
           </div>
         </div>
 
-        <!-- Step 3: Sign in (returning users) -->
+        <!-- Sign in -->
         <div class="np-step" id="np-step-signin" style="display:none">
-          <div class="np-eyebrow">Welcome back.</div>
-          <div class="np-title">SIGN IN</div>
-          <input type="text" id="np-signin-username" class="np-input" placeholder="Username"
+          <div class="np-title">WELCOME BACK.</div>
+          <input type="text" id="np-signin-username" class="np-input" placeholder="Your name"
                  autocomplete="username" autocorrect="off" autocapitalize="none" spellcheck="false" />
           <input type="password" id="np-signin-password" class="np-input" placeholder="Password"
                  autocomplete="current-password" />
