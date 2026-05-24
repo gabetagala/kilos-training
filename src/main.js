@@ -5,7 +5,7 @@ import {
 } from './personalization.js';
 import {
   supabase, isConfigured,
-  getSession, signInWithGoogle, signOut,
+  getSession, signOut,
   signUpWithPassword, signInWithPassword,
   pushData, pullAndMerge, hasPendingSync,
 } from './supabase.js';
@@ -1247,9 +1247,6 @@ function npShowStep(step) {
   ['account', 'signin'].forEach(s => {
     document.getElementById(`np-step-${s}`).style.display = s === step ? '' : 'none';
   });
-  // Google button only shown on account step if Supabase is configured
-  const googleWrap = document.getElementById('np-google-wrap');
-  if (googleWrap) googleWrap.style.display = (step === 'account' && isConfigured) ? '' : 'none';
 }
 
 function npSetError(id, msg) {
@@ -1304,14 +1301,6 @@ document.getElementById('np-local-btn').addEventListener('click', () => {
   if (_npCallback) { const cb = _npCallback; _npCallback = null; cb(); }
 });
 
-// Google sign-in
-document.getElementById('np-google-btn').addEventListener('click', async () => {
-  const name = document.getElementById('np-display-name').value.trim();
-  if (name) saveUserName(name);
-  _npCallback = null;
-  closeNamePrompt();
-  await signInWithGoogle();
-});
 
 // Account → Sign in
 document.getElementById('np-btn-go-signin').addEventListener('click', () => {
