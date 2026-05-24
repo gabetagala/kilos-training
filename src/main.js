@@ -1343,6 +1343,8 @@ document.getElementById('np-btn-signin').addEventListener('click', async () => {
   const displayName = data?.user?.user_metadata?.display_name || nameInput;
   saveUserName(displayName);
   await pullAndMerge();
+  // Returning user — never show onboarding, they've been through setup already
+  saveProfile({ setupComplete: true, equipmentTier: getProfile().equipmentTier || 'full-gym' });
   closeNamePrompt();
   if (_npCallback) { const cb = _npCallback; _npCallback = null; cb(); }
 });
@@ -2634,6 +2636,8 @@ if (supabase) {
   supabase.auth.onAuthStateChange(async (event) => {
     if (event === 'SIGNED_IN') {
       await pullAndMerge();
+      // Returning user — skip onboarding regardless of what pullAndMerge restored
+      saveProfile({ setupComplete: true, equipmentTier: getProfile().equipmentTier || 'full-gym' });
       renderHome();
       renderHistory();
     }
