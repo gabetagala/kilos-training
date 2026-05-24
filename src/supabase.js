@@ -72,18 +72,39 @@ export async function signOut() {
 
 // ─── SYNC ─────────────────────────────────────────────────────────────────────
 
-// Push all local data to Supabase (called after every meaningful action)
+const PENDING_SYNC_KEY = 'kilos-pending-sync';
+
+// Mark that a sync is needed (called optimistically — even if offline)
+function markPendingSync() {
+  try { localStorage.setItem(PENDING_SYNC_KEY, '1'); } catch {}
+}
+function clearPendingSync() {
+  try { localStorage.removeItem(PENDING_SYNC_KEY); } catch {}
+}
+export function hasPendingSync() {
+  return localStorage.getItem(PENDING_SYNC_KEY) === '1';
+}
+
+// Push all local data to Supabase (called after every meaningful action).
+// If offline or Supabase unreachable, marks a pending flag and returns silently.
+// The pending flag is cleared only after a confirmed successful push.
 export async function pushData() {
   if (!supabase) return;
   const session = await getSession();
   if (!session) return;
+
+  // Mark pending before attempting — so if we crash mid-push we retry next time
+  markPendingSync();
+
   const data = {};
   SYNC_KEYS.forEach(k => { data[k] = _get(k); });
-  await supabase.from('user_data').upsert({
+  const { error } = await supabase.from('user_data').upsert({
     user_id: session.user.id,
     data,
     synced_at: new Date().toISOString(),
   });
+
+  if (!error) clearPendingSync();
 }
 
 // Pull remote data and merge with local on sign-in.

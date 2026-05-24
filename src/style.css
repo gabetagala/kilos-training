@@ -2222,6 +2222,83 @@ body {
 .share-bg-btn:active { opacity: 0.75; }
 
 /* ══════════════════════════════════════════
+   REST-DAY CARD
+══════════════════════════════════════════ */
+#rest-day-card { margin: 0 0 16px; }
+.rdc-wrap {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  padding: 18px 20px;
+}
+.rdc-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 14px;
+}
+.rdc-label {
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.12em;
+  color: rgba(255,255,255,0.3);
+}
+.rdc-streak {
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.35);
+}
+.rdc-suggest { margin-bottom: 16px; }
+.rdc-suggest-label {
+  font-family: 'Space Mono', monospace; font-size: 8px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.3); margin-bottom: 6px;
+}
+.rdc-suggest-muscle {
+  font-family: 'Bebas Neue', sans-serif; font-size: 32px;
+  letter-spacing: 0.03em; color: #fff; line-height: 1;
+  display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+}
+.rdc-ready-badge {
+  font-family: 'Space Mono', monospace; font-size: 8px;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.4);
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 3px 8px;
+}
+.rdc-start {
+  background: #fff; color: #0d0d0d; border: none;
+  font-family: 'Bebas Neue', sans-serif; font-size: 18px;
+  letter-spacing: 0.03em; padding: 12px 20px;
+  cursor: pointer; transition: opacity 0.15s;
+}
+.rdc-start:active { opacity: 0.85; }
+.rdc-stat {
+  display: flex; align-items: baseline; gap: 6px;
+  border-top: 1px solid rgba(255,255,255,0.06); padding-top: 12px;
+}
+.rdc-stat-val {
+  font-family: 'Bebas Neue', sans-serif; font-size: 28px;
+  color: rgba(255,255,255,0.55); line-height: 1;
+}
+.rdc-stat-unit { font-size: 14px; color: rgba(255,255,255,0.3); }
+.rdc-stat-lbl {
+  font-family: 'Space Mono', monospace; font-size: 8px;
+  text-transform: uppercase; letter-spacing: 0.09em;
+  color: rgba(255,255,255,0.28);
+}
+
+/* ─── Sync pending / sign-in CTA in data notice ─── */
+.dn-sync-pending {
+  color: rgba(255,200,80,0.75); font-family: 'Space Mono', monospace;
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em;
+}
+.dn-signin-row { margin-top: 10px; }
+.dn-signin-btn {
+  background: rgba(255,255,255,0.08); border: none; color: var(--white);
+  font-family: 'Bebas Neue', sans-serif; font-size: 16px;
+  letter-spacing: 0.04em; padding: 12px 18px; cursor: pointer;
+  width: 100%; text-align: left; transition: background 0.15s;
+}
+.dn-signin-btn:active { background: rgba(255,255,255,0.14); }
+
+/* ══════════════════════════════════════════
    POST-WORKOUT SUMMARY SCREEN
 ══════════════════════════════════════════ */
 .wsum-overlay {

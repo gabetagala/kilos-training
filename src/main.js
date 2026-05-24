@@ -7,7 +7,7 @@ import {
   supabase, isConfigured,
   getSession, signInWithGoogle, signOut,
   signUpWithPassword, signInWithPassword,
-  pushData, pullAndMerge,
+  pushData, pullAndMerge, hasPendingSync,
 } from './supabase.js';
 import { renderShareCard, buildShareData } from './shareCard.js';
 
@@ -319,6 +319,7 @@ function renderHome() {
   renderMuscleFrequency();
   renderRecent();
   updateStreak();
+  renderRestDayCard();
   renderDataNotice();
   const resumeBtn = document.getElementById('btn-resume');
   document.getElementById('resume-sub').textContent = activeWorkout ? activeWorkout.name : 'No active session';
@@ -629,6 +630,74 @@ function renderMuscleFrequency() {
         return `<div class="mf-cell ${cls}"><div class="mf-muscle">${m.slice(0, 3).toUpperCase()}</div><div class="mf-days">${label}</div></div>`;
       }).join('')}
     </div>`;
+}
+
+// ─── REST-DAY CARD ────────────────────────────────────────────────────────────
+// Shows on home screen when no workout has been logged today.
+// Surfaces: most-recovered muscle (best next session suggestion) + weekly volume.
+function renderRestDayCard() {
+  const card = document.getElementById('rest-day-card');
+  if (!card) return;
+
+  const history = get('workoutHistory') || [];
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+
+  // Check if there's a workout logged today
+  const trainedToday = history.some(h => {
+    const d = new Date(h.date); d.setHours(0, 0, 0, 0);
+    return d.getTime() === today.getTime();
+  });
+
+  if (trainedToday || activeWorkout) {
+    card.style.display = 'none';
+    return;
+  }
+
+  // Find most-recovered muscle (highest days since last trained, minimum 1 day)
+  let bestMuscle = null, bestDays = 0;
+  QS_MUSCLES.forEach(m => {
+    const days = getMuscleDaysAgo(m);
+    // null = never trained (freshest), big number = longest rest
+    const effectiveDays = days === null ? 999 : days;
+    if (effectiveDays > bestDays) { bestDays = effectiveDays; bestMuscle = m; }
+  });
+
+  // Weekly volume (last 7 days)
+  const oneWeekAgo = new Date(today); oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  const weekVolume = history
+    .filter(h => new Date(h.date) >= oneWeekAgo && h.type === 'strength')
+    .reduce((sum, h) => sum + (h.totalWeight || 0), 0);
+
+  // Streak
+  const chip = document.getElementById('streak-count');
+  const streakText = chip?.textContent || '0 day streak';
+
+  // Days since best muscle trained
+  const readyLabel = bestDays >= 999 ? 'Never trained' : bestDays >= 3 ? `${bestDays}d rest` : 'Recovered';
+
+  card.style.display = '';
+  card.innerHTML = `
+    <div class="rdc-wrap">
+      <div class="rdc-row">
+        <div class="rdc-label">Rest Day</div>
+        <div class="rdc-streak">${streakText}</div>
+      </div>
+      ${bestMuscle ? `
+        <div class="rdc-suggest">
+          <div class="rdc-suggest-label">Most recovered</div>
+          <div class="rdc-suggest-muscle">${bestMuscle}<span class="rdc-ready-badge">${readyLabel}</span></div>
+          <button class="rdc-start" data-muscle="${bestMuscle}">Start ${bestMuscle} Day →</button>
+        </div>` : ''}
+      ${weekVolume > 0 ? `
+        <div class="rdc-stat">
+          <span class="rdc-stat-val">${Math.round(weekVolume).toLocaleString()}<span class="rdc-stat-unit"> kg</span></span>
+          <span class="rdc-stat-lbl">this week</span>
+        </div>` : ''}
+    </div>`;
+
+  card.querySelector('.rdc-start')?.addEventListener('click', e => {
+    quickStartWorkout(e.currentTarget.dataset.muscle);
+  });
 }
 
 // Quick Start — muscle chips tap directly into a workout (no modal needed)
@@ -2542,17 +2611,24 @@ async function renderDataNotice() {
   if (!notice) return;
 
   if (currentUser) {
-    // Signed in — show email and sign out option
-    const email = currentUser.email || 'Google account';
+    // Signed in — show username (strip @kilostraining.app) or email
+    const rawEmail = currentUser.email || '';
+    const displayId = rawEmail.endsWith('@kilostraining.app')
+      ? rawEmail.replace('@kilostraining.app', '')
+      : rawEmail;
+    const pending = hasPendingSync();
+    const syncLabel = pending
+      ? `<span class="dn-sync-pending">⟳ Sync pending</span>`
+      : `Synced · ${displayId}`;
     notice.innerHTML = `
       <div class="dn-top">
-        <span class="dn-label">Synced · ${email}</span>
+        <span class="dn-label">${syncLabel}</span>
         <div class="dn-btns">
           <button class="dn-btn" id="btn-export-json">Export backup</button>
           <button class="dn-btn dn-signout" id="btn-signout">Sign out</button>
         </div>
       </div>
-      <div class="dn-sub">Your data is backed up automatically</div>
+      <div class="dn-sub">${pending ? 'Will sync when connection restores' : 'Your data is backed up automatically'}</div>
       <input type="file" id="import-file" accept=".json" style="display:none">
     `;
     document.getElementById('btn-export-json').addEventListener('click', () => {
@@ -2579,12 +2655,11 @@ async function renderDataNotice() {
         </div>
       </div>
       ${isConfigured
-        ? `<button class="dn-google-btn" id="btn-google-signin">
-             <svg width="14" height="14" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-             Continue with Google
-           </button>
-           <div class="dn-sub">One tap · no password · no catch · skip if you want</div>`
-        : `<div class="dn-sub">Google Sign-In coming — one tap, no password, no catch</div>`
+        ? `<div class="dn-signin-row">
+             <button class="dn-signin-btn" id="btn-dn-signin">Sign in to sync →</button>
+           </div>
+           <div class="dn-sub">No email needed — username + password</div>`
+        : `<div class="dn-sub">Create an account to sync across devices — no email needed.</div>`
       }
       <input type="file" id="import-file" accept=".json" style="display:none">
     `;
@@ -2614,7 +2689,13 @@ async function renderDataNotice() {
       };
       reader.readAsText(file);
     });
-    document.getElementById('btn-google-signin')?.addEventListener('click', signInWithGoogle);
+    document.getElementById('btn-dn-signin')?.addEventListener('click', () => {
+      // Open name prompt directly at sign-in step
+      _npName = get(NAME_KEY) || '';
+      npShowStep('signin');
+      document.getElementById('name-prompt').classList.add('open');
+      setTimeout(() => document.getElementById('np-signin-username')?.focus(), 120);
+    });
   }
 }
 
@@ -2918,3 +2999,20 @@ setTimeout(() => {
     requireName(runPostNameFlow);
   }
 }, 300);
+
+// ─── OFFLINE SYNC RETRY ───────────────────────────────────────────────────────
+// If a push failed while offline, retry silently when the network comes back.
+// Also retry once on startup in case the last session ended offline.
+async function retrySyncIfNeeded() {
+  if (hasPendingSync()) {
+    await pushData();
+    renderDataNotice(); // refresh sync status label
+  }
+}
+
+window.addEventListener('online', () => {
+  retrySyncIfNeeded();
+});
+
+// Startup retry (async, non-blocking — runs after init)
+setTimeout(retrySyncIfNeeded, 2000);
