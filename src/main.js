@@ -2625,8 +2625,8 @@ async function renderDataNotice() {
         ? `<div class="dn-signin-row">
              <button class="dn-signin-btn" id="btn-dn-signin">Sign in to sync →</button>
            </div>
-           <div class="dn-sub">No email needed — username + password</div>`
-        : `<div class="dn-sub">Create an account to sync across devices — no email needed.</div>`
+           <div class="dn-sub">Your data, on every device.</div>`
+        : `<div class="dn-sub">Create an account to keep your data across devices.</div>`
       }
     `;
     document.getElementById('btn-dn-signin')?.addEventListener('click', () => {
@@ -2897,13 +2897,8 @@ fbSend.addEventListener('click', async () => {
 
 // ─── COACHES NOTIFY ───────────────────────────────────────────────────────────
 document.getElementById('btn-coaches-notify')?.addEventListener('click', function () {
-  const status = document.getElementById('coaches-notify-status');
-  const notified = get('coaches-notify');
-  if (notified) { if (status) status.textContent = 'You\'re already on the list.'; return; }
-  set('coaches-notify', new Date().toISOString());
-  this.textContent = 'You\'re on the list ✓';
-  this.disabled = true;
-  if (status) status.textContent = 'We\'ll let you know when local coaches go live.';
+  // Open email to coach intake address
+  window.location.href = 'mailto:gabe@kilostraining.app?subject=Coach%20Inquiry&body=Hi%20Gabe%2C%20I%27m%20interested%20in%20being%20featured%20on%20KILOS.';
 });
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
