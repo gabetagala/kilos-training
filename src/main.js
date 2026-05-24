@@ -122,10 +122,13 @@ function getPRMap() { return get('prMap') || {}; }
 function checkAndUpdatePR(exerciseName, weight) {
   if (!weight || weight <= 0) return false;
   const map = getPRMap();
-  if (!map[exerciseName] || weight > map[exerciseName]) {
+  const prev = map[exerciseName] || 0;
+  if (weight > prev) {
     map[exerciseName] = weight;
     set('prMap', map);
-    return true;
+    // Only signal "new PR" if there was a previous record to beat.
+    // First-ever set just establishes the baseline — no celebration.
+    return prev > 0;
   }
   return false;
 }
@@ -136,10 +139,11 @@ function checkAndUpdateVolPR(exerciseName, weight, reps) {
   if (!weight || !reps || weight <= 0 || reps <= 0) return false;
   const vol = weight * reps;
   const map = get('volPRMap') || {};
-  if (!map[exerciseName] || vol > map[exerciseName]) {
+  const prev = map[exerciseName] || 0;
+  if (vol > prev) {
     map[exerciseName] = vol;
     set('volPRMap', map);
-    return true;
+    return prev > 0; // Only celebrate when beating an existing record
   }
   return false;
 }
