@@ -1738,11 +1738,18 @@ function renderSetLog() {
   const suggestion = suggestNextWeight(lastSession, ex.reps);
   const unit = weightUnit();
   const rows = document.getElementById('set-log-rows');
+  // Overload hint: show specific weight + rep prescription
+  const lastLogs = lastSession || [];
+  const lastAllMet = lastLogs.length > 0 && lastLogs.every(l => !l.reps || parseInt(l.reps) >= (parseInt(ex.reps) || 8));
+  const dispSugg = suggestion ? (isLbs() ? toDisplayWeight(suggestion) : suggestion) : null;
+  const suggReps = ex.reps || '8';
   rows.innerHTML = (suggestion
     ? `<div class="overload-hint">
          <span class="oh-arrow">↑</span>
-         <span class="oh-text">Try <strong>${isLbs() ? toDisplayWeight(suggestion) : suggestion}${unit}</strong> today</span>
-         <span class="oh-sub">+2.5${unit} progressive overload</span>
+         <div class="oh-text">
+           <span>Target today: <strong>${dispSugg}${unit} × ${suggReps}</strong></span>
+           <span class="oh-sub">${lastAllMet ? `+2.5${unit} from last session` : 'Same as last session — hit all reps first'}</span>
+         </div>
        </div>`
     : '') + ex.logs.map((log, i) => {
     const prev = lastSession?.[i];
@@ -2095,8 +2102,95 @@ function finishWorkout() {
   activeWorkout = null;
   saveActiveState(); // clear persisted active state
   renderHome();      // update Resume button
-  showShareCard(completed, durationStr, entry);
+  showWorkoutSummary(completed, durationStr, entry);
 }
+
+// ─── POST-WORKOUT SUMMARY SCREEN ─────────────────────────────────────────────
+function showWorkoutSummary(workout, duration, entry) {
+  const isCF = CF_TYPES.has(workout.type);
+  const isCardio = workout.type === 'cardio';
+
+  // Header
+  document.getElementById('wsum-name').textContent = workout.name.toUpperCase();
+
+  // PR badge
+  const prBadgeEl = document.getElementById('wsum-pr-badge');
+  if (newPRsThisSession.length) {
+    prBadgeEl.textContent = `+${newPRsThisSession.length} NEW PR${newPRsThisSession.length > 1 ? 'S' : ''}`;
+    prBadgeEl.style.display = '';
+  } else {
+    prBadgeEl.style.display = 'none';
+  }
+
+  // Stats grid
+  const statsEl = document.getElementById('wsum-stats');
+  if (isCF) {
+    const roundsVal = workout.type === 'amrap' ? cfRoundsCompleted : cfCurrentRound;
+    const roundsLbl = workout.type === 'amrap' ? 'Rounds' : 'Rounds Done';
+    statsEl.innerHTML = `
+      <div class="wsum-stat"><div class="ws-val">${duration}</div><div class="ws-lbl">Duration</div></div>
+      <div class="wsum-stat"><div class="ws-val">${roundsVal}</div><div class="ws-lbl">${roundsLbl}</div></div>
+      <div class="wsum-stat"><div class="ws-val">${workout.cf?.badge || workout.type.toUpperCase()}</div><div class="ws-lbl">Format</div></div>
+    `;
+  } else if (isCardio) {
+    statsEl.innerHTML = `
+      <div class="wsum-stat"><div class="ws-val">${duration}</div><div class="ws-lbl">Duration</div></div>
+      <div class="wsum-stat"><div class="ws-val">${entry.distance || '—'}</div><div class="ws-lbl">Distance</div></div>
+      <div class="wsum-stat"><div class="ws-val">${workout.cardioType || 'Cardio'}</div><div class="ws-lbl">Type</div></div>
+    `;
+  } else {
+    statsEl.innerHTML = `
+      <div class="wsum-stat"><div class="ws-val">${Math.round(totalWeightMoved).toLocaleString()}</div><div class="ws-lbl">KG Volume</div></div>
+      <div class="wsum-stat"><div class="ws-val">${sessionSets}</div><div class="ws-lbl">Sets Done</div></div>
+      <div class="wsum-stat"><div class="ws-val">${duration}</div><div class="ws-lbl">Duration</div></div>
+    `;
+  }
+
+  // Top lift of the session
+  const topLiftEl = document.getElementById('wsum-top-lift');
+  const topPR = newPRsThisSession.length
+    ? newPRsThisSession.reduce((best, pr) => (!best || pr.weight > best.weight) ? pr : best, null)
+    : null;
+  if (topPR) {
+    topLiftEl.innerHTML = `<div class="wsum-top-lift-label">Top Lift</div>
+      <div class="wsum-top-lift-val">${topPR.weight}<span class="wsum-top-lift-unit">kg × ${topPR.reps}</span></div>
+      <div class="wsum-top-lift-ex">${topPR.name.toUpperCase()}</div>`;
+    topLiftEl.style.display = '';
+  } else if (!isCF && !isCardio) {
+    // Best set by volume if no PR
+    let bestSet = null;
+    (workout.exercises || []).forEach(e => {
+      (e.logs || []).filter(l => l.done).forEach(l => {
+        const vol = (parseFloat(l.weight) || 0) * (parseInt(l.reps) || 0);
+        if (!bestSet || vol > bestSet.vol) bestSet = { name: e.name, weight: l.weight, reps: l.reps, vol };
+      });
+    });
+    if (bestSet?.weight) {
+      topLiftEl.innerHTML = `<div class="wsum-top-lift-label">Best Set</div>
+        <div class="wsum-top-lift-val">${bestSet.weight}<span class="wsum-top-lift-unit">kg × ${bestSet.reps}</span></div>
+        <div class="wsum-top-lift-ex">${bestSet.name.toUpperCase()}</div>`;
+      topLiftEl.style.display = '';
+    } else {
+      topLiftEl.style.display = 'none';
+    }
+  } else {
+    topLiftEl.style.display = 'none';
+  }
+
+  document.getElementById('workout-summary').classList.add('open');
+}
+
+document.getElementById('wsum-share').addEventListener('click', () => {
+  document.getElementById('workout-summary').classList.remove('open');
+  showShareCard(lastFinishedWorkout, lastFinishedEntry?.duration || '—', lastFinishedEntry);
+});
+document.getElementById('wsum-history').addEventListener('click', () => {
+  document.getElementById('workout-summary').classList.remove('open');
+  goScreen('history');
+});
+document.getElementById('wsum-close').addEventListener('click', () => {
+  document.getElementById('workout-summary').classList.remove('open');
+});
 
 function showShareCard(workout, duration, entry) {
   // Build the data model for the canvas renderer
