@@ -20,7 +20,9 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
 
         // SPA fallback — all navigation goes to index.html
+        // Exclude standalone pages (coach previews etc.) from SW interception
         navigateFallback: 'index.html',
+        navigateFallbackDenylist: [/^\/coach-/],
 
         // Nuke old caches when a new SW activates
         cleanupOutdatedCaches: true,

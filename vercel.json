@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/coach-cilyn", "destination": "/coach-cilyn/index.html" },
+    { "source": "/coach-cilyn/", "destination": "/coach-cilyn/index.html" },
+    { "source": "/((?!coach-cilyn).*)", "destination": "/index.html" }
+  ]
+}
