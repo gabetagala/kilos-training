@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KILOS — Story</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: #0a0a0a;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 0 60px;
+}
+
+/* Grain on outer page */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.10;
+  pointer-events: none;
+  z-index: 9999;
+  mix-blend-mode: overlay;
+}
+
+/* ── 9:16 story card ── */
+#story {
+  width: 540px;
+  height: 960px;
+  background: #111111;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* Geometric K — same as share card */
+.k-bg {
+  position: absolute;
+  top: -30px;
+  right: -80px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 720px;
+  line-height: 1;
+  color: #ffffff;
+  opacity: 0.048;
+  pointer-events: none;
+  user-select: none;
+  letter-spacing: -0.02em;
+}
+
+/* Top rule */
+.rule {
+  position: absolute;
+  left: 36px;
+  right: 36px;
+  height: 1px;
+  background: rgba(255,255,255,0.10);
+}
+
+/* ── KILOS wordmark ── */
+.wordmark {
+  position: absolute;
+  top: 42px;
+  left: 36px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.50);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* ── TRAIN — massive hero ── */
+.hero-train {
+  position: absolute;
+  top: 148px;
+  left: 30px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 234px;
+  line-height: 0.86;
+  letter-spacing: 0.01em;
+  color: #f5f5f5;
+}
+
+/* ── HEAVY. — second line, indented ── */
+.hero-heavy {
+  position: absolute;
+  top: 340px;
+  left: 56px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 172px;
+  line-height: 0.88;
+  letter-spacing: 0.01em;
+  color: rgba(255,255,255,0.88);
+}
+
+/* ── Divider line (partial) ── */
+.rule-mid {
+  position: absolute;
+  top: 558px;
+  left: 36px;
+  width: 160px;
+  height: 1px;
+  background: rgba(255,255,255,0.12);
+}
+
+/* ── Small sub line ── */
+.sub {
+  position: absolute;
+  top: 574px;
+  left: 36px;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  font-style: italic;
+  color: rgba(255,255,255,0.28);
+  letter-spacing: 0.08em;
+}
+
+/* ── FREE ── */
+.free {
+  position: absolute;
+  top: 618px;
+  left: 36px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 108px;
+  line-height: 0.88;
+  letter-spacing: 0.02em;
+  color: rgba(255,255,255,0.90);
+}
+
+/* ── FOREVER. — offset right for tension ── */
+.forever {
+  position: absolute;
+  top: 718px;
+  right: 36px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 82px;
+  line-height: 0.88;
+  letter-spacing: 0.02em;
+  color: rgba(255,255,255,0.42);
+  text-align: right;
+}
+
+/* ── Bottom ── */
+.rule-bottom {
+  bottom: 68px;
+}
+
+.bottom-left {
+  position: absolute;
+  bottom: 42px;
+  left: 36px;
+  font-family: 'Space Mono', monospace;
+  font-size: 8px;
+  color: rgba(255,255,255,0.22);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.bottom-right {
+  position: absolute;
+  bottom: 42px;
+  right: 36px;
+  font-family: 'Space Mono', monospace;
+  font-size: 8px;
+  color: rgba(255,255,255,0.22);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Top accent line */
+.rule-top-accent {
+  top: 0;
+  height: 2px;
+  background: rgba(255,255,255,0.20);
+  left: 0;
+  right: 0;
+}
+
+/* Bottom accent */
+.rule-bottom-accent {
+  bottom: 0;
+  height: 2px;
+  background: rgba(255,255,255,0.10);
+  left: 0;
+  right: 0;
+}
+</style>
+</head>
+<body>
+<div id="story">
+
+  <!-- Accent lines -->
+  <div class="rule rule-top-accent"></div>
+  <div class="rule rule-bottom-accent"></div>
+
+  <!-- Geometric K watermark -->
+  <div class="k-bg">K</div>
+
+  <!-- Header -->
+  <div class="wordmark">KILOS TRAINING</div>
+  <div class="rule" style="top:60px"></div>
+
+  <!-- Hero type -->
+  <div class="hero-train">TRAIN</div>
+  <div class="hero-heavy">HEAVY.</div>
+
+  <!-- Mid divider + sub -->
+  <div class="rule-mid"></div>
+  <div class="sub">Every lift. Every set. Every PR.</div>
+
+  <!-- Free forever -->
+  <div class="free">FREE</div>
+  <div class="forever">FOREVER.</div>
+
+  <!-- Footer -->
+  <div class="rule rule" style="bottom:68px; top:auto"></div>
+  <div class="bottom-left">kilostraining.app</div>
+  <div class="bottom-right">#kilos</div>
+
+</div>
+</body>
+</html>
