@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// KILOS TRAINING — supabase.js
+// GRIT TRAINING — supabase.js
 // Auth (Google Sign-In) + data sync.
 // All Supabase calls are no-ops if config.js still has placeholder values.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -42,6 +42,10 @@ export async function signInWithGoogle() {
 // Generates a fake email {username}@kilostraining.app so users never see
 // an email address. Disable "Email confirmations" in Supabase dashboard
 // (Auth → Settings → Email) for instant access with no verification step.
+//
+// NOTE: The @kilostraining.app suffix is intentionally retained after the
+// GRIT rebrand — existing accounts have this email in Supabase, and changing
+// it would lock them out. The suffix is internal-only and never user-visible.
 
 function usernameToEmail(username) {
   return `${username.toLowerCase().replace(/[^a-z0-9_]/g, '')}@kilostraining.app`;

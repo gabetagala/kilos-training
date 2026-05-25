@@ -23,30 +23,26 @@
   <rect x="380" y="60" width="1" height="510" fill="rgba(255,255,255,0.06)"/>
 
   <!-- ══════════════════════
-       LEFT — K icon
+       LEFT — G icon
   ══════════════════════ -->
   <!-- Icon squircle (240×240 centered in left column x=70..320, y=195..435) -->
   <rect x="70" y="195" width="240" height="240" rx="54" ry="54" fill="#2a2a2a"/>
-  <!--
-    K mark polygon scaled to 240×240 and offset to (70,195).
-    Original viewBox 512×512, scale = 240/512 = 0.46875
-    Scaled points:
-      (120,120)→(56,56)  (396,120)→(186,56)
-      (280,256)→(131,120)
-      (396,392)→(186,184)  (120,392)→(56,184)
-    + offset (70,195):
-      (126,251) (256,251) (201,315) (256,379) (126,379)
-  -->
-  <polygon
-    points="126,251 256,251 201,315 256,379 126,379"
+  <!-- G mark — bold Impact letter, optically centered in the squircle -->
+  <text
+    x="190" y="385"
+    font-family="Impact, 'Arial Black', 'Helvetica Neue', Arial, sans-serif"
+    font-size="220"
+    font-weight="900"
     fill="#ffffff"
-  />
+    text-anchor="middle"
+    letter-spacing="-4"
+  >G</text>
 
   <!-- ══════════════════════
        RIGHT — Text
   ══════════════════════ -->
 
-  <!-- KILOS — main wordmark -->
+  <!-- GRIT — main wordmark -->
   <text
     x="420" y="272"
     font-family="Impact, 'Arial Black', 'Helvetica Neue', Arial, sans-serif"
@@ -54,7 +50,7 @@
     font-weight="900"
     fill="#ffffff"
     letter-spacing="-4"
-  >KILOS</text>
+  >GRIT</text>
 
   <!-- TRAINING — tracked sub-label -->
   <text
@@ -94,7 +90,7 @@
     font-size="12"
     fill="rgba(255,255,255,0.18)"
     letter-spacing="2"
-  >kilostraining.app</text>
+  >grittraining.app</text>
 
   <!-- Top accent line -->
   <rect width="1200" height="3" fill="rgba(255,255,255,0.12)"/>

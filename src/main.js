@@ -2710,13 +2710,13 @@ document.getElementById('btn-close-share').addEventListener('click', () => {
 async function shareWorkoutImage(canvas, workoutName) {
   return new Promise((resolve) => {
     canvas.toBlob(async (blob) => {
-      const file = new File([blob], 'kilos-workout.png', { type: 'image/png' });
+      const file = new File([blob], 'grit-workout.png', { type: 'image/png' });
       if (navigator.canShare?.({ files: [file] })) {
         try {
           await navigator.share({
             files: [file],
-            title: 'KILOS TRAINING',
-            text: `${workoutName} · #kilostraining`,
+            title: 'GRIT TRAINING',
+            text: `${workoutName} · #grittraining`,
           });
         } catch (e) {
           if (e.name !== 'AbortError') _downloadCanvas(canvas);
@@ -2732,7 +2732,7 @@ async function shareWorkoutImage(canvas, workoutName) {
 
 function _downloadCanvas(canvas) {
   const a = document.createElement('a');
-  a.download = 'kilos-workout.png';
+  a.download = 'grit-workout.png';
   a.href = canvas.toDataURL('image/png');
   a.click();
 }
@@ -2916,7 +2916,7 @@ document.getElementById('btn-export').addEventListener('click', () => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `kilos-history-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = `grit-history-${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 });
@@ -2934,7 +2934,7 @@ document.getElementById('import-file')?.addEventListener('change', (e) => {
   reader.onload = async (ev) => {
     try {
       const data = JSON.parse(ev.target.result);
-      if (!data.version || !data.exported) throw new Error('Not a KILOS TRAINING backup');
+      if (!data.version || !data.exported) throw new Error('Not a GRIT TRAINING backup');
       BACKUP_KEYS.forEach(k => { if (data[k] != null) set(k, data[k]); });
       await pushData();
       renderHome(); renderHistory();
@@ -3300,7 +3300,7 @@ fbSend.addEventListener('click', async () => {
         body: JSON.stringify({
           name: getUserName() || 'Anonymous',
           message: msg,
-          _subject: `KILOS Beta Feedback · ${new Date().toLocaleDateString()}`,
+          _subject: `GRIT Beta Feedback · ${new Date().toLocaleDateString()}`,
         }),
       });
       ok = res.ok;

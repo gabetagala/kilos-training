@@ -77,7 +77,7 @@ body {
       var(--bg);
   }
   #phone-frame::before {
-    content: 'KILOS TRAINING';
+    content: 'GRIT TRAINING';
     position: fixed; top: 24px; left: 32px;
     font-family: 'Bebas Neue', sans-serif; font-size: 18px;
     color: rgba(255,255,255,0.18); letter-spacing: 0.06em;
@@ -289,7 +289,7 @@ body {
 }
 /* Flip child colours to dark-on-light */
 .home-hero .home-header   { border-bottom-color: rgba(0,0,0,0.07); }
-.home-hero .hw-kilos      { color: var(--bg); }
+.home-hero .hw-grit      { color: var(--bg); }
 .home-hero .hw-training   { color: rgba(0,0,0,0.38); }
 .home-hero .streak-chip   { color: rgba(0,0,0,0.4); }
 .home-hero .streak-chip.warm { color: rgba(0,0,0,0.6); }
@@ -350,14 +350,14 @@ body {
   display: flex; align-items: flex-end; justify-content: space-between;
 }
 .home-wordmark { display: flex; flex-direction: column; align-items: stretch; line-height: 1; }
-.hw-kilos {
+.hw-grit {
   font-family: 'Bebas Neue', sans-serif;
   font-size: clamp(56px, 17vw, 76px);
   line-height: 0.86; letter-spacing: 0.01em;
   color: var(--white);
 }
 .hw-training {
-  /* JS splits "TRAINING" into <span> letters; flex space-between fills exact KILOS width */
+  /* JS splits "TRAINING" into <span> letters; flex space-between fills exact GRIT width */
   display: flex; justify-content: space-between; align-items: baseline;
   font-family: 'Space Mono', monospace; font-size: 9px;
   text-transform: uppercase; color: var(--grey);

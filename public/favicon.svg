@@ -1,16 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- Squircle background — ~23% radius matches iOS/Android icon spec -->
+  <defs>
+    <!-- Rubber stud texture — tiny dots on the white tiles -->
+    <pattern id="rubber" patternUnits="userSpaceOnUse" width="10" height="10">
+      <rect width="10" height="10" fill="#ffffff"/>
+      <circle cx="5" cy="5" r="1.0" fill="#222222" opacity="0.18"/>
+    </pattern>
+  </defs>
   <rect width="512" height="512" rx="118" ry="118" fill="#222222"/>
-  <!--
-    K mark — single white polygon.
-    Shape: rectangle with a V-notch cut into the right side at the vertical midpoint.
-    Left vertical edge = spine of the K.
-    Upper diagonal = upper arm of K.
-    Lower diagonal = lower arm of K.
-    Notch depth ≈ 42% of mark width for a bold, deep cut.
-  -->
-  <polygon
-    points="120,120 396,120 280,256 396,392 120,392"
-    fill="#ffffff"
-  />
+  <!-- Tiled G v2 — 4×4 grid, 60px tiles, 12px seams, rounded corners + rubber texture -->
+  <g fill="url(#rubber)">
+    <!-- Row 0: top bar -->
+    <rect x="120" y="120" width="60" height="60" rx="6"/>
+    <rect x="192" y="120" width="60" height="60" rx="6"/>
+    <rect x="264" y="120" width="60" height="60" rx="6"/>
+    <rect x="336" y="120" width="60" height="60" rx="6"/>
+    <!-- Row 1: left only (G interior open at top) -->
+    <rect x="120" y="192" width="60" height="60" rx="6"/>
+    <!-- Row 2: left + tongue -->
+    <rect x="120" y="264" width="60" height="60" rx="6"/>
+    <rect x="264" y="264" width="60" height="60" rx="6"/>
+    <rect x="336" y="264" width="60" height="60" rx="6"/>
+    <!-- Row 3: bottom bar -->
+    <rect x="120" y="336" width="60" height="60" rx="6"/>
+    <rect x="192" y="336" width="60" height="60" rx="6"/>
+    <rect x="264" y="336" width="60" height="60" rx="6"/>
+    <rect x="336" y="336" width="60" height="60" rx="6"/>
+  </g>
 </svg>

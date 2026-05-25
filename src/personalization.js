@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// KILOS TRAINING — personalization.js
+// GRIT TRAINING — personalization.js
 // Equipment tiers tuned for the Philippine gym landscape + global injury subs.
 // Research: Schoenfeld 2010/2016, Calatayud et al. 2015, Speirs et al. 2016,
 // Andersen et al. 2010, Kibler et al. AJSM, McGill 2007, JOSPT consensus.

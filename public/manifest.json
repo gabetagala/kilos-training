@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "KILOS TRAINING",
-  "short_name": "KILOS",
+  "name": "GRIT TRAINING",
+  "short_name": "GRIT",
   "description": "Train heavy. Track everything. Free forever.",
   "start_url": "/?source=pwa",
   "scope": "/",
