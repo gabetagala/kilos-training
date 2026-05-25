@@ -2945,7 +2945,7 @@ fbSend.addEventListener('click', async () => {
 // ─── COACHES NOTIFY ───────────────────────────────────────────────────────────
 document.getElementById('btn-coaches-notify')?.addEventListener('click', function () {
   // Open email to coach intake address
-  window.location.href = 'mailto:gabe@kilostraining.app?subject=Coach%20Inquiry&body=Hi%20Gabe%2C%20I%27m%20interested%20in%20being%20featured%20on%20KILOS.';
+  window.location.href = 'mailto:gabe@grittraining.app?subject=Coach%20Inquiry&body=Hi%20Gabe%2C%20I%27m%20interested%20in%20being%20featured%20on%20GRIT.';
 });
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
