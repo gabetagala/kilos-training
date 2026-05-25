@@ -129,14 +129,10 @@
         <input type="file" id="import-file" accept=".json" style="display:none">
       </div>
 
-      <!-- COACHES — Coming Soon -->
-      <div id="coaches" class="screen">
-        <div class="coming-soon-screen">
-          <h1 class="cs-title">LOCAL<br>COACHES</h1>
-          <p class="cs-body">The best coaches in your scene — their workouts, your log. We're bringing the people who actually built this community onto KILOS. If that's you, reach out.</p>
-          <div class="cs-sig">— Gabe</div>
-          <button class="cs-notify-btn" id="btn-coaches-notify">I'm a coach →</button>
-          <div class="cs-notify-status" id="coaches-notify-status"></div>
+      <!-- BOX — Affiliate WOD + Leaderboard -->
+      <div id="box" class="screen">
+        <div id="box-content">
+          <!-- Rendered by renderBox() in main.js -->
         </div>
       </div>
 
@@ -306,10 +302,9 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         <span>Home</span>
       </button>
-      <button class="nav-btn nav-btn-soon" data-screen="coaches">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        <span>Coaches</span>
-        <span class="nav-soon">SOON</span>
+      <button class="nav-btn" data-screen="box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/><line x1="12" y1="2" x2="12" y2="9"/></svg>
+        <span>Box</span>
       </button>
       <button class="nav-btn" data-screen="build">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>

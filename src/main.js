@@ -262,7 +262,7 @@ function getLastSession(exerciseName) {
 }
 
 // ─── NAVIGATION ───────────────────────────────────────────────────────────────
-const SCREEN_ORDER = ['home', 'coaches', 'build', 'history', 'active'];
+const SCREEN_ORDER = ['home', 'box', 'build', 'history', 'active'];
 
 function goScreen(id) {
   const currentEl = document.querySelector('.screen.active');
@@ -301,7 +301,7 @@ function goScreen(id) {
 
   // 6. Render content
   if (id === 'home')    renderHome();
-  if (id === 'coaches') renderCoaches();  // was 'legends'
+  if (id === 'box')     renderBox();
   if (id === 'build')   renderBuild();
   if (id === 'history') renderHistory();
   if (id === 'active')  renderActiveScreen();
@@ -726,85 +726,489 @@ document.getElementById('btn-resume').addEventListener('click', () => {
   else goScreen('build');
 });
 
-// ─── COACHES ──────────────────────────────────────────────────────────────────
-function renderCoaches() {
-  const tabsEl   = document.getElementById('coach-tabs');
-  const contentEl = document.getElementById('coach-content');
-  // Coaches screen is currently "Coming Soon" — no tabs/content to render
-  if (!tabsEl || !contentEl) return;
-  tabsEl.innerHTML = '';
-  contentEl.innerHTML = '';
+// ─── BOX TAB ──────────────────────────────────────────────────────────────────
+// Athlete's affiliate box: today's WOD + live leaderboard + score logging.
+// Reads from the kilos-affiliate Supabase tables (boxes, wods, wod_scores,
+// box_members). All calls are no-ops if Supabase is not configured.
 
-  COACHES_DATA.forEach((coach, i) => {
-    // Tab
-    const tab = document.createElement('button');
-    tab.className = `athlete-tab${i === 0 ? ' active' : ''}`;
-    tab.textContent = coach.name.split(' ').pop(); // "Cilyn"
-    tab.dataset.id = coach.id;
-    tab.addEventListener('click', () => selectCoach(coach.id));
-    tabsEl.appendChild(tab);
+let _boxState = null  // cached after first load this session
+let _boxScoreSub = null  // realtime subscription
 
-    // Content block
-    const block = document.createElement('div');
-    block.className = `athlete-block${i === 0 ? ' active' : ''}`;
-    block.id = `coach-${coach.id}`;
+function renderBox() {
+  const el = document.getElementById('box-content')
+  if (!el) return
+  el.innerHTML = buildBoxLoading()
+  loadBoxScreen(el)
+}
 
-    const wodCards = coach.workouts.map(w => {
-      const isCF = ['emom', 'amrap', 'rounds', 'fortime'].includes(w.type);
-      const bigNum   = isCF ? cfBigNum(w)   : w.exercises?.reduce((s, e) => s + e.sets, 0);
-      const bigUnit  = isCF ? cfBigUnit(w)  : 'sets';
-      const subLine  = isCF ? cfSubLine(w)  : w.exercises?.map(e => e.name).join(' · ');
-      return `
-      <div class="workout-card">
-        <div class="wc-body">
-          <div class="wc-left">
-            <div class="wc-name">${w.name}</div>
-            <div class="wc-exercises-line">${subLine}</div>
-            <div class="wc-meta">${w.badge} · ${w.movements?.length || w.exercises?.length || 0} movements</div>
+async function loadBoxScreen(el) {
+  if (!supabase || !isConfigured) {
+    el.innerHTML = buildBoxNoSupabase()
+    return
+  }
+
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) {
+    el.innerHTML = buildBoxSignedOut()
+    return
+  }
+
+  // Load member record — join to box
+  const { data: member } = await supabase
+    .from('box_members')
+    .select('*, boxes(*)')
+    .eq('user_id', session.user.id)
+    .eq('status', 'active')
+    .limit(1)
+    .maybeSingle()
+
+  if (!member) {
+    el.innerHTML = buildBoxNoMember()
+    return
+  }
+
+  const box = member.boxes
+  _boxState = { member, box, session }
+
+  // Load today's WOD (PH timezone)
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' })
+  const { data: wod } = await supabase
+    .from('wods')
+    .select('*')
+    .eq('box_id', box.id)
+    .eq('scheduled_date', today)
+    .not('posted_at', 'is', null)
+    .maybeSingle()
+
+  // Load attendance count today
+  const { count: checkinCount } = await supabase
+    .from('attendance')
+    .select('*', { count: 'exact', head: true })
+    .eq('box_id', box.id)
+    .gte('checked_in_at', `${today}T00:00:00+08:00`)
+
+  // Load this athlete's total check-in count
+  const { count: totalCheckins } = await supabase
+    .from('attendance')
+    .select('*', { count: 'exact', head: true })
+    .eq('box_id', box.id)
+    .eq('member_id', member.id)
+
+  _boxState.wod = wod || null
+  _boxState.checkinCount = checkinCount || 0
+  _boxState.totalCheckins = totalCheckins || 0
+
+  renderBoxContent(el, _boxState)
+}
+
+function renderBoxContent(el, { member, box, wod, checkinCount, totalCheckins }) {
+  const initials = (box.name || 'KL').substring(0, 2).toUpperCase()
+  const logoHtml = box.logo_url
+    ? `<img src="${box.logo_url}" alt="${box.name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+    : `<span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:rgba(0,0,0,0.35)">${initials}</span>`
+
+  const expiryText = member.expiry_date
+    ? ` · EXPIRES ${new Date(member.expiry_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Manila' }).toUpperCase()}`
+    : ''
+
+  el.innerHTML = `
+    <div class="box-tab-wrap">
+      <!-- Box hero -->
+      <div class="screen-hero" style="padding:20px 20px 16px">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="width:48px;height:48px;border-radius:50%;background:var(--off);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden">
+            ${logoHtml}
           </div>
-          <div class="wc-right">
-            <div class="wc-big">${bigNum}</div>
-            <div class="wc-big-unit">${bigUnit}</div>
+          <div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;line-height:1;color:var(--white)">${box.name}</div>
+            <div style="font-family:'Space Mono',monospace;font-size:8px;text-transform:uppercase;letter-spacing:0.12em;color:var(--grey);margin-top:3px">
+              ${(member.membership_type || 'MEMBER').toUpperCase()}${expiryText}
+            </div>
           </div>
         </div>
-        <button class="wc-go" data-coach="${coach.id}" data-workout="${w.name}">Start this workout →</button>
-      </div>`;
-    }).join('');
+        <div style="display:flex;gap:20px;margin-top:14px">
+          <div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1;color:var(--white)">${checkinCount}</div>
+            <div style="font-family:'Space Mono',monospace;font-size:8px;text-transform:uppercase;letter-spacing:0.1em;color:var(--grey)">TODAY</div>
+          </div>
+          <div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1;color:var(--white)">${totalCheckins}</div>
+            <div style="font-family:'Space Mono',monospace;font-size:8px;text-transform:uppercase;letter-spacing:0.1em;color:var(--grey)">TOTAL CLASSES</div>
+          </div>
+        </div>
+      </div>
 
-    block.innerHTML = `
-      <div class="athlete-name-big">${coach.name}</div>
-      <span class="coach-specialty section-label">${coach.specialty}</span>
-      ${wodCards}`;
-    contentEl.appendChild(block);
-  });
+      <!-- Today's WOD -->
+      <div style="padding:0 20px 20px">
+        <div class="section-label" style="margin:16px 0 10px">TODAY'S WOD</div>
+        ${buildBoxWodSection(wod)}
+      </div>
+    </div>
+  `
 
-  contentEl.querySelectorAll('.wc-go').forEach(btn => {
-    btn.addEventListener('click', () => startCoachWorkout(btn.dataset.coach, btn.dataset.workout));
-  });
+  // Wire score logging buttons
+  el.querySelectorAll('[data-log-block]').forEach(btn => {
+    btn.addEventListener('click', () => openBoxScoreSheet(
+      parseInt(btn.dataset.logBlock),
+      wod,
+      _boxState
+    ))
+  })
 }
 
-// Helper display values for CF workout cards
-function cfBigNum(w) {
-  if (w.type === 'emom')    return w.rounds;
-  if (w.type === 'amrap')   return w.timeCap;
-  if (w.type === 'rounds')  return w.rounds;
-  if (w.type === 'fortime') return w.sets ? w.sets[0] : '—';
-  return '—';
-}
-function cfBigUnit(w) {
-  if (w.type === 'emom')    return 'rounds';
-  if (w.type === 'amrap')   return 'min';
-  if (w.type === 'rounds')  return 'rounds';
-  if (w.type === 'fortime') return 'reps';
-  return '';
-}
-function cfSubLine(w) {
-  return (w.movements || []).map(m => m.reps ? `${m.reps} ${m.name}` : m.name).join(' · ');
+function buildBoxWodSection(wod) {
+  if (!wod) {
+    return `
+      <div style="text-align:center;padding:40px 0">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:52px;color:var(--grey);line-height:0.92">NO WOD<br>YET</div>
+        <div style="font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:var(--grey);margin-top:10px">Check back when your coach posts</div>
+      </div>`
+  }
+
+  if (wod.is_rest_day) {
+    return `
+      <div style="text-align:center;padding:32px 0">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:64px;color:var(--grey);line-height:0.92">REST DAY</div>
+        ${wod.rest_message ? `<div style="font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:var(--grey);margin-top:8px">${wod.rest_message}</div>` : ''}
+      </div>`
+  }
+
+  const blocks = wod.blocks || []
+  if (!blocks.length) {
+    return `<div style="font-family:'Space Mono',monospace;font-size:9px;color:var(--grey);text-transform:uppercase">WOD POSTED — CHECK THE BOX BOARD</div>`
+  }
+
+  return blocks.map((b, i) => {
+    const scoreableFormats = ['for_time','amrap','emom','tabata','for_load','chipper','ladder']
+    const isScoreable = b.score_type && b.score_type !== 'none' && scoreableFormats.includes(b.format)
+
+    const formatLabel = {
+      for_time: 'FOR TIME', amrap: 'AMRAP', emom: 'EMOM', tabata: 'TABATA',
+      for_load: 'FOR LOAD', for_quality: 'FOR QUALITY', chipper: 'CHIPPER', ladder: 'LADDER',
+    }[b.format] || (b.format || '').replace(/_/g, ' ').toUpperCase()
+
+    const blockTypeLabel = {
+      warmup: 'WARM-UP', strength: 'STRENGTH', metcon: 'METCON', accessory: 'ACCESSORY',
+    }[b.type] || (b.type || '').toUpperCase()
+
+    const movementsHtml = (b.movements || []).map(m =>
+      `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;border-bottom:1px solid var(--line)">
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:0.03em;color:var(--white)">${m.name}</span>
+        <span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--grey)">${m.reps || ''}${m.load ? ' · ' + m.load : ''}</span>
+      </div>`
+    ).join('')
+
+    return `
+      <div class="workout-card" style="margin-bottom:10px">
+        <div style="font-family:'Space Mono',monospace;font-size:8px;text-transform:uppercase;letter-spacing:0.12em;color:var(--grey)">${blockTypeLabel}</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.04em;color:var(--white);margin-top:2px">${b.name || formatLabel}</div>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:4px;flex-wrap:wrap">
+          <span style="font-family:'Space Mono',monospace;font-size:8px;border:1px solid var(--border);padding:2px 6px;color:var(--grey)">${formatLabel}</span>
+          ${b.duration_minutes ? `<span style="font-family:'Space Mono',monospace;font-size:8px;color:var(--grey)">${b.duration_minutes} MIN</span>` : ''}
+          ${b.cap_minutes ? `<span style="font-family:'Space Mono',monospace;font-size:8px;color:var(--grey)">CAP ${b.cap_minutes}M</span>` : ''}
+        </div>
+        ${movementsHtml ? `<div style="margin-top:10px">${movementsHtml}</div>` : ''}
+        ${b.rx_standards ? `<div style="font-family:'Space Mono',monospace;font-size:9px;color:var(--text2);margin-top:8px">RX — ${b.rx_standards}</div>` : ''}
+        ${b.scaled_standards ? `<div style="font-family:'Space Mono',monospace;font-size:9px;color:var(--grey);margin-top:2px">SCALED — ${b.scaled_standards}</div>` : ''}
+        ${isScoreable ? `
+          <button class="start-workout-btn" data-log-block="${i}" style="margin-top:12px;padding:10px 0;font-size:16px">
+            LOG SCORE →
+          </button>` : ''}
+      </div>`
+  }).join('')
 }
 
-function selectCoach(id) {
-  document.querySelectorAll('.athlete-tab').forEach(t => t.classList.toggle('active', t.dataset.id === id));
-  document.querySelectorAll('.athlete-block').forEach(b => b.classList.toggle('active', b.id === `coach-${id}`));
+// ─── BOX SCORE LOGGING SHEET ─────────────────────────────────────────────────
+
+let _scoreSheetEl = null
+
+function openBoxScoreSheet(blockIdx, wod, state) {
+  if (_scoreSheetEl) _scoreSheetEl.remove()
+
+  const block = (wod.blocks || [])[blockIdx]
+  if (!block) return
+
+  const overlay = document.createElement('div')
+  overlay.className = 'modal-overlay open'
+  overlay.id = 'box-score-overlay'
+  overlay.style.zIndex = '2000'
+
+  const scoreType = block.score_type || 'time'
+  const formatLabel = {
+    for_time: 'FOR TIME', amrap: 'AMRAP', emom: 'EMOM', tabata: 'TABATA',
+    for_load: 'FOR LOAD', for_quality: 'FOR QUALITY',
+  }[block.format] || (block.format || '').toUpperCase()
+
+  overlay.innerHTML = `
+    <div class="modal-sheet" style="padding:24px 20px 36px;max-height:90dvh;overflow-y:auto">
+      <div class="modal-drag-handle" style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px"></div>
+      <div style="font-family:'Space Mono',monospace;font-size:8px;text-transform:uppercase;letter-spacing:0.12em;color:var(--grey);margin-bottom:4px">${formatLabel}</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:0.04em;color:var(--white);margin-bottom:20px">${block.name || formatLabel}</div>
+
+      <!-- Division -->
+      <div class="section-label" style="margin-bottom:8px">DIVISION</div>
+      <div style="display:flex;gap:8px;margin-bottom:20px" id="bsl-div-row">
+        <button class="cf-format-btn active" data-div="rx">RX</button>
+        <button class="cf-format-btn" data-div="scaled">SCALED</button>
+        <button class="cf-format-btn" data-div="masters">MASTERS</button>
+      </div>
+
+      <!-- Score input -->
+      <div class="section-label" style="margin-bottom:8px">SCORE</div>
+      <div id="bsl-score-section">
+        ${buildScoreInput(scoreType)}
+      </div>
+
+      <!-- Weights used -->
+      <div style="margin-top:16px">
+        <label class="section-label" style="display:block;margin-bottom:6px">WEIGHTS USED <span style="opacity:0.5">(OPTIONAL)</span></label>
+        <input id="bsl-weights" class="log-input" type="text" placeholder="e.g. 40kg instead of 60kg" style="font-size:15px">
+      </div>
+
+      <!-- Movement subs -->
+      <div style="margin-top:12px">
+        <label class="section-label" style="display:block;margin-bottom:6px">MOVEMENT SUBS <span style="opacity:0.5">(OPTIONAL)</span></label>
+        <input id="bsl-subs" class="log-input" type="text" placeholder="e.g. ring rows for pull-ups" style="font-size:15px">
+      </div>
+
+      <!-- Private toggle -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding:12px 0;border-top:1px solid var(--line)">
+        <div style="font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--grey)">LOG PRIVATELY</div>
+        <button class="prof-toggle" id="bsl-private-toggle" role="switch" aria-checked="false">
+          <span class="prof-toggle-thumb"></span>
+        </button>
+      </div>
+
+      <!-- Error -->
+      <div id="bsl-error" style="display:none;font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,100,100,0.85);margin-top:10px;text-align:center"></div>
+
+      <!-- Actions -->
+      <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px">
+        <button class="start-workout-btn" id="bsl-submit" style="font-size:18px;padding:14px">SUBMIT SCORE →</button>
+        <button class="build-save" id="bsl-cancel" style="text-align:center;padding:10px">Cancel</button>
+      </div>
+    </div>
+  `
+
+  document.getElementById('app').appendChild(overlay)
+  _scoreSheetEl = overlay
+
+  // Division chips
+  let selectedDiv = 'rx'
+  overlay.querySelectorAll('[data-div]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      overlay.querySelectorAll('[data-div]').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      selectedDiv = btn.dataset.div
+    })
+  })
+
+  // Private toggle
+  let isPrivate = false
+  overlay.querySelector('#bsl-private-toggle').addEventListener('click', function() {
+    isPrivate = !isPrivate
+    this.setAttribute('aria-checked', String(isPrivate))
+  })
+
+  // Cancel
+  overlay.querySelector('#bsl-cancel').addEventListener('click', () => {
+    overlay.remove()
+    _scoreSheetEl = null
+  })
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) { overlay.remove(); _scoreSheetEl = null }
+  })
+
+  // Submit
+  overlay.querySelector('#bsl-submit').addEventListener('click', async () => {
+    const { scoreDisplay, scoreSeconds, scoreNumeric, valid } = readScoreInputs(scoreType)
+    const errEl = overlay.querySelector('#bsl-error')
+
+    if (!valid) {
+      errEl.textContent = 'ENTER A SCORE'
+      errEl.style.display = 'block'
+      return
+    }
+
+    const btn = overlay.querySelector('#bsl-submit')
+    btn.disabled = true
+    btn.textContent = '...'
+
+    const payload = {
+      wod_id: wod.id,
+      box_id: state.box.id,
+      block_index: blockIdx,
+      member_id: state.member.id,
+      user_id: state.session.user.id,
+      athlete_name: state.member.name,
+      division: selectedDiv,
+      score_type: scoreType,
+      score_display: scoreDisplay,
+      score_seconds: scoreSeconds || null,
+      score_numeric: scoreNumeric || null,
+      weights_used: overlay.querySelector('#bsl-weights').value.trim() || null,
+      movement_subs: overlay.querySelector('#bsl-subs').value.trim() || null,
+      is_private: isPrivate,
+      locked_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    }
+
+    // Try insert — if offline, queue it
+    const { data, error } = await supabase.from('wod_scores').insert(payload).select().single()
+
+    btn.disabled = false
+    btn.textContent = 'SUBMIT SCORE →'
+
+    if (error) {
+      // Check for duplicate score
+      if (error.code === '23505') {
+        errEl.textContent = 'SCORE ALREADY LOGGED FOR THIS BLOCK'
+        errEl.style.display = 'block'
+        return
+      }
+      errEl.textContent = error.message.toUpperCase()
+      errEl.style.display = 'block'
+      return
+    }
+
+    overlay.remove()
+    _scoreSheetEl = null
+    showBoxScoreToast(scoreDisplay, selectedDiv)
+  })
+}
+
+function buildScoreInput(scoreType) {
+  switch (scoreType) {
+    case 'time':
+      return `
+        <div style="display:flex;gap:12px;align-items:center">
+          <div style="flex:1">
+            <div class="section-label" style="margin-bottom:4px;font-size:8px">MIN</div>
+            <input id="bsl-min" class="log-input" type="number" inputmode="numeric" min="0" max="99" placeholder="0" style="font-size:28px;text-align:center">
+          </div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--grey);padding-top:16px">:</div>
+          <div style="flex:1">
+            <div class="section-label" style="margin-bottom:4px;font-size:8px">SEC</div>
+            <input id="bsl-sec" class="log-input" type="number" inputmode="numeric" min="0" max="59" placeholder="00" style="font-size:28px;text-align:center">
+          </div>
+        </div>`
+    case 'rounds_reps':
+      return `
+        <div style="display:flex;gap:12px;align-items:center">
+          <div style="flex:1">
+            <div class="section-label" style="margin-bottom:4px;font-size:8px">ROUNDS</div>
+            <input id="bsl-rounds" class="log-input" type="number" inputmode="numeric" min="0" placeholder="0" style="font-size:28px;text-align:center">
+          </div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--grey);padding-top:16px">+</div>
+          <div style="flex:1">
+            <div class="section-label" style="margin-bottom:4px;font-size:8px">REPS</div>
+            <input id="bsl-reps-extra" class="log-input" type="number" inputmode="numeric" min="0" placeholder="0" style="font-size:28px;text-align:center">
+          </div>
+        </div>`
+    case 'load':
+      return `
+        <div style="display:flex;gap:12px;align-items:center">
+          <div style="flex:1">
+            <div class="section-label" style="margin-bottom:4px;font-size:8px">WEIGHT</div>
+            <input id="bsl-load" class="log-input" type="number" inputmode="decimal" min="0" placeholder="0" style="font-size:32px;text-align:center">
+          </div>
+          <div style="font-family:'Space Mono',monospace;font-size:11px;color:var(--grey);padding-top:18px">KG</div>
+        </div>`
+    default:
+      // calories, meters, reps, or any single number
+      return `
+        <div>
+          <div class="section-label" style="margin-bottom:4px;font-size:8px">${scoreType.toUpperCase()}</div>
+          <input id="bsl-single" class="log-input" type="number" inputmode="numeric" min="0" placeholder="0" style="font-size:36px;text-align:center;width:100%">
+        </div>`
+  }
+}
+
+function readScoreInputs(scoreType) {
+  const get = id => document.getElementById(id)?.value?.trim() || ''
+  switch (scoreType) {
+    case 'time': {
+      const m = parseInt(get('bsl-min') || '0')
+      const s = parseInt(get('bsl-sec') || '0')
+      if (isNaN(m) || isNaN(s)) return { valid: false }
+      const total = m * 60 + s
+      if (total === 0) return { valid: false }
+      const display = `${m}:${String(s).padStart(2,'0')}`
+      return { scoreDisplay: display, scoreSeconds: total, scoreNumeric: null, valid: true }
+    }
+    case 'rounds_reps': {
+      const r = parseInt(get('bsl-rounds') || '0')
+      const x = parseInt(get('bsl-reps-extra') || '0')
+      if (isNaN(r)) return { valid: false }
+      return {
+        scoreDisplay: `${r}+${x}`,
+        scoreSeconds: null,
+        scoreNumeric: r * 1000 + x,
+        valid: r >= 0 || x > 0,
+      }
+    }
+    case 'load': {
+      const v = parseFloat(get('bsl-load'))
+      if (isNaN(v) || v <= 0) return { valid: false }
+      return { scoreDisplay: `${v}kg`, scoreSeconds: null, scoreNumeric: v, valid: true }
+    }
+    default: {
+      const v = parseFloat(get('bsl-single'))
+      if (isNaN(v) || v <= 0) return { valid: false }
+      return {
+        scoreDisplay: String(v),
+        scoreSeconds: scoreType === 'calories' || scoreType === 'meters' ? null : null,
+        scoreNumeric: v,
+        valid: true,
+      }
+    }
+  }
+}
+
+function showBoxScoreToast(scoreDisplay, division) {
+  const el = document.createElement('div')
+  el.style.cssText = `
+    position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+    background:var(--white);color:var(--bg);z-index:3000;
+    font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.06em;
+    padding:10px 24px;border-radius:2px;white-space:nowrap;pointer-events:none;
+  `
+  el.textContent = `${scoreDisplay} ${division.toUpperCase()} ✓`
+  document.getElementById('app').appendChild(el)
+  setTimeout(() => el.remove(), 3000)
+}
+
+// ─── BOX EMPTY STATES ─────────────────────────────────────────────────────────
+
+function buildBoxLoading() {
+  return `<div style="height:60vh;display:flex;align-items:center;justify-content:center">
+    <div class="section-label">LOADING...</div>
+  </div>`
+}
+function buildBoxNoSupabase() {
+  return `<div style="padding:40px 24px;text-align:center">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:52px;color:var(--grey);line-height:0.92">NOT<br>CONNECTED</div>
+    <div style="font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:var(--grey);margin-top:12px">Supabase not configured</div>
+  </div>`
+}
+function buildBoxSignedOut() {
+  return `<div style="padding:40px 24px;text-align:center">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:52px;color:var(--grey);line-height:0.92">SIGN IN<br>FIRST</div>
+    <div style="font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:var(--grey);margin-top:12px">Create an account to sync with your box</div>
+  </div>`
+}
+function buildBoxNoMember() {
+  return `<div style="padding:40px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:52px;color:var(--grey);line-height:0.92">NO BOX<br>YET</div>
+    <div style="font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:var(--grey)">Scan your box's QR code to join</div>
+    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--border)" stroke-width="1.5">
+      <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+      <rect x="3" y="14" width="7" height="7" rx="1"/>
+      <rect x="5" y="5" width="3" height="3" fill="var(--border)" stroke="none"/>
+      <rect x="16" y="5" width="3" height="3" fill="var(--border)" stroke="none"/>
+      <rect x="5" y="16" width="3" height="3" fill="var(--border)" stroke="none"/>
+      <path d="M14 14h2v2h-2zM18 14h3v2h-3zM14 18h3v3h-3zM19 18h2v3h-2z"/>
+    </svg>
+  </div>`
 }
 
 // Remove duplicate exercise names that can arise after substitution
@@ -2955,7 +3359,6 @@ if (loadActiveState()) {
   renderActiveScreen();   // rebuild active workout UI
 }
 renderHome();
-renderCoaches();
 renderProfileBtn();
 
 // Active placeholder → go home
