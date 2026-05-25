@@ -1,4 +1,4 @@
-import { EXERCISES_DB, LEGENDS_DATA, FAMOUS_WODS, SHUFFLE_PLANS, MUSCLES, MUSCLES_ALL } from './data.js';
+import { EXERCISES_DB, COACHES_DATA, LEGENDS_DATA, FAMOUS_WODS, SHUFFLE_PLANS, MUSCLES, MUSCLES_ALL } from './data.js';
 import {
   EQUIPMENT_TIERS,
   getProfile, saveProfile, getActiveProfile, resolveExercise,
@@ -1224,6 +1224,28 @@ function dedupeExercises(exercises) {
   });
 }
 
+function startCoachWorkout(coachId, workoutName) {
+  const coach   = COACHES_DATA.find(c => c.id === coachId);
+  const workout = coach.workouts.find(w => w.name === workoutName);
+  const isCF    = ['emom', 'amrap', 'rounds', 'fortime'].includes(workout.type);
+
+  if (isCF) {
+    beginCFWorkout(workout.name, workout);
+  } else {
+    // Strength fallback (if we ever add strength workouts to coaches)
+    const profile = getActiveProfile();
+    const exercises = dedupeExercises(workout.exercises.map(e => {
+      const resolved = resolveExercise(e.name, profile);
+      return {
+        name: resolved.name,
+        originalName: resolved.reason !== 'none' ? resolved.original : null,
+        sets: e.sets, reps: String(e.reps), rest: e.rest || 90,
+        logs: Array.from({ length: e.sets }, () => ({ weight: '', reps: '', done: false })),
+      };
+    }));
+    beginWorkout(workout.name, 'strength', exercises);
+  }
+}
 
 function beginCFWorkout(name, cfData) {
   newPRsThisSession = [];
@@ -3322,6 +3344,12 @@ fbSend.addEventListener('click', async () => {
     fbStatus.textContent = 'Something went wrong — try again';
     fbStatus.className = 'fb-status err';
   }
+});
+
+// ─── COACHES NOTIFY ───────────────────────────────────────────────────────────
+document.getElementById('btn-coaches-notify')?.addEventListener('click', function () {
+  // Open email to coach intake address
+  window.location.href = 'mailto:gabe@kilostraining.app?subject=Coach%20Inquiry&body=Hi%20Gabe%2C%20I%27m%20interested%20in%20being%20featured%20on%20KILOS.';
 });
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
