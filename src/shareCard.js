@@ -11,7 +11,8 @@ const PAD = 36;
 // ─── GRAIN ───────────────────────────────────────────────────────────────────
 function addGrain(ctx, opacity = 0.18) {
   const off = document.createElement('canvas');
-  off.width = W; off.height = H;
+  off.width = W;
+  off.height = H;
   const octx = off.getContext('2d');
   const img = octx.createImageData(W, H);
   const d = img.data;
@@ -43,12 +44,19 @@ function drawBackground(ctx, mode, bgImage) {
     ctx.fillStyle = '#111111';
     ctx.fillRect(0, 0, W, H);
     // Subtle top-right glow
-    const glow = ctx.createRadialGradient(W * 0.85, H * 0.08, 0, W * 0.85, H * 0.08, W * 0.65);
+    const glow = ctx.createRadialGradient(
+      W * 0.85,
+      H * 0.08,
+      0,
+      W * 0.85,
+      H * 0.08,
+      W * 0.65,
+    );
     glow.addColorStop(0, 'rgba(255,255,255,0.04)');
     glow.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, W, H);
-    addGrain(ctx, 0.20);
+    addGrain(ctx, 0.2);
   }
 }
 
@@ -77,19 +85,33 @@ function fitText(ctx, text, maxWidth, maxSize, fontStr) {
   return size;
 }
 
-function rule(ctx, y, alpha = 0.10) {
+function rule(ctx, y, alpha = 0.1) {
   ctx.fillStyle = `rgba(255,255,255,${alpha})`;
   ctx.fillRect(PAD, y, W - PAD * 2, 1);
 }
 
 // ─── MAIN RENDERER ───────────────────────────────────────────────────────────
-export async function renderShareCard(canvas, data, mode = 'dark', bgImage = null) {
+export async function renderShareCard(
+  canvas,
+  data,
+  mode = 'dark',
+  bgImage = null,
+) {
   await document.fonts.ready;
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  const { workoutName, date, duration, heroStr, heroLabel, heroSub, sets, exercises, isCF } = data;
+  const {
+    workoutName,
+    date,
+    duration,
+    heroStr,
+    heroLabel,
+    heroSub,
+    sets,
+    exercises,
+  } = data;
 
   // ── Background + K ──
   drawBackground(ctx, mode, bgImage);
@@ -137,7 +159,10 @@ export async function renderShareCard(canvas, data, mode = 'dark', bgImage = nul
   ctx.fillText(nameStr, PAD, 400);
 
   // Show duration top-right unless the hero IS the time (for time / RFT)
-  const heroIsTime = heroLabel === 'FOR TIME' || heroLabel.includes('ROUNDS FOR TIME') || heroLabel === 'DURATION';
+  const heroIsTime =
+    heroLabel === 'FOR TIME' ||
+    heroLabel.includes('ROUNDS FOR TIME') ||
+    heroLabel === 'DURATION';
   if (!heroIsTime && duration && duration !== '—') {
     ctx.fillStyle = 'rgba(255,255,255,0.50)';
     ctx.font = `50px 'Bebas Neue', sans-serif`;
@@ -183,7 +208,8 @@ export async function renderShareCard(canvas, data, mode = 'dark', bgImage = nul
     ctx.font = `10px 'Space Mono', monospace`;
     ctx.textAlign = 'left';
     let name = ex.name.toUpperCase();
-    while (ctx.measureText(name).width > 290 && name.length > 4) name = name.slice(0, -1);
+    while (ctx.measureText(name).width > 290 && name.length > 4)
+      name = name.slice(0, -1);
     if (name !== ex.name.toUpperCase()) name += '—';
     ctx.fillText(name, PAD, y);
 
@@ -196,7 +222,7 @@ export async function renderShareCard(canvas, data, mode = 'dark', bgImage = nul
   });
 
   // ── Footer ──
-  rule(ctx, H - 58, 0.10);
+  rule(ctx, H - 58, 0.1);
 
   ctx.fillStyle = 'rgba(255,255,255,0.20)';
   ctx.font = `8px 'Space Mono', monospace`;
@@ -214,82 +240,107 @@ export async function renderShareCard(canvas, data, mode = 'dark', bgImage = nul
 }
 
 // ─── BUILD SHARE DATA ────────────────────────────────────────────────────────
-export function buildShareData({ workout, totalWeightMoved, sessionSets, newPRsThisSession, cfRoundsCompleted, cfCurrentRound, duration }) {
-  const type    = workout?.type || 'strength';
-  const isCF    = ['emom', 'amrap', 'rounds', 'fortime'].includes(type);
+export function buildShareData({
+  workout,
+  totalWeightMoved,
+  sessionSets,
+  cfRoundsCompleted,
+  duration,
+}) {
+  const type = workout?.type || 'strength';
+  const isCF = ['emom', 'amrap', 'rounds', 'fortime'].includes(type);
   const isCardio = type === 'cardio';
-  const cf      = workout?.cf || {};
+  const cf = workout?.cf || {};
 
   // ── Hero number + label — changes per workout type ──
   let heroStr, heroLabel, heroSub;
 
   if (type === 'amrap') {
-    heroStr   = String(cfRoundsCompleted || 0);
+    heroStr = String(cfRoundsCompleted || 0);
     heroLabel = 'ROUNDS';
-    heroSub   = `AMRAP ${cf.timeCap || '—'} MIN`;
+    heroSub = `AMRAP ${cf.timeCap || '—'} MIN`;
   } else if (type === 'fortime') {
-    heroStr   = duration || '—';
+    heroStr = duration || '—';
     heroLabel = 'FOR TIME';
-    heroSub   = null;
+    heroSub = null;
   } else if (type === 'emom') {
     const total = cf.rounds || cf.timeCap || '—';
-    heroStr   = `${cfRoundsCompleted || 0}/${total}`;
+    heroStr = `${cfRoundsCompleted || 0}/${total}`;
     heroLabel = 'INTERVALS';
-    heroSub   = `EMOM`;
+    heroSub = `EMOM`;
   } else if (type === 'rounds') {
-    heroStr   = duration || '—';
+    heroStr = duration || '—';
     heroLabel = `${cf.rounds || '—'} ROUNDS FOR TIME`;
-    heroSub   = null;
+    heroSub = null;
   } else if (totalWeightMoved > 0) {
     // Strength — check for Olympic lifts (single heavy sets)
-    const olympicNames = ['snatch', 'clean', 'jerk', 'clean and jerk', 'clean & jerk'];
-    const isOlympic = (workout?.exercises || []).some(e =>
-      olympicNames.some(o => e.name.toLowerCase().includes(o))
+    const olympicNames = [
+      'snatch',
+      'clean',
+      'jerk',
+      'clean and jerk',
+      'clean & jerk',
+    ];
+    const isOlympic = (workout?.exercises || []).some((e) =>
+      olympicNames.some((o) => e.name.toLowerCase().includes(o)),
     );
     if (isOlympic) {
       // Hero = best single lift weight across all exercises
       const bestWeight = (workout?.exercises || []).reduce((max, e) => {
-        const top = (e.logs || []).filter(l => l.done)
+        const top = (e.logs || [])
+          .filter((l) => l.done)
           .reduce((m, l) => Math.max(m, parseFloat(l.weight) || 0), 0);
         return Math.max(max, top);
       }, 0);
-      heroStr   = bestWeight > 0 ? String(bestWeight) : Math.round(totalWeightMoved).toLocaleString();
+      heroStr =
+        bestWeight > 0
+          ? String(bestWeight)
+          : Math.round(totalWeightMoved).toLocaleString();
       heroLabel = bestWeight > 0 ? 'KG · BEST LIFT' : 'KG TOTAL';
-      heroSub   = null;
+      heroSub = null;
     } else {
-      heroStr   = Math.round(totalWeightMoved).toLocaleString();
+      heroStr = Math.round(totalWeightMoved).toLocaleString();
       heroLabel = 'KG TOTAL';
-      heroSub   = null;
+      heroSub = null;
     }
   } else {
-    heroStr   = duration || '—';
+    heroStr = duration || '—';
     heroLabel = 'DURATION';
-    heroSub   = null;
+    heroSub = null;
   }
 
   // ── Movement list ──
   const exercises = isCF
-    ? (cf.movements || []).slice(0, 6).map(m => ({
+    ? (cf.movements || []).slice(0, 6).map((m) => ({
         name: m.name,
         stat: m.reps ? `${m.reps} REPS` : '—',
       }))
     : isCardio
-    ? []
-    : (workout?.exercises || [])
-        .filter(e => e.logs?.some(l => l.done))
-        .slice(0, 6)
-        .map(e => {
-          const done = e.logs.filter(l => l.done);
-          const bestReps = done.reduce((max, l) => Math.max(max, parseInt(l.reps) || 0), 0);
-          return {
-            name: e.name,
-            stat: bestReps ? `${done.length}×${bestReps}` : `${done.length} SETS`,
-          };
-        });
+      ? []
+      : (workout?.exercises || [])
+          .filter((e) => e.logs?.some((l) => l.done))
+          .slice(0, 6)
+          .map((e) => {
+            const done = e.logs.filter((l) => l.done);
+            const bestReps = done.reduce(
+              (max, l) => Math.max(max, parseInt(l.reps, 10) || 0),
+              0,
+            );
+            return {
+              name: e.name,
+              stat: bestReps
+                ? `${done.length}×${bestReps}`
+                : `${done.length} SETS`,
+            };
+          });
 
   return {
     workoutName: workout?.name || 'WORKOUT',
-    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    date: new Date().toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }),
     duration: duration || '—',
     heroStr,
     heroLabel,
