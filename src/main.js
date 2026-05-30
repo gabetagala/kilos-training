@@ -15,7 +15,7 @@ import {
 } from './personalization.js';
 import { buildShareData, renderShareCard } from './shareCard.js';
 import { suggestNextWeight } from './workout/progression.js';
-import { currentStreak } from './workout/streak.js';
+import { currentStreak, longestStreak } from './workout/streak.js';
 import {
   getSession,
   hasPendingSync,
@@ -474,9 +474,22 @@ function renderWeekStrip() {
 }
 
 function updateStreak() {
-  const streak = currentStreak(get('workoutHistory') || []);
+  const history = get('workoutHistory') || [];
+  const streak = currentStreak(history);
+  // High-water mark: persist so a record survives history pruning and the
+  // 90-day look-back cap once it's been earned.
+  const best = Math.max(get('bestStreak') || 0, longestStreak(history));
+  set('bestStreak', best);
+
   const chip = document.getElementById('streak-count');
-  chip.textContent = `${streak} day streak`;
+  if (streak > 0) {
+    chip.textContent =
+      best > streak ? `${streak} day streak · best ${best}` : `${streak} day streak`;
+  } else if (best > 0) {
+    chip.textContent = `Best ${best} · go again`; // loss-aversion nudge
+  } else {
+    chip.textContent = '0 day streak';
+  }
   chip.className = `streak-chip${streak >= 7 ? ' hot' : streak >= 3 ? ' warm' : ''}`;
 }
 

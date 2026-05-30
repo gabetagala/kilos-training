@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { currentStreak } from '../../src/workout/streak.js';
+import { currentStreak, longestStreak } from '../../src/workout/streak.js';
 
 // Fixed "now" so tests are deterministic. May 31 2026, local midnight.
 const NOW = new Date(2026, 4, 31);
@@ -44,5 +44,20 @@ describe('currentStreak', () => {
     // misses are absorbed → 12 trained days counted.
     const offsets = [0, 1, 2, 4, 5, 6, 7, 8, 9, 11, 12, 13];
     expect(currentStreak(hist(...offsets), NOW)).toBe(12);
+  });
+});
+
+describe('longestStreak', () => {
+  it('is 0 with no history', () => {
+    expect(longestStreak([])).toBe(0);
+  });
+
+  it('finds a past run longer than the current streak', () => {
+    // current streak is just today (1); a 4-day run sits 10–13 days back
+    expect(longestStreak(hist(0, 10, 11, 12, 13))).toBe(4);
+  });
+
+  it('equals the current streak when the best run is ongoing', () => {
+    expect(longestStreak(hist(0, 1, 2, 4, 5, 6, 7, 8, 9, 11, 12, 13))).toBe(12);
   });
 });

@@ -46,3 +46,17 @@ export function currentStreak(history, now = new Date()) {
   }
   return streak;
 }
+
+// Longest streak ever, applying the same grace rule. The longest trailing run
+// always *ends* on a trained day, so we take the max of currentStreak() over
+// every trained day. (Bounded by currentStreak's 90-day look-back per day.)
+export function longestStreak(history) {
+  const days = trainedDaySet(history);
+  if (!days.size) return 0;
+  let max = 0;
+  for (const ts of days) {
+    const s = currentStreak(history, new Date(ts));
+    if (s > max) max = s;
+  }
+  return max;
+}
