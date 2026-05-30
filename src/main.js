@@ -14,6 +14,8 @@ import {
   saveProfile,
 } from './personalization.js';
 import { buildShareData, renderShareCard } from './shareCard.js';
+import { suggestNextWeight } from './workout/progression.js';
+import { currentStreak } from './workout/streak.js';
 import {
   getSession,
   hasPendingSync,
@@ -322,23 +324,6 @@ document.getElementById('btn-close-plate').addEventListener('click', () => {
   document.getElementById('plate-modal').classList.remove('open');
 });
 
-// Suggest the next working weight based on the previous session.
-// If the lifter hit all target reps last time → add 2.5 kg.
-// If they fell short on any set → same weight, keep working.
-function suggestNextWeight(lastLogs, targetRepsStr) {
-  if (!lastLogs?.length) return null;
-  const weights = lastLogs
-    .map((l) => parseFloat(l.weight))
-    .filter((w) => w > 0);
-  if (!weights.length) return null;
-  const topW = Math.max(...weights);
-  const target = parseInt(targetRepsStr, 10) || 8;
-  const allMet = lastLogs.every(
-    (l) => !l.reps || parseInt(l.reps, 10) >= target,
-  );
-  return allMet ? Math.round((topW + 2.5) * 2) / 2 : topW;
-}
-
 // ─── PREVIOUS SESSION RECALL ──────────────────────────────────────────────────
 function getLastSession(exerciseName) {
   const history = get('workoutHistory') || [];
@@ -489,33 +474,7 @@ function renderWeekStrip() {
 }
 
 function updateStreak() {
-  const history = get('workoutHistory') || [];
-  let streak = 0;
-  let restDayUsed = false; // one grace miss allowed per week
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  for (let i = 0; i < 90; i++) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const found = history.find((h) => {
-      const hd = new Date(h.date);
-      hd.setHours(0, 0, 0, 0);
-      return hd.getTime() === d.getTime();
-    });
-    if (found) {
-      streak++;
-      // Reset grace once per 7 calendar days of actual training
-      if (streak % 7 === 0) restDayUsed = false;
-    } else if (i > 0) {
-      // Allow one grace miss before breaking the streak
-      if (!restDayUsed) {
-        restDayUsed = true;
-        // Still count it as a "rest day saved" — don't increment streak, just skip
-        continue;
-      }
-      break;
-    }
-  }
+  const streak = currentStreak(get('workoutHistory') || []);
   const chip = document.getElementById('streak-count');
   chip.textContent = `${streak} day streak`;
   chip.className = `streak-chip${streak >= 7 ? ' hot' : streak >= 3 ? ' warm' : ''}`;
