@@ -2112,18 +2112,77 @@ body {
 }
 
 .log-row {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  padding: 8px 0;
+  padding: 10px 0;
   border-bottom: 1px solid var(--line);
-  flex-wrap: wrap;
+}
+.log-row-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.log-row-top .log-done {
+  margin-left: auto;
+}
+.log-fields {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.log-stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.step-btn {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: none;
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    transform 0.1s;
+}
+.step-btn:active {
+  transform: scale(0.9);
+  background: rgba(255, 255, 255, 0.06);
+}
+.log-fields .log-input {
+  text-align: center;
+  flex: 1;
+  min-width: 0;
+}
+/* Hide native number spinners — the ± buttons are the control. */
+.log-input[type="number"]::-webkit-outer-spin-button,
+.log-input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+.log-input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.log-input.prefilled {
+  color: var(--grey);
 }
 .log-set-num {
   font-size: 10px;
   font-family: "Space Mono", monospace;
   color: var(--grey);
-  width: 16px;
+  letter-spacing: 0.1em;
   flex-shrink: 0;
 }
 .log-input {
@@ -2192,13 +2251,12 @@ body {
   transform: scale(1);
 }
 .log-prev {
-  width: 100%;
+  flex: 1;
   font-size: 9px;
   font-family: "Space Mono", monospace;
   color: var(--grey2);
-  padding-left: 26px;
-  margin-top: -4px;
   letter-spacing: 0.08em;
+  text-align: right;
 }
 
 /* Cardio active — children each own their 24px horizontal padding */

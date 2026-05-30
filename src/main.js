@@ -2278,16 +2278,28 @@ function renderSetLog() {
         const rValue = log.reps || (suggestion ? suggReps : '');
         const prefilled = !log.weight && suggestion ? ' prefilled' : '';
         return `<div class="log-row">
-      <span class="log-set-num">${i + 1}</span>
-      <input class="log-input${prefilled}" type="number" placeholder="${wPlaceholder}" value="${wValue}"
-        data-idx="${i}" data-field="weight" inputmode="decimal">
-      <span class="log-x">×</span>
-      <input class="log-input${prefilled}" type="text" placeholder="${rPlaceholder}" value="${rValue}"
-        data-idx="${i}" data-field="reps" inputmode="numeric" pattern="[0-9]*">
-      <div class="log-done${log.done ? ' checked' : ''}" data-idx="${i}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+      <div class="log-row-top">
+        <span class="log-set-num">SET ${i + 1}</span>
+        ${prevHint}
+        <div class="log-done${log.done ? ' checked' : ''}" data-idx="${i}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
       </div>
-      ${prevHint}
+      <div class="log-fields">
+        <div class="log-stepper">
+          <button type="button" class="step-btn" data-idx="${i}" data-field="weight" data-dir="-1" aria-label="minus 2.5 kg">−</button>
+          <input class="log-input${prefilled}" type="number" placeholder="${wPlaceholder}" value="${wValue}"
+            data-idx="${i}" data-field="weight" inputmode="decimal">
+          <button type="button" class="step-btn" data-idx="${i}" data-field="weight" data-dir="1" aria-label="plus 2.5 kg">+</button>
+        </div>
+        <span class="log-x">×</span>
+        <div class="log-stepper">
+          <button type="button" class="step-btn" data-idx="${i}" data-field="reps" data-dir="-1" aria-label="minus 1 rep">−</button>
+          <input class="log-input${prefilled}" type="text" placeholder="${rPlaceholder}" value="${rValue}"
+            data-idx="${i}" data-field="reps" inputmode="numeric" pattern="[0-9]*">
+          <button type="button" class="step-btn" data-idx="${i}" data-field="reps" data-dir="1" aria-label="plus 1 rep">+</button>
+        </div>
+      </div>
     </div>`;
       })
       .join('');
@@ -2312,6 +2324,36 @@ function renderSetLog() {
       toggleSetDone(parseInt(btn.dataset.idx, 10)),
     );
   });
+  rows.querySelectorAll('.step-btn').forEach((btn) => {
+    btn.addEventListener('click', () =>
+      stepField(
+        parseInt(btn.dataset.idx, 10),
+        btn.dataset.field,
+        parseInt(btn.dataset.dir, 10),
+      ),
+    );
+  });
+}
+
+// One-tap progression: step the shown value (weight ±2.5kg, reps ±1) and
+// commit it to the log. Stepping is an explicit edit, so it leaves the
+// pre-fill state. Re-renders to reflect the new value.
+function stepField(idx, field, dir) {
+  const ex = activeWorkout.exercises[currentExIdx];
+  const log = ex.logs[idx];
+  const el = document.querySelector(
+    `#set-log-rows .log-input[data-idx="${idx}"][data-field="${field}"]`,
+  );
+  const shown = parseFloat(el?.value) || 0;
+  if (field === 'weight') {
+    const kg = isLbs() ? fromDisplayWeight(shown) : shown;
+    log.weight = String(Math.max(0, Math.round((kg + dir * 2.5) * 2) / 2));
+  } else {
+    log.reps = String(Math.max(0, Math.round(shown) + dir));
+  }
+  if (navigator.vibrate) navigator.vibrate(20);
+  saveActiveState();
+  renderSetLog();
 }
 
 function toggleSetDone(setIdx) {
