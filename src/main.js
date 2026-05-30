@@ -258,6 +258,7 @@ document.getElementById('prc-share').addEventListener('click', () => {
       cfRoundsCompleted,
       cfCurrentRound,
       duration: dur,
+      streak: currentStreak(get('workoutHistory') || []),
     });
     currentShareMode = 'dark';
     currentShareBgImage = null;
@@ -2750,6 +2751,15 @@ function showWorkoutSummary(workout, duration, entry) {
   // Header
   document.getElementById('wsum-name').textContent = workout.name.toUpperCase();
 
+  // Streak — the reward moment. The finished session is already in history,
+  // so this reflects the extended chain.
+  const streak = currentStreak(get('workoutHistory') || []);
+  const eyebrowEl = document.getElementById('wsum-eyebrow');
+  if (eyebrowEl) {
+    eyebrowEl.textContent =
+      streak >= 2 ? `${streak} DAY STREAK` : 'SESSION COMPLETE';
+  }
+
   // PR badge
   const prBadgeEl = document.getElementById('wsum-pr-badge');
   if (newPRsThisSession.length) {
@@ -2850,6 +2860,7 @@ function showShareCard(workout, duration, _entry) {
     cfRoundsCompleted,
     cfCurrentRound,
     duration,
+    streak: currentStreak(get('workoutHistory') || []),
   });
   currentShareMode = 'dark';
   currentShareBgImage = null;

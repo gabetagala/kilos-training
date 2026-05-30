@@ -111,6 +111,7 @@ export async function renderShareCard(
     heroSub,
     sets,
     exercises,
+    streak,
   } = data;
 
   // ── Background + K ──
@@ -232,6 +233,13 @@ export async function renderShareCard(
   ctx.textAlign = 'right';
   ctx.fillText('#GRIT', W - PAD, H - 34);
 
+  // Streak — centered between the footer marks (only when there's a chain).
+  if (streak >= 2) {
+    ctx.fillStyle = 'rgba(255,255,255,0.32)';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${streak} DAY STREAK`, W / 2, H - 34);
+  }
+
   // Bottom rule
   ctx.fillStyle = 'rgba(255,255,255,0.12)';
   ctx.fillRect(0, H - 2, W, 2);
@@ -246,6 +254,7 @@ export function buildShareData({
   sessionSets,
   cfRoundsCompleted,
   duration,
+  streak = 0,
 }) {
   const type = workout?.type || 'strength';
   const isCF = ['emom', 'amrap', 'rounds', 'fortime'].includes(type);
@@ -348,5 +357,6 @@ export function buildShareData({
     sets: sessionSets || 0,
     exercises,
     isCF,
+    streak: streak || 0,
   };
 }
