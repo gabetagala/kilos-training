@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createClient } from '@supabase/supabase-js';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from './config.js';
 
 // Graceful degradation — app works fully without Supabase configured
 export const isConfigured =
@@ -17,16 +17,34 @@ export const supabase = isConfigured
   : null;
 
 // ─── localStorage helpers (mirrors main.js, kept local to avoid circular deps)
-const _get = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } };
-const _set = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+const _get = (k) => {
+  try {
+    return JSON.parse(localStorage.getItem(k) || 'null');
+  } catch {
+    return null;
+  }
+};
+const _set = (k, v) => {
+  try {
+    localStorage.setItem(k, JSON.stringify(v));
+  } catch {}
+};
 
-const SYNC_KEYS = ['workoutHistory', 'prMap', 'volPRMap', 'customWorkouts', 'userProfile'];
+const SYNC_KEYS = [
+  'workoutHistory',
+  'prMap',
+  'volPRMap',
+  'customWorkouts',
+  'userProfile',
+];
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 
 export async function getSession() {
   if (!supabase) return null;
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   return session;
 }
 
@@ -52,7 +70,8 @@ function usernameToEmail(username) {
 }
 
 export async function signUpWithPassword(displayName, username, password) {
-  if (!supabase) return { error: { message: 'Sync not configured — data saves locally.' } };
+  if (!supabase)
+    return { error: { message: 'Sync not configured — data saves locally.' } };
   const email = usernameToEmail(username);
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -63,9 +82,13 @@ export async function signUpWithPassword(displayName, username, password) {
 }
 
 export async function signInWithPassword(username, password) {
-  if (!supabase) return { error: { message: 'Sync not configured — data saves locally.' } };
+  if (!supabase)
+    return { error: { message: 'Sync not configured — data saves locally.' } };
   const email = usernameToEmail(username);
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
   return { data, error };
 }
 
@@ -80,10 +103,14 @@ const PENDING_SYNC_KEY = 'kilos-pending-sync';
 
 // Mark that a sync is needed (called optimistically — even if offline)
 function markPendingSync() {
-  try { localStorage.setItem(PENDING_SYNC_KEY, '1'); } catch {}
+  try {
+    localStorage.setItem(PENDING_SYNC_KEY, '1');
+  } catch {}
 }
 function clearPendingSync() {
-  try { localStorage.removeItem(PENDING_SYNC_KEY); } catch {}
+  try {
+    localStorage.removeItem(PENDING_SYNC_KEY);
+  } catch {}
 }
 export function hasPendingSync() {
   return localStorage.getItem(PENDING_SYNC_KEY) === '1';
@@ -101,7 +128,9 @@ export async function pushData() {
   markPendingSync();
 
   const data = {};
-  SYNC_KEYS.forEach(k => { data[k] = _get(k); });
+  SYNC_KEYS.forEach((k) => {
+    data[k] = _get(k);
+  });
   const { error } = await supabase.from('user_data').upsert({
     user_id: session.user.id,
     data,
@@ -138,11 +167,11 @@ export async function pullAndMerge() {
   const remote = row.data;
 
   // Workout history — union, dedupe by date+name, sort chronologically
-  const localHistory  = _get('workoutHistory') || [];
-  const remoteHistory = remote.workoutHistory  || [];
+  const localHistory = _get('workoutHistory') || [];
+  const remoteHistory = remote.workoutHistory || [];
   const seen = new Set();
   const mergedHistory = [...remoteHistory, ...localHistory]
-    .filter(h => {
+    .filter((h) => {
       const key = `${h.date}|${h.name}`;
       if (seen.has(key)) return false;
       seen.add(key);
@@ -152,8 +181,8 @@ export async function pullAndMerge() {
   _set('workoutHistory', mergedHistory);
 
   // PRs — take the highest weight recorded on either device
-  const localPR  = _get('prMap') || {};
-  const remotePR = remote.prMap  || {};
+  const localPR = _get('prMap') || {};
+  const remotePR = remote.prMap || {};
   const mergedPR = { ...remotePR };
   Object.entries(localPR).forEach(([ex, w]) => {
     mergedPR[ex] = Math.max(mergedPR[ex] || 0, w);
@@ -161,8 +190,8 @@ export async function pullAndMerge() {
   _set('prMap', mergedPR);
 
   // Volume PRs — same logic
-  const localVol  = _get('volPRMap') || {};
-  const remoteVol = remote.volPRMap  || {};
+  const localVol = _get('volPRMap') || {};
+  const remoteVol = remote.volPRMap || {};
   const mergedVol = { ...remoteVol };
   Object.entries(localVol).forEach(([ex, v]) => {
     mergedVol[ex] = Math.max(mergedVol[ex] || 0, v);
@@ -170,10 +199,13 @@ export async function pullAndMerge() {
   _set('volPRMap', mergedVol);
 
   // Custom workouts — union, dedupe by name (local wins on name conflict)
-  const localCW  = _get('customWorkouts') || [];
-  const remoteCW = remote.customWorkouts  || [];
-  const localNames = new Set(localCW.map(w => w.name));
-  const mergedCW = [...localCW, ...remoteCW.filter(w => !localNames.has(w.name))];
+  const localCW = _get('customWorkouts') || [];
+  const remoteCW = remote.customWorkouts || [];
+  const localNames = new Set(localCW.map((w) => w.name));
+  const mergedCW = [
+    ...localCW,
+    ...remoteCW.filter((w) => !localNames.has(w.name)),
+  ];
   _set('customWorkouts', mergedCW);
 
   // Profile — keep local unless there's nothing local

@@ -11,10 +11,10 @@ node_modules
 dist
 dist-ssr
 
-# Environment — never commit real credentials
+# Environment — never commit real credentials (keep the template)
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # Editor directories and files
 .vscode/*
@@ -27,7 +27,24 @@ dist-ssr
 *.sln
 *.sw?
 
-# Claude Code project files
-.claude
+# Claude Code project files — share workflow commands + project settings,
+# ignore personal/local settings, skills, agents, and MCP config.
+.claude/*
+!.claude/commands/
+!.claude/settings.json
 .vercel
-.env*
+
+# Test + build artifacts
+test-results/
+playwright-report/
+playwright/.cache/
+coverage/
+
+# Scratch + local agent/MCP tooling — never commit
+.scratch/
+.agents/
+.mcp.json
+.playwright-mcp/
+
+# Stray root screenshots (real icons live in public/, not the repo root)
+/*.png

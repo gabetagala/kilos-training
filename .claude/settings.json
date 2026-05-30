@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)",
+      "Bash(git show:*)",
+      "Bash(git remote:*)",
+      "Bash(git config --get:*)",
+      "Bash(git stash list:*)",
+      "Bash(ls:*)",
+      "Bash(pwd)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(node --version)",
+      "Bash(npm --version)",
+      "Bash(npm ls:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run preview:*)",
+      "Bash(npx vite build:*)",
+      "Bash(gh repo view:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr diff:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh auth status:*)"
+    ]
+  }
+}
