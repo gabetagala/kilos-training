@@ -7,9 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "biome lint src",
+    "lint": "biome lint --error-on-warnings src",
     "format": "biome format --write src",
-    "check": "biome check src"
+    "check": "biome check --error-on-warnings src",
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",
