@@ -27,7 +27,10 @@ dist-ssr
 *.sln
 *.sw?
 
-# Claude Code project files
-.claude
+# Claude Code project files — share workflow commands + project settings,
+# ignore personal/local settings, skills, agents, and MCP config.
+.claude/*
+!.claude/commands/
+!.claude/settings.json
 .vercel
 .env*
