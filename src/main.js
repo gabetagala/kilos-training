@@ -2270,12 +2270,19 @@ function renderSetLog() {
           ? `<span class="log-prev">Last: ${dispPrevW}${unit} × ${prev.reps}</span>`
           : '';
         const dispLogW = log.weight ? toDisplayWeight(log.weight) : '';
+        // Pre-fill the suggested set when there's a prior session to beat, so a
+        // single tap on done logs it. Untouched pre-fills are captured on done
+        // (toggleSetDone) — never written to data until then, so unperformed
+        // sets stay out of history.
+        const wValue = dispLogW || (suggestion ? dispSugg : '');
+        const rValue = log.reps || (suggestion ? suggReps : '');
+        const prefilled = !log.weight && suggestion ? ' prefilled' : '';
         return `<div class="log-row">
       <span class="log-set-num">${i + 1}</span>
-      <input class="log-input" type="number" placeholder="${wPlaceholder}" value="${dispLogW}"
+      <input class="log-input${prefilled}" type="number" placeholder="${wPlaceholder}" value="${wValue}"
         data-idx="${i}" data-field="weight" inputmode="decimal">
       <span class="log-x">×</span>
-      <input class="log-input" type="text" placeholder="${rPlaceholder}" value="${log.reps}"
+      <input class="log-input${prefilled}" type="text" placeholder="${rPlaceholder}" value="${rValue}"
         data-idx="${i}" data-field="reps" inputmode="numeric" pattern="[0-9]*">
       <div class="log-done${log.done ? ' checked' : ''}" data-idx="${i}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
@@ -2287,6 +2294,7 @@ function renderSetLog() {
 
   rows.querySelectorAll('.log-input').forEach((input) => {
     input.addEventListener('input', () => {
+      input.classList.remove('prefilled'); // typed = committed, no longer a suggestion
       const idx = parseInt(input.dataset.idx, 10);
       const field = input.dataset.field;
       // Convert lbs back to kg for storage
@@ -2309,6 +2317,20 @@ function renderSetLog() {
 function toggleSetDone(setIdx) {
   const ex = activeWorkout.exercises[currentExIdx];
   const log = ex.logs[setIdx];
+
+  // Marking a set done: if the lifter accepted the pre-filled suggestion
+  // without touching the inputs, the log data is still empty — capture what's
+  // displayed now so the set is logged with the suggested numbers.
+  if (!log.done) {
+    const base = `#set-log-rows .log-input[data-idx="${setIdx}"]`;
+    const wEl = document.querySelector(`${base}[data-field="weight"]`);
+    const rEl = document.querySelector(`${base}[data-field="reps"]`);
+    if (!log.weight && wEl?.value) {
+      log.weight = isLbs() ? String(fromDisplayWeight(wEl.value)) : wEl.value;
+    }
+    if (!log.reps && rEl?.value) log.reps = rEl.value;
+  }
+
   log.done = !log.done;
 
   if (log.done) {
