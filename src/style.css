@@ -5739,6 +5739,49 @@ body {
   color: #e57373;
 }
 
+/* ── Boot crash screen — shown only if the app fails to start ── */
+#kilos-crash {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: var(--bg, #222);
+  color: var(--text, #ebebeb);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  text-align: center;
+}
+#kilos-crash .kc-inner {
+  max-width: 320px;
+}
+#kilos-crash .kc-title {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 40px;
+  letter-spacing: 0.02em;
+  margin-bottom: 12px;
+}
+#kilos-crash .kc-body {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text2, #8f8f8f);
+  margin-bottom: 24px;
+}
+#kilos-crash .kc-reload {
+  min-height: 48px;
+  padding: 0 28px;
+  background: var(--accent, #fff);
+  color: #111;
+  border: none;
+  border-radius: var(--r-pill, 999px);
+  font-family: "Space Mono", monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
 /* ══════════════════════════════════════════
    DESKTOP OVERRIDES (must come last)
 ══════════════════════════════════════════ */

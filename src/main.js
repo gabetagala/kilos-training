@@ -13,6 +13,7 @@ import {
   resolveExercise,
   saveProfile,
 } from './personalization.js';
+import { initMonitoring, reportError } from './monitoring.js';
 import { buildShareData, renderShareCard } from './shareCard.js';
 import { estimate1RM, suggestNextWeight } from './workout/progression.js';
 import { currentStreak, longestStreak } from './workout/streak.js';
@@ -3837,15 +3838,51 @@ document.getElementById('btn-coaches-notify')?.addEventListener('click', () => {
 });
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
-// Restore in-progress workout from localStorage (task #1)
-if (loadActiveState()) {
-  renderHome(); // update Resume button + streak
-  renderActiveScreen(); // rebuild active workout UI
-  restoreTimer(); // resume the rest/work countdown, fast-forwarded by elapsed time
+// Error monitoring first, so anything below is observable (no-op without a DSN).
+initMonitoring();
+
+// Global safety net: report uncaught errors. We do NOT take over the screen for
+// these — a non-fatal error must never hide a working, mid-workout session.
+window.addEventListener('error', (e) => reportError(e.error || e.message));
+window.addEventListener('unhandledrejection', (e) => reportError(e.reason));
+
+// A friendly, reassuring crash screen — shown ONLY if the app fails to boot.
+// Because writes are localStorage-first, the user's last session is safe, so
+// the message leads with that and offers a one-tap reload.
+function showCrashScreen(err) {
+  reportError(err, { phase: 'boot' });
+  if (document.getElementById('kilos-crash')) return;
+  const el = document.createElement('div');
+  el.id = 'kilos-crash';
+  el.setAttribute('role', 'alert');
+  el.innerHTML = `
+    <div class="kc-inner">
+      <div class="kc-title">SOMETHING BROKE.</div>
+      <p class="kc-body">Your last workout is saved on this device — nothing was
+        lost. Reload to pick up where you left off.</p>
+      <button class="kc-reload" id="kc-reload">Reload</button>
+    </div>`;
+  document.body.appendChild(el);
+  document
+    .getElementById('kc-reload')
+    .addEventListener('click', () => window.location.reload());
 }
-renderHome();
-renderCoaches();
-renderProfileBtn();
+
+// Restore in-progress workout from localStorage (task #1). Wrapped so a boot
+// failure shows the recovery screen instead of a blank/half-rendered app.
+try {
+  if (loadActiveState()) {
+    renderHome(); // update Resume button + streak
+    renderActiveScreen(); // rebuild active workout UI
+    restoreTimer(); // resume the rest/work countdown, fast-forwarded by elapsed time
+  }
+  renderHome();
+  renderCoaches();
+  renderProfileBtn();
+} catch (err) {
+  showCrashScreen(err);
+  throw err; // still surface it to monitoring / console
+}
 
 // Active placeholder → go home
 document
