@@ -1078,6 +1078,21 @@ body {
   color: var(--grey);
   margin-bottom: 12px;
 }
+/* "Coming soon" eyebrow — signals these tabs are intentional, not broken.
+   Sits on the cream hero band, so it's dark-on-cream. */
+.cs-eyebrow {
+  display: inline-block;
+  font-family: "Space Mono", monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: var(--r-pill, 999px);
+  padding: 5px 11px;
+  margin-bottom: 14px;
+}
 .cs-title {
   font-family: "Bebas Neue", sans-serif;
   font-size: clamp(42px, 13vw, 56px); /* unified screen-title size (DESIGN.md) */

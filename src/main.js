@@ -3817,14 +3817,24 @@ const fbCount = document.getElementById('fb-count');
 const fbStatus = document.getElementById('fb-status');
 const fbSend = document.getElementById('fb-send');
 
-document.getElementById('feedback-btn').addEventListener('click', () => {
-  fbTextarea.value = '';
-  fbCount.textContent = '0';
+function openFeedback(prefill = '') {
+  fbTextarea.value = prefill;
+  fbCount.textContent = String(prefill.length);
   fbStatus.textContent = '';
   fbStatus.className = 'fb-status';
   fbOverlay.classList.add('open');
   setTimeout(() => fbTextarea.focus(), 280);
-});
+}
+
+document
+  .getElementById('feedback-btn')
+  .addEventListener('click', () => openFeedback());
+
+// Nutrition "Want this sooner?" — routes interest into the feedback channel so
+// the coming-soon tab is an intentional signal, not a dead end.
+document
+  .getElementById('btn-nutrition-notify')
+  ?.addEventListener('click', () => openFeedback('I want nutrition tracking — '));
 
 document.getElementById('fb-close').addEventListener('click', () => {
   fbOverlay.classList.remove('open');
