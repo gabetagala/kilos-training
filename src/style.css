@@ -1258,9 +1258,14 @@ body {
 #build {
   padding: 0 24px 100px;
 }
+/* Light identity band — the two-tone system: light hero on top, dark content
+   below (matches .home-hero / .screen-hero). Shared by Build + Train. */
 .build-header {
-  padding: max(28px, env(safe-area-inset-top)) 0 28px;
-  border-bottom: none;
+  margin: 0 -24px;
+  padding: max(28px, env(safe-area-inset-top)) 24px 24px;
+  background: var(--off);
+  color: var(--bg);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   margin-bottom: 0;
 }
 .build-header-row {
@@ -1274,12 +1279,12 @@ body {
   letter-spacing: 0.04em;
   line-height: 1;
   text-transform: uppercase;
-  color: var(--text);
+  color: var(--bg); /* dark on the light hero band */
 }
 .build-header p {
   font-size: 9px;
   font-family: "Space Mono", monospace;
-  color: var(--grey);
+  color: rgba(0, 0, 0, 0.5); /* dark on the light hero band */
   margin-top: 10px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -1287,14 +1292,14 @@ body {
 .build-save {
   background: none;
   border: none;
-  color: var(--white);
+  color: var(--bg); /* dark on the light hero band */
   font-size: 13px;
   font-weight: 500;
   font-style: normal;
   cursor: pointer;
   font-family: var(--font-body);
   padding: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.35);
 }
 
 .build-mode-toggle {
