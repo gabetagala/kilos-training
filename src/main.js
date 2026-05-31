@@ -63,6 +63,14 @@ function saveActiveState() {
     cfRoundsCompleted,
     cfRoundLog,
     cfMovementsDone: [...cfMovementsDone],
+    // Rest/work timer snapshot — so a mid-rest refresh restores the live
+    // countdown (fast-forwarded by real elapsed time), not just the workout.
+    timerRunning,
+    timerPhase,
+    timerTotal,
+    timerSeconds,
+    cardioElapsed,
+    timerSavedAt: Date.now(),
   });
 }
 
@@ -79,6 +87,19 @@ function loadActiveState() {
   cfRoundsCompleted = s.cfRoundsCompleted || 0;
   cfRoundLog = s.cfRoundLog || [];
   cfMovementsDone = new Set(s.cfMovementsDone || []);
+  // Stash the timer snapshot; restoreTimer() replays it once the active
+  // screen has rendered (it needs the #ring-time DOM to exist).
+  _pendingTimer =
+    s.timerRunning || s.timerTotal > 0 || s.cardioElapsed > 0
+      ? {
+          running: !!s.timerRunning,
+          phase: s.timerPhase || 'work',
+          total: s.timerTotal || 0,
+          seconds: s.timerSeconds || 0,
+          cardioElapsed: s.cardioElapsed || 0,
+          savedAt: s.timerSavedAt || Date.now(),
+        }
+      : null;
   return true;
 }
 
@@ -91,6 +112,7 @@ let timerSeconds = 0;
 let timerTotal = 0;
 let timerPhase = 'work';
 let timerRunning = false;
+let _pendingTimer = null; // timer snapshot from a restored session (see restoreTimer)
 let workoutStartTime = null;
 let totalWeightMoved = 0;
 let sessionSets = 0;
@@ -2550,6 +2572,7 @@ function startTimer(seconds, phase) {
         setTimerBar(spin < 0.5 ? spin * 2 : 2 - spin * 2, false);
       }
     }, 1000);
+    saveActiveState();
     return;
   }
 
@@ -2615,12 +2638,74 @@ function startTimer(seconds, phase) {
       setTimerBar(1, false);
     }
   }, 1000);
+  saveActiveState();
 }
 
 function stopTimer() {
   clearInterval(timerInterval);
   timerRunning = false;
   showPlayBtn();
+  // Persist the frozen state so a refresh-while-paused restores the remaining
+  // time exactly (no fast-forward), not a stale running snapshot.
+  saveActiveState();
+}
+
+// Replay a restored timer snapshot after the active screen has rendered.
+// A running countdown is fast-forwarded by the real wall-clock time elapsed
+// since it was saved (setInterval doesn't run while the tab is closed).
+function restoreTimer() {
+  const t = _pendingTimer;
+  _pendingTimer = null;
+  if (!t || !document.getElementById('ring-time')) return;
+
+  // Count-up (cardio / stopwatch): resume from elapsed + time away.
+  if (t.phase === 'cardio' || t.phase === 'stopwatch') {
+    if (!t.running) return;
+    const away = Math.max(0, Math.round((Date.now() - t.savedAt) / 1000));
+    startTimer(0, t.phase);
+    cardioElapsed = t.cardioElapsed + away;
+    setTimerText(
+      fmtTimeBig(cardioElapsed),
+      t.phase === 'stopwatch' ? 'ELAPSED' : 'ACTIVE',
+    );
+    return;
+  }
+
+  // Countdown (work / rest / emom / amrap).
+  let remaining = t.seconds;
+  if (t.running) {
+    const away = Math.max(0, Math.round((Date.now() - t.savedAt) / 1000));
+    remaining = Math.max(0, t.seconds - away);
+  }
+  timerPhase = t.phase;
+  timerTotal = t.total;
+  timerSeconds = remaining;
+
+  if (remaining <= 0) {
+    // Expired while away (or finished): show the completed state.
+    stopTimer();
+    setTimerText(
+      t.phase === 'rest' ? 'GO' : 'DONE',
+      t.phase === 'rest' ? 'REST OVER' : 'SET DONE',
+    );
+    const el = document.getElementById('ring-time');
+    el.classList.remove('tick');
+    el.classList.add('go-text');
+    setTimerStyle('work');
+    setTimerBar(1, false);
+  } else if (t.running) {
+    // Resume the live countdown from where it really is, but keep the original
+    // total so the progress ring fills correctly (startTimer resets total).
+    startTimer(remaining, t.phase);
+    timerTotal = t.total;
+    setTimerBar(t.total > 0 ? remaining / t.total : 0, t.phase === 'rest');
+  } else {
+    // Paused with time left: show the frozen remaining.
+    setTimerText(fmtTimeBig(remaining), t.phase.toUpperCase());
+    setTimerBar(t.total > 0 ? remaining / t.total : 0, t.phase === 'rest');
+    setTimerStyle(t.phase);
+    showPlayBtn();
+  }
 }
 
 function toggleTimer() {
@@ -3743,6 +3828,7 @@ document.getElementById('btn-coaches-notify')?.addEventListener('click', () => {
 if (loadActiveState()) {
   renderHome(); // update Resume button + streak
   renderActiveScreen(); // rebuild active workout UI
+  restoreTimer(); // resume the rest/work countdown, fast-forwarded by elapsed time
 }
 renderHome();
 renderCoaches();
