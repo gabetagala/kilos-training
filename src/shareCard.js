@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// GRIT — shareCard.js  (editorial redesign)
+// KILOS — shareCard.js  (editorial redesign)
 // Left-aligned asymmetric layout. KG is the hero. Movements are the grid.
 // Geometric K watermark behind everything.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -127,7 +127,7 @@ export async function renderShareCard(
   ctx.font = `16px 'Bebas Neue', sans-serif`;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillText('GRIT TRAINING', PAD, 54);
+  ctx.fillText('KILOS TRAINING', PAD, 54);
 
   ctx.fillStyle = 'rgba(255,255,255,0.32)';
   ctx.font = `9px 'Space Mono', monospace`;
@@ -228,10 +228,10 @@ export async function renderShareCard(
   ctx.fillStyle = 'rgba(255,255,255,0.20)';
   ctx.font = `8px 'Space Mono', monospace`;
   ctx.textAlign = 'left';
-  ctx.fillText('GRITTRAINING.APP', PAD, H - 34);
+  ctx.fillText('KILOSTRAINING.APP', PAD, H - 34);
 
   ctx.textAlign = 'right';
-  ctx.fillText('#GRIT', W - PAD, H - 34);
+  ctx.fillText('#KILOS', W - PAD, H - 34);
 
   // Streak — centered between the footer marks (only when there's a chain).
   if (streak >= 2) {

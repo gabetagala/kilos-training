@@ -2961,13 +2961,13 @@ document.getElementById('btn-close-share').addEventListener('click', () => {
 async function shareWorkoutImage(canvas, workoutName) {
   return new Promise((resolve) => {
     canvas.toBlob(async (blob) => {
-      const file = new File([blob], 'grit-workout.png', { type: 'image/png' });
+      const file = new File([blob], 'kilos-workout.png', { type: 'image/png' });
       if (navigator.canShare?.({ files: [file] })) {
         try {
           await navigator.share({
             files: [file],
-            title: 'GRIT TRAINING',
-            text: `${workoutName} · #grittraining`,
+            title: 'KILOS TRAINING',
+            text: `${workoutName} · #kilostraining`,
           });
         } catch (e) {
           if (e.name !== 'AbortError') _downloadCanvas(canvas);
@@ -2983,7 +2983,7 @@ async function shareWorkoutImage(canvas, workoutName) {
 
 function _downloadCanvas(canvas) {
   const a = document.createElement('a');
-  a.download = 'grit-workout.png';
+  a.download = 'kilos-workout.png';
   a.href = canvas.toDataURL('image/png');
   a.click();
 }
@@ -3237,7 +3237,7 @@ document.getElementById('btn-export').addEventListener('click', () => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `grit-history-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = `kilos-history-${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 });
@@ -3262,7 +3262,7 @@ document.getElementById('import-file')?.addEventListener('change', (e) => {
     try {
       const data = JSON.parse(ev.target.result);
       if (!data.version || !data.exported)
-        throw new Error('Not a GRIT TRAINING backup');
+        throw new Error('Not a KILOS TRAINING backup');
       BACKUP_KEYS.forEach((k) => {
         if (data[k] != null) set(k, data[k]);
       });
@@ -3683,7 +3683,7 @@ fbSend.addEventListener('click', async () => {
         body: JSON.stringify({
           name: getUserName() || 'Anonymous',
           message: msg,
-          _subject: `GRIT Beta Feedback · ${new Date().toLocaleDateString()}`,
+          _subject: `KILOS Beta Feedback · ${new Date().toLocaleDateString()}`,
         }),
       });
       ok = res.ok;
@@ -3713,7 +3713,7 @@ fbSend.addEventListener('click', async () => {
 document.getElementById('btn-coaches-notify')?.addEventListener('click', () => {
   // Open email to coach intake address
   window.location.href =
-    'mailto:gabe@grittraining.app?subject=Coach%20Inquiry&body=Hi%20Gabe%2C%20I%27m%20interested%20in%20being%20featured%20on%20GRIT.';
+    'mailto:gabe@kilostraining.app?subject=Coach%20Inquiry&body=Hi%20Gabe%2C%20I%27m%20interested%20in%20being%20featured%20on%20KILOS.';
 });
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────

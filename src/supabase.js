@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// GRIT TRAINING — supabase.js
+// KILOS TRAINING — supabase.js
 // Auth (Google Sign-In) + data sync.
 // All Supabase calls are no-ops if config.js still has placeholder values.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -57,16 +57,17 @@ export async function signInWithGoogle() {
 }
 
 // ─── USERNAME / PASSWORD AUTH (Option B) ────────────────────────────────────
-// Generates a fake email {username}@kilostraining.app so users never see
+// Generates a fake email {username}@grittraining.app so users never see
 // an email address. Disable "Email confirmations" in Supabase dashboard
 // (Auth → Settings → Email) for instant access with no verification step.
 //
-// NOTE: The @kilostraining.app suffix is intentionally retained after the
-// GRIT rebrand — existing accounts have this email in Supabase, and changing
-// it would lock them out. The suffix is internal-only and never user-visible.
+// NOTE: The @grittraining.app suffix is DELIBERATELY KEPT despite the KILOS
+// rebrand — existing accounts were created with this exact email in Supabase,
+// so changing it would lock every current user out. It is internal-only and
+// never user-visible, so the stale "grit" string is intentional here.
 
 function usernameToEmail(username) {
-  return `${username.toLowerCase().replace(/[^a-z0-9_]/g, '')}@kilostraining.app`;
+  return `${username.toLowerCase().replace(/[^a-z0-9_]/g, '')}@grittraining.app`;
 }
 
 export async function signUpWithPassword(displayName, username, password) {

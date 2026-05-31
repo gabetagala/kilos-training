@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// GRIT TRAINING  –  data.js
+// KILOS TRAINING  –  data.js
 // Exercise database + Shuffle plans grounded in peer-reviewed hypertrophy
 // research (Schoenfeld 2010, 2017; Nippard/RP Strength programming principles;
 // Contreras et al. EMG studies; Krieger 2010 meta-analysis on volume; Ogborn &

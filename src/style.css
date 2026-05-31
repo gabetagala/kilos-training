@@ -118,7 +118,7 @@ body {
       var(--bg);
   }
   #phone-frame::before {
-    content: "GRIT TRAINING";
+    content: "KILOS TRAINING";
     position: fixed;
     top: 24px;
     left: 32px;
@@ -498,7 +498,7 @@ body {
 .home-hero .home-header {
   border-bottom-color: rgba(0, 0, 0, 0.07);
 }
-.home-hero .hw-grit {
+.home-hero .hw-kilos {
   color: var(--bg);
 }
 .home-hero .hw-training {
@@ -660,7 +660,7 @@ body {
   align-items: stretch;
   line-height: 1;
 }
-.hw-grit {
+.hw-kilos {
   font-family: "Bebas Neue", sans-serif;
   font-size: clamp(56px, 17vw, 76px);
   line-height: 0.86;
@@ -668,7 +668,7 @@ body {
   color: var(--white);
 }
 .hw-training {
-  /* JS splits "TRAINING" into <span> letters; flex space-between fills exact GRIT width */
+  /* JS splits "TRAINING" into <span> letters; flex space-between fills exact KILOS width */
   display: flex;
   justify-content: space-between;
   align-items: baseline;
