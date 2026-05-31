@@ -756,6 +756,7 @@ body {
   color: var(--grey);
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  white-space: nowrap; /* "0 DAY STREAK" stacked to two lines on narrow widths */
   transition: color 0.3s;
 }
 .streak-chip.warm {
