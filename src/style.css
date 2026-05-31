@@ -2126,14 +2126,28 @@ body {
 }
 .log-fields {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 16px;
+}
+.log-stepper-group {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.log-field-label {
+  font-family: "Space Mono", monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--grey);
+  padding-left: 2px;
 }
 .log-stepper {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex: 1;
+  gap: 8px;
   min-width: 0;
 }
 .step-btn {
@@ -2143,17 +2157,24 @@ body {
   border: 1.5px solid var(--border);
   border-radius: 10px;
   background: none;
-  color: var(--text);
-  font-size: 22px;
+  color: var(--grey);
+  font-size: 24px;
   line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition:
-    border-color 0.15s,
+    color 0.15s,
     background 0.15s,
     transform 0.1s;
+}
+/* Same calm border for both; + reads a touch brighter as the primary action. */
+.step-plus {
+  color: var(--text);
+}
+.step-minus {
+  color: var(--grey);
 }
 .step-btn:active {
   transform: scale(0.9);
@@ -5198,6 +5219,27 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 4px;
+}
+.set-log-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.setlog-unit-btn {
+  min-height: 28px;
+  padding: 4px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+.setlog-unit-btn:active {
+  background: rgba(255, 255, 255, 0.06);
 }
 .plate-calc-btn {
   display: flex;

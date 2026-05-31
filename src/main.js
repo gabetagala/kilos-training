@@ -311,6 +311,11 @@ function renderPlateCalc() {
   res.innerHTML = barLine + plateLine + totalLine + warnLine;
 }
 
+document.getElementById('btn-setlog-unit')?.addEventListener('click', () => {
+  set(UNIT_KEY, isLbs() ? 'kg' : 'lbs');
+  renderHome(); // keep the home unit toggle / displays in sync
+  if (activeWorkout) renderSetLog(); // re-render converts values + updates label
+});
 document.getElementById('btn-plate-calc').addEventListener('click', () => {
   document.getElementById('plate-input').value = '';
   document.getElementById('plate-result').innerHTML = '';
@@ -2237,6 +2242,8 @@ function renderSetLog() {
   const lastSession = getLastSession(ex.name);
   const suggestion = suggestNextWeight(lastSession, ex.reps);
   const unit = weightUnit();
+  const unitBtn = document.getElementById('btn-setlog-unit');
+  if (unitBtn) unitBtn.textContent = unit.toUpperCase();
   const rows = document.getElementById('set-log-rows');
   // Overload hint: show specific weight + rep prescription
   const lastLogs = lastSession || [];
@@ -2287,18 +2294,23 @@ function renderSetLog() {
         </div>
       </div>
       <div class="log-fields">
-        <div class="log-stepper">
-          <button type="button" class="step-btn" data-idx="${i}" data-field="weight" data-dir="-1" aria-label="minus 2.5 kg">−</button>
-          <input class="log-input${prefilled}" type="number" placeholder="${wPlaceholder}" value="${wValue}"
-            data-idx="${i}" data-field="weight" inputmode="decimal">
-          <button type="button" class="step-btn" data-idx="${i}" data-field="weight" data-dir="1" aria-label="plus 2.5 kg">+</button>
+        <div class="log-stepper-group">
+          <span class="log-field-label">Weight</span>
+          <div class="log-stepper">
+            <button type="button" class="step-btn step-minus" data-idx="${i}" data-field="weight" data-dir="-1" aria-label="decrease weight">−</button>
+            <input class="log-input${prefilled}" type="number" placeholder="${wPlaceholder}" value="${wValue}"
+              data-idx="${i}" data-field="weight" inputmode="decimal">
+            <button type="button" class="step-btn step-plus" data-idx="${i}" data-field="weight" data-dir="1" aria-label="increase weight">+</button>
+          </div>
         </div>
-        <span class="log-x">×</span>
-        <div class="log-stepper">
-          <button type="button" class="step-btn" data-idx="${i}" data-field="reps" data-dir="-1" aria-label="minus 1 rep">−</button>
-          <input class="log-input${prefilled}" type="text" placeholder="${rPlaceholder}" value="${rValue}"
-            data-idx="${i}" data-field="reps" inputmode="numeric" pattern="[0-9]*">
-          <button type="button" class="step-btn" data-idx="${i}" data-field="reps" data-dir="1" aria-label="plus 1 rep">+</button>
+        <div class="log-stepper-group">
+          <span class="log-field-label">Reps</span>
+          <div class="log-stepper">
+            <button type="button" class="step-btn step-minus" data-idx="${i}" data-field="reps" data-dir="-1" aria-label="decrease reps">−</button>
+            <input class="log-input${prefilled}" type="text" placeholder="${rPlaceholder}" value="${rValue}"
+              data-idx="${i}" data-field="reps" inputmode="numeric" pattern="[0-9]*">
+            <button type="button" class="step-btn step-plus" data-idx="${i}" data-field="reps" data-dir="1" aria-label="increase reps">+</button>
+          </div>
         </div>
       </div>
     </div>`;
@@ -2347,10 +2359,14 @@ function stepField(idx, field, dir) {
   );
   const shown = parseFloat(el?.value) || 0;
   if (field === 'weight') {
-    const kg = isLbs() ? fromDisplayWeight(shown) : shown;
-    log.weight = String(Math.max(0, Math.round((kg + dir * 2.5) * 2) / 2));
+    // Step the *displayed* value by 2.5 in either unit (matches the
+    // "+2.5 from last session" hint); store back as kg.
+    const nextDisp = Math.max(0, shown + dir * 2.5);
+    log.weight = isLbs()
+      ? String(fromDisplayWeight(nextDisp))
+      : String(Math.round(nextDisp * 2) / 2);
   } else {
-    log.reps = String(Math.max(0, Math.round(shown) + dir));
+    log.reps = String(Math.max(1, Math.round(shown) + dir)); // a logged set is ≥1 rep
   }
   if (navigator.vibrate) navigator.vibrate(20);
   saveActiveState();
