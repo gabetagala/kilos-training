@@ -649,13 +649,14 @@ body {
 /* ── History hero — stays off-white ── */
 .screen-hero {
   margin: 0 -24px;
-  padding: 0 24px 24px;
+  /* Unified hero-band spec — same top/gutter/bottom as .build-header so every
+     screen's identity band shares one rhythm (DESIGN.md two-tone system). */
+  padding: max(28px, env(safe-area-inset-top)) 24px 24px;
   background: var(--off);
   color: var(--bg);
   position: relative;
   overflow: hidden;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  min-height: 186px;
 }
 .screen-hero h1 {
   color: var(--bg);
@@ -713,7 +714,7 @@ body {
 
 /* ── Home wordmark — brand statement ── */
 .home-header {
-  padding: max(20px, env(safe-area-inset-top)) 0 20px;
+  padding: max(28px, env(safe-area-inset-top)) 0 20px; /* title top aligns with other screens' bands */
   border-bottom: 1px solid var(--line);
   margin-bottom: 0;
   display: flex;
@@ -1039,7 +1040,7 @@ body {
 
 /* Coming soon screen */
 .coming-soon-screen {
-  padding: 48px 24px 100px;
+  padding: 24px 24px 100px; /* content sits just below the hero band, like other screens */
   display: flex;
   flex-direction: column;
 }
