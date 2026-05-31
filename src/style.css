@@ -728,7 +728,7 @@ body {
 }
 .hw-kilos {
   font-family: "Bebas Neue", sans-serif;
-  font-size: clamp(56px, 17vw, 76px);
+  font-size: clamp(36px, 11vw, 46px); /* in-app header mark, not a splash billboard */
   line-height: 0.86;
   letter-spacing: 0.01em;
   color: var(--white);
