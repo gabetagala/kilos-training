@@ -2120,6 +2120,7 @@ body {
   color: var(--white);
   transition: color 0.3s;
   font-size: clamp(88px, 28vw, 140px); /* default (4-char "1:30") */
+  font-variant-numeric: tabular-nums; /* digits don't jiggle as they count down */
 }
 .timer-number[data-len="1"] {
   font-size: clamp(200px, 60vw, 340px);
@@ -2351,6 +2352,7 @@ body {
   font-style: normal;
   color: var(--text);
   font-family: var(--font-body);
+  font-variant-numeric: tabular-nums;
   outline: none;
   text-align: left;
   min-width: 0;
@@ -2412,6 +2414,16 @@ body {
   color: var(--grey2);
   letter-spacing: 0.08em;
   text-align: right;
+}
+/* Replaces the "Last:" hint once a set is logged — the payoff readout. */
+.log-e1rm {
+  flex: 1;
+  font-size: 9px;
+  font-family: "Space Mono", monospace;
+  color: var(--text);
+  letter-spacing: 0.08em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Cardio active — children each own their 24px horizontal padding */
@@ -5072,6 +5084,7 @@ body {
   line-height: 1;
   color: #fff;
   letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
 }
 .ws-lbl {
   font-family: "Space Mono", monospace;
@@ -5101,6 +5114,7 @@ body {
   line-height: 1;
   color: #fff;
   letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
 }
 .wsum-top-lift-unit {
   font-size: 22px;
@@ -5114,6 +5128,14 @@ body {
   letter-spacing: 0.09em;
   color: rgba(255, 255, 255, 0.4);
   margin-top: 4px;
+}
+.wsum-top-lift-e1rm {
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  margin-top: 8px;
+  font-variant-numeric: tabular-nums;
 }
 .wsum-actions {
   display: flex;

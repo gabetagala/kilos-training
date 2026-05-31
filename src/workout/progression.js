@@ -17,6 +17,29 @@ export function suggestNextWeight(lastLogs, targetRepsStr) {
   return allMet ? Math.round((topW + 2.5) * 2) / 2 : topW;
 }
 
+// Estimated 1-rep max (Epley formula) — the headline strength metric every
+// serious tracker trends. Returns kg rounded to 0.5; the actual weight for a
+// true single; null for junk input (no weight or no reps).
+export function estimate1RM(weightKg, reps) {
+  const w = parseFloat(weightKg);
+  const r = parseInt(reps, 10);
+  if (!(w > 0) || !(r > 0)) return null;
+  if (r === 1) return Math.round(w * 2) / 2;
+  return Math.round(w * (1 + r / 30) * 2) / 2;
+}
+
+// Best estimated 1RM across a list of logs (e.g. one exercise's done sets).
+// Returns kg or null when nothing qualifies.
+export function bestE1RM(logs) {
+  if (!logs?.length) return null;
+  let best = null;
+  for (const l of logs) {
+    const e = estimate1RM(l.weight, l.reps);
+    if (e != null && (best == null || e > best)) best = e;
+  }
+  return best;
+}
+
 // Did the lifter meet the rep target on every logged set last session?
 // Drives the "+2.5kg from last session" vs "hit all reps first" copy.
 export function allRepsMet(lastLogs, targetRepsStr) {

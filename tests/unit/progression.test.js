@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { allRepsMet, suggestNextWeight } from '../../src/workout/progression.js';
+import {
+  allRepsMet,
+  bestE1RM,
+  estimate1RM,
+  suggestNextWeight,
+} from '../../src/workout/progression.js';
 
 describe('suggestNextWeight', () => {
   it('returns null when there is no prior session', () => {
@@ -61,5 +66,52 @@ describe('allRepsMet', () => {
 
   it('counts a blank reps entry as met', () => {
     expect(allRepsMet([{ reps: '' }], '5')).toBe(true);
+  });
+});
+
+describe('estimate1RM', () => {
+  it('returns the exact weight for a true single', () => {
+    expect(estimate1RM('100', '1')).toBe(100);
+  });
+
+  it('applies the Epley formula for multi-rep sets (rounded to 0.5)', () => {
+    // 100 * (1 + 5/30) = 116.666… → 116.5
+    expect(estimate1RM('100', '5')).toBe(116.5);
+    // 60 * (1 + 10/30) = 80
+    expect(estimate1RM('60', '10')).toBe(80);
+  });
+
+  it('accepts numbers as well as strings', () => {
+    expect(estimate1RM(100, 5)).toBe(116.5);
+  });
+
+  it('returns null for junk input (no weight or no reps)', () => {
+    expect(estimate1RM('0', '5')).toBeNull();
+    expect(estimate1RM('100', '0')).toBeNull();
+    expect(estimate1RM('', '')).toBeNull();
+    expect(estimate1RM(undefined, undefined)).toBeNull();
+  });
+});
+
+describe('bestE1RM', () => {
+  it('returns the highest estimated 1RM across logs', () => {
+    const logs = [
+      { weight: '100', reps: '5' }, // 116.5
+      { weight: '120', reps: '1' }, // 120
+      { weight: '90', reps: '8' }, // 114
+    ];
+    expect(bestE1RM(logs)).toBe(120);
+  });
+
+  it('ignores logs with no usable numbers', () => {
+    expect(bestE1RM([{ weight: '', reps: '' }, { weight: '80', reps: '3' }])).toBe(
+      88,
+    );
+  });
+
+  it('returns null when nothing qualifies', () => {
+    expect(bestE1RM([])).toBeNull();
+    expect(bestE1RM(null)).toBeNull();
+    expect(bestE1RM([{ weight: '0', reps: '0' }])).toBeNull();
   });
 });

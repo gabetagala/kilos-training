@@ -14,7 +14,7 @@ import {
   saveProfile,
 } from './personalization.js';
 import { buildShareData, renderShareCard } from './shareCard.js';
-import { suggestNextWeight } from './workout/progression.js';
+import { estimate1RM, suggestNextWeight } from './workout/progression.js';
 import { currentStreak, longestStreak } from './workout/streak.js';
 import {
   getSession,
@@ -2323,6 +2323,15 @@ function renderSetLog() {
         const prevHint = dispPrevW
           ? `<span class="log-prev">Last: ${dispPrevW}${unit} × ${prev.reps}</span>`
           : '';
+        // Once a set is logged, the "Last:" guidance gives way to the payoff:
+        // its estimated 1RM (the headline strength metric).
+        const e1rm = log.done ? estimate1RM(log.weight, log.reps) : null;
+        const e1rmDisp =
+          e1rm != null ? (isLbs() ? toDisplayWeight(e1rm) : e1rm) : null;
+        const midHint =
+          e1rmDisp != null
+            ? `<span class="log-e1rm">e1RM ${e1rmDisp}${unit}</span>`
+            : prevHint;
         const dispLogW = log.weight ? toDisplayWeight(log.weight) : '';
         // Pre-fill the suggested set when there's a prior session to beat, so a
         // single tap on done logs it. Untouched pre-fills are captured on done
@@ -2334,7 +2343,7 @@ function renderSetLog() {
         return `<div class="log-row">
       <div class="log-row-top">
         <span class="log-set-num">SET ${i + 1}</span>
-        ${prevHint}
+        ${midHint}
         <div class="log-done${log.done ? ' checked' : ''}" data-idx="${i}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
@@ -2934,9 +2943,11 @@ function showWorkoutSummary(workout, duration, entry) {
       )
     : null;
   if (topPR) {
+    const e1 = estimate1RM(topPR.weight, topPR.reps);
     topLiftEl.innerHTML = `<div class="wsum-top-lift-label">Top Lift</div>
       <div class="wsum-top-lift-val">${topPR.weight}<span class="wsum-top-lift-unit">kg × ${topPR.reps}</span></div>
-      <div class="wsum-top-lift-ex">${topPR.name.toUpperCase()}</div>`;
+      <div class="wsum-top-lift-ex">${topPR.name.toUpperCase()}</div>
+      ${e1 != null ? `<div class="wsum-top-lift-e1rm">≈ ${e1}kg est. 1RM</div>` : ''}`;
     topLiftEl.style.display = '';
   } else if (!isCF && !isCardio) {
     // Best set by volume if no PR
@@ -2951,9 +2962,11 @@ function showWorkoutSummary(workout, duration, entry) {
         });
     });
     if (bestSet?.weight) {
+      const e1 = estimate1RM(bestSet.weight, bestSet.reps);
       topLiftEl.innerHTML = `<div class="wsum-top-lift-label">Best Set</div>
         <div class="wsum-top-lift-val">${bestSet.weight}<span class="wsum-top-lift-unit">kg × ${bestSet.reps}</span></div>
-        <div class="wsum-top-lift-ex">${bestSet.name.toUpperCase()}</div>`;
+        <div class="wsum-top-lift-ex">${bestSet.name.toUpperCase()}</div>
+        ${e1 != null ? `<div class="wsum-top-lift-e1rm">≈ ${e1}kg est. 1RM</div>` : ''}`;
       topLiftEl.style.display = '';
     } else {
       topLiftEl.style.display = 'none';
