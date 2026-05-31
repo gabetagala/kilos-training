@@ -83,12 +83,38 @@ The hard line before strangers touch it:
 ---
 
 ## Quality Rubric (the objective bar)
-*Populated from a multi-source research pass across fitness trackers, food
-trackers, mobile UI craft, UX/usability, accessibility, performance/PWA, and
-trust/privacy. Each dimension gets a weight, the "what 5/5 looks like" bar, and
-Kilos' honest current score — re-scored each milestone.*
+From a multi-source research pass (fitness trackers, mobile UI craft, UX/usability,
+accessibility, performance/PWA, trust/privacy). Re-score each milestone.
 
-> ⏳ **In progress** — research fleet running; the scored rubric lands here next.
+**Overall external-readiness: 62%.**
+
+| Dimension | Weight | Kilos | What 5/5 looks like |
+|---|---|---|---|
+| Workout-tracker loop | 5 | **3** | ≤2-tap logging w/ prefill, system-notification rest timer, est-1RM trends, reusable routines + special sets, repeat-from-history, exact session restore |
+| Mobile UI craft | 4 | **4** | 4–6 step type ramp, tabular-nums, strict 4/8px grid, premium motion (have most of this) |
+| UX / usability | 5 | **4** | <60s to first value (have), no dead-end nav, inline validation, all states covered |
+| Accessibility (WCAG 2.2 AA) | 4 | **4** | + resize-text/200%, aria-live for timer/PR/sync, 2.2 criteria, non-audio timer cue |
+| Performance / PWA | 4 | **3** | LCP≤2s/INP≤100ms, code-split (lazy html2canvas+supabase), correct maskable icon, exact timer restore |
+| Trust / privacy / launch | 5 | **2** | Privacy+Terms, in-app account deletion, verified live RLS, deployed+monitored |
+
+*(Food-tracking dimension deferred — Nutrition is a stub until M1.)*
+
+### 🚫 Can't launch without these (blockers)
+1. **Privacy Policy + Terms** in-app (names data, Supabase processor, PH DPA, privacy contact).
+2. **In-app account deletion** (removes `user_data` row + auth user) — Apple/Google + DPA require it; export alone isn't enough.
+3. **Verify RLS live + advisors clean** + only anon key client-side + tracked migrations.
+4. **Deploy to prod (HTTPS)** + verify no console errors, real PWA install, offline loop on a real iPhone.
+5. **Rest-timer system notification** (or a documented limitation) — backgrounded phone must alert.
+6. **Error monitoring (Sentry)** — a lost WOD must never be silent.
+
+### ⚡ Quick wins (high impact / low effort)
+- Persist rest-timer seconds+phase+timestamp → fix the one crash-safety gap (mid-rest refresh resets countdown).
+- **Estimated 1RM** (Epley/Brzycki) — pure fn, surfaced on set row + summary; the headline strength metric we lack.
+- `font-variant-numeric: tabular-nums` on weights/reps/timer — one rule, stops digit jiggle.
+- Static Privacy/Terms pages linked from Profile.
+- Collapse the two **COMING SOON** nav stubs (dead-ends) → one "Soon" surface or drop from the bar.
+- Proper **maskable icon** (80% safe zone) so Android install isn't clipped.
+- **Code-split html2canvas** (dynamic import on share) → first-paint/TBT win on cheap phones.
 
 ---
 
