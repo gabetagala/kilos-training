@@ -1040,7 +1040,7 @@ body {
 
 /* Coming soon screen */
 .coming-soon-screen {
-  padding: 24px 24px 100px; /* content sits just below the hero band, like other screens */
+  padding: 24px 0 100px; /* horizontal gutter now comes from the screen container */
   display: flex;
   flex-direction: column;
 }
@@ -1065,7 +1065,7 @@ body {
   font-size: 13px;
   color: var(--grey);
   line-height: 1.7;
-  max-width: 300px;
+  max-width: 340px; /* readable line length, but no lopsided right gap at ≤375px */
   margin-bottom: 24px;
 }
 .cs-sig {
@@ -1257,6 +1257,14 @@ body {
    BUILD
 ══════════════════════════════════════════ */
 #build {
+  padding: 0 24px 100px;
+}
+/* Train/Nutrition/Coaches lacked the 24px screen gutter that Home/Build have,
+   so their hero titles jammed to the edge and Train's launcher ran edge-to-edge.
+   One consistent gutter across all browseable screens. (Active manages its own.) */
+#train,
+#nutrition,
+#coaches {
   padding: 0 24px 100px;
 }
 /* Light identity band — the two-tone system: light hero on top, dark content
