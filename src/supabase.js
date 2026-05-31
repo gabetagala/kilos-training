@@ -98,6 +98,35 @@ export async function signOut() {
   await supabase.auth.signOut();
 }
 
+// Permanently delete the signed-in user's account and all synced cloud data.
+// Calls the delete-account edge function (service-role delete of the auth user,
+// which cascades to user_data), then signs out and clears the synced keys from
+// this device so nothing is left pointing at a deleted account. Returns
+// { error } on failure; resolves on success.
+export async function deleteAccount() {
+  if (!supabase)
+    return { error: { message: 'Sync not configured — no account to delete.' } };
+  const session = await getSession();
+  if (!session) return { error: { message: 'Not signed in.' } };
+
+  const { data, error } = await supabase.functions.invoke('delete-account', {
+    method: 'POST',
+  });
+  if (error || data?.error) {
+    return { error: error || { message: data.error } };
+  }
+
+  // Tear down the local session + synced data; the device keeps no orphan state.
+  clearPendingSync();
+  await supabase.auth.signOut();
+  SYNC_KEYS.forEach((k) => {
+    try {
+      localStorage.removeItem(k);
+    } catch {}
+  });
+  return { success: true };
+}
+
 // ─── SYNC ─────────────────────────────────────────────────────────────────────
 
 const PENDING_SYNC_KEY = 'kilos-pending-sync';

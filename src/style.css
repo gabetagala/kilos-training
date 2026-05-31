@@ -5738,6 +5738,37 @@ body {
   border-color: rgba(229, 115, 115, 0.4);
   color: #e57373;
 }
+/* Subtle, low-emphasis destructive link — must be deliberate to tap, not loud */
+.prof-delete-link {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text2);
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  padding: 14px 0 4px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.prof-delete-link:active {
+  color: #e57373;
+}
+/* Destructive confirm button + status text */
+.confirm-yes.danger {
+  background: #e57373;
+  color: #1a1a1a;
+}
+.confirm-status {
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  color: #e57373;
+  text-align: center;
+  margin-top: 12px;
+  min-height: 14px;
+}
 
 /* ── Boot crash screen — shown only if the app fails to start ── */
 #kilos-crash {

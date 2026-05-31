@@ -390,6 +390,19 @@
       </div>
     </div>
 
+    <!-- ─── DELETE ACCOUNT CONFIRM ─── -->
+    <div class="confirm-overlay" id="delete-confirm">
+      <div class="confirm-sheet">
+        <div class="confirm-title">DELETE ACCOUNT?</div>
+        <div class="confirm-sub">This permanently deletes your account and all synced data. It can't be undone. Export your data first if you want a copy.</div>
+        <div class="confirm-actions">
+          <button class="confirm-yes danger" id="btn-delete-yes">Delete forever</button>
+          <button class="confirm-no" id="btn-delete-no">Cancel</button>
+        </div>
+        <div class="confirm-status" id="delete-status"></div>
+      </div>
+    </div>
+
     <!-- PR Toast -->
     <div id="pr-toast" role="status" aria-live="assertive">
       <div class="pr-toast-icon">PR</div>

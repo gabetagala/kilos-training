@@ -18,6 +18,7 @@ import { buildShareData, renderShareCard } from './shareCard.js';
 import { estimate1RM, suggestNextWeight } from './workout/progression.js';
 import { currentStreak, longestStreak } from './workout/streak.js';
 import {
+  deleteAccount,
   getSession,
   hasPendingSync,
   isConfigured,
@@ -3680,16 +3681,15 @@ function openProfileSheet() {
   // Sync / auth section
   const syncSection = document.getElementById('prof-sync-section');
   if (currentUser) {
-    const rawEmail = currentUser.email || '';
-    const displayId = rawEmail.endsWith('@kilostraining.app')
-      ? rawEmail.replace('@kilostraining.app', '')
-      : rawEmail;
+    // The login email is internal (synthetic) — only ever show the username.
+    const displayId = (currentUser.email || '').split('@')[0];
     syncSection.innerHTML = `
       <div class="prof-label">ACCOUNT</div>
       <div class="prof-sync-row">
         <span class="prof-sync-label">Signed in as <strong>${displayId}</strong></span>
         <button class="prof-sync-btn danger" id="prof-signout-btn">Sign out</button>
       </div>
+      <button class="prof-delete-link" id="prof-delete-btn">Delete account</button>
     `;
     document
       .getElementById('prof-signout-btn')
@@ -3698,6 +3698,9 @@ function openProfileSheet() {
         closeProfileSheet();
         renderDataNotice();
       });
+    document
+      .getElementById('prof-delete-btn')
+      .addEventListener('click', openDeleteAccountConfirm);
   } else if (isConfigured) {
     syncSection.innerHTML = `
       <div class="prof-label">ACCOUNT</div>
@@ -3731,6 +3734,41 @@ function closeProfileSheet() {
   // Refresh name in profile button
   renderProfileBtn();
 }
+
+// ── Account deletion (DPA right to erasure) ───────────────────────────────────
+function openDeleteAccountConfirm() {
+  document.getElementById('profile-sheet').classList.remove('open');
+  const status = document.getElementById('delete-status');
+  if (status) status.textContent = '';
+  document.getElementById('delete-confirm').classList.add('open');
+}
+document
+  .getElementById('btn-delete-no')
+  ?.addEventListener('click', () =>
+    document.getElementById('delete-confirm').classList.remove('open'),
+  );
+document
+  .getElementById('btn-delete-yes')
+  ?.addEventListener('click', async () => {
+    const btn = document.getElementById('btn-delete-yes');
+    const status = document.getElementById('delete-status');
+    btn.disabled = true;
+    btn.textContent = 'Deleting…';
+    const { error } = await deleteAccount();
+    if (error) {
+      if (status) status.textContent =
+        error.message || 'Could not delete — try again.';
+      btn.disabled = false;
+      btn.textContent = 'Delete forever';
+      return;
+    }
+    document.getElementById('delete-confirm').classList.remove('open');
+    btn.disabled = false;
+    btn.textContent = 'Delete forever';
+    renderHome();
+    renderDataNotice();
+    renderProfileBtn();
+  });
 
 function renderProfileBtn() {
   const name = get(NAME_KEY) || '';
