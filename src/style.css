@@ -795,13 +795,13 @@ body {
 .profile-btn {
   background: none;
   border: 1px solid var(--border);
-  border-radius: 20px;
-  height: 36px;
+  border-radius: var(--r-pill);
+  height: 44px; /* ≥44px touch target (Apple HIG) */
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 0 12px 0 10px;
+  padding: 0 14px 0 12px;
   cursor: pointer;
   color: var(--text2);
   transition:
@@ -809,7 +809,7 @@ body {
     color 0.15s,
     transform 0.1s;
   flex-shrink: 0;
-  min-width: 36px;
+  min-width: 44px;
 }
 .profile-btn:active {
   border-color: var(--white);
@@ -1383,7 +1383,7 @@ body {
   border-color: var(--white);
 }
 .workout-name-input::placeholder {
-  color: var(--grey2);
+  color: rgba(255, 255, 255, 0.42); /* legible placeholder hint */
 }
 
 .muscle-selector .label,
@@ -1608,7 +1608,7 @@ body {
   min-height: 60px;
 }
 .cardio-notes-input::placeholder {
-  color: var(--grey2);
+  color: rgba(255, 255, 255, 0.42); /* legible placeholder hint */
 }
 
 /* ══════════════════════════════════════════
@@ -2344,7 +2344,7 @@ body {
   border-color: var(--white);
 }
 .log-input::placeholder {
-  color: var(--grey2);
+  color: rgba(255, 255, 255, 0.42); /* legible placeholder hint */
   font-size: 16px;
   font-style: normal;
   font-weight: 700;
@@ -2483,7 +2483,7 @@ body {
   border-color: var(--white);
 }
 .esm-search input::placeholder {
-  color: var(--grey2);
+  color: rgba(255, 255, 255, 0.42); /* legible placeholder hint */
 }
 .esm-list {
   flex: 1;
@@ -4006,7 +4006,7 @@ body {
   border-bottom-color: var(--white);
 }
 .np-input::placeholder {
-  color: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.42); /* legible placeholder hint */
 }
 .np-google-btn {
   width: 100%;
@@ -4242,7 +4242,13 @@ body {
   color: var(--grey);
   font-size: 16px;
   cursor: pointer;
-  padding: 0 0 0 16px;
+  /* ≥44px touch target (Apple HIG); spacing now via header layout */
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   line-height: 1;
   transition: color 0.15s;
 }
@@ -5505,7 +5511,13 @@ body {
   cursor: pointer;
   color: var(--text2);
   font-size: 16px;
-  padding: 6px;
+  /* ≥44px touch target (Apple HIG) */
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   flex-shrink: 0;
   transition: color 0.15s;
 }

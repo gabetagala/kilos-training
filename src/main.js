@@ -2649,10 +2649,16 @@ function toggleTimer() {
 function showPlayBtn() {
   document.getElementById('play-icon').style.display = '';
   document.getElementById('pause-icon').style.display = 'none';
+  document
+    .getElementById('play-pause-btn')
+    .setAttribute('aria-label', 'Start the timer');
 }
 function showPauseBtn() {
   document.getElementById('play-icon').style.display = 'none';
   document.getElementById('pause-icon').style.display = '';
+  document
+    .getElementById('play-pause-btn')
+    .setAttribute('aria-label', 'Pause the timer');
 }
 
 document
