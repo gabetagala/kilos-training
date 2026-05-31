@@ -365,7 +365,7 @@ function getLastSession(exerciseName) {
 }
 
 // ─── NAVIGATION ───────────────────────────────────────────────────────────────
-const SCREEN_ORDER = ['home', 'train', 'nutrition', 'coaches', 'build', 'active'];
+const SCREEN_ORDER = ['home', 'train', 'coaches', 'build', 'active'];
 
 function goScreen(id) {
   const currentEl = document.querySelector('.screen.active');
@@ -422,7 +422,6 @@ function goScreen(id) {
   if (id === 'coaches') renderCoaches(); // was 'legends'
   if (id === 'build') renderBuild();
   if (id === 'active') renderActiveScreen();
-  // 'nutrition' is a static coming-soon stub — nothing to render
 }
 document.querySelectorAll('.nav-btn').forEach((btn) => {
   btn.addEventListener('click', () => goScreen(btn.dataset.screen));
@@ -3851,12 +3850,6 @@ function openFeedback(prefill = '') {
 document
   .getElementById('feedback-btn')
   .addEventListener('click', () => openFeedback());
-
-// Nutrition "Want this sooner?" — routes interest into the feedback channel so
-// the coming-soon tab is an intentional signal, not a dead end.
-document
-  .getElementById('btn-nutrition-notify')
-  ?.addEventListener('click', () => openFeedback('I want nutrition tracking — '));
 
 document.getElementById('fb-close').addEventListener('click', () => {
   fbOverlay.classList.remove('open');

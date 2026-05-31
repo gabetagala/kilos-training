@@ -60,14 +60,32 @@ coaches are stubs; no real-device QA; docs half-written.
 
 ---
 
-## LATER — Phases 3–5: the product story (per BUILD-PLAN.md)
+## ⭐ THE CORE FOCUS — Retention & dopamine loop (this IS the bet)
+The bet is workout-logging retention, so the loop that makes logging *rewarding*
+is the priority, not a later nicety. **Tone: quiet confidence — restrained and
+earned, never Duolingo-loud.** We already have the skeleton (streaks, PRs,
+est-1RM, share cards); the work is making the loop *feel* good.
+
+- [ ] **Instant reward on log-confirm** — a restrained micro-moment + "beat last session / new PR" before they leave the screen (dopamine welded to the action, tastefully).
+- [ ] **Training streak with forgiveness** — consecutive training *weeks* + a free rest-day/deload "freeze"; loss-aversion pointed at the user's own past self, never guilt.
+- [ ] **"Am I getting stronger" payoff** — estimated-1RM + volume *trend* lines (we have the point est-1RM).
+- [ ] **PR / milestone share cards** — organic PH growth + intrinsic brag (reuse `shareCard.js`).
+- [ ] *(Later)* a daily one-line **"readiness" verdict** from logged data; quiet, opt-in kudos.
+
+## LATER — the rest of the product story
 Gated on the loop validating (Phase 1) — don't build these before the bet pays.
 
-- [ ] **M1 — Nutrition** (the second pillar): USDA + Filipino staples + barcode; the "better-than-MyFitnessPal" log; one integrated day view. *(Replaces the Nutrition stub.)*
-- [ ] **M2 — Personal page**: lifetime stats, PR board, achievements, body metrics.
-- [ ] **M3 — Community seeds**: kudos, program library, follow/feed (the coach on-ramp).
-- [ ] **M4 — Coaches B2B** (the business): coach↔client model, program-assign, in-app branding, messaging. *(Replaces the Coaches stub.)*
-- [ ] **M5 — Brand deals**: PH-native affiliate, sponsored challenges — only past ~10k engaged MAU.
+- [ ] **Personal page**: lifetime stats, PR board, achievements, body metrics.
+- [ ] **Coaches B2B** (the business): coach↔client model, program-assign, in-app branding, messaging. *(Replaces the Coaches stub. Works without nutrition.)*
+- [ ] **Brand deals**: PH-native affiliate, sponsored challenges — only past ~10k engaged MAU.
+
+> **Nutrition: cut from the roadmap (2026-05-31).** Two research passes showed it's
+> the highest-cost, highest-risk, lowest-differentiation pillar — no cleanly
+> licensable PH food data (FNRI locked), permanent QA + health-liability burden,
+> and a brand collision ("Kilos Kaloriya"). The bet is workout-logging retention,
+> which nutrition doesn't help prove. The research + the `macros.js` calculator
+> are **parked** (`NUTRITION-RESEARCH.md`) — they may return only as a
+> demand-pulled coach-tier feature. Nutrition nav tab removed.
 
 ---
 
@@ -97,7 +115,7 @@ accessibility, performance/PWA, trust/privacy). Re-score each milestone.
 | Performance / PWA | 4 | **3** | LCP≤2s/INP≤100ms, code-split (lazy html2canvas+supabase), correct maskable icon, exact timer restore |
 | Trust / privacy / launch | 5 | **2** | Privacy+Terms, in-app account deletion, verified live RLS, deployed+monitored |
 
-*(Food-tracking dimension deferred — Nutrition is a stub until M1.)*
+*(Food-tracking dimension intentionally out of scope — nutrition cut from the roadmap; see "Nutrition: cut" below.)*
 
 ### 🚫 Can't launch without these (blockers)
 1. **Privacy Policy + Terms** in-app (names data, Supabase processor, PH DPA, privacy contact).

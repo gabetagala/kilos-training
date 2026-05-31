@@ -68,14 +68,16 @@ Positioned strength-first, hybrid-story.
    import in one tap. This is Hevy's *and* Boostcamp's growth engine *and* your coach
    on-ramp: a free program is how an unknown coach earns an audience before charging.
 3. **Expand logging to running/conditioning** — deliver on the hybrid promise.
-4. **Nutrition (free retention layer):** USDA FoodData Central (CC0) seeded into
-   Supabase + ~200 hand-entered Filipino staples + Open Food Facts barcode lookup
-   (e.g. ZXing-js). Free barcode scan + Filipino-accurate food = the exact two things
-   MyFitnessPal gets wrong/paywalls. Calorie + macro totals vs. a manual target,
-   wrapped in the same streak layer. Skip adaptive-macro algorithms, AI photo logging,
-   recipes, micronutrients. **Action this month regardless: contact FNRI (FOI request)
-   for the PhilFCT dataset + commercial-use clearance** — it's the food moat and its
-   license is undocumented, so start the clock.
+4. ~~**Nutrition (free retention layer)**~~ — **CUT / PARKED (2026-05-31).**
+   Research ([`NUTRITION-RESEARCH.md`](NUTRITION-RESEARCH.md)) found this is the
+   highest-cost, highest-risk, lowest-differentiation bet: no cleanly licensable
+   PH food data (FNRI is All-Rights-Reserved, treats the dataset as a product for
+   sale, ~10–20% odds on a license, and is building its *own* competing app),
+   plus a permanent QA + health-liability burden and a brand collision ("Kilos
+   Kaloriya"). It doesn't help prove the core retention bet. **Replaced by a
+   sharper retention/dopamine loop** (see `ROADMAP.md`). May return only as a
+   demand-pulled coach-tier feature; the `macros.js` calculator is parked, not
+   deleted.
 
 ### LATER — coach B2B (#1) — *this is where the money is*
 Spin the Grit multi-tenant + branding model (slug routing, `branding.js`, per-tenant
