@@ -804,6 +804,24 @@ document.getElementById('btn-cf-open').addEventListener('click', () => {
   openPage('cf-page');
 });
 
+// ── Legal pages (Privacy / Terms) — opened from the profile sheet ─────────────
+function openLegal(id) {
+  document.getElementById('profile-sheet')?.classList.remove('open');
+  openPage(id);
+}
+document
+  .getElementById('btn-open-privacy')
+  ?.addEventListener('click', () => openLegal('privacy-page'));
+document
+  .getElementById('btn-open-terms')
+  ?.addEventListener('click', () => openLegal('terms-page'));
+document
+  .getElementById('privacy-back')
+  ?.addEventListener('click', () => closePage('privacy-page'));
+document
+  .getElementById('terms-back')
+  ?.addEventListener('click', () => closePage('terms-page'));
+
 function renderMuscleFrequency() {
   const history = get('workoutHistory') || [];
   const today = new Date();

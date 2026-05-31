@@ -522,6 +522,85 @@
       <div class="page-content" id="cf-page-content"></div>
     </div>
 
+    <!-- ─── PRIVACY POLICY ─── -->
+    <div class="page-overlay" id="privacy-page">
+      <div class="page-header">
+        <button class="page-back" id="privacy-back">← Back</button>
+        <div class="page-title">PRIVACY</div>
+      </div>
+      <div class="page-content legal-doc">
+        <p class="legal-updated">Last updated: 31 May 2026</p>
+        <p>KILOS Training ("KILOS", "we") is a free workout tracker. This policy explains what we collect, why, and the control you have. Plain language, no tricks.</p>
+
+        <h2>The short version</h2>
+        <p>KILOS works on your device first. Your workouts, body weight, personal records and settings are saved in your browser's local storage and never leave your phone unless you choose to create an account to sync. We don't sell your data, we don't run ad trackers, and you can export or delete everything at any time.</p>
+
+        <h2>What we store on your device</h2>
+        <p>Your logged workouts and sets, body weight and personal records, streaks, and your profile (your name, chosen equipment, and kg/lbs preference). This stays on your device and is yours to export (CSV) or clear at any time.</p>
+
+        <h2>What we store in the cloud — only if you create an account</h2>
+        <p>An account is optional and exists only to sync across your devices. If you create one we store, via our processor <strong>Supabase</strong>:</p>
+        <ul>
+          <li>A username and password (we use a synthetic email derived from your username; we do <em>not</em> require or collect a real email address).</li>
+          <li>A copy of your training data (the same workouts, weights, PRs and settings described above) and the time it last synced.</li>
+        </ul>
+        <p>Access is protected by per-user row-level security: only your signed-in account can read or write your row.</p>
+
+        <h2>Diagnostics</h2>
+        <p>To keep the app reliable we may use an error-monitoring service (Sentry) that records crash diagnostics (e.g. error messages and the screen where a crash happened) so we can fix bugs. We configure it to avoid collecting personal information. We do not use advertising or analytics tracking SDKs.</p>
+
+        <h2>Feedback</h2>
+        <p>If you send a message through the in-app feedback button, its contents are delivered to us by the form service Formspree so we can read and reply.</p>
+
+        <h2>Your rights</h2>
+        <p>You can, at any time: <strong>access and export</strong> your data (CSV export on the Home screen), <strong>correct</strong> it by editing in the app, and <strong>delete</strong> it — clearing local data on your device, and deleting your account (which removes your synced data) from your profile. Under the Philippines Data Privacy Act of 2012 you also have the right to object, to data portability, and to lodge a complaint with the National Privacy Commission.</p>
+
+        <h2>Data retention</h2>
+        <p>Local data stays until you clear it or uninstall. Cloud data stays until you delete your account, after which your data row is removed.</p>
+
+        <h2>Children</h2>
+        <p>KILOS is not directed at children under 13, and we don't knowingly collect their data.</p>
+
+        <h2>Contact</h2>
+        <p>Questions or requests about your data: <a href="mailto:gabe@kilostraining.app">gabe@kilostraining.app</a>. We're a small team and read every message.</p>
+
+        <p class="legal-foot">This policy may be updated as the app grows; the date above reflects the latest version.</p>
+      </div>
+    </div>
+
+    <!-- ─── TERMS OF USE ─── -->
+    <div class="page-overlay" id="terms-page">
+      <div class="page-header">
+        <button class="page-back" id="terms-back">← Back</button>
+        <div class="page-title">TERMS</div>
+      </div>
+      <div class="page-content legal-doc">
+        <p class="legal-updated">Last updated: 31 May 2026</p>
+        <p>By using KILOS Training you agree to these terms. They're short and fair.</p>
+
+        <h2>The deal</h2>
+        <p>KILOS is free to use for logging your training. The core features — logging, history, personal records, export — are free and we intend to keep them that way. We may later add optional paid offerings (for coaches and partners), but we will not paywall your ability to log and keep your own training data.</p>
+
+        <h2>Your account & data</h2>
+        <p>You're responsible for keeping your password safe. Your training data is yours. You can export it (CSV) or delete it and your account at any time from your profile.</p>
+
+        <h2>Acceptable use</h2>
+        <p>Don't misuse the service: no attempting to break, overload, or gain unauthorized access to it or to other users' data, and no using it for anything unlawful.</p>
+
+        <h2>Health disclaimer</h2>
+        <p>KILOS is a logging tool, not medical or fitness advice. Training involves risk of injury. You're responsible for training safely and should consult a qualified professional before starting a new program. Suggested weights and estimated one-rep maxes are informational estimates, not prescriptions.</p>
+
+        <h2>Availability & "as is"</h2>
+        <p>We work hard to keep your data safe (local-first, so it survives bad connections), but the service is provided "as is" without warranties, and we aren't liable for indirect or consequential damages to the extent the law allows. We may update or discontinue features over time.</p>
+
+        <h2>Changes</h2>
+        <p>If we change these terms, we'll update the date above. Continued use means you accept the changes.</p>
+
+        <h2>Contact</h2>
+        <p>Questions: <a href="mailto:gabe@kilostraining.app">gabe@kilostraining.app</a>.</p>
+      </div>
+    </div>
+
     <!-- ─── PR LOG MODAL — log current bests ─── -->
     <div class="modal-overlay" id="pr-log-modal">
       <div class="modal-sheet pr-log-sheet">
@@ -616,6 +695,14 @@
 
         <!-- Sync / auth -->
         <div class="prof-section" id="prof-sync-section"></div>
+
+        <!-- About / legal -->
+        <div class="prof-section prof-about">
+          <div class="prof-label">ABOUT</div>
+          <button class="prof-link" id="btn-open-privacy">Privacy Policy</button>
+          <button class="prof-link" id="btn-open-terms">Terms of Use</button>
+          <div class="prof-about-foot">KILOS — Train heavy. Free forever.<br>Your data is yours: export or delete it anytime.</div>
+        </div>
 
       </div>
     </div>
