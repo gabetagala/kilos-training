@@ -24,6 +24,9 @@ jobs:
       - name: Lint (Biome)
         run: npm run lint
 
+      - name: Design system (DESIGN.md guardrail)
+        run: npm run lint:design
+
       - name: Unit tests (Vitest)
         run: npm run test
 

@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "biome lint --error-on-warnings src",
+    "lint:design": "node scripts/check-design-system.mjs",
     "format": "biome format --write src",
     "check": "biome check --error-on-warnings src",
     "test": "vitest run",

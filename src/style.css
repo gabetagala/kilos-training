@@ -46,6 +46,72 @@
   /* ── Legacy aliases ── */
   --grey: #888;
   --grey2: rgba(255, 255, 255, 0.08);
+
+  /* ── Spacing — 4px base (DESIGN.md A3) ── */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-12: 48px;
+
+  /* ── Radius — three steps, collapsing the old sprawl (DESIGN.md A4) ── */
+  --r-sm: 8px; /* buttons, inputs, steppers */
+  --r-md: 14px; /* cards, sheets, modals */
+  --r-pill: 999px; /* chips, circular controls */
+
+  /* ── Motion — restrained springs (DESIGN.md A6) ── */
+  --dur-fast: 120ms;
+  --dur-base: 220ms;
+  --dur-slow: 380ms;
+  --ease-smooth: cubic-bezier(0.2, 0, 0, 1); /* default — no overshoot */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* earned moments — small overshoot only */
+}
+
+/* ─── TYPE SCALE (DESIGN.md A2) — compose these instead of hand-typing font-size.
+   Floor: data read mid-set uses .t-data/.t-hero/.t-display/.t-title/.t-body
+   (≥12px, enforced by scripts/check-design-system.mjs); tracked Space-Mono
+   micro-labels (.t-micro) may sit at 9px as an editorial device only. ─── */
+.t-hero {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: clamp(64px, 22vw, 120px);
+  line-height: 0.92;
+  letter-spacing: 0.01em;
+}
+.t-display {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 32px;
+  line-height: 1;
+}
+.t-title {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 20px;
+  line-height: 1.05;
+}
+.t-body {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.45;
+}
+.t-data {
+  font-family: var(--font-body);
+  font-size: 20px;
+  font-weight: 600;
+}
+.t-label {
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--grey);
+}
+.t-micro {
+  font-family: "Space Mono", monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--grey);
 }
 
 html {
@@ -466,7 +532,7 @@ body {
 }
 .nav-soon {
   font-family: "Space Mono", monospace;
-  font-size: 6px;
+  font-size: 8px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.3);
@@ -2164,7 +2230,7 @@ body {
   height: 44px;
   flex-shrink: 0;
   border: 1.5px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-sm);
   background: none;
   color: var(--grey);
   font-size: 24px;
@@ -2174,9 +2240,9 @@ body {
   justify-content: center;
   cursor: pointer;
   transition:
-    color 0.15s,
-    background 0.15s,
-    transform 0.1s;
+    color var(--dur-fast) var(--ease-smooth),
+    background var(--dur-fast) var(--ease-smooth),
+    transform var(--dur-fast) var(--ease-spring);
 }
 /* Same calm border for both; + reads a touch brighter as the primary action. */
 .step-plus {
@@ -4581,7 +4647,7 @@ body {
 }
 .lt-era {
   font-family: "Space Mono", monospace;
-  font-size: 7px;
+  font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--grey);
@@ -4944,7 +5010,7 @@ body {
 }
 .ws-lbl {
   font-family: "Space Mono", monospace;
-  font-size: 7px;
+  font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.09em;
   color: rgba(255, 255, 255, 0.35);
