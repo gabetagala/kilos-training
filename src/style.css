@@ -624,6 +624,15 @@ body {
   margin-bottom: 16px;
   display: block;
 }
+/* PR board header on Home: label left, export + PR count right */
+.pr-board-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.pr-board-head .history-pr-label {
+  margin-bottom: 0;
+}
 
 /* Muscle freq inside dark home hero */
 .home-hero .muscle-freq-section {

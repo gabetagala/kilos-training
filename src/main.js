@@ -341,7 +341,7 @@ function getLastSession(exerciseName) {
 }
 
 // ─── NAVIGATION ───────────────────────────────────────────────────────────────
-const SCREEN_ORDER = ['home', 'coaches', 'build', 'history', 'active'];
+const SCREEN_ORDER = ['home', 'train', 'nutrition', 'coaches', 'build', 'active'];
 
 function goScreen(id) {
   const currentEl = document.querySelector('.screen.active');
@@ -389,14 +389,29 @@ function goScreen(id) {
 
   // 6. Render content
   if (id === 'home') renderHome();
+  if (id === 'train') renderTrain();
   if (id === 'coaches') renderCoaches(); // was 'legends'
   if (id === 'build') renderBuild();
-  if (id === 'history') renderHistory();
   if (id === 'active') renderActiveScreen();
+  // 'nutrition' is a static coming-soon stub — nothing to render
 }
 document.querySelectorAll('.nav-btn').forEach((btn) => {
   btn.addEventListener('click', () => goScreen(btn.dataset.screen));
 });
+
+// ─── TRAIN ────────────────────────────────────────────────────────────────────
+// The movement launcher (Quick Start / Legends / CrossFit / Custom / Resume).
+function renderTrain() {
+  const sub = document.getElementById('resume-sub');
+  if (sub) {
+    sub.textContent = activeWorkout ? activeWorkout.name : 'No active session';
+  }
+  const resumeBtn = document.getElementById('btn-resume');
+  if (resumeBtn) {
+    resumeBtn.classList.toggle('resume-active', !!activeWorkout);
+    resumeBtn.style.order = activeWorkout ? '-1' : '';
+  }
+}
 
 // ─── HOME ─────────────────────────────────────────────────────────────────────
 function matchWordmarkWidth() {
@@ -412,17 +427,10 @@ function renderHome() {
   renderWeekStrip();
   renderMuscleFrequency();
   renderRecent();
+  renderHistory(); // PR board lives on Home now (the personal hub)
   updateStreak();
   renderRestDayCard();
   renderDataNotice();
-  const resumeBtn = document.getElementById('btn-resume');
-  document.getElementById('resume-sub').textContent = activeWorkout
-    ? activeWorkout.name
-    : 'No active session';
-  if (resumeBtn) {
-    resumeBtn.classList.toggle('resume-active', !!activeWorkout);
-    resumeBtn.style.order = activeWorkout ? '-1' : '';
-  }
 
   // Profile indicator
   const profile = getActiveProfile();
@@ -2860,7 +2868,7 @@ document.getElementById('wsum-share').addEventListener('click', () => {
 });
 document.getElementById('wsum-history').addEventListener('click', () => {
   document.getElementById('workout-summary').classList.remove('open');
-  goScreen('history');
+  goScreen('home'); // history + PRs live on Home now
 });
 document.getElementById('wsum-close').addEventListener('click', () => {
   document.getElementById('workout-summary').classList.remove('open');
@@ -3018,7 +3026,10 @@ function renderHistory() {
     document.getElementById('btn-add-prs').addEventListener('click', openPRLog);
   }
 
+  // PR board (above) lives on Home; the full session list was retired with the
+  // standalone History screen. Bail once the PR board is populated.
   const listEl = document.getElementById('history-list');
+  if (!listEl) return;
   if (!history.length) {
     listEl.innerHTML = `<div class="history-empty"><div class="big-num">0</div><p>No sessions yet.<br>Finish a workout to see it here.</p></div>`;
     return;

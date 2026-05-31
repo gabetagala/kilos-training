@@ -12,7 +12,8 @@ test('start a workout, log a set, finish, and see the summary', async ({
   await page.goto('/');
   await dismissOnboarding(page);
 
-  // Quick Start → pick the first muscle → quickStartWorkout begins the session.
+  // Train tab → Quick Start → pick the first muscle → begins the session.
+  await page.locator('.nav-btn[data-screen="train"]').click();
   await page.locator('#btn-qs-open').click();
   const firstMuscle = page.locator('.qs-page-chip').first();
   await expect(firstMuscle).toBeVisible();

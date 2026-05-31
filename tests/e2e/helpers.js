@@ -16,7 +16,9 @@ export async function dismissOnboarding(page) {
 }
 
 // Quick Start the nth muscle and land on the active session's set log.
+// The launcher now lives under the Train tab, so go there first.
 export async function quickStart(page, muscleIndex = 0) {
+  await page.locator('.nav-btn[data-screen="train"]').click();
   await page.locator('#btn-qs-open').click();
   await page.locator('.qs-page-chip').nth(muscleIndex).click();
   await page.locator('#set-log-rows .log-row').first().waitFor({ state: 'visible' });
