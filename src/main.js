@@ -1801,6 +1801,17 @@ function renderActiveScreen() {
   }
   setActiveWorkoutUI(true);
 
+  // Mode class drives layout: strength is log-first (compact rest timer);
+  // CrossFit keeps the big clock as the hero.
+  const mode = CF_TYPES.has(activeWorkout.type)
+    ? 'cf'
+    : activeWorkout.type === 'cardio'
+      ? 'cardio'
+      : 'strength';
+  const activeEl = document.getElementById('active');
+  activeEl.classList.remove('mode-cf', 'mode-cardio', 'mode-strength');
+  activeEl.classList.add(`mode-${mode}`);
+
   if (CF_TYPES.has(activeWorkout.type)) {
     renderCFActive();
     return;
@@ -2242,8 +2253,8 @@ function renderCurrentExercise() {
     warmupEl
       .querySelector('.warmup-header')
       .addEventListener('click', () => warmupEl.classList.toggle('open'));
-    // Open warmup by default on the first exercise (task #9)
-    if (currentExIdx === 0) warmupEl.classList.add('open');
+    // Collapsed by default — log-first: the steppers are the priority, warmup
+    // guidance is one tap away (DESIGN.md active-screen hierarchy).
     document
       .querySelector('.set-log-title')
       .insertAdjacentElement('afterend', warmupEl);

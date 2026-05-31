@@ -1936,6 +1936,24 @@ body {
   background: var(--bg);
 }
 
+/* ─── Strength = LOG-FIRST (DESIGN.md active-screen hierarchy) ───
+   The rest timer is secondary to logging, so demote it to a compact strip and
+   let the set-log be the primary, above-the-fold area. CrossFit/cardio keep the
+   big clock (it IS the workout there). */
+#active.mode-strength .timer-block {
+  min-height: 0;
+  padding: 2px 24px 0;
+}
+#active.mode-strength .timer-number {
+  font-size: 48px;
+}
+#active.mode-strength .timer-bar-track {
+  margin-top: 8px;
+}
+#active.mode-strength .timer-controls {
+  padding: 8px 24px;
+}
+
 .active-header {
   padding: max(16px, env(safe-area-inset-top)) 24px 14px;
   display: flex;
