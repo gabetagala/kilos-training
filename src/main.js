@@ -387,6 +387,11 @@ function goScreen(id) {
     b.classList.toggle('active', b.dataset.screen === id);
   });
 
+  // Hide the floating feedback button on the active screen — it overlaps the
+  // set-log controls (done / ± steppers) and isn't needed mid-set.
+  const fab = document.getElementById('feedback-btn');
+  if (fab) fab.style.display = id === 'active' ? 'none' : '';
+
   // 6. Render content
   if (id === 'home') renderHome();
   if (id === 'train') renderTrain();
