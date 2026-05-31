@@ -42,3 +42,30 @@ test('service worker registers in the production build', async ({ page }) => {
   });
   expect(registered).toBeTruthy();
 });
+
+// Regression: toggling weight unit with NO active workout used to crash
+// (profile unit toggle called renderSetLog() unguarded → activeWorkout.exercises
+// on null). Caught during a manual-QA drive.
+test('toggling kg/lbs in profile with no active workout does not error', async ({
+  page,
+}) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto('/');
+  for (const sel of [
+    '#bw-cta',
+    '#np-local-btn',
+    '#onboarding-modal [data-tier="full-gym"]',
+  ]) {
+    const el = page.locator(sel);
+    try {
+      await el.waitFor({ state: 'visible', timeout: 5000 });
+      await el.click();
+    } catch {}
+  }
+  await page.locator('#btn-profile').click();
+  await page.locator('#prof-unit-toggle').waitFor({ state: 'visible' });
+  await page.locator('#prof-unit-toggle').click();
+  await page.locator('#prof-unit-toggle').click();
+  expect(errors, `page errors:\n${errors.join('\n')}`).toEqual([]);
+});

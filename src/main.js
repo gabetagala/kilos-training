@@ -3557,7 +3557,7 @@ function openProfileSheet() {
   toggle.onclick = () => {
     set(UNIT_KEY, isLbs() ? 'kg' : 'lbs');
     updateUnitUI();
-    renderSetLog(); // update active workout display if any
+    if (activeWorkout) renderSetLog(); // update active workout display if any
   };
 
   // Sync / auth section
