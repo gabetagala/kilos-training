@@ -2995,8 +2995,30 @@ function showWorkoutSummary(workout, duration, entry) {
     topLiftEl.style.display = 'none';
   }
 
+  // Smart account nudge: only for signed-out users, and only the first few
+  // sessions — enough to convert, capped so it never nags. (Local-first stays
+  // the default; this just makes backing up obvious once there's data worth it.)
+  const nudge = document.getElementById('wsum-nudge');
+  if (nudge) {
+    const sessions = (get('workoutHistory') || []).length;
+    nudge.style.display =
+      isConfigured && !currentUser && sessions <= 5 ? '' : 'none';
+  }
+
   document.getElementById('workout-summary').classList.add('open');
 }
+
+document.getElementById('wsum-nudge-cta')?.addEventListener('click', () => {
+  document.getElementById('workout-summary').classList.remove('open');
+  const nameEl = document.getElementById('np-display-name');
+  if (nameEl && getUserName()) nameEl.value = getUserName(); // prefill known name
+  npShowStep('account');
+  document.getElementById('name-prompt').classList.add('open');
+  setTimeout(() => document.getElementById('np-password')?.focus(), 320);
+});
+document.getElementById('wsum-nudge-skip')?.addEventListener('click', () => {
+  document.getElementById('wsum-nudge').style.display = 'none';
+});
 
 document.getElementById('wsum-share').addEventListener('click', () => {
   document.getElementById('workout-summary').classList.remove('open');
