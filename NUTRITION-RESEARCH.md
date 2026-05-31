@@ -85,3 +85,98 @@ Unlike crash-deficit apps, Kilos is the **honest, RND-backed** calculator:
 > **Your sister (RND) is an asset:** "macros reviewed by a registered
 > nutritionist-dietitian," safe-by-default. Credibility MyFitnessPal can't buy —
 > consider crediting her as an advisor.
+
+---
+
+## ⚔️ Adversarial pressure-test — REVISED plan (2026-05, supersedes the above where they differ)
+
+A second research pass was tasked to *beat* the plan above. Verdict: **REVISE** —
+the licensing spine is sound, but three material fixes were needed. What it
+confirmed and changed:
+
+**Confirmed:** USDA CC0 is the cleanest license in the space; **PH law (RA 8293
+§175) does not protect "mere data as such," and PH has no EU-style sui generis
+database right** — so individual nutrient *facts* are free; only a compilation's
+*selection/arrangement* is protected. Compose-your-own is the legally cleanest
+shippable path, and mirrors Cronometer/MacroFactor's architecture (USDA + OFF +
+a verified core).
+
+**Changed (the fixes):**
+1. **Methodology bias was the real weakness.** Composing Filipino dishes off
+   *US-supply* USDA values bakes in the exact error that makes MyFitnessPal's
+   Filipino data bad (PH rice/pork/coconut/fish differ; portions differ; error
+   compounds). **Fix:** each dish = documented recipe ratios + cooking-yield
+   factors + per-100g recompute, **with per-dish provenance records**; prefer
+   PH single-ingredient primitives; **buy the printed PhilFCT 2019 for internal
+   QA cross-check only** (legal as a reference purchase — never transcribed).
+2. **ODbL is not "free and forget."** OFF's share-alike can force us to open a
+   derived DB. **Fix:** USDA CC0 is the **sole** spine that feeds composed
+   dishes; OFF lives in a **segregated, attributed table** for packaged/barcode
+   only and is **never blended** into composed-dish rows.
+3. **Contract > copyright is the real trap.** Copying FNRI *facts* is fine;
+   **accepting FNRI's FOI/iFNRI "no commercial / no public distribution" terms
+   binds us contractually** regardless. **Rule: never scrape iFNRI, never accept
+   restrictive FNRI terms.**
+
+**FNRI partnership — honest odds: LOW (~10–20%, likely >1 year).** A documented
+FOI request for a PhilFCT CSV was **denied** ("it is for sale"); there is **no
+precedent** of FNRI licensing the DB to any app; and **FNRI is building its own
+consumer apps** (PhilFCT mobile, MARFEL) — i.e. a potential competitor with
+incentive to keep the data proprietary. So FNRI = **optional upside/PR, never a
+roadmap dependency.** The composed-from-CC0 table ships regardless.
+
+### 🚩 Two flags for you (lead-level)
+- **Brand collision:** an existing Filipino AI calorie app is named **"Kilos
+  Kaloriya"** (+ "Kaloriya Pinoy") — same space we'd enter, name clash with
+  "Kilos Training." **Needs a trademark review before any nutrition launch.**
+- **Our edge over them:** both are **AI-estimated guesses with no disclosed data
+  source.** Our differentiator becomes *"documented, RND-reviewed, methodology-
+  transparent numbers — not AI guesses"* — but **only if our QA discipline is
+  real.**
+
+### Questions for a PH IP lawyer (before public launch)
+1. Practical line between *referencing a fact* and *copying a protected
+   compilation* under §175, given thin PH case law (no PH "Feist")?
+2. If anyone ever accepted FNRI FOI/iFNRI non-commercial terms, does that taint
+   the data for our commercial use? (If yes → rebuild only from CC0.)
+3. Does ODbL share-alike stay contained if OFF rows are segregated + attributed
+   and never merged into the core?
+4. Consumer-protection / product-liability exposure for wrong nutrient values in
+   a health-adjacent feature, and adequate disclaimer language?
+5. Does "Kilos Kaloriya" create trademark/confusion risk for "Kilos Training"
+   entering Filipino nutrition?
+
+### Residual risks (even with the revised plan)
+Composition accuracy is a permanent gap vs FNRI's lab values · ongoing QA/
+maintenance burden falls entirely on us · OFF PH packaged coverage is thin ·
+no natural-language entry in v1 (Edamam no-store + Nutritionix price block it) ·
+"Kilos Kaloriya" brand friction · health-liability regardless of source.
+
+### Draft outreach to DOST-FNRI (ready to send, parallel/optional track)
+> **Subject:** Public-health collaboration inquiry — free Filipino nutrition app (Kilos), data-use guidance from DOST-FNRI
+>
+> Dear DOST-FNRI Food and Nutrition Research Institute (FLCD Section),
+>
+> My name is Gabe Tagala, and I lead Kilos — a Philippines-first, free-forever mobile app that helps Filipinos track their training and nutrition. Our north star is public-health-aligned: we never paywall basic logging, and we want the nutrition information we surface for Filipino foods to be as accurate and trustworthy as possible.
+>
+> We recognize DOST-FNRI as the authoritative generator of Philippine food composition data, and the Philippine Food Composition Tables (PhilFCT) as the gold standard for local dishes — coverage no global database (USDA, Open Food Facts) matches for everyday Filipino viands.
+>
+> We're writing to (1) understand FNRI's official channels and terms for any data use by a free consumer application, and (2) explore whether a public-health collaboration could let Filipinos see trustworthy, FNRI-grounded nutrition information for local foods inside a free app.
+>
+> Specifically, we'd value guidance on:
+> 1. Whether DOST-FNRI offers any data-use or licensing arrangement permitting reference to PhilFCT values in a free consumer app, and on what terms.
+> 2. As a focused start, whether a small, named subset — e.g. the top ~100–200 most commonly consumed Filipino dishes — could be made available for validation or collaboration, and under what conditions.
+> 3. Any opportunity for an official "validated with DOST-FNRI" collaboration that advances public nutrition awareness while properly crediting FNRI's work.
+>
+> To be transparent: Kilos is a free app but a commercial undertaking, so we want to engage through the correct formal channel rather than assume anything about data use. We'd rather invest the time to do this properly and in partnership with FNRI.
+>
+> We've also purchased the printed PhilFCT 2019 publication for internal reference, and deeply respect the laboratory work it represents.
+>
+> Might we request a short meeting, or written guidance on the appropriate process and terms? We're based in the Philippines and happy to visit the Bicutan office at your convenience.
+>
+> Respectfully,
+> Gabe Tagala — Kilos Training — gabe@spiralytics.com
+
+*Before sending or signing anything from FNRI: route every term through PH IP
+counsel. Never accept a non-commercial / no-distribution condition — it taints
+the data for the product.*
