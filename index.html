@@ -73,7 +73,7 @@
               <div class="hw-training">TRAINING</div>
             </div>
             <div class="home-utils">
-              <button class="profile-btn" id="btn-profile" title="Edit profile">
+              <button class="profile-btn" id="btn-profile" aria-label="Profile and settings" title="Edit profile">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
                 <span class="profile-btn-name" id="profile-btn-name"></span>
               </button>
@@ -92,7 +92,7 @@
         <div class="pr-board-head">
           <div class="section-label history-pr-label">Personal Records</div>
           <div style="display:flex;gap:8px;align-items:center">
-            <button class="export-btn" id="btn-export" title="Export CSV">
+            <button class="export-btn" id="btn-export" aria-label="Export workout history as CSV" title="Export CSV">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             </button>
             <span class="pr-chip" id="pr-count">0 PRs</span>
@@ -187,7 +187,7 @@
           <button class="build-mode-btn active" data-mode="strength">Strength</button>
           <button class="build-mode-btn" data-mode="crossfit">CrossFit</button>
         </div>
-        <input class="workout-name-input" id="custom-name" type="text" placeholder="Workout name..." autocomplete="off">
+        <input class="workout-name-input" id="custom-name" aria-label="Workout name" type="text" placeholder="Workout name..." autocomplete="off">
 
         <!-- Strength -->
         <div id="strength-section">
@@ -212,20 +212,20 @@
           <!-- EMOM config -->
           <div id="cf-config-emom" class="cf-config">
             <div class="ex-row" style="grid-template-columns:1fr 1fr;margin-bottom:20px">
-              <div class="ex-field"><label>Rounds</label><input type="number" id="cf-emom-rounds" value="10" min="1" max="60" inputmode="numeric"></div>
-              <div class="ex-field"><label>Interval (sec)</label><input type="number" id="cf-emom-interval" value="60" min="10" max="300" inputmode="numeric"></div>
+              <div class="ex-field"><label>Rounds</label><input type="number" id="cf-emom-rounds" aria-label="EMOM rounds" value="10" min="1" max="60" inputmode="numeric"></div>
+              <div class="ex-field"><label>Interval (sec)</label><input type="number" id="cf-emom-interval" aria-label="EMOM interval, seconds" value="60" min="10" max="300" inputmode="numeric"></div>
             </div>
           </div>
           <!-- AMRAP config -->
           <div id="cf-config-amrap" class="cf-config" style="display:none">
             <div class="ex-row" style="grid-template-columns:1fr 1fr;margin-bottom:20px">
-              <div class="ex-field"><label>Time cap (min)</label><input type="number" id="cf-amrap-time" value="20" min="1" max="90" inputmode="numeric"></div>
+              <div class="ex-field"><label>Time cap (min)</label><input type="number" id="cf-amrap-time" aria-label="AMRAP time cap, minutes" value="20" min="1" max="90" inputmode="numeric"></div>
             </div>
           </div>
           <!-- Rounds for Time config -->
           <div id="cf-config-rounds" class="cf-config" style="display:none">
             <div class="ex-row" style="grid-template-columns:1fr 1fr;margin-bottom:20px">
-              <div class="ex-field"><label>Rounds</label><input type="number" id="cf-rounds-count" value="3" min="1" max="20" inputmode="numeric"></div>
+              <div class="ex-field"><label>Rounds</label><input type="number" id="cf-rounds-count" aria-label="Number of rounds" value="3" min="1" max="20" inputmode="numeric"></div>
             </div>
           </div>
           <!-- For Time: no extra config -->
@@ -235,8 +235,8 @@
           <div id="cf-movement-list"></div>
           <div class="cf-movement-add-row">
             <div class="ex-row" style="grid-template-columns:2fr 1fr;gap:12px;margin-bottom:0">
-              <div class="ex-field"><label>Movement</label><input type="text" id="cf-mov-name" placeholder="e.g. Pull-up, 400m Run" autocomplete="off"></div>
-              <div class="ex-field"><label>Reps / Unit</label><input type="text" id="cf-mov-reps" placeholder="21 reps" autocomplete="off"></div>
+              <div class="ex-field"><label>Movement</label><input type="text" id="cf-mov-name" aria-label="Movement name" placeholder="e.g. Pull-up, 400m Run" autocomplete="off"></div>
+              <div class="ex-field"><label>Reps / Unit</label><input type="text" id="cf-mov-reps" aria-label="Reps or unit" placeholder="21 reps" autocomplete="off"></div>
             </div>
             <button class="add-exercise-btn" id="btn-add-cf-movement">+ Add Movement</button>
           </div>
@@ -280,16 +280,16 @@
           </div>
         </div>
         <div class="timer-controls">
-          <div class="tc-btn" id="btn-prev-ex">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-          </div>
-          <div class="tc-btn main" id="play-pause-btn">
-            <svg id="play-icon" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            <svg id="pause-icon" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-          </div>
-          <div class="tc-btn" id="btn-next-ex">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-          </div>
+          <button type="button" class="tc-btn" id="btn-prev-ex" aria-label="Previous exercise">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button type="button" class="tc-btn main" id="play-pause-btn" aria-label="Start or pause the timer">
+            <svg id="play-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <svg id="pause-icon" viewBox="0 0 24 24" fill="currentColor" style="display:none" aria-hidden="true"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          </button>
+          <button type="button" class="tc-btn" id="btn-next-ex" aria-label="Next exercise">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
         </div>
         <!-- CF Log — shown instead of set-log for CF workouts -->
         <div id="cf-log" style="display:none;height:290px;overflow-y:auto;padding:0 24px 88px;flex-shrink:0;"></div>
@@ -310,7 +310,7 @@
           <div class="label" id="cardio-type-label" style="padding:0 24px;margin-bottom:8px"></div>
           <div style="font-size:9px;color:var(--grey);font-family:'Space Mono',monospace;padding:0 24px;margin-bottom:20px;text-transform:uppercase;letter-spacing:0.08em" id="cardio-notes-label"></div>
           <div class="label" style="padding:0 24px;margin-bottom:10px">Distance</div>
-          <input class="log-input" id="cardio-distance-input" type="text" placeholder="e.g. 5.2 km" style="width:calc(100% - 48px);margin:0 24px;display:block;font-size:20px">
+          <input class="log-input" id="cardio-distance-input" aria-label="Distance" type="text" placeholder="e.g. 5.2 km" style="width:calc(100% - 48px);margin:0 24px;display:block;font-size:20px">
         </div>
       </div>
 
@@ -416,7 +416,7 @@
       <div class="modal-sheet plate-sheet">
         <div class="plate-title">PLATE CALCULATOR</div>
         <div class="plate-target-row">
-          <input type="number" id="plate-input" class="plate-input" placeholder="Target kg" inputmode="decimal">
+          <input type="number" id="plate-input" aria-label="Target weight" class="plate-input" placeholder="Target kg" inputmode="decimal">
           <span class="plate-unit-label" id="plate-unit-label">kg</span>
         </div>
         <div id="plate-result" class="plate-result"></div>
@@ -444,7 +444,7 @@
     <div class="modal-overlay" id="ex-search-modal">
       <div class="modal-sheet">
         <div class="esm-search">
-          <input type="text" id="ex-search-input" placeholder="Search exercises..." autocomplete="off">
+          <input type="text" id="ex-search-input" aria-label="Search exercises" placeholder="Search exercises..." autocomplete="off">
         </div>
         <div class="esm-list" id="ex-search-list"></div>
         <button class="modal-close-btn" id="btn-close-ex-search">Cancel</button>
@@ -546,9 +546,9 @@
         <!-- Create account -->
         <div class="np-step" id="np-step-account">
           <div class="np-title">LET'S GO.</div>
-          <input type="text" id="np-display-name" class="np-input" placeholder="Your name"
+          <input type="text" id="np-display-name" aria-label="Your name" class="np-input" placeholder="Your name"
                  autocomplete="given-name" autocorrect="off" autocapitalize="words" />
-          <input type="password" id="np-password" class="np-input" placeholder="Password"
+          <input type="password" id="np-password" aria-label="Password" class="np-input" placeholder="Password"
                  autocomplete="new-password" />
           <div class="np-error" id="np-create-error"></div>
           <button class="np-cta" id="np-btn-create">Create account →</button>
@@ -561,9 +561,9 @@
         <!-- Sign in -->
         <div class="np-step" id="np-step-signin" style="display:none">
           <div class="np-title">WELCOME BACK.</div>
-          <input type="text" id="np-signin-username" class="np-input" placeholder="Your name"
+          <input type="text" id="np-signin-username" aria-label="Your name" class="np-input" placeholder="Your name"
                  autocomplete="username" autocorrect="off" autocapitalize="none" spellcheck="false" />
-          <input type="password" id="np-signin-password" class="np-input" placeholder="Password"
+          <input type="password" id="np-signin-password" aria-label="Password" class="np-input" placeholder="Password"
                  autocomplete="current-password" />
           <div class="np-error" id="np-signin-error"></div>
           <button class="np-cta" id="np-btn-signin">Sign in →</button>
@@ -591,8 +591,8 @@
 
         <div class="prof-header">
           <div class="prof-name-row">
-            <input class="prof-name-input" id="prof-name-input" type="text" placeholder="Your name" autocomplete="off" spellcheck="false">
-            <button class="prof-close" id="btn-close-profile">✕</button>
+            <input class="prof-name-input" id="prof-name-input" aria-label="Your name" type="text" placeholder="Your name" autocomplete="off" spellcheck="false">
+            <button class="prof-close" id="btn-close-profile" aria-label="Close profile">✕</button>
           </div>
         </div>
 
@@ -633,10 +633,10 @@
         <div class="fb-handle"></div>
         <div class="fb-header">
           <div class="fb-title">QUICK MESSAGE</div>
-          <button class="fb-close" id="fb-close">✕</button>
+          <button class="fb-close" id="fb-close" aria-label="Close">✕</button>
         </div>
         <p class="fb-sub">Straight to Gabe. Bug, idea, anything.</p>
-        <textarea id="fb-text" class="fb-textarea" placeholder="What did you notice?" maxlength="500" rows="4"></textarea>
+        <textarea id="fb-text" aria-label="Your message" class="fb-textarea" placeholder="What did you notice?" maxlength="500" rows="4"></textarea>
         <div class="fb-footer">
           <span class="fb-chars"><span id="fb-count">0</span>/500</span>
           <button class="fb-send" id="fb-send">Send →</button>

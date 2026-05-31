@@ -16,6 +16,32 @@
   display: none;
 }
 
+/* ─── ACCESSIBILITY (DESIGN.md / WCAG) ─── */
+/* Keyboard focus ring — only on keyboard/switch focus, never on tap/mouse.
+   White on dark surfaces; dark on the light hero bands. (WCAG 2.4.7) */
+:focus-visible {
+  outline: 2px solid var(--white);
+  outline-offset: 2px;
+}
+.home-hero :focus-visible,
+.screen-hero :focus-visible,
+.build-header :focus-visible {
+  outline-color: var(--bg);
+}
+
+/* Respect reduced-motion — neutralise transitions/animations/parallax for
+   users with vestibular sensitivity (WCAG 2.3.3 / Apple HIG). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 :root {
   /* ── Typography ── */
   /* Body/UI: system-native → SF Pro on iOS, Roboto on Android, Helvetica on Mac */
@@ -33,7 +59,7 @@
 
   /* ── Text ── */
   --text: #ebebeb;
-  --text2: #888;
+  --text2: #8f8f8f; /* secondary text — ≥4.5:1 on --bg (WCAG AA); was #888 = 4.49 */
   --muted: #4a4a4a;
 
   /* ── Pure white — buttons, hero panels, active states ── */
@@ -44,7 +70,7 @@
   --accent: #ffffff;
 
   /* ── Legacy aliases ── */
-  --grey: #888;
+  --grey: #8f8f8f; /* ≥4.5:1 on --bg (WCAG AA); was #888 = 4.49 */
   --grey2: rgba(255, 255, 255, 0.08);
 
   /* ── Spacing — 4px base (DESIGN.md A3) ── */
@@ -596,7 +622,7 @@ body {
   padding-bottom: 24px;
 }
 .home-hero .section-label {
-  color: rgba(0, 0, 0, 0.55);
+  color: rgba(0, 0, 0, 0.62); /* dark on cream — ≥4.5:1 (WCAG AA) */
 }
 .home-hero .day-cell {
   border-bottom-color: rgba(0, 0, 0, 0.1);
@@ -663,7 +689,7 @@ body {
 }
 .screen-hero .section-label,
 .screen-hero .label {
-  color: rgba(0, 0, 0, 0.55);
+  color: rgba(0, 0, 0, 0.62); /* dark on cream — ≥4.5:1 (WCAG AA) */
 }
 .screen-hero .history-header {
   border-bottom: none;
@@ -1293,7 +1319,7 @@ body {
 .build-header p {
   font-size: 9px;
   font-family: "Space Mono", monospace;
-  color: rgba(0, 0, 0, 0.5); /* dark on the light hero band */
+  color: rgba(0, 0, 0, 0.62); /* dark on cream — ≥4.5:1 (WCAG AA) */
   margin-top: 10px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
