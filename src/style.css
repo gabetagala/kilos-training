@@ -92,7 +92,43 @@
   --dur-base: 220ms;
   --dur-slow: 380ms;
   --ease-smooth: cubic-bezier(0.2, 0, 0, 1); /* default — no overshoot */
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* earned moments — small overshoot only */
+  --ease-spring: cubic-bezier(
+    0.34,
+    1.56,
+    0.64,
+    1
+  ); /* earned moments — small overshoot only */
+  --ease-out-ios: cubic-bezier(
+    0.16,
+    1,
+    0.3,
+    1
+  ); /* premium settle — entering elements */
+
+  /* ── Canvas depth — a deeper base BELOW --bg so #222/#2a/#33 read as a real
+     elevation ladder (premium dark apps sit ~#1a, not #222). Surfaces unchanged. ── */
+  --bg0: #181818;
+
+  /* ── Earned accent — brass/iron. The ONE hue, reserved for PR + milestone
+     moments only (DECISIONS: monochrome stays; this is the single exception).
+     Warm, industrial, strength-coded — never decoration, never on chrome. ── */
+  --pr: #c79a45; /* brass — labels, rims, the PR number */
+  --pr-bright: #e7c87f; /* highlight — top of the PR number gradient */
+  --pr-glow: rgba(199, 154, 69, 0.42); /* bloom / ambient halo */
+
+  /* ── Glass system — two-layer frosted material (DESIGN.md / research).
+     Tint stays low on dark; blur does the work; rim is the specular edge. ── */
+  --glass-blur: 20px;
+  --glass-saturate: 150%;
+  --glass-tint: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-rim: rgba(255, 255, 255, 0.14); /* top specular highlight */
+
+  /* ── Elevation — glow + depth shadow for surfaces that float ── */
+  --elev-glow: 0 0 24px rgba(255, 255, 255, 0.04);
+  --elev-1: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --elev-2: 0 12px 40px rgba(0, 0, 0, 0.5);
+  --elev-sheet: 0 -10px 48px rgba(0, 0, 0, 0.55);
 }
 
 /* ─── TYPE SCALE (DESIGN.md A2) — compose these instead of hand-typing font-size.
@@ -263,7 +299,7 @@ body {
       rgba(255, 255, 255, 0.03) 0%,
       transparent 100%
     ),
-    var(--bg);
+    var(--bg0);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -461,33 +497,35 @@ body {
   /* Transition-based visibility — no display:none flash */
   opacity: 0;
   pointer-events: none;
+  /* Smooth settle, not a hard slide — opacity leads, transform eases in deep */
   transition:
-    opacity 0.18s ease,
-    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity var(--dur-base) var(--ease-smooth),
+    transform var(--dur-slow) var(--ease-out-ios);
   will-change: opacity, transform;
 }
 .screen.active {
   opacity: 1;
   pointer-events: auto;
-  transform: translateX(0) !important;
+  transform: none !important; /* settles to identity (resets the enter scale too) */
 }
-/* Staging positions — set before .active is added so the browser has a start point */
+/* Staging positions — set before .active is added so the browser has a start point.
+   A hair of scale alongside the slide reads as depth, not a flat pan. */
 .screen.s-enter-right {
-  transform: translateX(24px);
+  transform: translateX(20px) scale(0.99);
   opacity: 0;
 }
 .screen.s-enter-left {
-  transform: translateX(-24px);
+  transform: translateX(-20px) scale(0.99);
   opacity: 0;
 }
 /* Exit positions — transition fires from current to these */
 .screen.s-exit-left {
-  transform: translateX(-12px);
+  transform: translateX(-12px) scale(0.99);
   opacity: 0;
   pointer-events: none;
 }
 .screen.s-exit-right {
-  transform: translateX(12px);
+  transform: translateX(12px) scale(0.99);
   opacity: 0;
   pointer-events: none;
 }
@@ -613,8 +651,8 @@ body {
   border-color: var(--bg);
   color: var(--bg);
 }
-.home-hero .profile-tag {
-  color: rgba(0, 0, 0, 0.35);
+.home-hero .home-greeting {
+  color: rgba(0, 0, 0, 0.72); /* dark on cream — ≥4.5:1 (WCAG AA) */
   border-bottom-color: rgba(0, 0, 0, 0.06);
 }
 .home-hero .week-strip {
@@ -755,7 +793,11 @@ body {
 }
 .hw-kilos {
   font-family: "Bebas Neue", sans-serif;
-  font-size: clamp(36px, 11vw, 46px); /* in-app header mark, not a splash billboard */
+  font-size: clamp(
+    36px,
+    11vw,
+    46px
+  ); /* in-app header mark, not a splash billboard */
   line-height: 0.86;
   letter-spacing: 0.01em;
   color: var(--white);
@@ -1095,7 +1137,11 @@ body {
 }
 .cs-title {
   font-family: "Bebas Neue", sans-serif;
-  font-size: clamp(42px, 13vw, 56px); /* unified screen-title size (DESIGN.md) */
+  font-size: clamp(
+    42px,
+    13vw,
+    56px
+  ); /* unified screen-title size (DESIGN.md) */
   line-height: 0.92;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1325,7 +1371,11 @@ body {
 }
 .build-header h1 {
   font-family: "Bebas Neue", sans-serif;
-  font-size: clamp(42px, 13vw, 56px); /* unified screen-title size (DESIGN.md) */
+  font-size: clamp(
+    42px,
+    13vw,
+    56px
+  ); /* unified screen-title size (DESIGN.md) */
   letter-spacing: 0.04em;
   line-height: 1;
   text-transform: uppercase;
@@ -1969,32 +2019,37 @@ body {
   padding: 8px 24px;
 }
 
-.active-header {
-  padding: max(16px, env(safe-area-inset-top)) 24px 14px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid var(--line);
+/* Finish — pinned to the bottom of the active screen in every mode so the top
+   can breathe. margin-top:auto drops it to the bottom when content is short; it
+   flows right after the set list when the session is long. */
+.active-finish-bar {
+  margin-top: auto;
+  padding: 14px 24px;
   flex-shrink: 0;
 }
 .active-finish {
+  width: 100%;
   background: none;
-  border: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
   color: var(--text2);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
   font-style: normal;
-  cursor: pointer;
   font-family: var(--font-body);
-  border-bottom: 1px solid var(--text2);
-  padding-bottom: 1px;
+  letter-spacing: 0.02em;
+  padding: 14px 0;
+  min-height: 48px;
+  cursor: pointer;
   transition:
     color 0.15s,
-    border-color 0.15s;
+    border-color 0.15s,
+    background 0.15s;
 }
 .active-finish:active {
   color: var(--white);
   border-color: var(--white);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 /* Exercise nav pills */
@@ -2024,6 +2079,8 @@ body {
   display: flex;
   gap: 4px;
   align-items: center;
+  flex: 1;
+  min-width: 0;
 }
 .ex-nav-pill {
   width: 5px;
@@ -2041,7 +2098,8 @@ body {
 
 /* Exercise display — compact */
 .exercise-display {
-  padding: 10px 24px 2px;
+  /* now the first element on the screen — carry the safe-area top inset */
+  padding: max(20px, calc(env(safe-area-inset-top) + 8px)) 24px 4px;
   flex-shrink: 0;
 }
 .ex-current-name {
@@ -2050,7 +2108,14 @@ body {
   letter-spacing: 0.02em;
   text-transform: uppercase;
   line-height: 1;
-  margin-bottom: 2px;
+  margin-bottom: 6px;
+}
+/* One tidy line: set counter · feel chip ………… swap link */
+.ex-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
 }
 .ex-set-counter {
   font-size: 9px;
@@ -2242,37 +2307,65 @@ body {
   width: 20px;
   height: 20px;
 }
+/* Strength: the main button is a Log button — a worded white disc */
+.tc-btn.main.is-log {
+  width: 64px;
+  height: 64px;
+}
+.pp-label {
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--bg);
+  line-height: 1;
+}
 
 /* Set log — frosted glass, grows with content */
 .set-log {
   flex-shrink: 0;
-  padding: 0 24px 100px; /* 100px clears the nav bar */
+  padding: 14px 24px 16px; /* nav clearance now comes from the screen + finish bar */
   background: rgba(10, 10, 10, 0.72);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
-.set-log-title {
-  font-size: 9px;
-  font-family: "Space Mono", monospace;
-  color: var(--grey);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  padding: 10px 0 8px;
-}
-
 .log-row {
   padding: 10px 0;
   border-bottom: 1px solid var(--line);
+  transition: opacity 0.2s;
 }
+/* Logged sets recede; the current (next) set is highlighted as the focus */
+.log-row.done {
+  opacity: 0.5;
+}
+.log-row.current {
+  opacity: 1;
+}
+/* SET line is a button — tap to log/undo that specific set */
 .log-row-top {
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 100%;
   margin-bottom: 8px;
+  padding: 4px 0;
+  min-height: 32px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
 }
-.log-row-top .log-done {
-  margin-left: auto;
+.log-check {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  color: var(--white);
+}
+.log-check svg {
+  width: 16px;
+  height: 16px;
 }
 .log-fields {
   display: flex;
@@ -2300,15 +2393,18 @@ body {
   gap: 8px;
   min-width: 0;
 }
+/* Quiet, borderless ± glyphs flanking the number — the number is the hero,
+   not four boxed buttons. 44px tap target preserved via padding/size. */
 .step-btn {
   width: 44px;
   height: 44px;
   flex-shrink: 0;
-  border: 1.5px solid var(--border);
-  border-radius: var(--r-sm);
+  border: none;
+  border-radius: var(--r-pill);
   background: none;
   color: var(--grey);
-  font-size: 24px;
+  font-size: 26px;
+  font-weight: 300;
   line-height: 1;
   display: flex;
   align-items: center;
@@ -2319,7 +2415,6 @@ body {
     background var(--dur-fast) var(--ease-smooth),
     transform var(--dur-fast) var(--ease-spring);
 }
-/* Same calm border for both; + reads a touch brighter as the primary action. */
 .step-plus {
   color: var(--text);
 }
@@ -2328,7 +2423,7 @@ body {
 }
 .step-btn:active {
   transform: scale(0.9);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.08);
 }
 .log-fields .log-input {
   text-align: center;
@@ -2389,48 +2484,7 @@ body {
   font-size: 14px;
   flex-shrink: 0;
 }
-.log-done {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 1.5px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition:
-    background 0.18s,
-    border-color 0.18s,
-    transform 0.1s;
-}
-.log-done:active {
-  transform: scale(0.88);
-}
-.log-done svg {
-  width: 16px;
-  height: 16px;
-  color: var(--grey);
-  transform: scale(0);
-  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.log-done.checked {
-  background: var(--white);
-  border-color: var(--white);
-}
-.log-done.checked svg {
-  color: var(--bg);
-  transform: scale(1);
-}
-.log-prev {
-  flex: 1;
-  font-size: 9px;
-  font-family: "Space Mono", monospace;
-  color: var(--grey2);
-  letter-spacing: 0.08em;
-  text-align: right;
-}
-/* Replaces the "Last:" hint once a set is logged — the payoff readout. */
+/* Set's estimated-1RM payoff, shown on the SET line once it's logged. */
 .log-e1rm {
   flex: 1;
   font-size: 9px;
@@ -3111,26 +3165,27 @@ body {
   transform: scale(0.98);
 }
 
-/* Profile indicator on home — equipment tag */
-.profile-tag {
-  font-family: "Space Mono", monospace;
-  font-size: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--grey2);
-  padding-bottom: 12px;
+/* Home greeting — rotating "ready to train" line under the wordmark */
+.home-greeting {
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.3;
+  color: var(--grey);
+  padding: 12px 0 14px;
   border-bottom: 1px solid var(--line);
 }
 
 /* ── Feel / intensity badge in active workout ── */
+/* Inline intensity chip on the meta row: "Set 1 of 4 · Heavy" */
 .feel-badge {
   font-family: "Space Mono", monospace;
-  font-size: 8px;
+  font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
-  padding: 0 24px;
-  margin-bottom: 2px;
-  display: block;
+  letter-spacing: 0.1em;
+}
+.feel-badge::before {
+  content: "· ";
+  color: var(--grey2);
 }
 .feel-badge.heavy {
   color: var(--white);
@@ -3623,17 +3678,19 @@ body {
 /* ══════════════════════════════════════════
    SWAP EXERCISE BUTTON
 ══════════════════════════════════════════ */
+/* Small, quiet text link pushed to the end of the meta row */
 .swap-ex-btn {
+  margin-left: auto;
   background: none;
   border: none;
   font-family: "Space Mono", monospace;
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--grey2);
+  color: var(--grey);
   cursor: pointer;
-  padding: 6px 24px 2px;
-  display: block;
+  padding: 4px 0 4px 12px;
+  min-height: 24px;
   transition: color 0.15s;
 }
 .swap-ex-btn:active {
@@ -4584,37 +4641,16 @@ body {
   font-size: 8px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  line-height: 1.35;
   color: var(--grey);
   margin-left: 12px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 140px;
+  flex: 1; /* take the rest of the row and wrap — show the full name */
+  min-width: 0;
 }
 
 /* ══════════════════════════════════════════
    TASK #8 — UNIT TOGGLE BUTTON
 ══════════════════════════════════════════ */
-.unit-toggle-btn {
-  background: none;
-  border: 1px solid var(--line);
-  font-family: "Space Mono", monospace;
-  font-size: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--grey);
-  padding: 3px 7px;
-  cursor: pointer;
-  margin-left: 8px;
-  transition:
-    border-color 0.15s,
-    color 0.15s;
-}
-.unit-toggle-btn:active {
-  border-color: var(--white);
-  color: var(--white);
-}
-
 /* ══════════════════════════════════════════
    TASK #10 — RESUME BUTTON ELEVATION
 ══════════════════════════════════════════ */
@@ -4653,29 +4689,6 @@ body {
 /* ══════════════════════════════════════════
    TASK #13 — SWAP EXERCISE BUTTON (enhanced)
 ══════════════════════════════════════════ */
-.swap-ex-btn {
-  background: none !important;
-  border: 1px solid var(--line) !important;
-  font-family: "Space Mono", monospace !important;
-  font-size: 9px !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.1em !important;
-  color: var(--grey) !important;
-  cursor: pointer !important;
-  padding: 8px 24px !important;
-  display: block !important;
-  margin: 6px 0 10px !important;
-  transition:
-    border-color 0.15s,
-    color 0.15s !important;
-  width: calc(100% - 48px) !important;
-  margin-left: 24px !important;
-}
-.swap-ex-btn:active {
-  border-color: var(--white) !important;
-  color: var(--white) !important;
-}
-
 /* ══════════════════════════════════════════
    TASK #15 — STICKY "START WORKOUT" BUTTON
 ══════════════════════════════════════════ */
@@ -4811,19 +4824,6 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   white-space: nowrap;
-}
-
-/* ══════════════════════════════════════════
-   TASK #25 — NEXT EXERCISE PREVIEW
-══════════════════════════════════════════ */
-.next-ex-preview {
-  font-family: "Space Mono", monospace;
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--grey);
-  padding: 0 24px 6px;
-  display: block;
 }
 
 /* ══════════════════════════════════════════
@@ -5435,51 +5435,6 @@ body {
   margin-top: 8px;
 }
 /* Plate calc button in set log header */
-.set-log-title-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-}
-.set-log-tools {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.setlog-unit-btn {
-  min-height: 28px;
-  padding: 4px 12px;
-  border: 1.5px solid var(--border);
-  border-radius: 8px;
-  background: none;
-  color: var(--text);
-  font-family: "Space Mono", monospace;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-}
-.setlog-unit-btn:active {
-  background: rgba(255, 255, 255, 0.06);
-}
-.plate-calc-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-family: "Space Mono", monospace;
-  font-size: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  color: rgba(255, 255, 255, 0.35);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px 0;
-  transition: color 0.15s;
-}
-.plate-calc-btn:active {
-  color: var(--white);
-}
 
 /* ══════════════════════════════════════════
    NAME PROMPT V2 — Multi-step additions
@@ -5944,6 +5899,882 @@ body {
 }
 
 /* ══════════════════════════════════════════
+   PREMIUM PASS — DEPTH · GLASS · EARNED ACCENT · MOTION
+   The "wait, this is free?" layer. Appended last so these refinements win the
+   cascade; grouped here so the whole pass is reviewable in one place.
+   Constraints: monochrome holds (brass is the single PR-only exception),
+   numbers never lose contrast, mobile-Safari perf respected, reduced-motion safe.
+══════════════════════════════════════════ */
+
+/* ── 1. GLASS SHEETS — add the specular top rim + lift shadow to the frosted
+   surfaces that already use backdrop-filter. Backgrounds stay near-opaque so text
+   contrast is guaranteed; the rim + saturate are what read as real glass. ── */
+.modal-sheet {
+  background: rgba(18, 18, 18, 0.9);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur))
+    saturate(var(--glass-saturate));
+  box-shadow:
+    inset 0 1px 0 var(--glass-rim),
+    var(--elev-sheet);
+}
+.confirm-sheet,
+.np-card,
+.ob-sheet,
+.prof-sheet {
+  box-shadow:
+    inset 0 1px 0 var(--glass-rim),
+    var(--elev-sheet);
+}
+.fb-card {
+  /* keep its own depth shadow, add the rim */
+  box-shadow:
+    inset 0 1px 0 var(--glass-rim),
+    var(--elev-sheet);
+}
+#nav {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* ── 2. HERO GLASS — the active-workout surface (most-seen screen). Nothing
+   meaningful sits behind it to blur, so this is a "lit glass" look built from
+   gradients: a top-left light source + specular rim. Static (no motion in the
+   logging loop), and cheaper than a live backdrop-blur on the core path. ── */
+#active .timer-block {
+  background: radial-gradient(
+    120% 90% at 12% 0%,
+    rgba(255, 255, 255, 0.07) 0%,
+    rgba(255, 255, 255, 0.015) 38%,
+    transparent 70%
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.set-log {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 -12px 32px rgba(0, 0, 0, 0.35);
+}
+
+/* ── 3. SUMMARY — depth on the stat surfaces + a "one big number" headline for
+   strength (the count-up is wired in main.js). The lead stat is the moment;
+   everything else recedes to a quiet 2-up. ── */
+.wsum-stat {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.wsum-top-lift {
+  border-radius: var(--r-md);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    var(--elev-1);
+}
+.wsum-stats.is-strength {
+  display: block;
+  background: none;
+  margin-bottom: 24px;
+}
+.wsum-hero {
+  margin-bottom: 18px;
+}
+.wsum-hero-val {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: clamp(96px, 32vw, 176px);
+  line-height: 0.84;
+  letter-spacing: 0.01em;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.wsum-hero-unit {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 10px;
+}
+.wsum-substats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: rgba(255, 255, 255, 0.06);
+}
+.wsum-substats .wsum-stat {
+  background: #0d0d0d;
+}
+
+/* ── 4. EARNED ACCENT — brass shows ONLY on a real PR. Nowhere else. ── */
+.wsum-pr-badge {
+  color: var(--pr-bright);
+  border-color: var(--pr);
+  box-shadow: 0 0 18px var(--pr-glow);
+}
+
+/* ── 5. PR CELEBRATION — the showpiece. Brass number + a single light bloom that
+   pulses out once from behind it, then fades. Proportional/earned: this only ever
+   fires on a weight PR that beats an existing record. ── */
+#pr-celebrate {
+  background:
+    radial-gradient(
+      120% 80% at 50% 38%,
+      rgba(199, 154, 69, 0.1) 0%,
+      transparent 60%
+    ),
+    #0d0d0d;
+}
+/* Bloom lives on the overlay itself (z:0); content is layered above it (z:1) so
+   it can never hide behind the overlay background. */
+#pr-celebrate.open::before {
+  content: "";
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  width: 80vw;
+  height: 80vw;
+  max-width: 520px;
+  max-height: 520px;
+  transform: translate(-50%, -50%) scale(0.4);
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--pr-glow) 0%, transparent 62%);
+  pointer-events: none;
+  z-index: 0;
+  animation: prBloom 1100ms var(--ease-out-ios) forwards;
+}
+.prc-inner,
+.prc-share,
+.prc-dismiss {
+  position: relative;
+  z-index: 1;
+}
+.prc-badge {
+  color: var(--pr-bright);
+  border-color: rgba(199, 154, 69, 0.5);
+}
+.prc-weight {
+  background: linear-gradient(180deg, var(--pr-bright) 0%, var(--pr) 80%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: var(--pr); /* fallback if background-clip:text unsupported */
+  text-shadow: 0 0 40px var(--pr-glow);
+}
+
+@keyframes prBloom {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.6);
+  }
+}
+
+/* ── 6. ACCESSIBILITY — the global reduced-motion rule already neutralises the
+   bloom's animation; this makes it inert, and drops glass for users who ask. ── */
+@media (prefers-reduced-motion: reduce) {
+  #pr-celebrate.open::before {
+    animation: none;
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .modal-sheet {
+    background: rgba(18, 18, 18, 0.98);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  #nav {
+    background: rgba(20, 20, 20, 0.98);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .set-log {
+    background: rgba(12, 12, 12, 0.98);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* ══════════════════════════════════════════
+   HOME — EDITORIAL ELEVATION
+   The visible craft pass: magazine section heads (folio index + structural
+   rule), tighter display tracking, tabular figures, a confident first-run
+   empty state. Same language as today — just sharpened.
+══════════════════════════════════════════ */
+
+/* Section heads become editorial:  01 — THIS WEEK ──────────────────── */
+#home {
+  counter-reset: folio;
+}
+#home .section-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  counter-increment: folio;
+}
+#home .section-label::before {
+  content: counter(folio, decimal-leading-zero);
+  font-family: "Space Mono", monospace;
+  font-weight: 700;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: inherit;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+#home .section-label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line); /* structural rule — the magazine "head rule" */
+}
+/* On the cream hero band the rule + folio must be dark to read */
+.home-hero .section-label::after {
+  background: rgba(0, 0, 0, 0.14);
+}
+/* PR board head: label + rule fill the row; export/count stay pinned right */
+#home .pr-board-head {
+  gap: 12px;
+}
+#home .pr-board-head .history-pr-label {
+  flex: 1;
+}
+
+/* Tighter display tracking + tabular figures on the data heroes
+   (Bebas ships spaced for small use; at display size, tight reads premium) */
+.rc-big,
+.hi-big,
+.wc-big,
+.pr-card .pr-val,
+.rdc-stat-val,
+.wsum-hero-val {
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+.streak-chip,
+.mf-days,
+.pr-chip,
+.rc-meta,
+.hi-meta {
+  font-variant-numeric: tabular-nums;
+}
+
+/* First-run RECENT empty state — an editorial moment, not a one-liner */
+.recent-empty {
+  padding: 6px 0 18px;
+}
+.recent-empty .re-fig {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: clamp(96px, 34vw, 148px);
+  line-height: 0.78;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.055);
+  pointer-events: none;
+}
+.recent-empty .re-cap {
+  font-family: "Space Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text2);
+  margin-top: -4px;
+}
+.recent-empty .re-sub {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text2);
+  max-width: 300px;
+  margin-top: 12px;
+}
+
+/* ══════════════════════════════════════════
+   REHAB — program page
+══════════════════════════════════════════ */
+.rh-intro {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text2);
+  margin-bottom: var(--s-6);
+}
+.rhs-card {
+  width: 100%;
+  text-align: left;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--s-4) var(--s-4) var(--s-4);
+  margin-bottom: var(--s-3);
+  cursor: pointer;
+  color: var(--text);
+  display: block;
+  transition:
+    transform 0.1s,
+    opacity 0.1s;
+}
+.rhs-card:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+.rhs-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+.rhs-name {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 30px;
+  line-height: 0.95;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.rhs-go {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 24px;
+  color: var(--white);
+  line-height: 1;
+}
+.rhs-meta {
+  font-family: "Space Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--grey);
+  margin-top: var(--s-2);
+}
+.rhs-blurb {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text2);
+  margin-top: var(--s-2);
+}
+.rhs-card.rh-resume {
+  border-color: var(--border);
+  background: var(--bg3);
+}
+.rh-discard {
+  background: none;
+  border: none;
+  font-family: "Space Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--grey);
+  padding: var(--s-2) 0 var(--s-4);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.rh-ex-label {
+  display: block;
+  padding-top: var(--s-4);
+  margin-bottom: var(--s-2);
+}
+.rh-ex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--line);
+}
+.rh-ex:last-child {
+  border-bottom: none;
+}
+.rh-ex-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.rh-ex-cue {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text2);
+  margin-top: 2px;
+}
+.rh-ex-yt {
+  flex-shrink: 0;
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--grey);
+  text-decoration: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  padding: 6px 12px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+}
+.rh-ex-yt:active {
+  opacity: 0.7;
+}
+.rh-note {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--grey);
+  margin: var(--s-6) 0 var(--s-8);
+}
+
+/* ══════════════════════════════════════════
+   REHAB — guided player
+══════════════════════════════════════════ */
+.rp-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 610;
+  background: #0d0d0d;
+  flex-direction: column;
+  padding: max(20px, env(safe-area-inset-top)) 24px
+    max(20px, env(safe-area-inset-bottom));
+}
+.rp-overlay.open {
+  display: flex;
+}
+.rp-top {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-shrink: 0;
+}
+.rp-close {
+  width: 44px;
+  height: 44px;
+  margin-left: -10px;
+  border: none;
+  background: none;
+  color: var(--grey);
+  font-size: 18px;
+  cursor: pointer;
+  border-radius: var(--r-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rp-close:active {
+  opacity: 0.7;
+}
+.rp-session {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text);
+  flex: 1;
+}
+.rp-count {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--grey);
+}
+.rp-voice {
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: none;
+  color: var(--grey);
+  cursor: pointer;
+  border-radius: var(--r-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.rp-voice[aria-pressed="true"] {
+  color: var(--text);
+}
+.rp-voice svg {
+  width: 18px;
+  height: 18px;
+}
+.rp-voice:active {
+  opacity: 0.7;
+}
+/* Work-start flash — a one-shot edge glow so "GO" registers without reading */
+@keyframes rp-go-flash {
+  0% {
+    box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.9);
+  }
+  100% {
+    box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0);
+  }
+}
+.rp-overlay.rp-flash {
+  animation: rp-go-flash 0.55s ease-out 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-overlay.rp-flash {
+    animation: none;
+  }
+}
+/* The demo absorbs spare vertical space (big art on tall screens) and gives
+   it back on short ones (controls always fit) — no dead void mid-screen. */
+.rp-demo {
+  flex: 1 1 auto;
+  min-height: 110px;
+  max-height: 34vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  margin: var(--s-2) 0 var(--s-3);
+  transition: opacity 0.3s;
+}
+.rp-demo svg {
+  height: 100%;
+  max-width: 100%;
+}
+.rp-demo.flip svg,
+.rp-demo.flip .rp-art-img {
+  transform: scaleX(-1);
+}
+/* Licensed illustration override — transparent cutout figures floating on
+   the dark player. A hair-thin light rim keeps the dark clothing (shorts,
+   shoes, hair) legible against the dark background. Two poses crossfade when
+   a "-b" file exists. */
+/* Fixed-ratio stage: the box is identical for every exercise and exists at
+   full size before any image loads — zero layout shift between steps. */
+.rp-art {
+  position: relative;
+  height: 100%;
+  max-width: 100%;
+  aspect-ratio: 5 / 3;
+}
+.rp-art-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.5))
+    drop-shadow(0 0 14px rgba(255, 255, 255, 0.07));
+}
+.rp-art-img.fade {
+  animation: rp-art-a 3.4s ease-in-out infinite;
+}
+.rp-art-img.b.fade {
+  animation: rp-art-b 3.4s ease-in-out infinite;
+  opacity: 0;
+}
+@keyframes rp-art-a {
+  0%,
+  36% {
+    opacity: 1;
+  }
+  48%,
+  84% {
+    opacity: 0;
+  }
+  96%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes rp-art-b {
+  0%,
+  36% {
+    opacity: 0;
+  }
+  48%,
+  84% {
+    opacity: 1;
+  }
+  96%,
+  100% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rp-art-img.fade {
+    animation: none;
+  }
+  .rp-art-img.b.fade {
+    animation: none;
+    opacity: 0;
+  }
+}
+.rp-overlay.phase-rest .rp-demo {
+  opacity: 0.35;
+}
+.rp-exname {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: clamp(36px, 11vw, 48px);
+  line-height: 0.92;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.rp-meta {
+  font-family: "Space Mono", monospace;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin-top: var(--s-2);
+  min-height: 18px;
+  flex-shrink: 0;
+}
+/* Every row below the stage is a FIXED slot — text length and step type can
+   never move the layout. The cue is a locked 3-line box (clamped), and the
+   clock/lift share one constant-height slot. */
+.rp-cue {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text2);
+  margin-top: var(--s-2);
+  height: calc(3 * 1.45 * 13px);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  flex-shrink: 0;
+}
+.rp-clock {
+  margin-top: auto;
+  text-align: center;
+  flex-shrink: 0;
+  min-height: 148px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+/* The phase word is a mid-set state read — it must land at a glance. */
+.rp-phase {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 24px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--grey);
+}
+.rp-overlay.phase-work .rp-phase {
+  color: var(--white);
+}
+.rp-time {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: clamp(64px, 22vw, 96px);
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+  color: var(--white);
+}
+.rp-overlay.phase-rest .rp-time {
+  color: var(--text2);
+}
+.rp-bar-track {
+  height: 3px;
+  background: var(--grey2);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+  margin-top: var(--s-3);
+}
+.rp-bar {
+  height: 100%;
+  width: 0%;
+  background: var(--white);
+  border-radius: var(--r-pill);
+  transition: width 0.25s linear;
+}
+.rp-overlay.phase-rest .rp-bar {
+  background: var(--text2);
+}
+/* Manual lift step — weight stepper + done button replace the countdown */
+.rp-lift {
+  margin-top: auto;
+  flex-shrink: 0;
+  min-height: 148px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.rp-weight-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-6);
+}
+.rp-wbtn {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rp-wbtn:active {
+  background: var(--bg3);
+}
+.rp-weight {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 56px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  min-width: 110px;
+  text-align: center;
+}
+.rp-w-unit {
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--grey);
+  margin-left: 6px;
+}
+.rp-done {
+  width: 100%;
+  margin-top: var(--s-4);
+  height: 56px;
+  border: none;
+  border-radius: var(--r-sm);
+  background: var(--white);
+  color: #111;
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 20px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+.rp-done:active {
+  transform: scale(0.98);
+}
+.rp-next {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--grey);
+  text-align: center;
+  margin-top: var(--s-4);
+  min-height: 14px;
+  flex-shrink: 0;
+}
+.rp-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-6);
+  margin-top: var(--s-4);
+  flex-shrink: 0;
+}
+.rp-ctrl {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rp-ctrl svg {
+  width: 20px;
+  height: 20px;
+}
+.rp-ctrl:active {
+  background: var(--bg3);
+}
+.rp-ctrl.main {
+  width: 76px;
+  height: 76px;
+  background: var(--white);
+  border: none;
+  color: #111;
+}
+.rp-ctrl.main svg {
+  width: 28px;
+  height: 28px;
+}
+.rp-ctrl.main:active {
+  transform: scale(0.95);
+  background: var(--off);
+}
+.rp-ctrl[disabled] {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* ── Demo animation systems ──
+   Movements animate natively inside the SVG (SMIL — stripped by the player
+   under reduced motion). Figure grammar: support body dimmed, the working
+   part full-white, direction arrows pulsing gently. Holds get subtle CSS life: */
+.rd-action {
+  opacity: 0.6;
+  animation: rd-action-pulse 2.2s ease-in-out infinite alternate;
+}
+@keyframes rd-action-pulse {
+  from {
+    opacity: 0.3;
+  }
+  to {
+    opacity: 0.7;
+  }
+}
+.rd-hang {
+  animation: rd-bob 3s ease-in-out infinite alternate;
+}
+@keyframes rd-bob {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(3px);
+  }
+}
+.rd-pulse {
+  transform-box: fill-box;
+  animation: rd-sag 2.6s ease-in-out infinite alternate;
+}
+@keyframes rd-sag {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(1.4deg);
+  }
+}
+.rd-rock {
+  transform-box: fill-box;
+  animation: rd-rock 2.4s ease-in-out infinite alternate;
+}
+@keyframes rd-rock {
+  from {
+    transform: rotate(-2.5deg);
+  }
+  to {
+    transform: rotate(3deg);
+  }
+}
+.rd-shift {
+  animation: rd-shift 2.6s ease-in-out infinite alternate;
+}
+@keyframes rd-shift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rd-hang,
+  .rd-pulse,
+  .rd-rock,
+  .rd-shift,
+  .rd-action {
+    animation: none;
+  }
+}
+
+/* ══════════════════════════════════════════
    DESKTOP OVERRIDES (must come last)
 ══════════════════════════════════════════ */
 @media (min-width: 600px) {
@@ -5951,6 +6782,9 @@ body {
     position: absolute;
   }
   #share-modal {
+    position: absolute;
+  }
+  .rp-overlay {
     position: absolute;
   }
 }

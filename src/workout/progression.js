@@ -7,7 +7,9 @@
 // Returns a number (kg) or null when there's nothing to base it on.
 export function suggestNextWeight(lastLogs, targetRepsStr) {
   if (!lastLogs?.length) return null;
-  const weights = lastLogs.map((l) => parseFloat(l.weight)).filter((w) => w > 0);
+  const weights = lastLogs
+    .map((l) => parseFloat(l.weight))
+    .filter((w) => w > 0);
   if (!weights.length) return null;
   const topW = Math.max(...weights);
   const target = parseInt(targetRepsStr, 10) || 8;

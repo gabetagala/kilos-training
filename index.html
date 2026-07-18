@@ -130,6 +130,10 @@
               <div class="qb-left"><div class="qb-title">Quick Start</div><div class="qb-sub">Pick a muscle. Go.</div></div>
               <div class="qb-arrow">→</div>
             </button>
+            <button class="quick-btn" id="btn-rehab-open">
+              <div class="qb-left"><div class="qb-title">Rehab</div><div class="qb-sub" id="rehab-btn-sub">Back protocol · follow along</div></div>
+              <div class="qb-arrow">→</div>
+            </button>
             <button class="quick-btn" id="btn-legends-open">
               <div class="qb-left"><div class="qb-title">Legends</div><div class="qb-sub">Train like the greats</div></div>
               <div class="qb-arrow">→</div>
@@ -245,17 +249,17 @@
           <p class="ap-hint">Start from Home or build a custom session.</p>
           <button class="ap-cta" id="ap-go-home">Go to Home →</button>
         </div>
-        <div class="active-header">
-          <div class="wordmark" style="font-size:20px">KILOS <span>TRAINING</span></div>
-          <button class="active-finish" id="btn-finish">Finish</button>
-        </div>
-        <div class="exercise-nav" id="exercise-nav">
-          <div class="ex-nav-pills" id="ex-nav-pills"></div>
-        </div>
-        <!-- BOLD TYPE TIMER -->
+        <!-- Current exercise is the headline — top of the screen, lets the rest breathe -->
         <div class="exercise-display" id="exercise-display">
           <div class="ex-current-name" id="current-ex-name">—</div>
-          <div class="ex-set-counter" id="current-ex-sets">Set 1 of 3</div>
+          <div class="ex-meta-row">
+            <span class="ex-set-counter" id="current-ex-sets">Set 1 of 3</span>
+            <!-- feel chip + swap link injected here by JS -->
+          </div>
+        </div>
+        <!-- Progress dots + what's coming up -->
+        <div class="exercise-nav" id="exercise-nav">
+          <div class="ex-nav-pills" id="ex-nav-pills"></div>
         </div>
         <!-- CF Meta — shown instead of exercise-nav + exercise-display for CF workouts -->
         <div id="cf-meta" style="display:none;padding:12px 24px 4px;flex-shrink:0">
@@ -276,6 +280,7 @@
           <button type="button" class="tc-btn main" id="play-pause-btn" aria-label="Start or pause the timer">
             <svg id="play-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
             <svg id="pause-icon" viewBox="0 0 24 24" fill="currentColor" style="display:none" aria-hidden="true"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            <span id="pp-label" class="pp-label" style="display:none"></span>
           </button>
           <button type="button" class="tc-btn" id="btn-next-ex" aria-label="Next exercise">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
@@ -284,16 +289,6 @@
         <!-- CF Log — shown instead of set-log for CF workouts -->
         <div id="cf-log" style="display:none;height:290px;overflow-y:auto;padding:0 24px 88px;flex-shrink:0;"></div>
         <div class="set-log" id="set-log">
-          <div class="set-log-title-row">
-            <div class="set-log-title">Log sets</div>
-            <div class="set-log-tools">
-              <button class="setlog-unit-btn" id="btn-setlog-unit" title="Toggle kg / lbs">KG</button>
-              <button class="plate-calc-btn" id="btn-plate-calc" title="Plate calculator">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="14" height="14"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                Plates
-              </button>
-            </div>
-          </div>
           <div id="set-log-rows"></div>
         </div>
         <div id="cardio-log-section" style="display:none">
@@ -301,6 +296,10 @@
           <div style="font-size:9px;color:var(--grey);font-family:'Space Mono',monospace;padding:0 24px;margin-bottom:20px;text-transform:uppercase;letter-spacing:0.08em" id="cardio-notes-label"></div>
           <div class="label" style="padding:0 24px;margin-bottom:10px">Distance</div>
           <input class="log-input" id="cardio-distance-input" aria-label="Distance" type="text" placeholder="e.g. 5.2 km" style="width:calc(100% - 48px);margin:0 24px;display:block;font-size:20px">
+        </div>
+        <!-- Finish — pinned to the bottom (margin-top:auto) across all modes -->
+        <div class="active-finish-bar">
+          <button class="active-finish" id="btn-finish">Finish session</button>
         </div>
       </div>
 
@@ -526,6 +525,65 @@
         <div class="page-title">CROSSFIT</div>
       </div>
       <div class="page-content" id="cf-page-content"></div>
+    </div>
+
+    <!-- ─── REHAB PAGE — the program, before you press go ─── -->
+    <div class="page-overlay" id="rehab-page">
+      <div class="page-header">
+        <button class="page-back" id="rehab-back">← Back</button>
+        <div class="page-title">REHAB</div>
+      </div>
+      <div class="page-content">
+        <p class="rh-intro">Bulletproof the back: decompress, stiffen the core, strengthen the hinge. Press start — it runs itself, demos included.</p>
+        <div id="rehab-resume-slot"></div>
+        <div id="rehab-session-list"></div>
+        <div class="section-label rh-ex-label">The movements</div>
+        <div id="rehab-ex-list"></div>
+        <p class="rh-note">Progress only while the back stays quiet — during the session and the day after. Sharp pain = stop.</p>
+      </div>
+    </div>
+
+    <!-- ─── REHAB PLAYER — follow-along guided session ─── -->
+    <div id="rehab-player" class="rp-overlay">
+      <div class="rp-top">
+        <button class="rp-close" id="rp-close" aria-label="Pause and close">✕</button>
+        <div class="rp-session" id="rp-session-name">DAILY RESET</div>
+        <button class="rp-voice" id="rp-voice" aria-label="Toggle voice cues" aria-pressed="true">
+          <svg id="rp-voice-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+          <svg id="rp-voice-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><line x1="15" y1="9" x2="21" y2="15"/><line x1="21" y1="9" x2="15" y2="15"/></svg>
+        </button>
+        <div class="rp-count" id="rp-count">–</div>
+      </div>
+      <div class="rp-demo" id="rp-demo"></div>
+      <div class="rp-exname" id="rp-exname">—</div>
+      <div class="rp-meta" id="rp-meta"></div>
+      <p class="rp-cue" id="rp-cue"></p>
+      <div class="rp-clock" id="rp-clock">
+        <div class="rp-phase" id="rp-phase">GET SET</div>
+        <div class="rp-time" id="rp-time">0:10</div>
+        <div class="rp-bar-track"><div class="rp-bar" id="rp-bar"></div></div>
+      </div>
+      <div class="rp-lift" id="rp-lift" style="display:none">
+        <div class="rp-weight-row">
+          <button class="rp-wbtn" id="rp-w-minus" aria-label="Less weight">−</button>
+          <div class="rp-weight"><span id="rp-w-val">40</span><span class="rp-w-unit">kg</span></div>
+          <button class="rp-wbtn" id="rp-w-plus" aria-label="More weight">+</button>
+        </div>
+        <button class="rp-done" id="rp-set-done">Set done →</button>
+      </div>
+      <div class="rp-next" id="rp-next"></div>
+      <div class="rp-controls">
+        <button type="button" class="rp-ctrl" id="rp-prev" aria-label="Previous step">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button type="button" class="rp-ctrl main" id="rp-play" aria-label="Start or pause">
+          <svg id="rp-play-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <svg id="rp-pause-icon" viewBox="0 0 24 24" fill="currentColor" style="display:none" aria-hidden="true"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+        </button>
+        <button type="button" class="rp-ctrl" id="rp-skip" aria-label="Skip step">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- ─── PRIVACY POLICY ─── -->

@@ -105,7 +105,9 @@ export async function signOut() {
 // { error } on failure; resolves on success.
 export async function deleteAccount() {
   if (!supabase)
-    return { error: { message: 'Sync not configured — no account to delete.' } };
+    return {
+      error: { message: 'Sync not configured — no account to delete.' },
+    };
   const session = await getSession();
   if (!session) return { error: { message: 'Not signed in.' } };
 

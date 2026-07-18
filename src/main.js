@@ -16,6 +16,16 @@ import {
 import { initMonitoring, reportError } from './monitoring.js';
 import { buildShareData, renderShareCard } from './shareCard.js';
 import { estimate1RM, suggestNextWeight } from './workout/progression.js';
+import {
+  buildStepQueue,
+  estimateSessionMins,
+  getRehabSession,
+  nextWorkLabel,
+  REHAB_EXERCISES,
+  REHAB_SESSIONS,
+  tempoStateAt,
+} from './workout/rehab.js';
+import { REHAB_DEMOS } from './workout/rehabDemos.js';
 import { currentStreak, longestStreak } from './workout/streak.js';
 import {
   deleteAccount,
@@ -231,6 +241,39 @@ function checkAndUpdateVolPR(exerciseName, weight, reps) {
   return false;
 }
 
+// ─── COUNT-UP ─────────────────────────────────────────────────────────────────
+// Animates a number from 0 → target with an ease-out so hero stats "snap into
+// place" — the premium reveal. Snaps instantly under prefers-reduced-motion.
+// Decimals inferred from the target; thousands grouped. Used only on earned/
+// summary moments, never in the live logging loop.
+function countUp(el, target, duration = 720) {
+  if (!el) return;
+  const dec = Number.isInteger(target) ? 0 : 1;
+  const fmt = (n) => Number(n.toFixed(dec)).toLocaleString();
+  const reduce = window.matchMedia?.(
+    '(prefers-reduced-motion: reduce)',
+  )?.matches;
+  if (reduce || !(target > 0)) {
+    el.textContent = fmt(Math.max(target, 0));
+    return;
+  }
+  const start = performance.now();
+  const ease = (t) => 1 - Math.pow(1 - t, 4); // easeOutQuart — confident, no bounce
+  requestAnimationFrame(function tick(now) {
+    const p = Math.min((now - start) / duration, 1);
+    el.textContent = fmt(target * ease(p));
+    if (p < 1) requestAnimationFrame(tick);
+  });
+}
+
+// Count up every [data-count] number inside the post-workout summary.
+function animateSummaryNumbers() {
+  document.querySelectorAll('#workout-summary [data-count]').forEach((el) => {
+    const target = parseFloat(el.dataset.count);
+    if (!Number.isNaN(target)) countUp(el, target);
+  });
+}
+
 function showPRToast(exerciseName, weight, reps, type = 'weight') {
   const toast = document.getElementById('pr-toast');
   toast.querySelector('.pr-toast-icon').textContent =
@@ -254,10 +297,12 @@ function showPRToast(exerciseName, weight, reps, type = 'weight') {
 let _prCelebrateTimer = null;
 function showPRCelebration(exerciseName, weight, reps) {
   const overlay = document.getElementById('pr-celebrate');
-  document.getElementById('prc-weight').textContent = weight;
+  const weightEl = document.getElementById('prc-weight');
   document.getElementById('prc-unit').textContent = `${weightUnit()} × ${reps}`;
   document.getElementById('prc-ex').textContent = exerciseName.toUpperCase();
   overlay.classList.add('open');
+  // The brass number counts up as the light-bloom pulses out behind it.
+  countUp(weightEl, parseFloat(weight), 760);
   if (_prCelebrateTimer) clearTimeout(_prCelebrateTimer);
   _prCelebrateTimer = setTimeout(() => overlay.classList.remove('open'), 3500);
 }
@@ -335,12 +380,10 @@ function renderPlateCalc() {
   res.innerHTML = barLine + plateLine + totalLine + warnLine;
 }
 
-document.getElementById('btn-setlog-unit')?.addEventListener('click', () => {
-  set(UNIT_KEY, isLbs() ? 'kg' : 'lbs');
-  renderHome(); // keep the home unit toggle / displays in sync
-  if (activeWorkout) renderSetLog(); // re-render converts values + updates label
-});
-document.getElementById('btn-plate-calc').addEventListener('click', () => {
+// Unit (kg/lb) lives in the Profile sheet now — removed from the set-log header.
+// Plate calculator also removed from the toolbar (kept dormant); guard so the
+// missing button doesn't throw at load.
+document.getElementById('btn-plate-calc')?.addEventListener('click', () => {
   document.getElementById('plate-input').value = '';
   document.getElementById('plate-result').innerHTML = '';
   document.getElementById('plate-unit-label').textContent = weightUnit();
@@ -417,7 +460,10 @@ function goScreen(id) {
   if (fab) fab.style.display = id === 'active' ? 'none' : '';
 
   // 6. Render content
-  if (id === 'home') renderHome();
+  if (id === 'home') {
+    pickHomeGreeting(); // fresh greeting each time you land on Home
+    renderHome();
+  }
   if (id === 'train') renderTrain();
   if (id === 'coaches') renderCoaches(); // was 'legends'
   if (id === 'build') renderBuild();
@@ -442,6 +488,86 @@ function renderTrain() {
 }
 
 // ─── HOME ─────────────────────────────────────────────────────────────────────
+// Greeting under the wordmark — rotates each visit so Home feels alive, and
+// quietly *rewards coming back*: it reads your streak / return / milestone from
+// real history and folds it into the line. Tone is quiet-confidence — earned,
+// never cheerleader-loud, and never guilt (loss-aversion points at your own
+// past self, per the retention loop). See [[quiet-confidence-vibe]].
+function ordinal(n) {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
+}
+
+function buildHomeGreetings(name) {
+  const history = get('workoutHistory') || [];
+  const total = history.length;
+
+  // First-timer — no history to reward yet.
+  if (total === 0) {
+    return [
+      `Let's log your first one, ${name}.`,
+      `Welcome, ${name}. First session?`,
+      `Ready to start, ${name}?`,
+    ];
+  }
+
+  const streak = currentStreak(history);
+  const best = Math.max(get('bestStreak') || 0, longestStreak(history));
+  const last = new Date(history[history.length - 1].date);
+  last.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const daysSince = Math.round((today - last) / 86400000);
+
+  // Always-eligible "ready to train" lines (keep the variety).
+  const generic = [
+    `Ready to train, ${name}?`,
+    `Let's get to work, ${name}.`,
+    `Time to lift, ${name}.`,
+    `Let's move, ${name}.`,
+    `What's the session, ${name}?`,
+    `Back at it, ${name}.`,
+  ];
+
+  // Data-aware reward lines — only the ones that make sense right now.
+  const rewards = [];
+  if (streak >= 2) {
+    rewards.push(`Back for the ${ordinal(streak)} straight, ${name}?`);
+    rewards.push(`Day ${streak} of the streak, ${name}.`);
+    rewards.push(`${streak} in a row, ${name} — keep it.`);
+  }
+  if (streak > 0 && streak >= best && best >= 3) {
+    rewards.push(`Best run yet, ${name}. ${streak} and counting.`);
+  } else if (streak > 0 && best - streak >= 1 && best - streak <= 2) {
+    rewards.push(`${best - streak} off your best, ${name}.`);
+  }
+  if (daysSince >= 4) {
+    // Warm, not guilt — the door's open whenever they walk back in.
+    rewards.push(`Good to have you back, ${name}.`);
+    rewards.push(`Welcome back, ${name}. Let's ease in.`);
+  }
+  rewards.push(`Session ${total + 1}, ${name}.`);
+
+  // Weight rewards a little heavier than plain generic so returns get noticed,
+  // without making the line predictable.
+  return [...rewards, ...rewards, ...generic];
+}
+
+let currentHomeGreeting = null;
+let lastHomeGreeting = null;
+// Pick a fresh line (avoiding an immediate repeat). Called on each navigation
+// *into* Home — not on in-place re-renders, so it doesn't flicker mid-screen.
+function pickHomeGreeting() {
+  const pool = buildHomeGreetings(getUserName() || 'Athlete');
+  let pick = pool[Math.floor(Math.random() * pool.length)];
+  for (let i = 0; pick === lastHomeGreeting && pool.length > 1 && i < 6; i++) {
+    pick = pool[Math.floor(Math.random() * pool.length)];
+  }
+  lastHomeGreeting = pick;
+  currentHomeGreeting = pick;
+}
+
 function matchWordmarkWidth() {
   const trainingEl = document.querySelector('.hw-training');
   if (!trainingEl || trainingEl.dataset.split) return;
@@ -460,35 +586,19 @@ function renderHome() {
   renderRestDayCard();
   renderDataNotice();
 
-  // Profile indicator
-  const profile = getActiveProfile();
-  const tier = EQUIPMENT_TIERS.find((t) => t.id === profile.equipmentTier);
-  const tierLabel = tier ? tier.label : 'Full Gym';
-  let tag = document.getElementById('profile-tag');
-  if (!tag) {
-    tag = document.createElement('div');
-    tag.id = 'profile-tag';
-    tag.className = 'profile-tag';
+  // Greeting under the wordmark (replaces the old equipment-tier + units tags;
+  // units stay switchable mid-set on the logging screen). Rotated by
+  // pickHomeGreeting() on each Home visit; pick one now on first load.
+  if (!currentHomeGreeting) pickHomeGreeting();
+  let greet = document.getElementById('home-greeting');
+  if (!greet) {
+    greet = document.createElement('div');
+    greet.id = 'home-greeting';
+    greet.className = 'home-greeting';
     const header = document.querySelector('.home-header');
-    header.insertAdjacentElement('afterend', tag);
+    header.insertAdjacentElement('afterend', greet);
   }
-  tag.textContent = tierLabel;
-
-  // Unit toggle (kg ↔ lbs) — injected next to profile tag
-  let unitBtn = document.getElementById('unit-toggle-btn');
-  if (!unitBtn) {
-    unitBtn = document.createElement('button');
-    unitBtn.id = 'unit-toggle-btn';
-    unitBtn.className = 'unit-toggle-btn';
-    tag.insertAdjacentElement('afterend', unitBtn);
-    unitBtn.addEventListener('click', () => {
-      set(UNIT_KEY, isLbs() ? 'kg' : 'lbs');
-      renderHome();
-      if (activeWorkout) renderSetLog();
-    });
-  }
-  unitBtn.textContent = isLbs() ? 'kg' : 'lbs';
-  unitBtn.title = `Switch to ${isLbs() ? 'kg' : 'lbs'}`;
+  greet.textContent = currentHomeGreeting;
 
   matchWordmarkWidth();
 }
@@ -526,7 +636,9 @@ function updateStreak() {
   const chip = document.getElementById('streak-count');
   if (streak > 0) {
     chip.textContent =
-      best > streak ? `${streak} day streak · best ${best}` : `${streak} day streak`;
+      best > streak
+        ? `${streak} day streak · best ${best}`
+        : `${streak} day streak`;
   } else if (best > 0) {
     chip.textContent = `Best ${best} · go again`; // loss-aversion nudge
   } else {
@@ -539,8 +651,12 @@ function renderRecent() {
   const history = get('workoutHistory') || [];
   const el = document.getElementById('recent-list');
   if (!history.length) {
-    el.innerHTML =
-      '<div class="empty-state">No sessions yet — pick a program or build your own.</div>';
+    el.innerHTML = `
+      <div class="recent-empty">
+        <div class="re-fig">00</div>
+        <div class="re-cap">No sessions logged</div>
+        <div class="re-sub">Your training history writes itself here. Start your first session — it takes one tap.</div>
+      </div>`;
     return;
   }
   el.innerHTML = history
@@ -552,30 +668,41 @@ function renderRecent() {
         day: 'numeric',
       });
       const isCFh = CF_TYPES.has(h.type);
+      const isRehab = h.type === 'rehab';
       const typeTag = isCFh
         ? h.type.toUpperCase().slice(0, 3)
-        : h.type === 'cardio'
-          ? 'CDO'
-          : 'STR';
+        : isRehab
+          ? 'RHB'
+          : h.type === 'cardio'
+            ? 'CDO'
+            : 'STR';
       const bigNum = isCFh
         ? h.cfRoundsCompleted != null
           ? h.cfRoundsCompleted
           : h.duration || '—'
-        : h.type === 'cardio'
-          ? h.duration || '0:00'
-          : h.totalWeight || 0;
+        : isRehab
+          ? h.totalWeight || h.sets || 0
+          : h.type === 'cardio'
+            ? h.duration || '0:00'
+            : h.totalWeight || 0;
       const bigUnit = isCFh
         ? h.type === 'amrap'
           ? 'rounds'
           : 'done'
-        : h.type === 'cardio'
-          ? 'duration'
-          : 'kg volume';
+        : isRehab
+          ? h.totalWeight
+            ? 'kg volume'
+            : 'holds'
+          : h.type === 'cardio'
+            ? 'duration'
+            : 'kg volume';
       const meta = isCFh
         ? `${ds} · ${h.type.toUpperCase()} · ${h.duration || '—'}`
-        : h.type === 'cardio'
-          ? `${ds} · ${h.distance || '—'} dist`
-          : `${ds} · ${h.sets || 0} sets · ${h.duration || '0:00'}`;
+        : isRehab
+          ? `${ds} · ${h.duration || '0:00'}`
+          : h.type === 'cardio'
+            ? `${ds} · ${h.distance || '—'} dist`
+            : `${ds} · ${h.sets || 0} sets · ${h.duration || '0:00'}`;
       return `<div class="recent-card">
       <div class="rc-left">
         <div class="rc-name"><span class="rc-type">${typeTag}</span> ${h.name}</div>
@@ -802,6 +929,705 @@ document
 document.getElementById('btn-cf-open').addEventListener('click', () => {
   renderCFPage();
   openPage('cf-page');
+});
+
+// ─── REHAB — guided back-protocol player ──────────────────────────────────────
+// Follow-along mode: each step shows a built-in animated demo, the cue, and a
+// countdown that auto-advances (holds, re-braces, side switches, rests). RDL
+// sets are self-paced with a weight stepper. Everything is offline — demos are
+// inline SVG, no video, no network. Crash-safe via kilos-rehab-state.
+//
+// Audio language (each phase sounds different, so you never have to look):
+//   rising 3-2-1 ticks  → only ever counts you INTO work
+//   high double beep    → work starts
+//   single low tone     → rest starts (release)
+//   double mid tone     → switch sides
+//   soft tick           → each tempo rep boundary
+//   rising triple       → session complete
+// Plus spoken cues (speechSynthesis) — "Left side — hold", "Rest", rep counts —
+// toggleable via the speaker button, persisted in kilos-rehab-voice.
+const REHAB_STATE_KEY = 'kilos-rehab-state';
+const REHAB_RDL_KEY = 'kilos-rehab-rdl-kg';
+const REHAB_VOICE_KEY = 'kilos-rehab-voice';
+
+let rhSession = null;
+let rhQueue = [];
+let rhIdx = 0;
+let rhRemainMs = 0;
+let rhEndsAt = 0;
+let rhRunning = false;
+let rhInterval = null;
+let rhStartedAt = null;
+let rhCounted = new Set(); // step indices whose set already counted (idempotent)
+let rhLiftSets = []; // [{weight, reps}] logged RDL sets
+let rhWeightKg = 40;
+let rhLastBeepSec = null;
+let rhLastRep = 0; // last announced rep of a tempo step
+let rhLastSave = 0;
+let rhWakeLock = null;
+let rhVoiceOn = get(REHAB_VOICE_KEY) ?? true;
+
+const rhStep = () => rhQueue[rhIdx];
+
+// Prefer a male coach voice. The Web Speech API has no gender field, so match
+// known male system voices by name (Apple, Chrome, Windows — in preference
+// order, US-accent first), taking an Enhanced/Premium variant when the device
+// has one. Voices load async, so re-resolve until the list is populated.
+const RH_MALE_VOICES = [
+  'aaron',
+  'daniel',
+  'alex',
+  'reed',
+  'evan',
+  'arthur',
+  'google uk english male',
+  'microsoft david',
+  'microsoft mark',
+  'microsoft guy',
+  'rishi',
+  'fred',
+];
+let rhVoice = null;
+
+function rhRefreshVoice() {
+  if (typeof speechSynthesis === 'undefined') return;
+  let voices = [];
+  try {
+    voices = speechSynthesis.getVoices() || [];
+  } catch {}
+  if (!voices.length) return; // not loaded yet — try again on the next cue
+  const english = voices.filter((v) => /^en/i.test(v.lang || ''));
+  rhVoice = null;
+  for (const name of RH_MALE_VOICES) {
+    const matches = english.filter((v) => v.name.toLowerCase().includes(name));
+    if (matches.length) {
+      rhVoice =
+        matches.find((v) => /enhanced|premium/i.test(v.name)) || matches[0];
+      break;
+    }
+  }
+}
+if (typeof speechSynthesis !== 'undefined') {
+  rhRefreshVoice();
+  speechSynthesis.addEventListener?.('voiceschanged', rhRefreshVoice);
+}
+
+function rhSay(text) {
+  if (!rhVoiceOn || typeof speechSynthesis === 'undefined') return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1.05;
+    if (!rhVoice) rhRefreshVoice();
+    if (rhVoice) {
+      // A bad/stale voice must never silence the cue — fall back to default.
+      try {
+        u.voice = rhVoice;
+      } catch {}
+    }
+    speechSynthesis.speak(u);
+  } catch {}
+}
+
+function rhCue(kind) {
+  if (kind === 'work') {
+    beep(880, 0.1);
+    setTimeout(() => beep(1175, 0.14), 120);
+  } else if (kind === 'rest') {
+    beep(392, 0.3);
+  } else if (kind === 'switch') {
+    beep(523, 0.12);
+    setTimeout(() => beep(523, 0.12), 170);
+  } else if (kind === 'rep') {
+    beep(520, 0.05);
+  } else if (kind === 'finish') {
+    beep(660, 0.12);
+    setTimeout(() => beep(830, 0.12), 160);
+    setTimeout(() => beep(990, 0.24), 320);
+  }
+}
+
+// Arriving at a step: distinct tone + spoken cue, so ears alone carry you.
+function rhAnnounceStep(step) {
+  const overlay = document.getElementById('rehab-player');
+  if (step.kind === 'work') {
+    rhCue('work');
+    // Quick edge flash — the visual "GO" that can't be missed mid-set.
+    overlay.classList.remove('rp-flash');
+    void overlay.offsetWidth;
+    overlay.classList.add('rp-flash');
+  } else if (step.phase === 'SWITCH SIDES') {
+    rhCue('switch');
+  } else if (step.phase === 'REST') {
+    rhCue('rest');
+  } // BREATHE micro-rests stay silent — the 3-2-1 ticks carry them
+  navigator.vibrate?.(step.kind === 'work' ? 120 : 60);
+
+  const ex = REHAB_EXERCISES[step.exId];
+  if (step.kind === 'prep') {
+    rhSay(`Get set — ${ex.name}`);
+  } else if (step.kind === 'work') {
+    if (step.manual) rhSay(`Set — ${step.reps} reps, your pace`);
+    else if (step.tempo)
+      rhSay(step.side ? `${step.side.toLowerCase()} side — go` : 'Go');
+    else if (step.rep > 1) rhSay(String(step.rep));
+    else rhSay(step.side ? `${step.side.toLowerCase()} side — hold` : 'Hold');
+  } else if (step.phase === 'SWITCH SIDES') {
+    rhSay('Switch sides');
+  } else if (step.phase === 'REST') {
+    rhSay('Rest');
+  }
+}
+
+function rhPersist() {
+  if (!rhSession) {
+    try {
+      localStorage.removeItem(REHAB_STATE_KEY);
+    } catch {}
+    return;
+  }
+  set(REHAB_STATE_KEY, {
+    sessionId: rhSession.id,
+    idx: rhIdx,
+    remainMs: rhRunning ? Math.max(0, rhEndsAt - Date.now()) : rhRemainMs,
+    running: rhRunning,
+    startedAt: rhStartedAt,
+    counted: [...rhCounted],
+    liftSets: rhLiftSets,
+    weightKg: rhWeightKg,
+    savedAt: Date.now(),
+  });
+  rhLastSave = Date.now();
+}
+
+async function rhAcquireWakeLock() {
+  try {
+    rhWakeLock = await navigator.wakeLock?.request('screen');
+  } catch {
+    /* not supported / denied — fine */
+  }
+}
+function rhReleaseWakeLock() {
+  try {
+    rhWakeLock?.release();
+  } catch {}
+  rhWakeLock = null;
+}
+
+function rhFmt(ms) {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+}
+
+// Time left in the whole session: the current step's remaining clock plus all
+// steps still ahead (self-paced lift sets estimated at 35s each).
+function rhSessionRemainMs() {
+  const step = rhStep();
+  let ms = step ? (step.manual ? 35000 : rhRemainMs) : 0;
+  for (let i = rhIdx + 1; i < rhQueue.length; i++) {
+    ms += (rhQueue[i].secs ?? 35) * 1000;
+  }
+  return ms;
+}
+
+function rhRenderSessionRemain() {
+  document.getElementById('rp-count').textContent =
+    `${rhFmt(rhSessionRemainMs())} LEFT`;
+}
+
+function rhRenderClock() {
+  const step = rhStep();
+  if (!step || step.manual) return;
+  const total = step.secs * 1000;
+  if (step.tempo) {
+    // Tempo sets: the live rep count is the hero, the phase word coaches the
+    // sub-movement (LIFT / SQUEEZE / LOWER) in time with the demo loop.
+    const st = tempoStateAt(step.tempo, total - rhRemainMs);
+    document.getElementById('rp-time').textContent =
+      `${st.rep}/${step.tempo.reps}`;
+    document.getElementById('rp-phase').textContent = st.label;
+  } else {
+    document.getElementById('rp-time').textContent = rhFmt(rhRemainMs);
+  }
+  const pct = total > 0 ? (1 - rhRemainMs / total) * 100 : 0;
+  document.getElementById('rp-bar').style.width =
+    `${Math.min(100, Math.max(0, pct))}%`;
+}
+
+function rhRenderPlayBtn() {
+  document.getElementById('rp-play-icon').style.display = rhRunning
+    ? 'none'
+    : '';
+  document.getElementById('rp-pause-icon').style.display = rhRunning
+    ? ''
+    : 'none';
+}
+
+function rhRenderWeight() {
+  document.getElementById('rp-w-val').textContent = toDisplayWeight(rhWeightKg);
+  document.querySelector('.rp-w-unit').textContent = weightUnit();
+}
+
+// ── Demo art override ────────────────────────────────────────────────────────
+// Drop licensed/commissioned illustrations in public/rehab/ and they replace
+// the built-in figure — no code changes:
+//   /rehab/<exercise-id>-a.svg   start pose (required; .png/.webp also work)
+//   /rehab/<exercise-id>-b.svg   contraction pose (optional → crossfades A↔B)
+// Custom art renders on a light panel (Hevy-style), so standard white-bg stock
+// illustrations look right inside the dark player. Probed once per exercise,
+// cached; falls back to the built-in rig while probing / when absent.
+const rhArtCache = new Map(); // exId → {a, b} | null
+
+function rhProbeArt(exId) {
+  if (rhArtCache.has(exId)) return Promise.resolve(rhArtCache.get(exId));
+  const tryLoad = (url) =>
+    new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(url);
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  const probe = (async () => {
+    let a = null;
+    let b = null;
+    for (const ext of ['svg', 'png', 'webp']) {
+      a = await tryLoad(`/rehab/${exId}-a.${ext}`);
+      if (a) {
+        b = await tryLoad(`/rehab/${exId}-b.${ext}`);
+        break;
+      }
+    }
+    const art = a ? { a, b } : null;
+    rhArtCache.set(exId, art);
+    return art;
+  })();
+  rhArtCache.set(exId, null); // don't re-probe while in flight
+  return probe;
+}
+
+function rhRenderDemo(demoEl, exId) {
+  const art = rhArtCache.get(exId);
+  if (art?.a) {
+    const fade = art.b ? ' fade' : '';
+    demoEl.innerHTML = `<div class="rp-art">
+      <img class="rp-art-img${fade}" src="${art.a}" alt="">
+      ${art.b ? `<img class="rp-art-img b fade" src="${art.b}" alt="">` : ''}
+    </div>`;
+    return;
+  }
+  // Built-in figure (also shown while the first probe is in flight)
+  demoEl.innerHTML = REHAB_DEMOS[exId] || '';
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
+    // Static demos freeze at the working position (the drawn pose).
+    demoEl.querySelectorAll('animate, animateTransform').forEach((a) => {
+      a.remove();
+    });
+  }
+  if (!rhArtCache.has(exId)) {
+    rhProbeArt(exId).then((found) => {
+      // Swap in the illustration if this exercise is still on screen.
+      if (found && rhStep()?.exId === exId) rhRenderDemo(demoEl, exId);
+    });
+  }
+}
+
+function rhRenderVoiceBtn() {
+  document.getElementById('rp-voice-on').style.display = rhVoiceOn
+    ? ''
+    : 'none';
+  document.getElementById('rp-voice-off').style.display = rhVoiceOn
+    ? 'none'
+    : '';
+  document
+    .getElementById('rp-voice')
+    .setAttribute('aria-pressed', String(rhVoiceOn));
+}
+
+function rhRenderStep() {
+  const step = rhStep();
+  if (!step) return;
+  const ex = REHAB_EXERCISES[step.exId];
+  const overlay = document.getElementById('rehab-player');
+
+  overlay.classList.toggle('phase-rest', step.kind === 'rest');
+  overlay.classList.toggle('phase-work', step.kind === 'work');
+  document.getElementById('rp-session-name').textContent =
+    rhSession.name.toUpperCase();
+  rhRenderSessionRemain();
+
+  // Demo — licensed illustration if present, else the built-in figure.
+  const demoEl = document.getElementById('rp-demo');
+  rhRenderDemo(demoEl, step.exId);
+  demoEl.classList.toggle('flip', step.side === 'RIGHT');
+
+  document.getElementById('rp-exname').textContent = ex.name;
+  document.getElementById('rp-meta').textContent = step.meta || '';
+  document.getElementById('rp-cue').textContent =
+    step.kind === 'prep' ? `${ex.cue} — ${ex.why}` : ex.cue;
+  document.getElementById('rp-phase').textContent = step.phase;
+
+  // Countdown vs self-paced lift set
+  document.getElementById('rp-clock').style.display = step.manual ? 'none' : '';
+  document.getElementById('rp-lift').style.display = step.manual ? '' : 'none';
+  if (step.manual) rhRenderWeight();
+  else rhRenderClock();
+
+  // Only rests point forward — on prep/work the screen already IS the task.
+  document.getElementById('rp-next').textContent =
+    step.kind === 'rest'
+      ? `NEXT · ${nextWorkLabel(rhQueue, rhIdx).toUpperCase()}`
+      : '';
+
+  document.getElementById('rp-prev').disabled = rhIdx === 0;
+  const playBtn = document.getElementById('rp-play');
+  playBtn.disabled = !!step.manual;
+  rhRenderPlayBtn();
+}
+
+function rhStop() {
+  if (rhInterval) clearInterval(rhInterval);
+  rhInterval = null;
+  rhRunning = false;
+}
+
+function rhPause() {
+  if (rhRunning) rhRemainMs = Math.max(0, rhEndsAt - Date.now());
+  rhStop();
+  rhRenderPlayBtn();
+  rhPersist();
+}
+
+function rhPlay() {
+  const step = rhStep();
+  if (!step || step.manual || rhRunning) return;
+  rhEndsAt = Date.now() + rhRemainMs;
+  rhRunning = true;
+  rhLastBeepSec = null;
+  if (rhInterval) clearInterval(rhInterval);
+  rhInterval = setInterval(rhTick, 250);
+  rhRenderPlayBtn();
+  rhAcquireWakeLock();
+  rhPersist();
+}
+
+function rhTick() {
+  if (!rhRunning) return;
+  const left = rhEndsAt - Date.now();
+  if (left <= 0) {
+    rhComplete(-left);
+    return;
+  }
+  rhRemainMs = left;
+  const step = rhStep();
+
+  // Rising 3-2-1 — but ONLY counting into work. Rest arrives unannounced by
+  // ticks; its own low tone + "Rest" marks it, so the sounds stay unambiguous.
+  const next = rhQueue[rhIdx + 1];
+  if (step.kind !== 'work' && next?.kind === 'work') {
+    const sec = Math.ceil(left / 1000);
+    if (sec <= 3 && sec !== rhLastBeepSec) {
+      rhLastBeepSec = sec;
+      beep(sec === 3 ? 660 : sec === 2 ? 780 : 900, 0.08);
+    }
+  }
+
+  // Tempo sets: tick + count each rep boundary.
+  if (step.tempo) {
+    const st = tempoStateAt(step.tempo, step.secs * 1000 - left);
+    if (st.rep !== rhLastRep) {
+      rhLastRep = st.rep;
+      if (st.rep > 1) {
+        rhCue('rep');
+        rhSay(String(st.rep));
+      }
+    }
+  }
+
+  rhRenderClock();
+  rhRenderSessionRemain();
+  if (Date.now() - rhLastSave > 5000) rhPersist();
+}
+
+// A timed step ran out — count it, move on, and carry any overflow (e.g. the
+// tab was backgrounded through several steps) into the following steps.
+function rhComplete(overflowMs = 0) {
+  const step = rhStep();
+  if (step?.kind === 'work' && step.countsAsSet) rhCounted.add(rhIdx);
+  let carry = overflowMs;
+  let idx = rhIdx + 1;
+  while (idx < rhQueue.length) {
+    const next = rhQueue[idx];
+    if (next.manual) break; // self-paced — wait for the athlete
+    const dur = next.secs * 1000;
+    if (carry < dur) break;
+    carry -= dur;
+    if (next.kind === 'work' && next.countsAsSet) rhCounted.add(idx);
+    idx++;
+  }
+  if (idx >= rhQueue.length) {
+    rhFinish();
+    return;
+  }
+  rhIdx = idx;
+  const next = rhStep();
+  rhRemainMs = next.manual ? 0 : next.secs * 1000 - carry;
+  rhLastBeepSec = null;
+  rhLastRep = 0;
+  rhAnnounceStep(next);
+  if (next.manual) {
+    rhStop();
+  } else if (rhRunning) {
+    rhEndsAt = Date.now() + rhRemainMs;
+  }
+  rhRenderStep();
+  rhPersist();
+}
+
+// Manual navigation — skip forward / step back without counting the set.
+function rhJump(dir) {
+  const idx = rhIdx + dir;
+  if (idx < 0 || !rhSession) return;
+  if (idx >= rhQueue.length) {
+    rhFinish();
+    return;
+  }
+  rhIdx = idx;
+  const step = rhStep();
+  rhRemainMs = step.manual ? 0 : step.secs * 1000;
+  rhLastBeepSec = null;
+  rhLastRep = 0;
+  rhAnnounceStep(step); // a manual jump still tells you where you landed
+  if (step.manual) rhStop();
+  else if (rhRunning) rhEndsAt = Date.now() + rhRemainMs;
+  rhRenderStep();
+  rhPersist();
+}
+
+function openRehabPlayer(session, saved = null) {
+  rhSession = session;
+  rhQueue = buildStepQueue(session);
+  rhIdx = Math.min(saved?.idx ?? 0, rhQueue.length - 1);
+  rhCounted = new Set(saved?.counted || []);
+  rhLiftSets = saved?.liftSets || [];
+  rhStartedAt = saved?.startedAt || Date.now();
+  rhWeightKg = saved?.weightKg ?? get(REHAB_RDL_KEY) ?? 40;
+  const step = rhStep();
+  rhRemainMs = step.manual
+    ? 0
+    : Math.min(saved?.remainMs ?? step.secs * 1000, step.secs * 1000);
+  rhStop(); // opens paused — press play to go
+  document.getElementById('rehab-player').classList.add('open');
+  rhRenderVoiceBtn();
+  rhRenderStep();
+  rhPersist();
+  rhAcquireWakeLock();
+  // Preload every exercise's art now (user starts paused), so mid-session
+  // step changes never pop a loading image into the stage.
+  [...new Set(rhQueue.map((s) => s.exId))].forEach((exId) => {
+    rhProbeArt(exId);
+  });
+}
+
+function closeRehabPlayer() {
+  rhPause(); // keeps state — resumable from the Rehab page
+  document.getElementById('rehab-player').classList.remove('open');
+  rhReleaseWakeLock();
+  renderRehabPage();
+}
+
+// ── Finish → history entry (counts toward streak) + the normal summary ────────
+function rhFinish() {
+  if (!rhSession) return;
+  rhStop();
+  rhCue('finish');
+  rhSay('Session complete. Nice work.');
+  const session = rhSession;
+  const liftSets = rhLiftSets;
+  const setsDone = rhCounted.size;
+  const elapsed = Math.floor((Date.now() - rhStartedAt) / 1000);
+  const durationStr = `${Math.floor(elapsed / 60)}:${(elapsed % 60).toString().padStart(2, '0')}`;
+
+  rhSession = null;
+  rhPersist(); // clears the crash-state key
+  document.getElementById('rehab-player').classList.remove('open');
+  rhReleaseWakeLock();
+  closePage('rehab-page');
+
+  // Feed the same pipes as a normal workout: history, streak, summary, share.
+  totalWeightMoved = liftSets.reduce(
+    (sum, l) => sum + (l.weight || 0) * (l.reps || 0),
+    0,
+  );
+  sessionSets = setsDone;
+  newPRsThisSession = [];
+  const exercises = session.blocks.map((b) => ({
+    name: REHAB_EXERCISES[b.ex].name,
+    sets: b.sets || b.repScheme?.length || 1,
+    logs:
+      b.mode === 'lift'
+        ? liftSets.map((l) => ({ weight: l.weight, reps: l.reps, done: true }))
+        : [],
+  }));
+  const completed = {
+    name: `Rehab · ${session.name}`,
+    type: 'rehab',
+    exercises,
+  };
+  const entry = {
+    name: completed.name,
+    type: 'rehab',
+    rehabId: session.id,
+    date: new Date().toISOString(),
+    duration: durationStr,
+    totalWeight: Math.round(totalWeightMoved),
+    sets: setsDone,
+    newPRs: [],
+    exercises,
+  };
+  const hist = get('workoutHistory') || [];
+  hist.push(entry);
+  set('workoutHistory', hist);
+  pushData();
+  lastFinishedWorkout = completed;
+  lastFinishedEntry = entry;
+  renderHome();
+  showWorkoutSummary(completed, durationStr, entry);
+}
+
+// ── Rehab page (program overview + resume) ────────────────────────────────────
+function renderRehabPage() {
+  const saved = get(REHAB_STATE_KEY);
+  const savedSession = saved ? getRehabSession(saved.sessionId) : null;
+  const resumeSlot = document.getElementById('rehab-resume-slot');
+  if (savedSession) {
+    const queueLen = buildStepQueue(savedSession).length;
+    resumeSlot.innerHTML = `
+      <button class="rhs-card rh-resume" id="rh-resume-btn">
+        <div class="rhs-top"><div class="rhs-name">Resume · ${savedSession.name}</div><div class="rhs-go">→</div></div>
+        <div class="rhs-meta">PAUSED AT STEP ${Math.min((saved.idx ?? 0) + 1, queueLen)} OF ${queueLen}</div>
+      </button>
+      <button class="rh-discard" id="rh-discard-btn">Discard paused session</button>`;
+    document.getElementById('rh-resume-btn').addEventListener('click', () => {
+      openRehabPlayer(savedSession, saved);
+    });
+    document.getElementById('rh-discard-btn').addEventListener('click', () => {
+      try {
+        localStorage.removeItem(REHAB_STATE_KEY);
+      } catch {}
+      renderRehabPage();
+    });
+  } else {
+    resumeSlot.innerHTML = '';
+  }
+
+  document.getElementById('rehab-session-list').innerHTML = REHAB_SESSIONS.map(
+    (s) => `
+    <button class="rhs-card" data-rehab="${s.id}">
+      <div class="rhs-top"><div class="rhs-name">${s.name}</div><div class="rhs-go">→</div></div>
+      <div class="rhs-meta">~${estimateSessionMins(s)} MIN · ${s.freq.toUpperCase()} · ${s.blocks.length} MOVES</div>
+      <div class="rhs-blurb">${s.blurb}</div>
+    </button>`,
+  ).join('');
+  document
+    .querySelectorAll('#rehab-session-list [data-rehab]')
+    .forEach((card) => {
+      card.addEventListener('click', () => {
+        try {
+          localStorage.removeItem(REHAB_STATE_KEY); // fresh start replaces a stale pause
+        } catch {}
+        openRehabPlayer(getRehabSession(card.dataset.rehab));
+      });
+    });
+
+  document.getElementById('rehab-ex-list').innerHTML = Object.values(
+    REHAB_EXERCISES,
+  )
+    .map(
+      (ex) => `
+    <div class="rh-ex">
+      <div>
+        <div class="rh-ex-name">${ex.name}</div>
+        <div class="rh-ex-cue">${ex.why}</div>
+      </div>
+      <a class="rh-ex-yt" href="https://www.youtube.com/results?search_query=${encodeURIComponent(ex.yt)}"
+         target="_blank" rel="noopener" aria-label="Watch ${ex.name} on YouTube">Video ↗</a>
+    </div>`,
+    )
+    .join('');
+}
+
+document.getElementById('btn-rehab-open').addEventListener('click', () => {
+  renderRehabPage();
+  openPage('rehab-page');
+});
+document
+  .getElementById('rehab-back')
+  .addEventListener('click', () => closePage('rehab-page'));
+document.getElementById('rp-close').addEventListener('click', closeRehabPlayer);
+document.getElementById('rp-play').addEventListener('click', () => {
+  if (rhRunning) {
+    rhPause();
+    return;
+  }
+  // Starting a step from its very top gets the spoken kickoff too.
+  const step = rhStep();
+  const fresh = step && !step.manual && rhRemainMs === step.secs * 1000;
+  rhPlay();
+  if (fresh) rhAnnounceStep(step);
+});
+document.getElementById('rp-prev').addEventListener('click', () => rhJump(-1));
+document.getElementById('rp-skip').addEventListener('click', () => rhJump(1));
+document.getElementById('rp-voice').addEventListener('click', () => {
+  rhVoiceOn = !rhVoiceOn;
+  set(REHAB_VOICE_KEY, rhVoiceOn);
+  if (!rhVoiceOn && typeof speechSynthesis !== 'undefined') {
+    try {
+      speechSynthesis.cancel();
+    } catch {}
+  }
+  rhRenderVoiceBtn();
+});
+document.getElementById('rp-set-done').addEventListener('click', () => {
+  const step = rhStep();
+  if (!step?.manual) return;
+  rhLiftSets.push({ weight: rhWeightKg, reps: step.reps });
+  rhCounted.add(rhIdx);
+  set(REHAB_RDL_KEY, rhWeightKg);
+  navigator.vibrate?.(120);
+  // Roll into the rest countdown without needing another tap.
+  const wasLast = rhIdx + 1 >= rhQueue.length;
+  rhJump(1); // announces the landing step
+  if (!wasLast && !rhStep()?.manual) rhPlay();
+});
+document.getElementById('rp-w-minus').addEventListener('click', () => {
+  rhWeightKg = Math.max(0, rhWeightKg - 2.5);
+  rhRenderWeight();
+});
+document.getElementById('rp-w-plus').addEventListener('click', () => {
+  rhWeightKg += 2.5;
+  rhRenderWeight();
+});
+
+// Crash / refresh recovery: a session that was live in the last 30 minutes
+// reopens exactly where it was (paused). Older ones wait on the Rehab page
+// as a Resume card.
+(() => {
+  const saved = get(REHAB_STATE_KEY);
+  if (!saved) return;
+  const session = getRehabSession(saved.sessionId);
+  if (!session) return;
+  if (Date.now() - (saved.savedAt || 0) < 30 * 60 * 1000) {
+    openRehabPlayer(session, saved);
+  }
+})();
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    if (rhSession) rhPersist();
+  } else if (rhSession && rhRunning) {
+    rhAcquireWakeLock();
+    rhTick(); // catch up instantly after a backgrounded stretch
+  }
 });
 
 // ── Legal pages (Privacy / Terms) — opened from the profile sheet ─────────────
@@ -1852,6 +2678,7 @@ function renderActiveScreen() {
   const activeEl = document.getElementById('active');
   activeEl.classList.remove('mode-cf', 'mode-cardio', 'mode-strength');
   activeEl.classList.add(`mode-${mode}`);
+  updateLogBtn(); // strength → "Log" button; CF/cardio → play/pause icons
 
   if (CF_TYPES.has(activeWorkout.type)) {
     renderCFActive();
@@ -2187,10 +3014,11 @@ function jumpToEx(i) {
   renderExNav();
 }
 
+// Short, single-word intensity — sits inline on the meta row next to "Set x of y".
 const FEEL_LABEL = {
-  heavy: 'HEAVY — LOAD UP',
-  moderate: 'MODERATE — CONTROLLED',
-  light: 'LIGHT — SQUEEZE IT',
+  heavy: 'Heavy',
+  moderate: 'Moderate',
+  light: 'Light',
 };
 
 function renderCurrentExercise() {
@@ -2206,49 +3034,40 @@ function renderCurrentExercise() {
   document.getElementById('btn-swap-ex')?.remove();
   document.getElementById('warmup-block')?.remove();
 
-  // Feel / intensity badge
+  const metaRow = document.querySelector('.ex-meta-row');
   const dbEx = EXERCISES_DB.find((e) => e.name === ex.name);
+
+  // Feel / intensity chip — inline on the meta row next to the set counter
+  // ("Set 1 of 4 · Heavy"). What's coming up next lives in the dots row below,
+  // so there's no separate "Next:" line here anymore.
   if (dbEx?.feel) {
-    const badge = document.createElement('div');
+    const badge = document.createElement('span');
     badge.id = 'feel-badge';
     badge.className = `feel-badge ${dbEx.feel}`;
     badge.textContent = FEEL_LABEL[dbEx.feel];
-    document
-      .getElementById('current-ex-name')
-      .insertAdjacentElement('afterend', badge);
+    setsEl.insertAdjacentElement('afterend', badge);
   }
 
-  // Substitution hint
-  if (ex.originalName) {
-    const hint = document.createElement('div');
-    hint.id = 'sub-hint';
-    hint.style.cssText =
-      'font-family:"Space Mono",monospace;font-size:8px;color:var(--grey2);text-transform:uppercase;letter-spacing:.1em;padding:0 24px;margin-bottom:4px;';
-    hint.textContent = `Sub for: ${ex.originalName}`;
-    setsEl.insertAdjacentElement('afterend', hint);
-  }
-
-  // Next exercise preview (task #25)
-  document.getElementById('next-ex-preview')?.remove();
-  const nextEx = activeWorkout.exercises[currentExIdx + 1];
-  if (nextEx) {
-    const nextPreview = document.createElement('div');
-    nextPreview.id = 'next-ex-preview';
-    nextPreview.className = 'next-ex-preview';
-    nextPreview.textContent = `Next: ${nextEx.name}`;
-    document.querySelector('.exercise-display').appendChild(nextPreview);
-  }
-
-  // Swap exercise button — lets user replace current exercise mid-session
+  // Swap — a small, quiet link pushed to the end of the meta row
   const swapBtn = document.createElement('button');
   swapBtn.id = 'btn-swap-ex';
   swapBtn.className = 'swap-ex-btn';
-  swapBtn.textContent = 'swap exercise →';
+  swapBtn.textContent = 'Swap →';
   swapBtn.addEventListener('click', () => {
     exSearchMode = 'swap';
     openExSearch();
   });
-  document.querySelector('.exercise-display').appendChild(swapBtn);
+  metaRow.appendChild(swapBtn);
+
+  // Substitution hint — sits under the meta row when this is a sub
+  if (ex.originalName) {
+    const hint = document.createElement('div');
+    hint.id = 'sub-hint';
+    hint.style.cssText =
+      'font-family:"Space Mono",monospace;font-size:8px;color:var(--grey2);text-transform:uppercase;letter-spacing:.1em;padding:0 24px;margin:4px 0 0;';
+    hint.textContent = `Sub for: ${ex.originalName}`;
+    metaRow.insertAdjacentElement('afterend', hint);
+  }
 
   renderSetLog();
   resetTimerDisplay(ex.rest);
@@ -2296,9 +3115,8 @@ function renderCurrentExercise() {
       .addEventListener('click', () => warmupEl.classList.toggle('open'));
     // Collapsed by default — log-first: the steppers are the priority, warmup
     // guidance is one tap away (DESIGN.md active-screen hierarchy).
-    document
-      .querySelector('.set-log-title')
-      .insertAdjacentElement('afterend', warmupEl);
+    const setLog = document.getElementById('set-log');
+    setLog.insertBefore(warmupEl, document.getElementById('set-log-rows'));
   }
 }
 
@@ -2307,8 +3125,6 @@ function renderSetLog() {
   const lastSession = getLastSession(ex.name);
   const suggestion = suggestNextWeight(lastSession, ex.reps);
   const unit = weightUnit();
-  const unitBtn = document.getElementById('btn-setlog-unit');
-  if (unitBtn) unitBtn.textContent = unit.toUpperCase();
   const rows = document.getElementById('set-log-rows');
   // Overload hint: show specific weight + rep prescription
   const lastLogs = lastSession || [];
@@ -2323,6 +3139,9 @@ function renderSetLog() {
       : suggestion
     : null;
   const suggReps = ex.reps || '8';
+  // The next un-logged set is "current" — highlighted, and what the big timer
+  // button logs when tapped.
+  const nextSetIdx = ex.logs.findIndex((l) => !l.done);
   rows.innerHTML =
     (suggestion
       ? `<div class="overload-hint">
@@ -2339,18 +3158,16 @@ function renderSetLog() {
         const dispPrevW = prev?.weight ? toDisplayWeight(prev.weight) : null;
         const wPlaceholder = dispPrevW ? `${dispPrevW}` : unit;
         const rPlaceholder = prev?.reps ? `${prev.reps}` : ex.reps;
-        const prevHint = dispPrevW
-          ? `<span class="log-prev">Last: ${dispPrevW}${unit} × ${prev.reps}</span>`
-          : '';
-        // Once a set is logged, the "Last:" guidance gives way to the payoff:
-        // its estimated 1RM (the headline strength metric).
+        // No per-row "Last:" line — the target hint above and the prefilled
+        // inputs already carry that. Once a set is logged the row earns its
+        // payoff instead: the set's estimated 1RM (headline strength metric).
         const e1rm = log.done ? estimate1RM(log.weight, log.reps) : null;
         const e1rmDisp =
           e1rm != null ? (isLbs() ? toDisplayWeight(e1rm) : e1rm) : null;
         const midHint =
           e1rmDisp != null
             ? `<span class="log-e1rm">e1RM ${e1rmDisp}${unit}</span>`
-            : prevHint;
+            : '';
         const dispLogW = log.weight ? toDisplayWeight(log.weight) : '';
         // Pre-fill the suggested set when there's a prior session to beat, so a
         // single tap on done logs it. Untouched pre-fills are captured on done
@@ -2359,14 +3176,17 @@ function renderSetLog() {
         const wValue = dispLogW || (suggestion ? dispSugg : '');
         const rValue = log.reps || (suggestion ? suggReps : '');
         const prefilled = !log.weight && suggestion ? ' prefilled' : '';
-        return `<div class="log-row">
-      <div class="log-row-top">
+        const isCurrent = i === nextSetIdx;
+        return `<div class="log-row${log.done ? ' done' : ''}${isCurrent ? ' current' : ''}">
+      <button type="button" class="log-row-top" data-idx="${i}" aria-label="${log.done ? `Set ${i + 1} logged — tap to undo` : `Set ${i + 1}`}">
         <span class="log-set-num">SET ${i + 1}</span>
         ${midHint}
-        <div class="log-done${log.done ? ' checked' : ''}" data-idx="${i}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
-      </div>
+        ${
+          log.done
+            ? '<span class="log-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>'
+            : ''
+        }
+      </button>
       <div class="log-fields">
         <div class="log-stepper-group">
           <span class="log-field-label">Weight</span>
@@ -2406,9 +3226,11 @@ function renderSetLog() {
       activeWorkout.exercises[currentExIdx].logs[idx][field] = val;
     });
   });
-  rows.querySelectorAll('.log-done').forEach((btn) => {
-    btn.addEventListener('click', () =>
-      toggleSetDone(parseInt(btn.dataset.idx, 10)),
+  // Tapping a set's SET line toggles it logged/un-logged (precision + undo);
+  // the big timer button is the fast path for logging the next set in order.
+  rows.querySelectorAll('.log-row-top').forEach((top) => {
+    top.addEventListener('click', () =>
+      toggleSetDone(parseInt(top.dataset.idx, 10)),
     );
   });
   rows.querySelectorAll('.step-btn').forEach((btn) => {
@@ -2420,6 +3242,7 @@ function renderSetLog() {
       ),
     );
   });
+  updateLogBtn(); // keep the big button's label in sync with set progress
 }
 
 // One-tap progression: step the shown value (weight ±2.5kg, reps ±1) and
@@ -2770,7 +3593,17 @@ function toggleTimer() {
   }
 }
 
+// In strength mode the big button is a Log button (.is-log), not a play/pause —
+// so the timer's start/stop must not swap its icons out from under the label.
+function isStrengthActive() {
+  return (
+    activeWorkout &&
+    !CF_TYPES.has(activeWorkout.type) &&
+    activeWorkout.type !== 'cardio'
+  );
+}
 function showPlayBtn() {
+  if (isStrengthActive()) return;
   document.getElementById('play-icon').style.display = '';
   document.getElementById('pause-icon').style.display = 'none';
   document
@@ -2778,6 +3611,7 @@ function showPlayBtn() {
     .setAttribute('aria-label', 'Start the timer');
 }
 function showPauseBtn() {
+  if (isStrengthActive()) return;
   document.getElementById('play-icon').style.display = 'none';
   document.getElementById('pause-icon').style.display = '';
   document
@@ -2785,9 +3619,67 @@ function showPauseBtn() {
     .setAttribute('aria-label', 'Pause the timer');
 }
 
-document
-  .getElementById('play-pause-btn')
-  .addEventListener('click', toggleTimer);
+// The big central button: in strength it logs the next set (and the rest timer
+// auto-runs); in CrossFit/cardio it stays the clock's play/pause.
+function advanceActive() {
+  if (!activeWorkout) return;
+  const ex = activeWorkout.exercises[currentExIdx];
+  const next = ex.logs.findIndex((l) => !l.done);
+  if (next !== -1) {
+    currentSetIdx = next;
+    toggleSetDone(next); // logs the set (+ PR check + rest), re-renders set log
+    return;
+  }
+  // All sets logged → step to the next exercise, or finish on the last one.
+  if (currentExIdx < activeWorkout.exercises.length - 1) {
+    currentExIdx++;
+    currentSetIdx = 0;
+    stopTimer();
+    renderCurrentExercise();
+    renderExNav();
+    saveActiveState();
+  } else {
+    document.getElementById('btn-finish').click();
+  }
+}
+
+// Sync the big button's mode + label with the current state.
+function updateLogBtn() {
+  const btn = document.getElementById('play-pause-btn');
+  const label = document.getElementById('pp-label');
+  const playIcon = document.getElementById('play-icon');
+  const pauseIcon = document.getElementById('pause-icon');
+  if (!btn || !label) return;
+  if (!isStrengthActive()) {
+    btn.classList.remove('is-log');
+    label.style.display = 'none';
+    if (!timerRunning) {
+      playIcon.style.display = '';
+      pauseIcon.style.display = 'none';
+    }
+    return;
+  }
+  btn.classList.add('is-log');
+  playIcon.style.display = 'none';
+  pauseIcon.style.display = 'none';
+  label.style.display = '';
+  const ex = activeWorkout.exercises[currentExIdx];
+  if (ex.logs.some((l) => !l.done)) {
+    label.textContent = 'Log';
+    btn.setAttribute('aria-label', 'Log the next set');
+  } else if (currentExIdx < activeWorkout.exercises.length - 1) {
+    label.textContent = 'Next';
+    btn.setAttribute('aria-label', 'Next exercise');
+  } else {
+    label.textContent = 'Finish';
+    btn.setAttribute('aria-label', 'Finish session');
+  }
+}
+
+document.getElementById('play-pause-btn').addEventListener('click', () => {
+  if (isStrengthActive()) advanceActive();
+  else toggleTimer();
+});
 
 // ─── SCREEN LOCK / BACKGROUND TAB TIMER FIX ──────────────────────────────────
 // When the screen locks or tab goes background, setInterval pauses.
@@ -2928,15 +3820,17 @@ function showWorkoutSummary(workout, duration, entry) {
     prBadgeEl.style.display = 'none';
   }
 
-  // Stats grid
+  // Stats grid — strength leads with ONE big number (count-up); CF/cardio keep
+  // the 3-up grid. .is-strength switches the container to the hero layout (CSS).
   const statsEl = document.getElementById('wsum-stats');
+  statsEl.classList.toggle('is-strength', !isCF && !isCardio);
   if (isCF) {
     const roundsVal =
       workout.type === 'amrap' ? cfRoundsCompleted : cfCurrentRound;
     const roundsLbl = workout.type === 'amrap' ? 'Rounds' : 'Rounds Done';
     statsEl.innerHTML = `
       <div class="wsum-stat"><div class="ws-val">${duration}</div><div class="ws-lbl">Duration</div></div>
-      <div class="wsum-stat"><div class="ws-val">${roundsVal}</div><div class="ws-lbl">${roundsLbl}</div></div>
+      <div class="wsum-stat"><div class="ws-val" data-count="${roundsVal}">0</div><div class="ws-lbl">${roundsLbl}</div></div>
       <div class="wsum-stat"><div class="ws-val">${workout.cf?.badge || workout.type.toUpperCase()}</div><div class="ws-lbl">Format</div></div>
     `;
   } else if (isCardio) {
@@ -2946,11 +3840,31 @@ function showWorkoutSummary(workout, duration, entry) {
       <div class="wsum-stat"><div class="ws-val">${workout.cardioType || 'Cardio'}</div><div class="ws-lbl">Type</div></div>
     `;
   } else {
-    statsEl.innerHTML = `
-      <div class="wsum-stat"><div class="ws-val">${Math.round(totalWeightMoved).toLocaleString()}</div><div class="ws-lbl">KG Volume</div></div>
-      <div class="wsum-stat"><div class="ws-val">${sessionSets}</div><div class="ws-lbl">Sets Done</div></div>
-      <div class="wsum-stat"><div class="ws-val">${duration}</div><div class="ws-lbl">Duration</div></div>
-    `;
+    const vol = Math.round(totalWeightMoved);
+    if (vol > 0) {
+      statsEl.innerHTML = `
+        <div class="wsum-hero">
+          <div class="wsum-hero-val" data-count="${vol}">0</div>
+          <div class="wsum-hero-unit">KG · Total Volume</div>
+        </div>
+        <div class="wsum-substats">
+          <div class="wsum-stat"><div class="ws-val" data-count="${sessionSets}">0</div><div class="ws-lbl">Sets Done</div></div>
+          <div class="wsum-stat"><div class="ws-val">${duration}</div><div class="ws-lbl">Duration</div></div>
+        </div>
+      `;
+    } else {
+      // Bodyweight / no load logged — lead with sets instead of an empty "0 kg".
+      statsEl.innerHTML = `
+        <div class="wsum-hero">
+          <div class="wsum-hero-val" data-count="${sessionSets}">0</div>
+          <div class="wsum-hero-unit">Sets Completed</div>
+        </div>
+        <div class="wsum-substats">
+          <div class="wsum-stat"><div class="ws-val">${duration}</div><div class="ws-lbl">Duration</div></div>
+          <div class="wsum-stat"><div class="ws-val">${(workout.exercises || []).length}</div><div class="ws-lbl">Exercises</div></div>
+        </div>
+      `;
+    }
   }
 
   // Top lift of the session
@@ -3005,6 +3919,7 @@ function showWorkoutSummary(workout, duration, entry) {
   }
 
   document.getElementById('workout-summary').classList.add('open');
+  animateSummaryNumbers();
 }
 
 document.getElementById('wsum-nudge-cta')?.addEventListener('click', () => {
@@ -3777,8 +4692,8 @@ document
     btn.textContent = 'Deleting…';
     const { error } = await deleteAccount();
     if (error) {
-      if (status) status.textContent =
-        error.message || 'Could not delete — try again.';
+      if (status)
+        status.textContent = error.message || 'Could not delete — try again.';
       btn.disabled = false;
       btn.textContent = 'Delete forever';
       return;

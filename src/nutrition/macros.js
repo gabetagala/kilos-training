@@ -80,7 +80,8 @@ export function macroPlan({
 
   // Translate rate → daily calorie delta (negative = deficit).
   const sign = goal === 'gain' ? 1 : -1;
-  let delta = goal === 'maintain' ? 0 : sign * Math.round((rate * KCAL_PER_KG) / 7);
+  let delta =
+    goal === 'maintain' ? 0 : sign * Math.round((rate * KCAL_PER_KG) / 7);
   let calories = maintenance + delta;
 
   // Safety floor (loss only): never below the sex floor or BMR — cap the
@@ -99,10 +100,7 @@ export function macroPlan({
   const protein = Math.round(w * proteinPerKg);
   // Fat ~25% of calories, but never below ~0.6 g/kg (hormonal floor).
   const fat = Math.max(Math.round((calories * 0.25) / 9), Math.round(w * 0.6));
-  const carbs = Math.max(
-    0,
-    Math.round((calories - protein * 4 - fat * 9) / 4),
-  );
+  const carbs = Math.max(0, Math.round((calories - protein * 4 - fat * 9) / 4));
 
   return {
     bmr,
