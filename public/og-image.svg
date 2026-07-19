@@ -42,7 +42,7 @@
        RIGHT — Text
   ══════════════════════ -->
 
-  <!-- GRIT — main wordmark -->
+  <!-- KILOS — main wordmark -->
   <text
     x="420" y="272"
     font-family="Impact, 'Arial Black', 'Helvetica Neue', Arial, sans-serif"
@@ -50,7 +50,7 @@
     font-weight="900"
     fill="#ffffff"
     letter-spacing="-4"
-  >GRIT</text>
+  >KILOS</text>
 
   <!-- TRAINING — tracked sub-label -->
   <text
@@ -90,7 +90,7 @@
     font-size="12"
     fill="rgba(255,255,255,0.18)"
     letter-spacing="2"
-  >grittraining.app</text>
+  >kilostraining.app</text>
 
   <!-- Top accent line -->
   <rect width="1200" height="3" fill="rgba(255,255,255,0.12)"/>

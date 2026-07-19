@@ -70,6 +70,15 @@ loop, do NOT proceed.
 
 ## M1 — Food tracking / meal logging  *(the "well-rounded" + PH-fit pillar)*
 
+> ⛔ **CUT / PARKED (2026-05-31).** Nutrition was removed from the roadmap — see
+> the decision in `ROADMAP.md` and the research in `NUTRITION-RESEARCH.md`. In
+> short: no cleanly licensable PH food data (FNRI locked), a permanent QA +
+> health-liability burden, a brand collision ("Kilos Kaloriya"), and it doesn't
+> help prove the core bet (workout-logging retention). **The new M1 is the
+> Retention & dopamine loop** (see ROADMAP). The section below is preserved for
+> history and may return only as a demand-pulled coach-tier feature; the
+> `macros.js` calculator is parked, not deleted.
+
 **Goal:** the easiest, most PH-accurate food log there is — the two things MyFitnessPal
 gets wrong (paywalled barcode scan + Western-only food DB).
 

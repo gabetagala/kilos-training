@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// GRIT TRAINING — supabase.js
+// KILOS TRAINING — supabase.js
 // Auth (Google Sign-In) + data sync.
 // All Supabase calls are no-ops if config.js still has placeholder values.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -57,16 +57,17 @@ export async function signInWithGoogle() {
 }
 
 // ─── USERNAME / PASSWORD AUTH (Option B) ────────────────────────────────────
-// Generates a fake email {username}@kilostraining.app so users never see
+// Generates a fake email {username}@grittraining.app so users never see
 // an email address. Disable "Email confirmations" in Supabase dashboard
 // (Auth → Settings → Email) for instant access with no verification step.
 //
-// NOTE: The @kilostraining.app suffix is intentionally retained after the
-// GRIT rebrand — existing accounts have this email in Supabase, and changing
-// it would lock them out. The suffix is internal-only and never user-visible.
+// NOTE: The @grittraining.app suffix is DELIBERATELY KEPT despite the KILOS
+// rebrand — existing accounts were created with this exact email in Supabase,
+// so changing it would lock every current user out. It is internal-only and
+// never user-visible, so the stale "grit" string is intentional here.
 
 function usernameToEmail(username) {
-  return `${username.toLowerCase().replace(/[^a-z0-9_]/g, '')}@kilostraining.app`;
+  return `${username.toLowerCase().replace(/[^a-z0-9_]/g, '')}@grittraining.app`;
 }
 
 export async function signUpWithPassword(displayName, username, password) {
@@ -95,6 +96,37 @@ export async function signInWithPassword(username, password) {
 export async function signOut() {
   if (!supabase) return;
   await supabase.auth.signOut();
+}
+
+// Permanently delete the signed-in user's account and all synced cloud data.
+// Calls the delete-account edge function (service-role delete of the auth user,
+// which cascades to user_data), then signs out and clears the synced keys from
+// this device so nothing is left pointing at a deleted account. Returns
+// { error } on failure; resolves on success.
+export async function deleteAccount() {
+  if (!supabase)
+    return {
+      error: { message: 'Sync not configured — no account to delete.' },
+    };
+  const session = await getSession();
+  if (!session) return { error: { message: 'Not signed in.' } };
+
+  const { data, error } = await supabase.functions.invoke('delete-account', {
+    method: 'POST',
+  });
+  if (error || data?.error) {
+    return { error: error || { message: data.error } };
+  }
+
+  // Tear down the local session + synced data; the device keeps no orphan state.
+  clearPendingSync();
+  await supabase.auth.signOut();
+  SYNC_KEYS.forEach((k) => {
+    try {
+      localStorage.removeItem(k);
+    } catch {}
+  });
+  return { success: true };
 }
 
 // ─── SYNC ─────────────────────────────────────────────────────────────────────

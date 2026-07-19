@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="GRIT">
+<meta name="apple-mobile-web-app-title" content="KILOS">
 <meta name="theme-color" content="#222222">
 <!-- Favicon — SVG master (scales to any size, used by modern browsers) -->
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -17,24 +17,24 @@
 <link rel="manifest" href="/manifest.json">
 <!-- Apple touch icon — used when saved to iOS home screen -->
 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
-<title>GRIT TRAINING — Train Heavy. Free Forever.</title>
+<title>KILOS TRAINING — Train Heavy. Free Forever.</title>
 
 <!-- Open Graph -->
 <meta property="og:type"        content="website">
-<meta property="og:url"         content="https://grittraining.vercel.app/">
-<meta property="og:title"       content="GRIT TRAINING">
+<meta property="og:url"         content="https://kilostraining.vercel.app/">
+<meta property="og:title"       content="KILOS TRAINING">
 <meta property="og:description" content="Train heavy. Track everything. Free forever. The no-BS lifting tracker built for people who actually train.">
-<meta property="og:image"       content="https://grittraining.vercel.app/og-image.png">
+<meta property="og:image"       content="https://kilostraining.vercel.app/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt"   content="GRIT TRAINING — Train heavy. Free forever.">
-<meta property="og:site_name"   content="GRIT TRAINING">
+<meta property="og:image:alt"   content="KILOS TRAINING — Train heavy. Free forever.">
+<meta property="og:site_name"   content="KILOS TRAINING">
 
 <!-- Twitter / X Card -->
 <meta name="twitter:card"        content="summary_large_image">
-<meta name="twitter:title"       content="GRIT TRAINING">
+<meta name="twitter:title"       content="KILOS TRAINING">
 <meta name="twitter:description" content="Train heavy. Track everything. Free forever.">
-<meta name="twitter:image"       content="https://grittraining.vercel.app/og-image.png">
+<meta name="twitter:image"       content="https://kilostraining.vercel.app/og-image.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -52,7 +52,7 @@
       <div class="bb-dots"><span></span><span></span><span></span></div>
       <div class="bb-url">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        grittraining.app
+        kilostraining.app
       </div>
       <div class="bb-spacer"></div>
     </div>
@@ -69,11 +69,11 @@
         <div class="home-hero">
           <div class="home-header">
             <div class="home-wordmark">
-              <div class="hw-grit">GRIT</div>
+              <div class="hw-kilos">KILOS</div>
               <div class="hw-training">TRAINING</div>
             </div>
             <div class="home-utils">
-              <button class="profile-btn" id="btn-profile" title="Edit profile">
+              <button class="profile-btn" id="btn-profile" aria-label="Profile and settings" title="Edit profile">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
                 <span class="profile-btn-name" id="profile-btn-name"></span>
               </button>
@@ -88,11 +88,50 @@
         <!-- Rest-day card — injected by JS when no session today -->
         <div id="rest-day-card" style="display:none"></div>
 
+        <!-- Personal Records (your progress) -->
+        <div class="pr-board-head">
+          <div class="section-label history-pr-label">Personal Records</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="export-btn" id="btn-export" aria-label="Export workout history as CSV" title="Export CSV">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </button>
+            <span class="pr-chip" id="pr-count">0 PRs</span>
+          </div>
+        </div>
+        <div class="pr-row" id="pr-row"></div>
+
+        <div class="recent-section">
+          <div class="section-label">Recent sessions</div>
+          <div id="recent-list"></div>
+        </div>
+
+        <!-- Data safety notice -->
+        <div class="data-notice">
+          <div class="dn-top">
+            <span class="dn-label">This device only</span>
+          </div>
+          <div class="dn-sub">Create an account to sync across devices — no email needed.</div>
+        </div>
+        <!-- Hidden file input for restore (triggered from settings/profile only) -->
+        <input type="file" id="import-file" accept=".json" style="display:none">
+      </div>
+
+      <!-- TRAIN — all the ways to start moving -->
+      <div id="train" class="screen">
+        <div class="build-header">
+          <div class="build-header-row">
+            <h1>Train</h1>
+          </div>
+          <p>Pick a way to move.</p>
+        </div>
         <div class="quick-start">
-          <div class="section-label">Start</div>
           <div class="quick-btns">
             <button class="quick-btn qs-highlight" id="btn-qs-open">
               <div class="qb-left"><div class="qb-title">Quick Start</div><div class="qb-sub">Pick a muscle. Go.</div></div>
+              <div class="qb-arrow">→</div>
+            </button>
+            <button class="quick-btn" id="btn-rehab-open">
+              <div class="qb-left"><div class="qb-title">Rehab</div><div class="qb-sub" id="rehab-btn-sub">Back protocol · follow along</div></div>
               <div class="qb-arrow">→</div>
             </button>
             <button class="quick-btn" id="btn-legends-open">
@@ -113,27 +152,16 @@
             </button>
           </div>
         </div>
-        <div class="recent-section">
-          <div class="section-label">Recent sessions</div>
-          <div id="recent-list"></div>
-        </div>
-
-        <!-- Data safety notice -->
-        <div class="data-notice">
-          <div class="dn-top">
-            <span class="dn-label">This device only</span>
-          </div>
-          <div class="dn-sub">Create an account to sync across devices — no email needed.</div>
-        </div>
-        <!-- Hidden file input for restore (triggered from settings/profile only) -->
-        <input type="file" id="import-file" accept=".json" style="display:none">
       </div>
 
       <!-- COACHES — Coming Soon -->
       <div id="coaches" class="screen">
-        <div class="coming-soon-screen">
+        <div class="screen-hero">
+          <div class="cs-eyebrow">Coming soon · in the works</div>
           <h1 class="cs-title">LOCAL<br>COACHES</h1>
-          <p class="cs-body">The best coaches in your scene — their workouts, your log. We're bringing the people who actually built this community onto GRIT. If that's you, reach out.</p>
+        </div>
+        <div class="coming-soon-screen">
+          <p class="cs-body">The best coaches in your scene — their workouts, your log. We're bringing the people who actually built this community onto KILOS. If that's you, reach out.</p>
           <div class="cs-sig">— Gabe</div>
           <button class="cs-notify-btn" id="btn-coaches-notify">I'm a coach →</button>
           <div class="cs-notify-status" id="coaches-notify-status"></div>
@@ -153,7 +181,7 @@
           <button class="build-mode-btn active" data-mode="strength">Strength</button>
           <button class="build-mode-btn" data-mode="crossfit">CrossFit</button>
         </div>
-        <input class="workout-name-input" id="custom-name" type="text" placeholder="Workout name..." autocomplete="off">
+        <input class="workout-name-input" id="custom-name" aria-label="Workout name" type="text" placeholder="Workout name..." autocomplete="off">
 
         <!-- Strength -->
         <div id="strength-section">
@@ -178,20 +206,20 @@
           <!-- EMOM config -->
           <div id="cf-config-emom" class="cf-config">
             <div class="ex-row" style="grid-template-columns:1fr 1fr;margin-bottom:20px">
-              <div class="ex-field"><label>Rounds</label><input type="number" id="cf-emom-rounds" value="10" min="1" max="60" inputmode="numeric"></div>
-              <div class="ex-field"><label>Interval (sec)</label><input type="number" id="cf-emom-interval" value="60" min="10" max="300" inputmode="numeric"></div>
+              <div class="ex-field"><label>Rounds</label><input type="number" id="cf-emom-rounds" aria-label="EMOM rounds" value="10" min="1" max="60" inputmode="numeric"></div>
+              <div class="ex-field"><label>Interval (sec)</label><input type="number" id="cf-emom-interval" aria-label="EMOM interval, seconds" value="60" min="10" max="300" inputmode="numeric"></div>
             </div>
           </div>
           <!-- AMRAP config -->
           <div id="cf-config-amrap" class="cf-config" style="display:none">
             <div class="ex-row" style="grid-template-columns:1fr 1fr;margin-bottom:20px">
-              <div class="ex-field"><label>Time cap (min)</label><input type="number" id="cf-amrap-time" value="20" min="1" max="90" inputmode="numeric"></div>
+              <div class="ex-field"><label>Time cap (min)</label><input type="number" id="cf-amrap-time" aria-label="AMRAP time cap, minutes" value="20" min="1" max="90" inputmode="numeric"></div>
             </div>
           </div>
           <!-- Rounds for Time config -->
           <div id="cf-config-rounds" class="cf-config" style="display:none">
             <div class="ex-row" style="grid-template-columns:1fr 1fr;margin-bottom:20px">
-              <div class="ex-field"><label>Rounds</label><input type="number" id="cf-rounds-count" value="3" min="1" max="20" inputmode="numeric"></div>
+              <div class="ex-field"><label>Rounds</label><input type="number" id="cf-rounds-count" aria-label="Number of rounds" value="3" min="1" max="20" inputmode="numeric"></div>
             </div>
           </div>
           <!-- For Time: no extra config -->
@@ -201,8 +229,8 @@
           <div id="cf-movement-list"></div>
           <div class="cf-movement-add-row">
             <div class="ex-row" style="grid-template-columns:2fr 1fr;gap:12px;margin-bottom:0">
-              <div class="ex-field"><label>Movement</label><input type="text" id="cf-mov-name" placeholder="e.g. Pull-up, 400m Run" autocomplete="off"></div>
-              <div class="ex-field"><label>Reps / Unit</label><input type="text" id="cf-mov-reps" placeholder="21 reps" autocomplete="off"></div>
+              <div class="ex-field"><label>Movement</label><input type="text" id="cf-mov-name" aria-label="Movement name" placeholder="e.g. Pull-up, 400m Run" autocomplete="off"></div>
+              <div class="ex-field"><label>Reps / Unit</label><input type="text" id="cf-mov-reps" aria-label="Reps or unit" placeholder="21 reps" autocomplete="off"></div>
             </div>
             <button class="add-exercise-btn" id="btn-add-cf-movement">+ Add Movement</button>
           </div>
@@ -213,27 +241,6 @@
         </div>
       </div>
 
-      <!-- HISTORY -->
-      <div id="history" class="screen">
-        <div class="screen-hero">
-          <div class="history-header">
-            <div class="history-header-row">
-              <h1>Your<br>History</h1>
-              <div style="display:flex;gap:8px;align-items:center">
-                <button class="export-btn" id="btn-export" title="Export CSV">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                </button>
-                <span class="pr-chip" id="pr-count">0 PRs</span>
-              </div>
-            </div>
-            <p>Every rep recorded.</p>
-          </div>
-        </div>
-        <div class="section-label history-pr-label">Personal Records</div>
-        <div class="pr-row" id="pr-row"></div>
-        <div id="history-list"></div>
-      </div>
-
       <!-- ACTIVE -->
       <div id="active" class="screen">
         <!-- No-workout empty state -->
@@ -242,17 +249,17 @@
           <p class="ap-hint">Start from Home or build a custom session.</p>
           <button class="ap-cta" id="ap-go-home">Go to Home →</button>
         </div>
-        <div class="active-header">
-          <div class="wordmark" style="font-size:20px">GRIT <span>TRAINING</span></div>
-          <button class="active-finish" id="btn-finish">Finish</button>
-        </div>
-        <div class="exercise-nav" id="exercise-nav">
-          <div class="ex-nav-pills" id="ex-nav-pills"></div>
-        </div>
-        <!-- BOLD TYPE TIMER -->
+        <!-- Current exercise is the headline — top of the screen, lets the rest breathe -->
         <div class="exercise-display" id="exercise-display">
           <div class="ex-current-name" id="current-ex-name">—</div>
-          <div class="ex-set-counter" id="current-ex-sets">Set 1 of 3</div>
+          <div class="ex-meta-row">
+            <span class="ex-set-counter" id="current-ex-sets">Set 1 of 3</span>
+            <!-- feel chip + swap link injected here by JS -->
+          </div>
+        </div>
+        <!-- Progress dots + what's coming up -->
+        <div class="exercise-nav" id="exercise-nav">
+          <div class="ex-nav-pills" id="ex-nav-pills"></div>
         </div>
         <!-- CF Meta — shown instead of exercise-nav + exercise-display for CF workouts -->
         <div id="cf-meta" style="display:none;padding:12px 24px 4px;flex-shrink:0">
@@ -267,34 +274,32 @@
           </div>
         </div>
         <div class="timer-controls">
-          <div class="tc-btn" id="btn-prev-ex">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-          </div>
-          <div class="tc-btn main" id="play-pause-btn">
-            <svg id="play-icon" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            <svg id="pause-icon" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-          </div>
-          <div class="tc-btn" id="btn-next-ex">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-          </div>
+          <button type="button" class="tc-btn" id="btn-prev-ex" aria-label="Previous exercise">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button type="button" class="tc-btn main" id="play-pause-btn" aria-label="Start or pause the timer">
+            <svg id="play-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <svg id="pause-icon" viewBox="0 0 24 24" fill="currentColor" style="display:none" aria-hidden="true"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            <span id="pp-label" class="pp-label" style="display:none"></span>
+          </button>
+          <button type="button" class="tc-btn" id="btn-next-ex" aria-label="Next exercise">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
         </div>
         <!-- CF Log — shown instead of set-log for CF workouts -->
         <div id="cf-log" style="display:none;height:290px;overflow-y:auto;padding:0 24px 88px;flex-shrink:0;"></div>
         <div class="set-log" id="set-log">
-          <div class="set-log-title-row">
-            <div class="set-log-title">Log sets</div>
-            <button class="plate-calc-btn" id="btn-plate-calc" title="Plate calculator">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="14" height="14"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-              Plates
-            </button>
-          </div>
           <div id="set-log-rows"></div>
         </div>
         <div id="cardio-log-section" style="display:none">
           <div class="label" id="cardio-type-label" style="padding:0 24px;margin-bottom:8px"></div>
           <div style="font-size:9px;color:var(--grey);font-family:'Space Mono',monospace;padding:0 24px;margin-bottom:20px;text-transform:uppercase;letter-spacing:0.08em" id="cardio-notes-label"></div>
           <div class="label" style="padding:0 24px;margin-bottom:10px">Distance</div>
-          <input class="log-input" id="cardio-distance-input" type="text" placeholder="e.g. 5.2 km" style="width:calc(100% - 48px);margin:0 24px;display:block;font-size:20px">
+          <input class="log-input" id="cardio-distance-input" aria-label="Distance" type="text" placeholder="e.g. 5.2 km" style="width:calc(100% - 48px);margin:0 24px;display:block;font-size:20px">
+        </div>
+        <!-- Finish — pinned to the bottom (margin-top:auto) across all modes -->
+        <div class="active-finish-bar">
+          <button class="active-finish" id="btn-finish">Finish session</button>
         </div>
       </div>
 
@@ -306,22 +311,14 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         <span>Home</span>
       </button>
+      <button class="nav-btn" data-screen="train">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/></svg>
+        <span>Train</span>
+      </button>
       <button class="nav-btn nav-btn-soon" data-screen="coaches">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         <span>Coaches</span>
         <span class="nav-soon">SOON</span>
-      </button>
-      <button class="nav-btn" data-screen="build">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        <span>Build</span>
-      </button>
-      <button class="nav-btn" data-screen="history">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        <span>History</span>
-      </button>
-      <button class="nav-btn" data-screen="active">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        <span>Active</span>
       </button>
     </nav>
 
@@ -377,8 +374,21 @@
       </div>
     </div>
 
+    <!-- ─── DELETE ACCOUNT CONFIRM ─── -->
+    <div class="confirm-overlay" id="delete-confirm">
+      <div class="confirm-sheet">
+        <div class="confirm-title">DELETE ACCOUNT?</div>
+        <div class="confirm-sub">This permanently deletes your account and all synced data. It can't be undone. Export your data first if you want a copy.</div>
+        <div class="confirm-actions">
+          <button class="confirm-yes danger" id="btn-delete-yes">Delete forever</button>
+          <button class="confirm-no" id="btn-delete-no">Cancel</button>
+        </div>
+        <div class="confirm-status" id="delete-status"></div>
+      </div>
+    </div>
+
     <!-- PR Toast -->
-    <div id="pr-toast">
+    <div id="pr-toast" role="status" aria-live="assertive">
       <div class="pr-toast-icon">PR</div>
       <div>
         <div class="pr-toast-label">NEW PERSONAL RECORD</div>
@@ -403,7 +413,7 @@
       <div class="modal-sheet plate-sheet">
         <div class="plate-title">PLATE CALCULATOR</div>
         <div class="plate-target-row">
-          <input type="number" id="plate-input" class="plate-input" placeholder="Target kg" inputmode="decimal">
+          <input type="number" id="plate-input" aria-label="Target weight" class="plate-input" placeholder="Target kg" inputmode="decimal">
           <span class="plate-unit-label" id="plate-unit-label">kg</span>
         </div>
         <div id="plate-result" class="plate-result"></div>
@@ -420,6 +430,14 @@
       </div>
       <div class="wsum-stats" id="wsum-stats"></div>
       <div class="wsum-top-lift" id="wsum-top-lift"></div>
+      <!-- Account nudge — only for signed-out users, only the first few sessions -->
+      <div class="wsum-nudge" id="wsum-nudge" style="display:none">
+        <div class="wsum-nudge-text">These PRs live only on this phone. Create a free account to back them up and sync across devices.</div>
+        <div class="wsum-nudge-actions">
+          <button class="wsum-nudge-cta" id="wsum-nudge-cta">Create account →</button>
+          <button class="wsum-nudge-skip" id="wsum-nudge-skip">Maybe later</button>
+        </div>
+      </div>
       <div class="wsum-actions">
         <button class="wsum-share" id="wsum-share">Share Workout →</button>
         <button class="wsum-history" id="wsum-history">See History</button>
@@ -431,7 +449,7 @@
     <div class="modal-overlay" id="ex-search-modal">
       <div class="modal-sheet">
         <div class="esm-search">
-          <input type="text" id="ex-search-input" placeholder="Search exercises..." autocomplete="off">
+          <input type="text" id="ex-search-input" aria-label="Search exercises" placeholder="Search exercises..." autocomplete="off">
         </div>
         <div class="esm-list" id="ex-search-list"></div>
         <button class="modal-close-btn" id="btn-close-ex-search">Cancel</button>
@@ -509,6 +527,144 @@
       <div class="page-content" id="cf-page-content"></div>
     </div>
 
+    <!-- ─── REHAB PAGE — the program, before you press go ─── -->
+    <div class="page-overlay" id="rehab-page">
+      <div class="page-header">
+        <button class="page-back" id="rehab-back">← Back</button>
+        <div class="page-title">REHAB</div>
+      </div>
+      <div class="page-content">
+        <p class="rh-intro">Bulletproof the back: decompress, stiffen the core, strengthen the hinge. Press start — it runs itself, demos included.</p>
+        <div id="rehab-resume-slot"></div>
+        <div id="rehab-session-list"></div>
+        <div class="section-label rh-ex-label">The movements</div>
+        <div id="rehab-ex-list"></div>
+        <p class="rh-note">Progress only while the back stays quiet — during the session and the day after. Sharp pain = stop.</p>
+      </div>
+    </div>
+
+    <!-- ─── REHAB PLAYER — follow-along guided session ─── -->
+    <div id="rehab-player" class="rp-overlay">
+      <div class="rp-top">
+        <button class="rp-close" id="rp-close" aria-label="Pause and close">✕</button>
+        <div class="rp-session" id="rp-session-name">DAILY RESET</div>
+        <button class="rp-voice" id="rp-voice" aria-label="Toggle voice cues" aria-pressed="true">
+          <svg id="rp-voice-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+          <svg id="rp-voice-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><line x1="15" y1="9" x2="21" y2="15"/><line x1="21" y1="9" x2="15" y2="15"/></svg>
+        </button>
+        <div class="rp-count" id="rp-count">–</div>
+      </div>
+      <div class="rp-demo" id="rp-demo"></div>
+      <div class="rp-exname" id="rp-exname">—</div>
+      <div class="rp-meta" id="rp-meta"></div>
+      <p class="rp-cue" id="rp-cue"></p>
+      <div class="rp-clock" id="rp-clock">
+        <div class="rp-phase" id="rp-phase">GET SET</div>
+        <div class="rp-time" id="rp-time">0:10</div>
+        <div class="rp-bar-track"><div class="rp-bar" id="rp-bar"></div></div>
+      </div>
+      <div class="rp-lift" id="rp-lift" style="display:none">
+        <div class="rp-weight-row">
+          <button class="rp-wbtn" id="rp-w-minus" aria-label="Less weight">−</button>
+          <div class="rp-weight"><span id="rp-w-val">40</span><span class="rp-w-unit">kg</span></div>
+          <button class="rp-wbtn" id="rp-w-plus" aria-label="More weight">+</button>
+        </div>
+        <button class="rp-done" id="rp-set-done">Set done →</button>
+      </div>
+      <div class="rp-next" id="rp-next"></div>
+      <div class="rp-controls">
+        <button type="button" class="rp-ctrl" id="rp-prev" aria-label="Previous step">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button type="button" class="rp-ctrl main" id="rp-play" aria-label="Start or pause">
+          <svg id="rp-play-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <svg id="rp-pause-icon" viewBox="0 0 24 24" fill="currentColor" style="display:none" aria-hidden="true"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+        </button>
+        <button type="button" class="rp-ctrl" id="rp-skip" aria-label="Skip step">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ─── PRIVACY POLICY ─── -->
+    <div class="page-overlay" id="privacy-page">
+      <div class="page-header">
+        <button class="page-back" id="privacy-back">← Back</button>
+        <div class="page-title">PRIVACY</div>
+      </div>
+      <div class="page-content legal-doc">
+        <p class="legal-updated">Last updated: 31 May 2026</p>
+        <p>KILOS Training ("KILOS", "we") is a free workout tracker. This policy explains what we collect, why, and the control you have. Plain language, no tricks.</p>
+
+        <h2>The short version</h2>
+        <p>KILOS works on your device first. Your workouts, body weight, personal records and settings are saved in your browser's local storage and never leave your phone unless you choose to create an account to sync. We don't sell your data, we don't run ad trackers, and you can export or delete everything at any time.</p>
+
+        <h2>What we store on your device</h2>
+        <p>Your logged workouts and sets, body weight and personal records, streaks, and your profile (your name, chosen equipment, and kg/lbs preference). This stays on your device and is yours to export (CSV) or clear at any time.</p>
+
+        <h2>What we store in the cloud — only if you create an account</h2>
+        <p>An account is optional and exists only to sync across your devices. If you create one we store, via our processor <strong>Supabase</strong>:</p>
+        <ul>
+          <li>A username and password (we use a synthetic email derived from your username; we do <em>not</em> require or collect a real email address).</li>
+          <li>A copy of your training data (the same workouts, weights, PRs and settings described above) and the time it last synced.</li>
+        </ul>
+        <p>Access is protected by per-user row-level security: only your signed-in account can read or write your row.</p>
+
+        <h2>Diagnostics</h2>
+        <p>To keep the app reliable we may use an error-monitoring service (Sentry) that records crash diagnostics (e.g. error messages and the screen where a crash happened) so we can fix bugs. We configure it to avoid collecting personal information. We do not use advertising or analytics tracking SDKs.</p>
+
+        <h2>Feedback</h2>
+        <p>If you send a message through the in-app feedback button, its contents are delivered to us by the form service Formspree so we can read and reply.</p>
+
+        <h2>Your rights</h2>
+        <p>You can, at any time: <strong>access and export</strong> your data (CSV export on the Home screen), <strong>correct</strong> it by editing in the app, and <strong>delete</strong> it — clearing local data on your device, and deleting your account (which removes your synced data) from your profile. Under the Philippines Data Privacy Act of 2012 you also have the right to object, to data portability, and to lodge a complaint with the National Privacy Commission.</p>
+
+        <h2>Data retention</h2>
+        <p>Local data stays until you clear it or uninstall. Cloud data stays until you delete your account, after which your data row is removed.</p>
+
+        <h2>Children</h2>
+        <p>KILOS is not directed at children under 13, and we don't knowingly collect their data.</p>
+
+        <h2>Contact</h2>
+        <p>Questions or requests about your data: <a href="mailto:gabe@kilostraining.app">gabe@kilostraining.app</a>. We're a small team and read every message.</p>
+
+        <p class="legal-foot">This policy may be updated as the app grows; the date above reflects the latest version.</p>
+      </div>
+    </div>
+
+    <!-- ─── TERMS OF USE ─── -->
+    <div class="page-overlay" id="terms-page">
+      <div class="page-header">
+        <button class="page-back" id="terms-back">← Back</button>
+        <div class="page-title">TERMS</div>
+      </div>
+      <div class="page-content legal-doc">
+        <p class="legal-updated">Last updated: 31 May 2026</p>
+        <p>By using KILOS Training you agree to these terms. They're short and fair.</p>
+
+        <h2>The deal</h2>
+        <p>KILOS is free to use for logging your training. The core features — logging, history, personal records, export — are free and we intend to keep them that way. We may later add optional paid offerings (for coaches and partners), but we will not paywall your ability to log and keep your own training data.</p>
+
+        <h2>Your account & data</h2>
+        <p>You're responsible for keeping your password safe. Your training data is yours. You can export it (CSV) or delete it and your account at any time from your profile.</p>
+
+        <h2>Acceptable use</h2>
+        <p>Don't misuse the service: no attempting to break, overload, or gain unauthorized access to it or to other users' data, and no using it for anything unlawful.</p>
+
+        <h2>Health disclaimer</h2>
+        <p>KILOS is a logging tool, not medical or fitness advice. Training involves risk of injury. You're responsible for training safely and should consult a qualified professional before starting a new program. Suggested weights and estimated one-rep maxes are informational estimates, not prescriptions.</p>
+
+        <h2>Availability & "as is"</h2>
+        <p>We work hard to keep your data safe (local-first, so it survives bad connections), but the service is provided "as is" without warranties, and we aren't liable for indirect or consequential damages to the extent the law allows. We may update or discontinue features over time.</p>
+
+        <h2>Changes</h2>
+        <p>If we change these terms, we'll update the date above. Continued use means you accept the changes.</p>
+
+        <h2>Contact</h2>
+        <p>Questions: <a href="mailto:gabe@kilostraining.app">gabe@kilostraining.app</a>.</p>
+      </div>
+    </div>
+
     <!-- ─── PR LOG MODAL — log current bests ─── -->
     <div class="modal-overlay" id="pr-log-modal">
       <div class="modal-sheet pr-log-sheet">
@@ -533,9 +689,9 @@
         <!-- Create account -->
         <div class="np-step" id="np-step-account">
           <div class="np-title">LET'S GO.</div>
-          <input type="text" id="np-display-name" class="np-input" placeholder="Your name"
+          <input type="text" id="np-display-name" aria-label="Your name" class="np-input" placeholder="Your name"
                  autocomplete="given-name" autocorrect="off" autocapitalize="words" />
-          <input type="password" id="np-password" class="np-input" placeholder="Password"
+          <input type="password" id="np-password" aria-label="Password" class="np-input" placeholder="Password"
                  autocomplete="new-password" />
           <div class="np-error" id="np-create-error"></div>
           <button class="np-cta" id="np-btn-create">Create account →</button>
@@ -548,9 +704,9 @@
         <!-- Sign in -->
         <div class="np-step" id="np-step-signin" style="display:none">
           <div class="np-title">WELCOME BACK.</div>
-          <input type="text" id="np-signin-username" class="np-input" placeholder="Your name"
+          <input type="text" id="np-signin-username" aria-label="Your name" class="np-input" placeholder="Your name"
                  autocomplete="username" autocorrect="off" autocapitalize="none" spellcheck="false" />
-          <input type="password" id="np-signin-password" class="np-input" placeholder="Password"
+          <input type="password" id="np-signin-password" aria-label="Password" class="np-input" placeholder="Password"
                  autocomplete="current-password" />
           <div class="np-error" id="np-signin-error"></div>
           <button class="np-cta" id="np-btn-signin">Sign in →</button>
@@ -565,7 +721,7 @@
     <!-- ─── BETA WELCOME — shown once on first ever visit, before name prompt ─── -->
     <div id="beta-welcome" class="bw-overlay">
       <div class="bw-card">
-        <div class="bw-title">GRIT TRAINING.</div>
+        <div class="bw-title">KILOS TRAINING.</div>
         <p class="bw-body">Train heavy. Track everything. Free forever.<br><br>You're in early. If something feels off, the message icon is always there — I read every one.</p>
         <div class="bw-sig">— Gabe</div>
         <button class="bw-cta" id="bw-cta">Let's go →</button>
@@ -578,8 +734,8 @@
 
         <div class="prof-header">
           <div class="prof-name-row">
-            <input class="prof-name-input" id="prof-name-input" type="text" placeholder="Your name" autocomplete="off" spellcheck="false">
-            <button class="prof-close" id="btn-close-profile">✕</button>
+            <input class="prof-name-input" id="prof-name-input" aria-label="Your name" type="text" placeholder="Your name" autocomplete="off" spellcheck="false">
+            <button class="prof-close" id="btn-close-profile" aria-label="Close profile">✕</button>
           </div>
         </div>
 
@@ -604,6 +760,14 @@
         <!-- Sync / auth -->
         <div class="prof-section" id="prof-sync-section"></div>
 
+        <!-- About / legal -->
+        <div class="prof-section prof-about">
+          <div class="prof-label">ABOUT</div>
+          <button class="prof-link" id="btn-open-privacy">Privacy Policy</button>
+          <button class="prof-link" id="btn-open-terms">Terms of Use</button>
+          <div class="prof-about-foot">KILOS — Train heavy. Free forever.<br>Your data is yours: export or delete it anytime.</div>
+        </div>
+
       </div>
     </div>
 
@@ -620,10 +784,10 @@
         <div class="fb-handle"></div>
         <div class="fb-header">
           <div class="fb-title">QUICK MESSAGE</div>
-          <button class="fb-close" id="fb-close">✕</button>
+          <button class="fb-close" id="fb-close" aria-label="Close">✕</button>
         </div>
         <p class="fb-sub">Straight to Gabe. Bug, idea, anything.</p>
-        <textarea id="fb-text" class="fb-textarea" placeholder="What did you notice?" maxlength="500" rows="4"></textarea>
+        <textarea id="fb-text" aria-label="Your message" class="fb-textarea" placeholder="What did you notice?" maxlength="500" rows="4"></textarea>
         <div class="fb-footer">
           <span class="fb-chars"><span id="fb-count">0</span>/500</span>
           <button class="fb-send" id="fb-send">Send →</button>

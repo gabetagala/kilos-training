@@ -1,31 +1,10 @@
 import { expect, test } from '@playwright/test';
+import { dismissOnboarding } from './helpers.js';
 
 // The money path — the loop the whole business rests on (STRATEGY.md §4):
 // start a workout → log a set → finish → see the summary. If this breaks,
 // nothing else matters. Onboarding is dismissed defensively so a change to
 // the first-run flow doesn't mask a break in the core loop.
-
-async function dismissOnboarding(page) {
-  // First-visit gauntlet: beta welcome → name prompt → equipment tier.
-  // Each overlay animates in, so wait for its button before clicking; a step
-  // that never appears (flow changed) is skipped rather than failing the test.
-  const steps = [
-    '#bw-cta', // "Let's go →"
-    '#np-local-btn', // "No account →"
-    '#onboarding-modal [data-tier="full-gym"]', // full-gym = exercises pass through
-  ];
-  for (const sel of steps) {
-    const el = page.locator(sel);
-    try {
-      await el.waitFor({ state: 'visible', timeout: 5000 });
-      await el.click();
-    } catch {
-      // overlay not part of this run — move on
-    }
-  }
-  // Ensure no onboarding overlay is still intercepting taps.
-  await expect(page.locator('#beta-welcome')).not.toBeVisible();
-}
 
 test('start a workout, log a set, finish, and see the summary', async ({
   page,
@@ -33,7 +12,8 @@ test('start a workout, log a set, finish, and see the summary', async ({
   await page.goto('/');
   await dismissOnboarding(page);
 
-  // Quick Start → pick the first muscle → quickStartWorkout begins the session.
+  // Train tab → Quick Start → pick the first muscle → begins the session.
+  await page.locator('.nav-btn[data-screen="train"]').click();
   await page.locator('#btn-qs-open').click();
   const firstMuscle = page.locator('.qs-page-chip').first();
   await expect(firstMuscle).toBeVisible();

@@ -8,8 +8,10 @@ npm run lint || {
   exit 1
 }
 
-# Design-system guardrail (12px text floor / token scale) is added in
-# Batch 5 of FOUNDATION-SETUP.md. Uncomment when scripts/check-design-system.mjs lands:
-# npm run lint:design || { echo "✗ Design-system check failed."; exit 1; }
+# Design-system guardrail (DESIGN.md — hard text floor + .t-* scale integrity).
+npm run lint:design || {
+  echo "✗ Design-system check failed — see DESIGN.md (A2)."
+  exit 1
+}
 
 exit 0
