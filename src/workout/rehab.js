@@ -488,10 +488,12 @@ export function tempoStateAt(tempo, elapsedMs) {
   const rep = Math.floor(clamped / perRep) + 1;
   let into = (clamped % perRep) / 1000;
   for (const [label, secs] of tempo.pattern) {
-    if (into < secs) return { rep, label };
+    if (into < secs)
+      return { rep, label, phaseSec: Math.floor(into), phaseLen: secs };
     into -= secs;
   }
-  return { rep, label: tempo.pattern[tempo.pattern.length - 1][0] };
+  const [lastLabel, lastSecs] = tempo.pattern[tempo.pattern.length - 1];
+  return { rep, label: lastLabel, phaseSec: lastSecs - 1, phaseLen: lastSecs };
 }
 
 export function sessionSetTotal(session) {

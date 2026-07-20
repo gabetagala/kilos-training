@@ -201,9 +201,10 @@ function beep(freq, duration) {
     osc.stop(audioCtx.currentTime + duration);
   } catch {}
 }
-// Gliding tone — a continuous pitch sweep reads as motion (up/down) in a way
-// two discrete beeps never do. Same lazy AudioContext as beep().
-function sweep(fromHz, toHz, duration, gain = 0.3) {
+// Percussive gym sounds — low and punchy, not sci-fi.
+// thump(): kick-drum hit (fast pitch drop) — the DRIVE cue.
+// tock(): short wood-block knock — counts the seconds of an eccentric.
+function thump() {
   try {
     if (!audioCtx)
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -213,14 +214,29 @@ function sweep(fromHz, toHz, duration, gain = 0.3) {
     g.connect(audioCtx.destination);
     osc.type = 'sine';
     const t = audioCtx.currentTime;
-    osc.frequency.setValueAtTime(fromHz, t);
-    osc.frequency.linearRampToValueAtTime(toHz, t + duration);
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(gain, t + 0.02);
-    g.gain.setValueAtTime(gain, t + duration - 0.06);
-    g.gain.exponentialRampToValueAtTime(0.001, t + duration);
+    osc.frequency.setValueAtTime(170, t);
+    osc.frequency.exponentialRampToValueAtTime(50, t + 0.11);
+    g.gain.setValueAtTime(0.65, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
     osc.start(t);
-    osc.stop(t + duration);
+    osc.stop(t + 0.2);
+  } catch {}
+}
+function tock(freq = 200) {
+  try {
+    if (!audioCtx)
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.connect(g);
+    g.connect(audioCtx.destination);
+    osc.type = 'triangle';
+    const t = audioCtx.currentTime;
+    osc.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0.5, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+    osc.start(t);
+    osc.stop(t + 0.09);
   } catch {}
 }
 
@@ -1015,8 +1031,7 @@ let rhCounted = new Set(); // step indices whose set already counted (idempotent
 let rhLiftSets = []; // [{weight, reps}] logged RDL sets
 let rhWeightKg = 40;
 let rhLastBeepSec = null;
-let rhLastRep = 0; // last announced rep of a tempo step
-let rhLastTempoLabel = null; // last spoken tempo sub-phase
+const rhTempoMem = { key: null }; // cue dedupe for timed tempo sets
 let rhStepEnteredAt = Date.now(); // for estimating manual-step time remaining
 let rhAnnouncedIdx = -1; // last step index already announced (no double cues)
 let rhLastSave = 0;
@@ -1159,12 +1174,6 @@ function rhCue(kind) {
     // CrossFit-timer countdown: same short beep at 3, 2, 1 — the landing
     // sound (work double / rest low) is the "long beep".
     beep(900, 0.09);
-  } else if (kind === 'tempo-lift' || kind === 'tempo-up') {
-    sweep(350, 950, 0.4); // unmistakably UP
-  } else if (kind === 'tempo-squeeze' || kind === 'tempo-pause') {
-    beep(1250, 0.5); // long high sustain — hold the top
-  } else if (kind === 'tempo-lower' || kind === 'tempo-down') {
-    sweep(950, 350, 0.55); // unmistakably DOWN (slow eccentric)
   } else if (kind === 'finish') {
     beep(660, 0.12);
     setTimeout(() => beep(830, 0.12), 160);
@@ -1384,6 +1393,22 @@ function rhRenderDemo(demoEl, exId) {
   }
 }
 
+// One cue per (rep, phase, second): THUMP on the drive, a descending TOCK on
+// every second of the eccentric, firm knocks through a squeeze.
+function rhTempoTick(st, mem) {
+  const key = `${st.rep}:${st.label}:${st.phaseSec}`;
+  if (mem.key === key) return;
+  mem.key = key;
+  if (st.label === 'UP' || st.label === 'LIFT') {
+    if (st.phaseSec === 0) thump();
+  } else if (st.label === 'SQUEEZE' || st.label === 'PAUSE') {
+    tock(300);
+  } else {
+    // DOWN / LOWER — count each second, stepping lower
+    tock(Math.max(140, 215 - st.phaseSec * 25));
+  }
+}
+
 // ── Tempo guide for self-paced sets: count-in, then glide-paced reps ─────────
 function rhStopGuide(silent = false) {
   if (rhGuideInterval) clearInterval(rhGuideInterval);
@@ -1404,8 +1429,7 @@ function rhStartGuide() {
     tempo: { reps: step.repTarget, secsPerRep, pattern: step.repTempo },
     startsAt: Date.now() + 3000, // 3-beep count-in
     lastCountSec: null,
-    lastRep: 0,
-    lastLabel: null,
+    key: null,
   };
   rhRenderPlayBtn();
   if (rhGuideInterval) clearInterval(rhGuideInterval);
@@ -1431,11 +1455,7 @@ function rhStartGuide() {
       return;
     }
     const st = tempoStateAt(g.tempo, elapsed);
-    if (st.label !== g.lastLabel || st.rep !== g.lastRep) {
-      if (st.label !== g.lastLabel) rhCue(`tempo-${st.label.toLowerCase()}`);
-      g.lastLabel = st.label;
-      g.lastRep = st.rep;
-    }
+    rhTempoTick(st, g);
     el.textContent = `${st.rep}/${g.tempo.reps} · ${st.label}`;
   }, 100);
 }
@@ -1631,15 +1651,10 @@ function rhTick() {
     rhCue('count');
   }
 
-  // Tempo sets: each sub-phase gets its motion tone — rising = lift,
-  // double high pulse = squeeze, falling = lower. The lift tone marks the rep.
+  // Tempo sets: percussive per-second pacing (thump = drive, tocks = lower).
   if (step.tempo) {
     const st = tempoStateAt(step.tempo, step.secs * 1000 - left);
-    if (st.rep !== rhLastRep) rhLastRep = st.rep;
-    if (st.label !== rhLastTempoLabel) {
-      rhLastTempoLabel = st.label;
-      rhCue(`tempo-${st.label.toLowerCase()}`);
-    }
+    rhTempoTick(st, rhTempoMem);
   }
 
   rhRenderClock();
@@ -1671,8 +1686,7 @@ function rhComplete(overflowMs = 0) {
   const next = rhStep();
   rhRemainMs = next.manual ? 0 : next.secs * 1000 - carry;
   rhLastBeepSec = null;
-  rhLastRep = 0;
-  rhLastTempoLabel = next.tempo ? next.tempo.pattern[0][0] : null;
+  rhTempoMem.key = null;
   rhStepEnteredAt = Date.now();
   rhAnnounceStep(next);
   if (next.manual) {
@@ -1696,8 +1710,7 @@ function rhJump(dir) {
   const step = rhStep();
   rhRemainMs = step.manual ? 0 : step.secs * 1000;
   rhLastBeepSec = null;
-  rhLastRep = 0;
-  rhLastTempoLabel = step.tempo ? step.tempo.pattern[0][0] : null;
+  rhTempoMem.key = null;
   rhStepEnteredAt = Date.now();
   rhAnnounceStep(step); // a manual jump still tells you where you landed
   if (step.manual) rhStop();

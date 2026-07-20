@@ -192,11 +192,11 @@ describe('player helpers', () => {
         ['LOWER', 1],
       ],
     };
-    expect(tempoStateAt(tempo, 0)).toEqual({ rep: 1, label: 'LIFT' });
-    expect(tempoStateAt(tempo, 1500)).toEqual({ rep: 1, label: 'SQUEEZE' });
-    expect(tempoStateAt(tempo, 3500)).toEqual({ rep: 1, label: 'LOWER' });
-    expect(tempoStateAt(tempo, 4000)).toEqual({ rep: 2, label: 'LIFT' });
-    expect(tempoStateAt(tempo, 39999)).toEqual({ rep: 10, label: 'LOWER' });
+    expect(tempoStateAt(tempo, 0)).toMatchObject({ rep: 1, label: 'LIFT' });
+    expect(tempoStateAt(tempo, 1500)).toMatchObject({ rep: 1, label: 'SQUEEZE' });
+    expect(tempoStateAt(tempo, 3500)).toMatchObject({ rep: 1, label: 'LOWER' });
+    expect(tempoStateAt(tempo, 4000)).toMatchObject({ rep: 2, label: 'LIFT' });
+    expect(tempoStateAt(tempo, 39999)).toMatchObject({ rep: 10, label: 'LOWER' });
     // never overruns the final rep even past the end
     expect(tempoStateAt(tempo, 999999).rep).toBe(10);
   });
