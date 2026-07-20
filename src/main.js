@@ -1129,6 +1129,19 @@ function rhCue(kind) {
     setTimeout(() => beep(523, 0.12), 170);
   } else if (kind === 'rep') {
     beep(520, 0.05);
+  } else if (kind === 'count') {
+    // CrossFit-timer countdown: same short beep at 3, 2, 1 — the landing
+    // sound (work double / rest low) is the "long beep".
+    beep(900, 0.09);
+  } else if (kind === 'tempo-lift') {
+    beep(600, 0.07);
+    setTimeout(() => beep(900, 0.09), 90);
+  } else if (kind === 'tempo-squeeze') {
+    beep(1100, 0.07);
+    setTimeout(() => beep(1100, 0.07), 110);
+  } else if (kind === 'tempo-lower') {
+    beep(900, 0.07);
+    setTimeout(() => beep(600, 0.09), 90);
   } else if (kind === 'finish') {
     beep(660, 0.12);
     setTimeout(() => beep(830, 0.12), 160);
@@ -1467,10 +1480,10 @@ function rhTick() {
     sec !== rhLastBeepSec
   ) {
     rhLastBeepSec = sec;
-    beep(sec === 3 ? 660 : sec === 2 ? 780 : 900, 0.08);
+    rhCue('count');
   }
 
-  // End-of-hold countdown — spoken 3·2·1 so you know the release is coming.
+  // End-of-hold countdown — CrossFit beeps so you know the release is coming.
   if (
     step.kind === 'work' &&
     !step.tempo &&
@@ -1479,21 +1492,17 @@ function rhTick() {
     sec !== rhLastBeepSec
   ) {
     rhLastBeepSec = sec;
-    const words = ['', 'one', 'two', 'three'];
-    if (rhVoiceOn) rhCueSay([words[sec]], String(sec));
-    else beep(sec === 3 ? 900 : sec === 2 ? 780 : 660, 0.08);
+    rhCue('count');
   }
 
-  // Tempo sets: tick each rep + speak the sub-phase (lift / squeeze / lower).
+  // Tempo sets: each sub-phase gets its motion tone — rising = lift,
+  // double high pulse = squeeze, falling = lower. The lift tone marks the rep.
   if (step.tempo) {
     const st = tempoStateAt(step.tempo, step.secs * 1000 - left);
-    if (st.rep !== rhLastRep) {
-      rhLastRep = st.rep;
-      if (st.rep > 1) rhCue('rep');
-    }
+    if (st.rep !== rhLastRep) rhLastRep = st.rep;
     if (st.label !== rhLastTempoLabel) {
       rhLastTempoLabel = st.label;
-      rhCueSay([st.label.toLowerCase()], st.label.toLowerCase());
+      rhCue(`tempo-${st.label.toLowerCase()}`);
     }
   }
 
