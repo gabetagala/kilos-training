@@ -1022,6 +1022,8 @@ let rhAnnouncedIdx = -1; // last step index already announced (no double cues)
 let rhLastSave = 0;
 let rhWakeLock = null;
 let rhWallInterval = null;
+let rhGuide = null; // active tempo guide on a self-paced set
+let rhGuideInterval = null;
 let rhVoiceOn = get(REHAB_VOICE_KEY) ?? true;
 
 const rhStep = () => rhQueue[rhIdx];
@@ -1157,12 +1159,12 @@ function rhCue(kind) {
     // CrossFit-timer countdown: same short beep at 3, 2, 1 — the landing
     // sound (work double / rest low) is the "long beep".
     beep(900, 0.09);
-  } else if (kind === 'tempo-lift') {
+  } else if (kind === 'tempo-lift' || kind === 'tempo-up') {
     sweep(350, 950, 0.4); // unmistakably UP
-  } else if (kind === 'tempo-squeeze') {
+  } else if (kind === 'tempo-squeeze' || kind === 'tempo-pause') {
     beep(1250, 0.5); // long high sustain — hold the top
-  } else if (kind === 'tempo-lower') {
-    sweep(950, 350, 0.55); // unmistakably DOWN, slightly longer (slow eccentric)
+  } else if (kind === 'tempo-lower' || kind === 'tempo-down') {
+    sweep(950, 350, 0.55); // unmistakably DOWN (slow eccentric)
   } else if (kind === 'finish') {
     beep(660, 0.12);
     setTimeout(() => beep(830, 0.12), 160);
@@ -1309,12 +1311,9 @@ function rhRenderClock() {
 }
 
 function rhRenderPlayBtn() {
-  document.getElementById('rp-play-icon').style.display = rhRunning
-    ? 'none'
-    : '';
-  document.getElementById('rp-pause-icon').style.display = rhRunning
-    ? ''
-    : 'none';
+  const active = rhRunning || !!rhGuide;
+  document.getElementById('rp-play-icon').style.display = active ? 'none' : '';
+  document.getElementById('rp-pause-icon').style.display = active ? '' : 'none';
 }
 
 function rhRenderWeight() {
@@ -1385,6 +1384,62 @@ function rhRenderDemo(demoEl, exId) {
   }
 }
 
+// ── Tempo guide for self-paced sets: count-in, then glide-paced reps ─────────
+function rhStopGuide(silent = false) {
+  if (rhGuideInterval) clearInterval(rhGuideInterval);
+  rhGuideInterval = null;
+  const was = rhGuide;
+  rhGuide = null;
+  if (was && !silent) rhCue('rest');
+  const g = document.getElementById('rp-guide');
+  if (g) g.textContent = 'TAP ▶ FOR TEMPO GUIDE';
+  rhRenderPlayBtn();
+}
+
+function rhStartGuide() {
+  const step = rhStep();
+  if (!step?.manual || !step.repTempo) return;
+  const secsPerRep = step.repTempo.reduce((sum, [, x]) => sum + x, 0);
+  rhGuide = {
+    tempo: { reps: step.repTarget, secsPerRep, pattern: step.repTempo },
+    startsAt: Date.now() + 3000, // 3-beep count-in
+    lastCountSec: null,
+    lastRep: 0,
+    lastLabel: null,
+  };
+  rhRenderPlayBtn();
+  if (rhGuideInterval) clearInterval(rhGuideInterval);
+  rhGuideInterval = setInterval(() => {
+    const g = rhGuide;
+    const el = document.getElementById('rp-guide');
+    if (!g || !el) return;
+    const now = Date.now();
+    if (now < g.startsAt) {
+      const sec = Math.ceil((g.startsAt - now) / 1000);
+      if (sec !== g.lastCountSec) {
+        g.lastCountSec = sec;
+        rhCue('count');
+      }
+      el.textContent = `READY · ${sec}`;
+      return;
+    }
+    const elapsed = now - g.startsAt;
+    const total = g.tempo.reps * g.tempo.secsPerRep * 1000;
+    if (elapsed >= total) {
+      el.textContent = `${g.tempo.reps}/${g.tempo.reps} · DONE`;
+      rhStopGuide();
+      return;
+    }
+    const st = tempoStateAt(g.tempo, elapsed);
+    if (st.label !== g.lastLabel || st.rep !== g.lastRep) {
+      if (st.label !== g.lastLabel) rhCue(`tempo-${st.label.toLowerCase()}`);
+      g.lastLabel = st.label;
+      g.lastRep = st.rep;
+    }
+    el.textContent = `${st.rep}/${g.tempo.reps} · ${st.label}`;
+  }, 100);
+}
+
 // ── Session overview sheet: done above, current anchored, upcoming below ────
 function rhRenderOverview() {
   const overlay = document.getElementById('rp-overview');
@@ -1419,6 +1474,12 @@ function rhOpenOverview() {
   document.getElementById('rp-overview').classList.add('open');
   rhRenderOverview();
 }
+document.getElementById('rp-guide').addEventListener('click', () => {
+  const step = rhStep();
+  if (!step?.manual || !step.repTempo) return;
+  if (rhGuide) rhStopGuide(true);
+  else rhStartGuide();
+});
 document
   .getElementById('rp-overview-btn')
   .addEventListener('click', rhOpenOverview);
@@ -1495,9 +1556,15 @@ function rhRenderStep() {
       : '';
 
   rhRenderOverview();
+  rhStopGuide(true);
+  const guideEl = document.getElementById('rp-guide');
+  if (guideEl) {
+    guideEl.style.display = step.manual && step.repTempo ? '' : 'none';
+    guideEl.textContent = 'TAP ▶ FOR TEMPO GUIDE';
+  }
   document.getElementById('rp-prev').disabled = rhIdx === 0;
   const playBtn = document.getElementById('rp-play');
-  playBtn.disabled = !!step.manual;
+  playBtn.disabled = !!step.manual && !step.repTempo;
   rhRenderPlayBtn();
 }
 
@@ -2011,6 +2078,12 @@ document
   .addEventListener('click', () => closePage('rehab-page'));
 document.getElementById('rp-close').addEventListener('click', closeRehabPlayer);
 document.getElementById('rp-play').addEventListener('click', () => {
+  const mstep = rhStep();
+  if (mstep?.manual && mstep.repTempo) {
+    if (rhGuide) rhStopGuide(true);
+    else rhStartGuide();
+    return;
+  }
   if (rhRunning) {
     rhPause();
     return;
@@ -2041,6 +2114,7 @@ document.getElementById('rp-voice').addEventListener('click', () => {
 document.getElementById('rp-set-done').addEventListener('click', () => {
   const step = rhStep();
   if (!step?.manual) return;
+  rhStopGuide(true);
   if (step.logWeight !== false) {
     const ex = GUIDED_EXERCISES[step.exId];
     rhLiftSets.push({

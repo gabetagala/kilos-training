@@ -9,30 +9,50 @@
 
 export const PROGRAM_EXERCISES = {
   'pull-up': {
+    repTempo: [
+      ['UP', 1],
+      ['DOWN', 2],
+    ],
     name: 'Weighted Pull-Up',
     cue: 'Strict, dead-hang stretch every rep, zero swing. Load with the backpack.',
     why: 'The V-taper builder — lats and grip, spine unloaded.',
     yt: 'strict weighted pull up form',
   },
   'cable-row-1arm': {
+    repTempo: [
+      ['UP', 1],
+      ['DOWN', 2],
+    ],
     name: '1-Arm Cable Row',
     cue: 'Split stance, hips hinged, spine long, free hand braced. Right side first.',
     why: 'Back thickness with zero seated flexion.',
     yt: 'single arm standing cable row',
   },
   'db-lateral-raise': {
+    repTempo: [
+      ['UP', 1],
+      ['DOWN', 2],
+    ],
     name: 'DB Lateral Raise',
     cue: 'Soft elbows, lead with the knuckles, ribs down. No swing.',
     why: 'Side delts = shoulder width = the taper.',
     yt: 'dumbbell lateral raise form',
   },
   'rope-pushdown': {
+    repTempo: [
+      ['UP', 1],
+      ['DOWN', 2],
+    ],
     name: 'Rope Pushdown',
     cue: 'Elbows pinned, split the rope at the bottom, slow return.',
     why: 'Triceps are two-thirds of arm size.',
     yt: 'rope pushdown form',
   },
   'hammer-curl': {
+    repTempo: [
+      ['UP', 1],
+      ['DOWN', 2],
+    ],
     name: 'DB Hammer Curl',
     cue: 'Thumbs up, strict, no lean-back.',
     why: 'Brachioradialis — the visible forearm mass.',
@@ -45,72 +65,120 @@ export const PROGRAM_EXERCISES = {
     yt: 'suitcase carry form',
   },
   'reverse-wrist-curl': {
+    repTempo: [
+      ['UP', 1],
+      ['DOWN', 1],
+    ],
     name: 'Reverse Wrist Curl',
     cue: 'Light DBs, knuckles up, slow both ways.',
     why: 'Forearm extensors — the top of the "Popeye" look.',
     yt: 'reverse wrist curl',
   },
   'front-squat': {
+    repTempo: [
+      ['DOWN', 2],
+      ['UP', 1],
+    ],
     name: 'Front Squat',
     cue: 'Shoe lift on, collars on. Squat to just above the safety pins. Crisp speed — a grinding rep ends the set.',
     why: 'Legs + upright torso = least spine cost per unit of leg work.',
     yt: 'front squat cross arm form',
   },
   'rfe-split-squat': {
+    repTempo: [
+      ['DOWN', 2],
+      ['UP', 1],
+    ],
     name: 'Rear-Foot-Elevated Split Squat',
     cue: 'Rear foot on the box, DBs at sides. Right leg first — left matches its reps.',
     why: 'Single-leg strength that respects the leg-length difference.',
     yt: 'rear foot elevated split squat',
   },
   'face-pull': {
+    repTempo: [
+      ['UP', 1],
+      ['DOWN', 1],
+    ],
     name: 'Rope Face Pull',
     cue: 'Pull to the eyebrows, elbows high, thumbs back. Light and strict.',
     why: 'Rear delts + healthy shoulders behind all the pressing.',
     yt: 'rope face pull form',
   },
   'wrist-curl': {
+    repTempo: [
+      ['UP', 1],
+      ['DOWN', 1],
+    ],
     name: 'DB Wrist Curl',
     cue: 'Kneeling, forearms on thighs, palms up. Full roll, slow.',
     why: 'Forearm flexors — the underside mass.',
     yt: 'dumbbell wrist curl',
   },
   'band-lateral-raise': {
+    repTempo: [
+      ['UP', 1],
+      ['DOWN', 2],
+    ],
     name: 'Band Lateral Raise',
     cue: 'Stand on the band, lead with the knuckles, constant tension.',
     why: 'Extra side-delt volume with zero setup.',
     yt: 'resistance band lateral raise',
   },
   'floor-press': {
+    repTempo: [
+      ['DOWN', 2],
+      ['UP', 1],
+    ],
     name: 'Barbell Floor Press',
     cue: 'Bar off the LOW safeties, dead-stop each rep, ribs down. Roll to your side to get up.',
     why: 'Heavy pressing, solo-safe by design. Becomes incline DB when the bench lands.',
     yt: 'barbell floor press form',
   },
   'lat-pulldown': {
+    repTempo: [
+      ['UP', 1],
+      ['DOWN', 2],
+    ],
     name: 'Lat Pulldown',
     cue: 'Overhand, just outside shoulders, full stretch + 1-s pause at the top.',
     why: 'More lat width volume at zero spine cost.',
     yt: 'lat pulldown form',
   },
   'elevated-pushup': {
+    repTempo: [
+      ['DOWN', 2],
+      ['UP', 1],
+    ],
     name: 'Feet-Elevated Push-Up',
     cue: 'Feet on the box, ribs down. The set ends at the first hip-sag rep.',
     why: 'Upper-chest bias until the bench arrives.',
     yt: 'feet elevated push up',
   },
   'band-fly': {
+    repTempo: [
+      ['UP', 1],
+      ['DOWN', 2],
+    ],
     name: 'Low-to-High Band Fly',
     cue: 'Band under the rack foot, sweep low to high, ribs down, no lean-back.',
     why: 'Upper-chest isolation from the equipment you have.',
     yt: 'low to high band fly',
   },
   'supinated-curl': {
+    repTempo: [
+      ['UP', 1],
+      ['DOWN', 2],
+    ],
     name: 'DB Supinated Curl',
     cue: 'Palms up the whole rep, strict, full stretch.',
     why: 'Biceps peak to pair with the hammer work.',
     yt: 'supinated dumbbell curl',
   },
   'overhead-triceps': {
+    repTempo: [
+      ['UP', 1],
+      ['DOWN', 2],
+    ],
     name: 'Overhead Rope Extension',
     cue: 'Facing away from the low pulley, elbows by the ears. Ribs down, glutes on — no arch.',
     why: 'Long-head triceps at full stretch — the arm-size move.',

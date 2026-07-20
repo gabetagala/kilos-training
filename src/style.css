@@ -6842,6 +6842,20 @@ body {
   border-color: var(--white);
 }
 
+.rp-guide {
+  display: block;
+  margin: 0 auto var(--s-3);
+  background: none;
+  border: none;
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--grey);
+  cursor: pointer;
+  min-height: 20px;
+}
+
 /* ── Session overview sheet (peek without skipping) ── */
 .rpo-overlay {
   position: absolute;

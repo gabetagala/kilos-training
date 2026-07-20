@@ -61,6 +61,10 @@ export const REHAB_EXERCISES = {
   },
   rdl: {
     name: 'Romanian Deadlift',
+    repTempo: [
+      ['DOWN', 3],
+      ['UP', 1],
+    ],
     // Standing + loaded is the one place the leg-length difference matters —
     // train with the same correction you walk with.
     cue: 'Shoe lift on. Soft knees, hips straight back, bar close — three seconds down, flat back.',
@@ -201,6 +205,16 @@ export const tempoSecsPerRep = (tempo) =>
 
 const blockScheme = (block) =>
   block.repScheme || Array(block.sets || 1).fill(block.reps || 1);
+
+// Tempo-guide metadata for self-paced sets: the exercise's rep tempo plus a
+// rep target (upper bound of the range) the audio guide paces toward.
+const guideFor = (exId, reps) => {
+  const ex = REHAB_EXERCISES[exId] || PROGRAM_EXERCISES[exId];
+  if (!ex?.repTempo) return {};
+  const nums = String(reps ?? '').match(/\d+/g);
+  const target = nums ? parseInt(nums[nums.length - 1], 10) : 0;
+  return target > 0 ? { repTempo: ex.repTempo, repTarget: target } : {};
+};
 
 function prepStep(exId) {
   return {
@@ -367,6 +381,7 @@ export function buildStepQueue(session) {
           cueNote:
             set === block.sets ? block.lastSetNote || block.note : block.note,
           countsAsSet: true,
+          ...guideFor(block.ex, block.reps),
         });
         if (set < block.sets) {
           steps.push(
