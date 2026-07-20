@@ -17,7 +17,7 @@ export default defineConfig({
 
       workbox: {
         // Precache everything Vite builds (content-hashed JS/CSS + HTML)
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2,m4a,mp3}'],
 
         // SPA fallback — all navigation goes to index.html
         // Exclude standalone pages (coach previews etc.) from SW interception

@@ -992,8 +992,12 @@ let rhLiftSets = []; // [{weight, reps}] logged RDL sets
 let rhWeightKg = 40;
 let rhLastBeepSec = null;
 let rhLastRep = 0; // last announced rep of a tempo step
+let rhLastTempoLabel = null; // last spoken tempo sub-phase
+let rhStepEnteredAt = Date.now(); // for estimating manual-step time remaining
+let rhAnnouncedIdx = -1; // last step index already announced (no double cues)
 let rhLastSave = 0;
 let rhWakeLock = null;
+let rhWallInterval = null;
 let rhVoiceOn = get(REHAB_VOICE_KEY) ?? true;
 
 const rhStep = () => rhQueue[rhIdx];
@@ -1041,6 +1045,62 @@ if (typeof speechSynthesis !== 'undefined') {
   speechSynthesis.addEventListener?.('voiceschanged', rhRefreshVoice);
 }
 
+// Gabe's own voice, when recorded: drop clips in public/voice/<slug>.m4a
+// (or .mp3) per VOICE-RECORDING.md and they replace the system voice. Cues are
+// built from parts (['left-side','go']); if any part's clip is missing the
+// whole phrase falls back to speech synthesis.
+const rhClipCache = new Map(); // slug → url | null
+function rhProbeClip(slug) {
+  if (rhClipCache.has(slug)) return Promise.resolve(rhClipCache.get(slug));
+  const tryLoad = (url) =>
+    new Promise((resolve) => {
+      const a = new Audio();
+      a.oncanplaythrough = () => resolve(url);
+      a.onerror = () => resolve(null);
+      a.preload = 'auto';
+      a.src = url;
+    });
+  const probe = (async () => {
+    let found = null;
+    for (const ext of ['m4a', 'mp3', 'webm']) {
+      found = await tryLoad(`/voice/${slug}.${ext}`);
+      if (found) break;
+    }
+    rhClipCache.set(slug, found);
+    return found;
+  })();
+  rhClipCache.set(slug, null);
+  return probe;
+}
+let rhClipAudio = null;
+function rhPlayClips(urls) {
+  try {
+    rhClipAudio?.pause();
+  } catch {}
+  const next = (i) => {
+    if (i >= urls.length) return;
+    rhClipAudio = new Audio(urls[i]);
+    rhClipAudio.onended = () => next(i + 1);
+    rhClipAudio.play().catch(() => {});
+  };
+  next(0);
+}
+// Speak a cue from parts. Clip mode when every part is recorded; else TTS.
+function rhCueSay(parts, ttsText) {
+  if (!rhVoiceOn) return;
+  const urls = parts.map((slug) => rhClipCache.get(slug));
+  if (urls.length && urls.every(Boolean)) {
+    rhPlayClips(urls);
+    return;
+  }
+  rhSay(ttsText ?? parts.join(' ').replace(/-/g, ' '));
+}
+// Spoken rep ranges: "5–8" reads as "5 to 8", "/side" as "per side".
+const speakReps = (r) =>
+  String(r || '')
+    .replace(/[–-]/g, ' to ')
+    .replace(/\/side/g, ' per side');
+
 function rhSay(text) {
   if (!rhVoiceOn || typeof speechSynthesis === 'undefined') return;
   try {
@@ -1078,6 +1138,7 @@ function rhCue(kind) {
 
 // Arriving at a step: distinct tone + spoken cue, so ears alone carry you.
 function rhAnnounceStep(step) {
+  rhAnnouncedIdx = rhIdx;
   const overlay = document.getElementById('rehab-player');
   if (step.kind === 'work') {
     rhCue('work');
@@ -1093,18 +1154,43 @@ function rhAnnounceStep(step) {
   navigator.vibrate?.(step.kind === 'work' ? 120 : 60);
 
   const ex = GUIDED_EXERCISES[step.exId];
+  const NUMS = [
+    'zero',
+    'one',
+    'two',
+    'three',
+    'four',
+    'five',
+    'six',
+    'seven',
+    'eight',
+    'nine',
+    'ten',
+  ];
   if (step.kind === 'prep') {
-    rhSay(`Get set — ${ex.name}`);
+    rhCueSay(['get-set'], `Get set — ${ex.name}`);
   } else if (step.kind === 'work') {
-    if (step.manual) rhSay(`Set — ${step.reps} reps, your pace`);
-    else if (step.tempo)
-      rhSay(step.side ? `${step.side.toLowerCase()} side — go` : 'Go');
-    else if (step.rep > 1) rhSay(String(step.rep));
-    else rhSay(step.side ? `${step.side.toLowerCase()} side — hold` : 'Hold');
+    if (step.manual && step.logWeight === false) {
+      rhCueSay(['warm-up'], 'Warm up — your pace');
+    } else if (step.manual) {
+      rhCueSay(['your-pace'], `Set — ${speakReps(step.reps)} reps, your pace`);
+    } else if (step.tempo) {
+      rhCueSay(
+        step.side ? [`${step.side.toLowerCase()}-side`, 'go'] : ['go'],
+        step.side ? `${step.side.toLowerCase()} side — go` : 'Go',
+      );
+    } else if (step.rep > 1) {
+      rhCueSay([NUMS[step.rep] || 'go'], String(step.rep));
+    } else {
+      rhCueSay(
+        step.side ? [`${step.side.toLowerCase()}-side`, 'hold'] : ['hold'],
+        step.side ? `${step.side.toLowerCase()} side — hold` : 'Hold',
+      );
+    }
   } else if (step.phase === 'SWITCH SIDES') {
-    rhSay('Switch sides');
+    rhCueSay(['switch-sides'], 'Switch sides');
   } else if (step.phase === 'REST') {
-    rhSay('Rest');
+    rhCueSay(['rest'], 'Rest');
   }
 }
 
@@ -1152,7 +1238,12 @@ function rhFmt(ms) {
 // steps still ahead (self-paced lift sets estimated at 35s each).
 function rhSessionRemainMs() {
   const step = rhStep();
-  let ms = step ? (step.manual ? 35000 : rhRemainMs) : 0;
+  let ms = 0;
+  if (step) {
+    ms = step.manual
+      ? Math.max(0, 35000 - (Date.now() - rhStepEnteredAt))
+      : rhRemainMs;
+  }
   for (let i = rhIdx + 1; i < rhQueue.length; i++) {
     ms += (rhQueue[i].secs ?? 35) * 1000;
   }
@@ -1363,27 +1454,46 @@ function rhTick() {
   }
   rhRemainMs = left;
   const step = rhStep();
+  const sec = Math.ceil(left / 1000);
 
-  // Rising 3-2-1 — but ONLY counting into work. Rest arrives unannounced by
-  // ticks; its own low tone + "Rest" marks it, so the sounds stay unambiguous.
+  // Rising 3-2-1 into work — only from rests long enough to need it (short
+  // breathes flow straight into the "go" cue, no tick spam).
   const next = rhQueue[rhIdx + 1];
-  if (step.kind !== 'work' && next?.kind === 'work') {
-    const sec = Math.ceil(left / 1000);
-    if (sec <= 3 && sec !== rhLastBeepSec) {
-      rhLastBeepSec = sec;
-      beep(sec === 3 ? 660 : sec === 2 ? 780 : 900, 0.08);
-    }
+  if (
+    step.kind !== 'work' &&
+    next?.kind === 'work' &&
+    step.secs > 6 &&
+    sec <= 3 &&
+    sec !== rhLastBeepSec
+  ) {
+    rhLastBeepSec = sec;
+    beep(sec === 3 ? 660 : sec === 2 ? 780 : 900, 0.08);
   }
 
-  // Tempo sets: tick + count each rep boundary.
+  // End-of-hold countdown — spoken 3·2·1 so you know the release is coming.
+  if (
+    step.kind === 'work' &&
+    !step.tempo &&
+    step.secs >= 8 &&
+    sec <= 3 &&
+    sec !== rhLastBeepSec
+  ) {
+    rhLastBeepSec = sec;
+    const words = ['', 'one', 'two', 'three'];
+    if (rhVoiceOn) rhCueSay([words[sec]], String(sec));
+    else beep(sec === 3 ? 900 : sec === 2 ? 780 : 660, 0.08);
+  }
+
+  // Tempo sets: tick each rep + speak the sub-phase (lift / squeeze / lower).
   if (step.tempo) {
     const st = tempoStateAt(step.tempo, step.secs * 1000 - left);
     if (st.rep !== rhLastRep) {
       rhLastRep = st.rep;
-      if (st.rep > 1) {
-        rhCue('rep');
-        rhSay(String(st.rep));
-      }
+      if (st.rep > 1) rhCue('rep');
+    }
+    if (st.label !== rhLastTempoLabel) {
+      rhLastTempoLabel = st.label;
+      rhCueSay([st.label.toLowerCase()], st.label.toLowerCase());
     }
   }
 
@@ -1417,6 +1527,8 @@ function rhComplete(overflowMs = 0) {
   rhRemainMs = next.manual ? 0 : next.secs * 1000 - carry;
   rhLastBeepSec = null;
   rhLastRep = 0;
+  rhLastTempoLabel = next.tempo ? next.tempo.pattern[0][0] : null;
+  rhStepEnteredAt = Date.now();
   rhAnnounceStep(next);
   if (next.manual) {
     rhStop();
@@ -1440,6 +1552,8 @@ function rhJump(dir) {
   rhRemainMs = step.manual ? 0 : step.secs * 1000;
   rhLastBeepSec = null;
   rhLastRep = 0;
+  rhLastTempoLabel = step.tempo ? step.tempo.pattern[0][0] : null;
+  rhStepEnteredAt = Date.now();
   rhAnnounceStep(step); // a manual jump still tells you where you landed
   if (step.manual) rhStop();
   else if (rhRunning) rhEndsAt = Date.now() + rhRemainMs;
@@ -1460,7 +1574,13 @@ function openRehabPlayer(session, saved = null) {
     ? 0
     : Math.min(saved?.remainMs ?? step.secs * 1000, step.secs * 1000);
   newPRsThisSession = [];
+  rhStepEnteredAt = Date.now();
+  rhAnnouncedIdx = -1;
   rhStop(); // opens paused — press play to go
+  if (rhWallInterval) clearInterval(rhWallInterval);
+  rhWallInterval = setInterval(() => {
+    if (rhStep()?.manual) rhRenderSessionRemain();
+  }, 1000);
   document.getElementById('rehab-player').classList.add('open');
   rhRenderVoiceBtn();
   rhRenderStep();
@@ -1471,10 +1591,40 @@ function openRehabPlayer(session, saved = null) {
   [...new Set(rhQueue.map((s) => s.exId))].forEach((exId) => {
     rhProbeArt(exId);
   });
+  // …and probe the custom-voice clips once, so cues never wait on a fetch.
+  [
+    'get-set',
+    'go',
+    'hold',
+    'rest',
+    'switch-sides',
+    'left-side',
+    'right-side',
+    'your-pace',
+    'warm-up',
+    'lift',
+    'squeeze',
+    'lower',
+    'session-complete',
+    'one',
+    'two',
+    'three',
+    'four',
+    'five',
+    'six',
+    'seven',
+    'eight',
+    'nine',
+    'ten',
+  ].forEach((slug) => {
+    rhProbeClip(slug);
+  });
 }
 
 function closeRehabPlayer() {
   rhPause(); // keeps state — resumable from the Rehab page
+  if (rhWallInterval) clearInterval(rhWallInterval);
+  rhWallInterval = null;
   document.getElementById('rehab-player').classList.remove('open');
   rhReleaseWakeLock();
   renderRehabPage();
@@ -1485,7 +1635,7 @@ function rhFinish() {
   if (!rhSession) return;
   rhStop();
   rhCue('finish');
-  rhSay('Session complete. Nice work.');
+  rhCueSay(['session-complete'], 'Session complete. Nice work.');
   const session = rhSession;
   const liftSets = rhLiftSets;
   const setsDone = rhCounted.size;
@@ -1494,6 +1644,8 @@ function rhFinish() {
 
   rhSession = null;
   rhPersist(); // clears the crash-state key
+  if (rhWallInterval) clearInterval(rhWallInterval);
+  rhWallInterval = null;
   document.getElementById('rehab-player').classList.remove('open');
   rhReleaseWakeLock();
   closePage('rehab-page');
@@ -1785,9 +1937,14 @@ document.getElementById('rp-play').addEventListener('click', () => {
     rhPause();
     return;
   }
-  // Starting a step from its very top gets the spoken kickoff too.
+  // Starting a step from its very top gets the spoken kickoff too — unless
+  // arriving at this step already announced it.
   const step = rhStep();
-  const fresh = step && !step.manual && rhRemainMs === step.secs * 1000;
+  const fresh =
+    step &&
+    !step.manual &&
+    rhRemainMs === step.secs * 1000 &&
+    rhAnnouncedIdx !== rhIdx;
   rhPlay();
   if (fresh) rhAnnounceStep(step);
 });
