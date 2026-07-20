@@ -275,7 +275,11 @@ export function buildStepQueue(session) {
     if (exId !== lastExId()) steps.push(prepStep(exId));
   };
 
-  for (const block of session.blocks) {
+  for (const [blockIdx, block] of session.blocks.entries()) {
+    const blockStart = steps.length;
+    const tagBlock = () => {
+      for (let i = blockStart; i < steps.length; i++) steps[i].bi = blockIdx;
+    };
     // Ramp: unlogged self-paced warm-up sets before a heavy lift.
     if (block.mode === 'ramp') {
       prepIfNew(block.ex);
@@ -290,6 +294,7 @@ export function buildStepQueue(session) {
         cueNote: block.note,
         countsAsSet: false,
       });
+      tagBlock();
       continue;
     }
 
@@ -342,6 +347,7 @@ export function buildStepQueue(session) {
           }
         });
       }
+      tagBlock();
       continue;
     }
 
@@ -368,6 +374,7 @@ export function buildStepQueue(session) {
           );
         }
       }
+      tagBlock();
       continue;
     }
 
@@ -393,8 +400,55 @@ export function buildStepQueue(session) {
         );
       }
     }
+    tagBlock();
   }
   return steps;
+}
+
+// Human overview of a session, one row per block — for the in-player peek.
+export function sessionOverview(session) {
+  const name = (exId) =>
+    (REHAB_EXERCISES[exId] || PROGRAM_EXERCISES[exId])?.name || exId;
+  return session.blocks.map((block) => {
+    if (block.mode === 'ramp') {
+      return {
+        title: `${name(block.ex)} — warm-up ramp`,
+        detail: 'not logged',
+      };
+    }
+    if (block.mode === 'circuit') {
+      const members = [...new Set(block.members.map((m) => name(m.ex)))];
+      const bits = block.members
+        .filter((m, i, arr) => arr.findIndex((x) => x.ex === m.ex) === i)
+        .map((m) => (m.secs ? `${m.secs}s` : m.reps))
+        .join(' · ');
+      return {
+        title: members.join(' + '),
+        detail: `${block.rounds} rounds · ${bits}`,
+      };
+    }
+    const side = block.perSide ? ' / side' : '';
+    if (block.mode === 'lift') {
+      return { title: name(block.ex), detail: `${block.sets} × ${block.reps}` };
+    }
+    if (block.mode === 'tempo') {
+      return {
+        title: name(block.ex),
+        detail: `${block.sets} × ${block.reps} tempo${side}`,
+      };
+    }
+    if (block.mode === 'reps') {
+      const scheme = (block.repScheme || [block.reps]).join('-');
+      return {
+        title: name(block.ex),
+        detail: `${scheme} × ${block.holdSecs}s holds${side}`,
+      };
+    }
+    return {
+      title: name(block.ex),
+      detail: `${block.sets} × ${block.holdSecs}s${side}`,
+    };
+  });
 }
 
 import { PROGRAM_EXERCISES } from './program.js';

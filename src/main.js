@@ -23,6 +23,7 @@ import {
   nextWorkLabel,
   REHAB_EXERCISES,
   REHAB_SESSIONS,
+  sessionOverview,
   tempoStateAt,
 } from './workout/rehab.js';
 import {
@@ -200,6 +201,29 @@ function beep(freq, duration) {
     osc.stop(audioCtx.currentTime + duration);
   } catch {}
 }
+// Gliding tone — a continuous pitch sweep reads as motion (up/down) in a way
+// two discrete beeps never do. Same lazy AudioContext as beep().
+function sweep(fromHz, toHz, duration, gain = 0.3) {
+  try {
+    if (!audioCtx)
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.connect(g);
+    g.connect(audioCtx.destination);
+    osc.type = 'sine';
+    const t = audioCtx.currentTime;
+    osc.frequency.setValueAtTime(fromHz, t);
+    osc.frequency.linearRampToValueAtTime(toHz, t + duration);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(gain, t + 0.02);
+    g.gain.setValueAtTime(gain, t + duration - 0.06);
+    g.gain.exponentialRampToValueAtTime(0.001, t + duration);
+    osc.start(t);
+    osc.stop(t + duration);
+  } catch {}
+}
+
 ['touchstart', 'click'].forEach((e) => {
   document.addEventListener(
     e,
@@ -1134,14 +1158,11 @@ function rhCue(kind) {
     // sound (work double / rest low) is the "long beep".
     beep(900, 0.09);
   } else if (kind === 'tempo-lift') {
-    beep(600, 0.07);
-    setTimeout(() => beep(900, 0.09), 90);
+    sweep(350, 950, 0.4); // unmistakably UP
   } else if (kind === 'tempo-squeeze') {
-    beep(1100, 0.07);
-    setTimeout(() => beep(1100, 0.07), 110);
+    beep(1250, 0.5); // long high sustain — hold the top
   } else if (kind === 'tempo-lower') {
-    beep(900, 0.07);
-    setTimeout(() => beep(600, 0.09), 90);
+    sweep(950, 350, 0.55); // unmistakably DOWN, slightly longer (slow eccentric)
   } else if (kind === 'finish') {
     beep(660, 0.12);
     setTimeout(() => beep(830, 0.12), 160);
@@ -1364,6 +1385,53 @@ function rhRenderDemo(demoEl, exId) {
   }
 }
 
+// ── Session overview sheet: done above, current anchored, upcoming below ────
+function rhRenderOverview() {
+  const overlay = document.getElementById('rp-overview');
+  if (!overlay.classList.contains('open') || !rhSession) return;
+  document.getElementById('rpo-title').textContent =
+    `${rhSession.name} · FULL SESSION`.toUpperCase();
+  const currentBi = rhStep()?.bi ?? 0;
+  // a block is done when every one of its steps is behind us
+  const lastIdxByBi = {};
+  rhQueue.forEach((st, i) => {
+    lastIdxByBi[st.bi] = i;
+  });
+  document.getElementById('rpo-list').innerHTML = sessionOverview(rhSession)
+    .map((row, bi2) => {
+      const state =
+        lastIdxByBi[bi2] < rhIdx ? 'done' : bi2 === currentBi ? 'current' : '';
+      return `<div class="rpo-item ${state}" ${state === 'current' ? 'data-current' : ''}>
+        <div class="rpo-item-title">${row.title}</div>
+        <div class="rpo-item-detail">${row.detail}</div>
+      </div>`;
+    })
+    .join('');
+  // anchor the view on NOW — finished work sits above, scrollable
+  const cur = document.querySelector('#rpo-list [data-current]');
+  if (cur) {
+    const list = document.getElementById('rpo-list');
+    list.scrollTop = Math.max(0, cur.offsetTop - list.offsetTop - 8);
+  }
+}
+function rhOpenOverview() {
+  if (!rhSession) return;
+  document.getElementById('rp-overview').classList.add('open');
+  rhRenderOverview();
+}
+document
+  .getElementById('rp-overview-btn')
+  .addEventListener('click', rhOpenOverview);
+document.getElementById('rp-exname').addEventListener('click', rhOpenOverview);
+document.getElementById('rpo-close').addEventListener('click', () => {
+  document.getElementById('rp-overview').classList.remove('open');
+});
+document.getElementById('rp-overview').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('rp-overview')) {
+    document.getElementById('rp-overview').classList.remove('open');
+  }
+});
+
 function rhRenderVoiceBtn() {
   document.getElementById('rp-voice-on').style.display = rhVoiceOn
     ? ''
@@ -1426,6 +1494,7 @@ function rhRenderStep() {
       ? `NEXT · ${nextWorkLabel(rhQueue, rhIdx).toUpperCase()}`
       : '';
 
+  rhRenderOverview();
   document.getElementById('rp-prev').disabled = rhIdx === 0;
   const playBtn = document.getElementById('rp-play');
   playBtn.disabled = !!step.manual;

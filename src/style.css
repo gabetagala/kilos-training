@@ -6842,6 +6842,108 @@ body {
   border-color: var(--white);
 }
 
+/* ── Session overview sheet (peek without skipping) ── */
+.rpo-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.6);
+  display: none;
+}
+.rpo-overlay.open {
+  display: flex;
+  align-items: flex-end;
+}
+.rpo-sheet {
+  width: 100%;
+  max-height: 72%;
+  background: var(--bg2);
+  border-radius: var(--r-md) var(--r-md) 0 0;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: var(--s-4) var(--s-6) max(20px, env(safe-area-inset-bottom));
+}
+.rpo-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--s-3);
+  flex-shrink: 0;
+}
+.rpo-title {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--grey);
+}
+.rpo-close {
+  width: 40px;
+  height: 40px;
+  margin-right: -10px;
+  border: none;
+  background: none;
+  color: var(--grey);
+  font-size: 16px;
+  cursor: pointer;
+}
+.rpo-list {
+  overflow-y: auto;
+}
+.rpo-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+}
+.rpo-item:last-child {
+  border-bottom: none;
+}
+.rpo-item-title {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 19px;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+.rpo-item-detail {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--grey);
+  text-align: right;
+  flex-shrink: 0;
+}
+.rpo-item.done {
+  opacity: 0.38;
+}
+.rpo-item.done .rpo-item-title::before {
+  content: "✓ ";
+}
+.rpo-item.current .rpo-item-title {
+  color: var(--white);
+}
+.rpo-item.current {
+  position: relative;
+}
+.rpo-item.current::before {
+  content: "";
+  position: absolute;
+  left: -14px;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--white);
+}
+/* the exercise name doubles as the overview trigger */
+.rp-exname {
+  cursor: pointer;
+}
+
 /* ══════════════════════════════════════════
    DESKTOP OVERRIDES (must come last)
 ══════════════════════════════════════════ */

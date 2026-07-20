@@ -553,6 +553,9 @@
       <div class="rp-top">
         <button class="rp-close" id="rp-close" aria-label="Pause and close">✕</button>
         <div class="rp-session" id="rp-session-name">DAILY RESET</div>
+        <button class="rp-voice" id="rp-overview-btn" aria-label="Session overview">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1" fill="currentColor"/><circle cx="4" cy="12" r="1" fill="currentColor"/><circle cx="4" cy="18" r="1" fill="currentColor"/></svg>
+        </button>
         <button class="rp-voice" id="rp-voice" aria-label="Toggle voice cues" aria-pressed="true">
           <svg id="rp-voice-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
           <svg id="rp-voice-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><line x1="15" y1="9" x2="21" y2="15"/><line x1="21" y1="9" x2="15" y2="15"/></svg>
@@ -577,6 +580,16 @@
         <button class="rp-done" id="rp-set-done">Set done →</button>
       </div>
       <div class="rp-next" id="rp-next"></div>
+      <!-- Session overview sheet — peek at done / current / upcoming -->
+      <div class="rpo-overlay" id="rp-overview">
+        <div class="rpo-sheet">
+          <div class="rpo-head">
+            <div class="rpo-title" id="rpo-title">SESSION</div>
+            <button class="rpo-close" id="rpo-close" aria-label="Close overview">✕</button>
+          </div>
+          <div class="rpo-list" id="rpo-list"></div>
+        </div>
+      </div>
       <div class="rp-controls">
         <button type="button" class="rp-ctrl" id="rp-prev" aria-label="Previous step">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
