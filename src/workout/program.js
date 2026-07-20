@@ -291,3 +291,16 @@ export const DENSITY40_SESSIONS = [
 
 export const getProgramSession = (id) =>
   DENSITY40_SESSIONS.find((s) => s.id === id) || null;
+
+// ── The week template (TRAINING.md "week at a glance") ───────────────────────
+// Index = JS getDay() (0=Sun … 6=Sat). 'lift' resolves to the next session in
+// the A→B→C queue at render time; 'walk'/'engine' are manual mark-done items.
+export const WEEK_PLAN = [
+  /* Sun */ [{ type: 'rehab' }, { type: 'walk' }],
+  /* Mon */ [{ type: 'rehab' }, { type: 'lift' }],
+  /* Tue */ [{ type: 'rehab' }, { type: 'hinge' }],
+  /* Wed */ [{ type: 'rehab' }, { type: 'lift' }],
+  /* Thu */ [{ type: 'rehab' }, { type: 'hinge' }],
+  /* Fri */ [{ type: 'rehab' }, { type: 'lift' }],
+  /* Sat */ [{ type: 'rehab' }, { type: 'hinge' }, { type: 'engine' }],
+];

@@ -6774,6 +6774,74 @@ body {
   }
 }
 
+/* ── Week plan — Mon…Sun rows that fill in as work gets done ── */
+#week-plan {
+  margin-bottom: var(--s-6);
+}
+.wp-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+}
+.wp-row:last-child {
+  border-bottom: none;
+}
+.wp-row.today .wp-day-name,
+.wp-row.today .wp-day-date {
+  color: var(--white);
+}
+.wp-day {
+  width: 52px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.wp-day-name {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--grey);
+}
+.wp-day-date {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 16px;
+  color: var(--grey);
+}
+.wp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.wp-chip {
+  font-family: "Space Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--grey);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  padding: 5px 10px;
+  min-height: 26px;
+  cursor: default;
+}
+.wp-chip.ready {
+  color: var(--white);
+  border-color: var(--border);
+  cursor: pointer;
+}
+.wp-chip.ready:active {
+  background: var(--bg3);
+}
+.wp-chip.done {
+  background: var(--white);
+  color: #161616;
+  border-color: var(--white);
+}
+
 /* ══════════════════════════════════════════
    DESKTOP OVERRIDES (must come last)
 ══════════════════════════════════════════ */

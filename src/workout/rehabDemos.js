@@ -391,6 +391,8 @@ const CABLE = (x1, y1, x2, y2) =>
   `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" ${PROP}/>`;
 const BOX = (x, y, w, h) =>
   `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="#2e2e2e" ${SEP}/>`;
+const PLATE = (x, y) =>
+  `<circle cx="${x}" cy="${y}" r="9" fill="none" stroke="#3f3f3f" stroke-width="5"/>`;
 
 const standing = (over = {}) => ({
   root: { x: 100, y: 68, rot: 0, ...(over.root || {}) },
@@ -407,30 +409,28 @@ export const PROGRAM_DEMOS = {
     `<line x1="46" y1="13" x2="154" y2="13" ${PROP} stroke-width="4"/>` +
       shadow(100, 20) +
       figure({
-        root: { x: 100, y: 52, rot: 0, scale: 0.78 },
+        root: { x: 100, y: 58, rot: 0, scale: 0.8 },
         torso: 180,
         head: 2,
-        armF: { at: [-2.5, 27], sh: 14, el: -52 },
-        armN: { at: [2.5, 27], sh: -14, el: 52 },
-        legF: { hip: 10, knee: 14, ankle: 30, far: true },
-        legN: { hip: -10, knee: -14, ankle: -30 },
+        armF: { at: [-3, 27], sh: 7, el: -10 },
+        armN: { at: [3, 27], sh: -7, el: 10 },
+        legF: { hip: 5, knee: 18, ankle: 40, far: true },
+        legN: { hip: -5, knee: -18, ankle: -40 },
       }),
   ),
   'cable-row-1arm': svg(
     GROUND +
-      shadow(104, 44) +
-      CABLE(24, 96, 74, 74) +
-      figure(
-        standing({
-          root: { x: 108, y: 66 },
-          torso: 156,
-          head: 6,
-          armN: { at: [2.5, 27], sh: -120, el: -70 },
-          armF: { at: [-2.5, 27], sh: 150, el: -30 },
-          legF: { hip: 26, knee: 6, ankle: 66, far: true },
-          legN: { hip: -18, knee: -8, ankle: -70 },
-        }),
-      ),
+      shadow(106, 44) +
+      CABLE(20, 98, 84, 82) +
+      figure({
+        root: { x: 112, y: 68, rot: 0 },
+        torso: 152,
+        head: 8,
+        armN: { at: [2.5, 26], sh: -38, el: -58 },
+        armF: { at: [-2.5, 26], sh: 168, el: -20 },
+        legF: { hip: 24, knee: 10, ankle: 62, far: true },
+        legN: { hip: -24, knee: 8, ankle: -74 },
+      }),
   ),
   'db-lateral-raise': svg(
     GROUND +
@@ -441,106 +441,111 @@ export const PROGRAM_DEMOS = {
           armN: { at: [2.5, 27], sh: -86, el: 0 },
         }),
       ) +
-      DB(66, 44) +
-      DB(134, 44),
+      DB(64, 44) +
+      DB(136, 44),
   ),
   'rope-pushdown': svg(
     GROUND +
       shadow(100, 44) +
-      CABLE(104, 6, 104, 40) +
+      CABLE(103, 4, 101, 56) +
       figure(
         standing({
-          torso: 176,
-          armF: { at: [-2.5, 27], sh: 172, el: -10 },
-          armN: { at: [2.5, 27], sh: -168, el: 8 },
+          torso: 177,
+          armF: { at: [-7, 26], sh: 158, el: -18 },
+          armN: { at: [7, 26], sh: -158, el: 18 },
         }),
-      ),
+      ) +
+      `<line x1="101" y1="56" x2="93" y2="68" ${PROP}/>` +
+      `<line x1="101" y1="56" x2="111" y2="68" ${PROP}/>`,
   ),
   'hammer-curl': svg(
     GROUND +
       shadow(100, 44) +
       figure(
         standing({
-          armF: { at: [-2.5, 27], sh: 174, el: -138 },
-          armN: { at: [2.5, 27], sh: -174, el: 138 },
+          armF: { at: [-7, 26], sh: 168, el: 128 },
+          armN: { at: [7, 26], sh: -168, el: -128 },
         }),
       ) +
-      DB(84, 46) +
-      DB(116, 46),
+      DB(79, 42) +
+      DB(121, 42),
   ),
   'suitcase-carry': svg(
     GROUND +
       shadow(100, 46) +
       figure(
         standing({
-          armN: { at: [2.5, 27], sh: -176, el: 0 },
-          armF: { at: [-2.5, 27], sh: 168, el: -8 },
+          armN: { at: [3, 27], sh: -174, el: 0 },
+          armF: { at: [-3, 27], sh: 162, el: -10 },
         }),
       ) +
-      DB(114, 96),
+      DB(119, 97),
   ),
   'front-squat': svg(
     GROUND +
       shadow(100, 48) +
       figure({
-        root: { x: 102, y: 84, rot: 0 },
-        torso: 172,
-        head: 4,
-        armF: { at: [-2.5, 27], sh: -262, el: -60 },
-        armN: { at: [2.5, 27], sh: -98, el: -60 },
-        legF: { hip: -52, knee: 96, ankle: 52, far: true },
-        legN: { hip: -60, knee: 104, ankle: 56 },
+        root: { x: 100, y: 82, rot: 0 },
+        torso: 174,
+        head: 3,
+        armF: { at: [-3, 27], sh: -88, el: 125 },
+        armN: { at: [3, 27], sh: -84, el: 120 },
+        legF: { hip: -50, knee: 112, ankle: 30, far: true },
+        legN: { hip: -58, knee: 120, ankle: 34 },
       }) +
-      `<line x1="66" y1="52" x2="134" y2="52" ${PROP} stroke-width="4"/>` +
-      `<circle cx="66" cy="52" r="9" fill="none" stroke="#3f3f3f" stroke-width="5"/>` +
-      `<circle cx="134" cy="52" r="9" fill="none" stroke="#3f3f3f" stroke-width="5"/>`,
+      `<line x1="64" y1="50" x2="136" y2="50" ${PROP} stroke-width="4"/>` +
+      PLATE(64, 50) +
+      PLATE(136, 50),
   ),
   'rfe-split-squat': svg(
     GROUND +
-      shadow(96, 48) +
-      BOX(130, 84, 34, 20) +
+      shadow(92, 46) +
+      BOX(122, 84, 32, 20) +
       figure({
-        root: { x: 96, y: 76, rot: 0 },
+        root: { x: 94, y: 72, rot: 0 },
         torso: 176,
         head: 2,
-        armF: { at: [-2.5, 27], sh: 176, el: 0 },
-        armN: { at: [2.5, 27], sh: -176, el: 0 },
-        legN: { hip: -34, knee: 70, ankle: 50 },
-        legF: { hip: 44, knee: -62, ankle: -40, far: true },
+        armF: { at: [-3, 27], sh: 176, el: 0 },
+        armN: { at: [3, 27], sh: -176, el: 0 },
+        legN: { hip: -38, knee: 82, ankle: 40 },
+        legF: { hip: 34, knee: -102, ankle: 96, far: true },
       }) +
-      DB(70, 96) +
-      DB(122, 98),
+      DB(78, 96) +
+      DB(102, 97),
   ),
   'face-pull': svg(
     GROUND +
-      shadow(100, 44) +
-      CABLE(18, 30, 66, 44) +
+      shadow(102, 44) +
+      CABLE(14, 42, 62, 48) +
+      `<line x1="62" y1="48" x2="74" y2="42" ${PROP}/>` +
+      `<line x1="62" y1="48" x2="74" y2="54" ${PROP}/>` +
       figure(
         standing({
-          armF: { at: [-2.5, 27], sh: -118, el: 84 },
-          armN: { at: [2.5, 27], sh: -62, el: -84 },
+          root: { x: 104, y: 68 },
+          armF: { at: [-3, 26], sh: -96, el: -32 },
+          armN: { at: [3, 26], sh: -86, el: 34 },
         }),
       ),
   ),
   'wrist-curl': svg(
     GROUND +
-      shadow(100, 46) +
+      shadow(98, 44) +
       figure({
         root: { x: 100, y: 82, rot: 0 },
-        torso: 178,
-        head: 2,
-        armF: { at: [-2.5, 27], sh: -128, el: -30 },
-        armN: { at: [2.5, 27], sh: -52, el: 30 },
+        torso: 168,
+        head: 4,
+        armF: { at: [-3, 26], sh: 152, el: -95 },
+        armN: { at: [3, 26], sh: -155, el: 95 },
         legF: { hip: -40, knee: 96, ankle: 54, far: true },
         legN: { hip: 34, knee: 58, ankle: -80 },
       }) +
-      DB(66, 62),
+      DB(74, 63),
   ),
   'floor-press': svg(
     GROUND +
       shadow(96, 52) +
       figure({
-        root: { x: 106, y: 96, rot: 0 },
+        root: { x: 108, y: 96, rot: 0 },
         torso: 90,
         head: 4,
         armF: { at: [-2.5, 27], sh: 92, el: 0 },
@@ -548,14 +553,14 @@ export const PROGRAM_DEMOS = {
         legF: { hip: -108, knee: 96, ankle: -78, far: true },
         legN: { hip: -112, knee: 100, ankle: -80 },
       }) +
-      `<line x1="30" y1="52" x2="98" y2="52" ${PROP} stroke-width="4"/>` +
-      `<circle cx="34" cy="52" r="9" fill="none" stroke="#3f3f3f" stroke-width="5"/>`,
+      `<line x1="46" y1="62" x2="108" y2="62" ${PROP} stroke-width="4"/>` +
+      PLATE(48, 62),
   ),
   'lat-pulldown': svg(
     GROUND +
       shadow(100, 46) +
-      CABLE(100, 4, 100, 24) +
-      `<line x1="72" y1="24" x2="128" y2="24" ${PROP} stroke-width="4"/>` +
+      CABLE(100, 4, 100, 22) +
+      `<line x1="72" y1="22" x2="128" y2="22" ${PROP} stroke-width="4"/>` +
       figure({
         root: { x: 100, y: 82, rot: 0 },
         torso: 178,
@@ -568,45 +573,65 @@ export const PROGRAM_DEMOS = {
   ),
   'elevated-pushup': svg(
     GROUND +
-      shadow(86, 50) +
-      BOX(142, 78, 34, 26) +
+      shadow(92, 50) +
+      BOX(138, 84, 30, 18) +
       figure({
-        root: { x: 112, y: 66, rot: 0 },
-        torso: 98,
+        root: { x: 114, y: 76, rot: 0 },
+        torso: 102,
         head: -6,
-        armF: { at: [-2.5, 27], sh: -104, el: 4 },
-        armN: { at: [2.5, 27], sh: -96, el: -4 },
-        legF: { hip: -104, knee: 2, ankle: -70, far: true },
-        legN: { hip: -108, knee: 2, ankle: -72 },
+        armF: { at: [-2.5, 27], sh: -106, el: 2 },
+        armN: { at: [2.5, 27], sh: -98, el: -2 },
+        legF: { hip: -68, knee: 0, ankle: -78, far: true },
+        legN: { hip: -72, knee: 0, ankle: -80 },
       }),
   ),
   'band-fly': svg(
     GROUND +
       shadow(100, 44) +
-      CABLE(100, 104, 62, 56) +
-      CABLE(100, 104, 138, 56) +
+      CABLE(100, 103, 74, 78) +
+      CABLE(100, 103, 80, 74) +
       figure(
         standing({
-          armF: { at: [-2.5, 27], sh: 118, el: -20 },
-          armN: { at: [2.5, 27], sh: -118, el: 20 },
+          armF: { at: [-3, 27], sh: -132, el: -18 },
+          armN: { at: [3, 27], sh: -138, el: -14 },
         }),
       ),
   ),
   'overhead-triceps': svg(
     GROUND +
       shadow(100, 44) +
-      CABLE(150, 100, 112, 22) +
+      CABLE(156, 100, 106, 26) +
       figure(
         standing({
-          armF: { at: [-2.5, 27], sh: -8, el: -66 },
-          armN: { at: [2.5, 27], sh: 8, el: 66 },
+          armF: { at: [-3, 27], sh: -6, el: -58 },
+          armN: { at: [3, 27], sh: 6, el: 58 },
         }),
       ),
   ),
   'farmer-carry': svg(
-    GROUND + shadow(100, 48) + figure(standing()) + DB(84, 96) + DB(116, 96),
+    GROUND +
+      shadow(100, 48) +
+      figure(
+        standing({
+          armF: { at: [-3, 27], sh: 176, el: 0 },
+          armN: { at: [3, 27], sh: -176, el: 0 },
+        }),
+      ) +
+      DB(83, 97) +
+      DB(117, 97),
   ),
 };
-PROGRAM_DEMOS['band-lateral-raise'] = PROGRAM_DEMOS['db-lateral-raise'];
+PROGRAM_DEMOS['band-lateral-raise'] = svg(
+  GROUND +
+    shadow(100, 46) +
+    CABLE(100, 103, 68, 46) +
+    CABLE(100, 103, 132, 46) +
+    figure(
+      standing({
+        armF: { at: [-2.5, 27], sh: 86, el: 0 },
+        armN: { at: [2.5, 27], sh: -86, el: 0 },
+      }),
+    ),
+);
 PROGRAM_DEMOS['supinated-curl'] = PROGRAM_DEMOS['hammer-curl'];
 PROGRAM_DEMOS['reverse-wrist-curl'] = PROGRAM_DEMOS['wrist-curl'];

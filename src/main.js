@@ -29,6 +29,7 @@ import {
   DENSITY40_SESSIONS,
   getProgramSession,
   PROGRAM_EXERCISES,
+  WEEK_PLAN,
 } from './workout/program.js';
 import { PROGRAM_DEMOS, REHAB_DEMOS } from './workout/rehabDemos.js';
 import { currentStreak, longestStreak } from './workout/streak.js';
@@ -1578,8 +1579,119 @@ function rhFinish() {
   showWorkoutSummary(completed, durationStr, entry);
 }
 
+// ── Week plan — Mon…Sun with dates; fills in as things get done ──────────────
+const WEEK_MARKS_KEY = 'kilos-week-marks';
+const dateKey = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+function renderWeekPlan() {
+  const el = document.getElementById('week-plan');
+  if (!el) return;
+  const hist = get('workoutHistory') || [];
+  const marks = get(WEEK_MARKS_KEY) || {};
+  const cursor = get('kilos-d40-cursor') || 0;
+
+  // Index history by local date once
+  const byDate = {};
+  for (const h of hist) {
+    const k = dateKey(new Date(h.date));
+    if (!byDate[k]) byDate[k] = [];
+    byDate[k].push(h);
+  }
+
+  const today = new Date();
+  const todayKey = dateKey(today);
+  // Week starts Monday
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+
+  const rows = [];
+  let liftOffset = 0; // projects the A→B→C queue across the week's lift slots
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const k = dateKey(d);
+    const isToday = k === todayKey;
+    const entries = byDate[k] || [];
+    const dayMarks = marks[k] || [];
+
+    const chips = WEEK_PLAN[d.getDay()]
+      .map((item) => {
+        let label = '';
+        let done = false;
+        let action = '';
+        if (item.type === 'rehab') {
+          label = 'REHAB';
+          done = entries.some((h) => h.rehabId === 'daily');
+          action = isToday && !done ? 'session:daily' : '';
+        } else if (item.type === 'hinge') {
+          label = 'HINGE';
+          done = entries.some((h) => h.rehabId === 'hinge');
+          action = isToday && !done ? 'session:hinge' : '';
+        } else if (item.type === 'lift') {
+          const doneEntry = entries.find((h) => h.programId);
+          done = !!doneEntry;
+          const isPast = k < todayKey;
+          let s2 = null;
+          if (doneEntry) {
+            s2 = getProgramSession(doneEntry.programId);
+          } else if (!isPast) {
+            // future/today lift slots walk the queue forward: B, then C, then A…
+            s2 =
+              DENSITY40_SESSIONS[
+                (cursor + liftOffset) % DENSITY40_SESSIONS.length
+              ];
+            liftOffset++;
+          }
+          label = s2
+            ? `LIFT ${s2.name.split('—')[0].trim().toUpperCase()}`
+            : 'LIFT';
+          action = isToday && !done && s2 ? `session:${s2.id}` : '';
+        } else {
+          label = item.type.toUpperCase();
+          done = dayMarks.includes(item.type);
+          action = isToday ? `mark:${item.type}` : '';
+        }
+        return `<button class="wp-chip${done ? ' done' : ''}${action ? ' ready' : ''}"
+          ${action ? `data-action="${action}" data-date="${k}"` : 'disabled'}>${done ? '✓ ' : ''}${label}</button>`;
+      })
+      .join('');
+
+    const dayName = d
+      .toLocaleDateString('en-US', { weekday: 'short' })
+      .toUpperCase();
+    rows.push(`<div class="wp-row${isToday ? ' today' : ''}">
+      <div class="wp-day"><span class="wp-day-name">${dayName}</span><span class="wp-day-date">${d.getDate()}</span></div>
+      <div class="wp-chips">${chips}</div>
+    </div>`);
+  }
+  el.innerHTML = rows.join('');
+
+  el.querySelectorAll('.wp-chip[data-action]').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const [kind, id] = chip.dataset.action.split(':');
+      if (kind === 'session') {
+        try {
+          localStorage.removeItem(REHAB_STATE_KEY);
+        } catch {}
+        openRehabPlayer(getGuidedSession(id));
+      } else {
+        const marks2 = get(WEEK_MARKS_KEY) || {};
+        const k = chip.dataset.date;
+        const arr = marks2[k] || [];
+        marks2[k] = arr.includes(id)
+          ? arr.filter((x) => x !== id)
+          : [...arr, id];
+        set(WEEK_MARKS_KEY, marks2);
+        renderWeekPlan();
+      }
+    });
+  });
+}
+
 // ── Rehab page (program overview + resume) ────────────────────────────────────
 function renderRehabPage() {
+  renderWeekPlan();
   const saved = get(REHAB_STATE_KEY);
   const savedSession = saved ? getGuidedSession(saved.sessionId) : null;
   const resumeSlot = document.getElementById('rehab-resume-slot');
