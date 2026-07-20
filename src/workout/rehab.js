@@ -270,8 +270,82 @@ function pushSetWork(steps, block, setIdx, totalSets, side) {
 
 export function buildStepQueue(session) {
   const steps = [];
+  const lastExId = () => steps[steps.length - 1]?.exId;
+  const prepIfNew = (exId) => {
+    if (exId !== lastExId()) steps.push(prepStep(exId));
+  };
+
   for (const block of session.blocks) {
-    steps.push(prepStep(block.ex));
+    // Ramp: unlogged self-paced warm-up sets before a heavy lift.
+    if (block.mode === 'ramp') {
+      prepIfNew(block.ex);
+      steps.push({
+        kind: 'work',
+        exId: block.ex,
+        secs: null,
+        manual: true,
+        logWeight: false,
+        phase: 'RAMP',
+        meta: 'WARM-UP · NOT LOGGED',
+        cueNote: block.note,
+        countsAsSet: false,
+      });
+      continue;
+    }
+
+    // Circuit / superset: members alternate for N rounds, short rest between
+    // moves, flowing straight into the next round (density formats).
+    if (block.mode === 'circuit') {
+      prepIfNew(block.members[0].ex);
+      const between = block.betweenSecs ?? 45;
+      for (let round = 1; round <= block.rounds; round++) {
+        block.members.forEach((m, mi) => {
+          const meta = `ROUND ${round} OF ${block.rounds}${m.reps ? ` · ${m.reps} REPS` : ''}`;
+          if (m.secs) {
+            steps.push({
+              kind: 'work',
+              exId: m.ex,
+              secs: m.secs,
+              phase: m.phase || 'HOLD',
+              meta,
+              side: m.side,
+              cueNote: m.note,
+              countsAsSet: m.countsAsSet !== false,
+            });
+          } else {
+            steps.push({
+              kind: 'work',
+              exId: m.ex,
+              secs: null,
+              manual: true,
+              logWeight: m.logWeight !== false,
+              phase: 'YOUR PACE',
+              meta,
+              reps: m.reps,
+              cueNote:
+                round === block.rounds ? m.lastRoundNote || m.note : m.note,
+              countsAsSet: m.countsAsSet !== false,
+            });
+          }
+          const isLast =
+            round === block.rounds && mi === block.members.length - 1;
+          if (!isLast) {
+            const secs =
+              mi === block.members.length - 1
+                ? (block.restSecs ?? between)
+                : between;
+            const nextMeta =
+              mi === block.members.length - 1
+                ? `ROUND ${round + 1} NEXT`
+                : `ROUND ${round} OF ${block.rounds}`;
+            steps.push(restStep(block.members[mi].ex, secs, 'REST', nextMeta));
+          }
+        });
+      }
+      continue;
+    }
+
+    prepIfNew(block.ex);
 
     if (block.mode === 'lift') {
       for (let set = 1; set <= block.sets; set++) {
@@ -284,6 +358,8 @@ export function buildStepQueue(session) {
           phase: 'YOUR PACE',
           meta: `SET ${set} OF ${block.sets} · ${block.reps} REPS`,
           reps: block.reps,
+          cueNote:
+            set === block.sets ? block.lastSetNote || block.note : block.note,
           countsAsSet: true,
         });
         if (set < block.sets) {
@@ -321,12 +397,15 @@ export function buildStepQueue(session) {
   return steps;
 }
 
+import { PROGRAM_EXERCISES } from './program.js';
+
 // What the athlete should read during a rest/prep step: the next thing to do.
 export function nextWorkLabel(queue, idx) {
   for (let i = idx + 1; i < queue.length; i++) {
     if (queue[i].kind !== 'work') continue;
     const s = queue[i];
-    const name = REHAB_EXERCISES[s.exId]?.name || s.exId;
+    const name =
+      (REHAB_EXERCISES[s.exId] || PROGRAM_EXERCISES[s.exId])?.name || s.exId;
     return s.side ? `${name} · ${s.side}` : name;
   }
   return 'FINISH';

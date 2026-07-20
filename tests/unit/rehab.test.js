@@ -9,7 +9,12 @@ import {
   sessionSetTotal,
   tempoStateAt,
 } from '../../src/workout/rehab.js';
-import { REHAB_DEMOS } from '../../src/workout/rehabDemos.js';
+import {
+  DENSITY40_SESSIONS,
+  getProgramSession,
+  PROGRAM_EXERCISES,
+} from '../../src/workout/program.js';
+import { PROGRAM_DEMOS, REHAB_DEMOS } from '../../src/workout/rehabDemos.js';
 
 describe('rehab program data', () => {
   it('every block references a known exercise, and every exercise has a demo', () => {
@@ -201,5 +206,73 @@ describe('player helpers', () => {
     expect(estimateSessionMins(getRehabSession('daily'))).toBeLessThanOrEqual(18);
     expect(estimateSessionMins(getRehabSession('hinge'))).toBeGreaterThanOrEqual(8);
     expect(estimateSessionMins(getRehabSession('hinge'))).toBeLessThanOrEqual(14);
+  });
+});
+
+describe('Density 40 program', () => {
+  it('every block/member references a known exercise with a demo', () => {
+    for (const session of DENSITY40_SESSIONS) {
+      for (const block of session.blocks) {
+        const ids = block.members ? block.members.map((m) => m.ex) : [block.ex];
+        for (const id of ids) {
+          expect(PROGRAM_EXERCISES[id], `exercise ${id}`).toBeTruthy();
+          expect(PROGRAM_DEMOS[id], `demo ${id}`).toBeTruthy();
+        }
+      }
+    }
+  });
+
+  it('builds every session queue without invalid steps', () => {
+    for (const session of DENSITY40_SESSIONS) {
+      const q = buildStepQueue(session);
+      expect(q.length).toBeGreaterThan(10);
+      expect(q[0].kind).toBe('prep');
+      expect(q[q.length - 1].kind).toBe('work');
+      for (const step of q) {
+        if (!step.manual) expect(step.secs).toBeGreaterThan(0);
+        expect(step.exId).toBeTruthy();
+      }
+    }
+  });
+
+  it('ramp sets are manual and unlogged, before the heavy lift, with one prep', () => {
+    const q = buildStepQueue(getProgramSession('d40-a'));
+    expect(q[0].kind).toBe('prep');
+    expect(q[0].exId).toBe('pull-up');
+    expect(q[1].phase).toBe('RAMP');
+    expect(q[1].logWeight).toBe(false);
+    expect(q[1].countsAsSet).toBe(false);
+    expect(q[2].phase).toBe('YOUR PACE'); // no second prep for the same exercise
+    expect(q[2].logWeight).toBe(true);
+  });
+
+  it('supersets alternate members for the listed rounds with rests between', () => {
+    const q = buildStepQueue(getProgramSession('d40-a'));
+    const rows = q.filter((s) => s.exId === 'cable-row-1arm' && s.kind === 'work');
+    const lats = q.filter((s) => s.exId === 'db-lateral-raise' && s.kind === 'work');
+    expect(rows).toHaveLength(3);
+    expect(lats).toHaveLength(3);
+    expect(lats[2].cueNote).toMatch(/drop/i);
+    const iRow = q.indexOf(rows[0]);
+    expect(q[iRow + 1].kind).toBe('rest');
+    expect(q[iRow + 2].exId).toBe('db-lateral-raise');
+  });
+
+  it('carries are timed steps with sides that flip the demo', () => {
+    const q = buildStepQueue(getProgramSession('d40-a'));
+    const carries = q.filter(
+      (s) => s.exId === 'suitcase-carry' && s.kind === 'work',
+    );
+    expect(carries.filter((s) => s.side === 'RIGHT')).toHaveLength(2);
+    expect(carries.filter((s) => s.side === 'LEFT')).toHaveLength(2);
+    for (const c of carries) expect(c.secs).toBe(40);
+  });
+
+  it('sessions land inside the 40-minute promise', () => {
+    for (const session of DENSITY40_SESSIONS) {
+      const mins = estimateSessionMins(session);
+      expect(mins).toBeGreaterThanOrEqual(20);
+      expect(mins).toBeLessThanOrEqual(40);
+    }
   });
 });

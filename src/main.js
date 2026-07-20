@@ -25,7 +25,12 @@ import {
   REHAB_SESSIONS,
   tempoStateAt,
 } from './workout/rehab.js';
-import { REHAB_DEMOS } from './workout/rehabDemos.js';
+import {
+  DENSITY40_SESSIONS,
+  getProgramSession,
+  PROGRAM_EXERCISES,
+} from './workout/program.js';
+import { PROGRAM_DEMOS, REHAB_DEMOS } from './workout/rehabDemos.js';
 import { currentStreak, longestStreak } from './workout/streak.js';
 import {
   deleteAccount,
@@ -949,6 +954,29 @@ document.getElementById('btn-cf-open').addEventListener('click', () => {
 const REHAB_STATE_KEY = 'kilos-rehab-state';
 const REHAB_RDL_KEY = 'kilos-rehab-rdl-kg';
 const REHAB_VOICE_KEY = 'kilos-rehab-voice';
+const GUIDED_WEIGHTS_KEY = 'kilos-guided-weights';
+
+// One guided player, two programs: the rehab protocol + Density 40.
+const GUIDED_EXERCISES = { ...REHAB_EXERCISES, ...PROGRAM_EXERCISES };
+const GUIDED_DEMOS = { ...REHAB_DEMOS, ...PROGRAM_DEMOS };
+const getGuidedSession = (id) => getRehabSession(id) || getProgramSession(id);
+const isProgramSession = (session) => !!session && session.id.startsWith('d40');
+
+const GUIDED_DEFAULT_KG = {
+  'pull-up': 0,
+  'front-squat': 40,
+  'floor-press': 40,
+  rdl: 40,
+};
+function guidedWeightFor(exId) {
+  const map = get(GUIDED_WEIGHTS_KEY) || {};
+  return map[exId] ?? GUIDED_DEFAULT_KG[exId] ?? 10;
+}
+function saveGuidedWeight(exId, kg) {
+  const map = get(GUIDED_WEIGHTS_KEY) || {};
+  map[exId] = kg;
+  set(GUIDED_WEIGHTS_KEY, map);
+}
 
 let rhSession = null;
 let rhQueue = [];
@@ -1063,7 +1091,7 @@ function rhAnnounceStep(step) {
   } // BREATHE micro-rests stay silent — the 3-2-1 ticks carry them
   navigator.vibrate?.(step.kind === 'work' ? 120 : 60);
 
-  const ex = REHAB_EXERCISES[step.exId];
+  const ex = GUIDED_EXERCISES[step.exId];
   if (step.kind === 'prep') {
     rhSay(`Get set — ${ex.name}`);
   } else if (step.kind === 'work') {
@@ -1216,7 +1244,7 @@ function rhRenderDemo(demoEl, exId) {
     return;
   }
   // Built-in figure (also shown while the first probe is in flight)
-  demoEl.innerHTML = REHAB_DEMOS[exId] || '';
+  demoEl.innerHTML = GUIDED_DEMOS[exId] || '';
   if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
     // Static demos freeze at the working position (the drawn pose).
     demoEl.querySelectorAll('animate, animateTransform').forEach((a) => {
@@ -1246,7 +1274,7 @@ function rhRenderVoiceBtn() {
 function rhRenderStep() {
   const step = rhStep();
   if (!step) return;
-  const ex = REHAB_EXERCISES[step.exId];
+  const ex = GUIDED_EXERCISES[step.exId];
   const overlay = document.getElementById('rehab-player');
 
   overlay.classList.toggle('phase-rest', step.kind === 'rest');
@@ -1263,14 +1291,29 @@ function rhRenderStep() {
   document.getElementById('rp-exname').textContent = ex.name;
   document.getElementById('rp-meta').textContent = step.meta || '';
   document.getElementById('rp-cue').textContent =
-    step.kind === 'prep' ? `${ex.cue} — ${ex.why}` : ex.cue;
+    step.kind === 'prep'
+      ? `${ex.cue} — ${ex.why}`
+      : [ex.cue, step.cueNote].filter(Boolean).join(' — ');
   document.getElementById('rp-phase').textContent = step.phase;
 
-  // Countdown vs self-paced lift set
+  // Countdown vs self-paced set (with or without a weight to log)
   document.getElementById('rp-clock').style.display = step.manual ? 'none' : '';
   document.getElementById('rp-lift').style.display = step.manual ? '' : 'none';
-  if (step.manual) rhRenderWeight();
-  else rhRenderClock();
+  if (step.manual) {
+    const showWeight = step.logWeight !== false;
+    document.querySelector('.rp-weight-row').style.display = showWeight
+      ? ''
+      : 'none';
+    document.getElementById('rp-set-done').textContent = showWeight
+      ? 'Set done →'
+      : 'Done →';
+    if (showWeight) {
+      rhWeightKg = guidedWeightFor(step.exId);
+      rhRenderWeight();
+    }
+  } else {
+    rhRenderClock();
+  }
 
   // Only rests point forward — on prep/work the screen already IS the task.
   document.getElementById('rp-next').textContent =
@@ -1415,6 +1458,7 @@ function openRehabPlayer(session, saved = null) {
   rhRemainMs = step.manual
     ? 0
     : Math.min(saved?.remainMs ?? step.secs * 1000, step.secs * 1000);
+  newPRsThisSession = [];
   rhStop(); // opens paused — press play to go
   document.getElementById('rehab-player').classList.add('open');
   rhRenderVoiceBtn();
@@ -1454,36 +1498,76 @@ function rhFinish() {
   closePage('rehab-page');
 
   // Feed the same pipes as a normal workout: history, streak, summary, share.
+  const repsNum = (r) => parseInt(r, 10) || 0;
   totalWeightMoved = liftSets.reduce(
-    (sum, l) => sum + (l.weight || 0) * (l.reps || 0),
+    (sum, l) => sum + (l.weight || 0) * repsNum(l.reps),
     0,
   );
   sessionSets = setsDone;
-  newPRsThisSession = [];
-  const exercises = session.blocks.map((b) => ({
-    name: REHAB_EXERCISES[b.ex].name,
-    sets: b.sets || b.repScheme?.length || 1,
-    logs:
-      b.mode === 'lift'
-        ? liftSets.map((l) => ({ weight: l.weight, reps: l.reps, done: true }))
-        : [],
-  }));
-  const completed = {
-    name: `Rehab · ${session.name}`,
-    type: 'rehab',
-    exercises,
-  };
-  const entry = {
-    name: completed.name,
-    type: 'rehab',
-    rehabId: session.id,
-    date: new Date().toISOString(),
-    duration: durationStr,
-    totalWeight: Math.round(totalWeightMoved),
-    sets: setsDone,
-    newPRs: [],
-    exercises,
-  };
+
+  let completed;
+  let entry;
+  if (isProgramSession(session)) {
+    // Density 40 → a real strength entry: logged sets feed volume, PRs, share.
+    const byEx = new Map();
+    for (const l of liftSets) {
+      if (!byEx.has(l.exId)) byEx.set(l.exId, []);
+      byEx.get(l.exId).push({ weight: l.weight, reps: l.reps, done: true });
+    }
+    const exercises = [...byEx.entries()].map(([exId, logs]) => ({
+      name: GUIDED_EXERCISES[exId]?.name || exId,
+      sets: logs.length,
+      logs,
+    }));
+    completed = {
+      name: `Density 40 · ${session.name}`,
+      type: 'strength',
+      exercises,
+    };
+    entry = {
+      name: completed.name,
+      type: 'strength',
+      programId: session.id,
+      date: new Date().toISOString(),
+      duration: durationStr,
+      totalWeight: Math.round(totalWeightMoved),
+      sets: setsDone,
+      newPRs: newPRsThisSession,
+      exercises,
+    };
+    // Advance the A→B→C queue.
+    const idx = DENSITY40_SESSIONS.findIndex((x) => x.id === session.id);
+    if (idx >= 0)
+      set('kilos-d40-cursor', (idx + 1) % DENSITY40_SESSIONS.length);
+  } else {
+    newPRsThisSession = [];
+    const exercises = session.blocks
+      .filter((b) => b.ex)
+      .map((b) => ({
+        name: GUIDED_EXERCISES[b.ex].name,
+        sets: b.sets || b.repScheme?.length || 1,
+        logs:
+          b.mode === 'lift'
+            ? liftSets.map((l) => ({
+                weight: l.weight,
+                reps: l.reps,
+                done: true,
+              }))
+            : [],
+      }));
+    completed = { name: `Rehab · ${session.name}`, type: 'rehab', exercises };
+    entry = {
+      name: completed.name,
+      type: 'rehab',
+      rehabId: session.id,
+      date: new Date().toISOString(),
+      duration: durationStr,
+      totalWeight: Math.round(totalWeightMoved),
+      sets: setsDone,
+      newPRs: [],
+      exercises,
+    };
+  }
   const hist = get('workoutHistory') || [];
   hist.push(entry);
   set('workoutHistory', hist);
@@ -1497,7 +1581,7 @@ function rhFinish() {
 // ── Rehab page (program overview + resume) ────────────────────────────────────
 function renderRehabPage() {
   const saved = get(REHAB_STATE_KEY);
-  const savedSession = saved ? getRehabSession(saved.sessionId) : null;
+  const savedSession = saved ? getGuidedSession(saved.sessionId) : null;
   const resumeSlot = document.getElementById('rehab-resume-slot');
   if (savedSession) {
     const queueLen = buildStepQueue(savedSession).length;
@@ -1538,6 +1622,26 @@ function renderRehabPage() {
         openRehabPlayer(getRehabSession(card.dataset.rehab));
       });
     });
+
+  // ── Density 40 — the lifting program queue ──
+  const cursor = get('kilos-d40-cursor') || 0;
+  document.getElementById('d40-session-list').innerHTML =
+    DENSITY40_SESSIONS.map(
+      (s2, i) => `
+    <button class="rhs-card${i === cursor ? ' rh-resume' : ''}" data-d40="${s2.id}">
+      <div class="rhs-top"><div class="rhs-name">${s2.name}</div><div class="rhs-go">${i === cursor ? 'NEXT →' : '→'}</div></div>
+      <div class="rhs-meta">~${estimateSessionMins(s2)} MIN · ${s2.freq.toUpperCase()}</div>
+      <div class="rhs-blurb">${s2.blurb}</div>
+    </button>`,
+    ).join('');
+  document.querySelectorAll('#d40-session-list [data-d40]').forEach((card) => {
+    card.addEventListener('click', () => {
+      try {
+        localStorage.removeItem(REHAB_STATE_KEY);
+      } catch {}
+      openRehabPlayer(getProgramSession(card.dataset.d40));
+    });
+  });
 
   document.getElementById('rehab-ex-list').innerHTML = Object.values(
     REHAB_EXERCISES,
@@ -1590,9 +1694,34 @@ document.getElementById('rp-voice').addEventListener('click', () => {
 document.getElementById('rp-set-done').addEventListener('click', () => {
   const step = rhStep();
   if (!step?.manual) return;
-  rhLiftSets.push({ weight: rhWeightKg, reps: step.reps });
+  if (step.logWeight !== false) {
+    const ex = GUIDED_EXERCISES[step.exId];
+    rhLiftSets.push({
+      exId: step.exId,
+      name: ex?.name || step.exId,
+      weight: rhWeightKg,
+      reps: step.reps,
+    });
+    saveGuidedWeight(step.exId, rhWeightKg);
+    if (step.exId === 'rdl') set(REHAB_RDL_KEY, rhWeightKg);
+    // PRs are part of the lifting program's scoreboard (not the rehab's).
+    if (
+      isProgramSession(rhSession) &&
+      checkAndUpdatePR(ex?.name || step.exId, rhWeightKg)
+    ) {
+      newPRsThisSession.push({
+        name: ex?.name || step.exId,
+        weight: rhWeightKg,
+        reps: parseInt(step.reps, 10) || 0,
+      });
+      showPRToast(
+        ex?.name || step.exId,
+        rhWeightKg,
+        parseInt(step.reps, 10) || 0,
+      );
+    }
+  }
   rhCounted.add(rhIdx);
-  set(REHAB_RDL_KEY, rhWeightKg);
   navigator.vibrate?.(120);
   // Roll into the rest countdown without needing another tap.
   const wasLast = rhIdx + 1 >= rhQueue.length;
@@ -1614,7 +1743,7 @@ document.getElementById('rp-w-plus').addEventListener('click', () => {
 (() => {
   const saved = get(REHAB_STATE_KEY);
   if (!saved) return;
-  const session = getRehabSession(saved.sessionId);
+  const session = getGuidedSession(saved.sessionId);
   if (!session) return;
   if (Date.now() - (saved.savedAt || 0) < 30 * 60 * 1000) {
     openRehabPlayer(session, saved);
