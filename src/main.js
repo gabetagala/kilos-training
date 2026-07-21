@@ -1525,15 +1525,21 @@ function rhTempoTick(st, mem) {
   const scheme = getTempoScheme();
   const isDrive = st.label === 'UP' || st.label === 'LIFT';
   const isSqueeze = st.label === 'SQUEEZE' || st.label === 'PAUSE';
-  // the word: phase word on second 1 (it IS count one), numbers after
+  // the word: phase word on second 1 (it IS count one); in-phase numbers only
+  // when the phase is long enough to need pacing (≥3s) — a 2s squeeze saying
+  // "squeeze… two" is noise, a 3s eccentric saying "down… two… three" is help
   const slug =
-    st.phaseSec === 0 ? phaseWordSlug(st.label) : NUM_SLUGS[st.phaseSec + 1];
+    st.phaseSec === 0
+      ? phaseWordSlug(st.label)
+      : st.phaseLen >= 3
+        ? NUM_SLUGS[st.phaseSec + 1]
+        : null;
   const wantVoice = rhVoiceOn && (scheme === 'coach' || scheme === 'voice');
   // phase words may cut a lingering count; plain counts never talk over
   const spoke = wantVoice && slug ? rhPlayBuf(slug, { cut: st.phaseSec === 0 }) : false;
-  // in voice scheme, a word silenced by an announcement stays silent — no
-  // surprise ticks in a tickless scheme
-  if (scheme === 'voice' && (spoke || rhAnnounceActive())) return;
+  // in voice scheme, silent beats stay silent — no surprise ticks in a
+  // tickless scheme (word dropped by an announcement, or a no-number beat)
+  if (scheme === 'voice' && (spoke || !slug || rhAnnounceActive())) return;
   // synthesis layer (coach + click, and voice's fallback when a clip is missing)
   if (isDrive) {
     if (st.phaseSec === 0) driveAccent();
@@ -1564,14 +1570,23 @@ function rhFrameCount() {
   return stage ? Number(stage.dataset.frames) : 0;
 }
 // Map a tempo state onto a frame index (0 = start pose, N-1 = contracted).
-function rhFrameForTempo(st, n) {
+// Direction comes from the pattern, not the label's name: the pattern's FIRST
+// phase always travels 0 → top (bridge LIFT rises, RDL DOWN hinges), squeezes
+// park on top, the return phase travels back. Steps are word-anchored so the
+// picture moves ON the cue: leave the floor the instant the first word lands,
+// top out exactly when "squeeze" fires, visibly drop on "lower".
+function rhFrameForTempo(st, n, pattern) {
   const top = n - 1;
-  if (st.label === 'UP' || st.label === 'LIFT') {
-    return Math.min(top, Math.round(st.phaseProgress * top));
-  }
   if (st.label === 'SQUEEZE' || st.label === 'PAUSE') return top;
-  // DOWN / LOWER — descend at the eccentric's own speed
-  return Math.max(0, top - Math.round(st.phaseProgress * top));
+  if (st.label === pattern?.[0]?.[0]) {
+    // outbound: climb the intermediates, save the top for the squeeze beat
+    // (no squeeze in the pattern → let it reach the top itself)
+    const hasSqueeze = pattern.some(([l]) => l === 'SQUEEZE' || l === 'PAUSE');
+    const cap = hasSqueeze ? top - 1 : top;
+    return Math.min(cap, 1 + Math.floor(st.phaseProgress * cap));
+  }
+  // return: first step down lands with the word, floor before the rep ends
+  return Math.max(0, top - 1 - Math.floor(st.phaseProgress * top));
 }
 function rhIdleFrameTick() {
   // slow stop-motion cycle when nothing is pacing the figure
@@ -1630,7 +1645,7 @@ function rhStartGuide() {
     const st = tempoStateAt(g.tempo, elapsed);
     rhTempoTick(st, g);
     const n = rhFrameCount();
-    if (n) rhSetDemoFrame(rhFrameForTempo(st, n));
+    if (n) rhSetDemoFrame(rhFrameForTempo(st, n, g.tempo.pattern));
     el.textContent = `${st.rep}/${g.tempo.reps} · ${st.label}`;
   }, 100);
 }
@@ -1831,7 +1846,7 @@ function rhTick() {
     const st = tempoStateAt(step.tempo, step.secs * 1000 - left);
     rhTempoTick(st, rhTempoMem);
     const n = rhFrameCount();
-    if (n) rhSetDemoFrame(rhFrameForTempo(st, n));
+    if (n) rhSetDemoFrame(rhFrameForTempo(st, n, step.tempo.pattern));
   }
 
   rhRenderClock();
