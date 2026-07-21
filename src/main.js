@@ -3891,8 +3891,13 @@ document.getElementById('np-btn-create').addEventListener('click', async () => {
   }
 
   saveUserName(displayName);
-  await pullAndMerge();
   closeNamePrompt();
+  // New account: seed the cloud from local in the background — creating an
+  // account must feel as instant as the auth call itself.
+  pullAndMerge().then(() => {
+    renderHome();
+    renderDataNotice();
+  });
   if (_npCallback) {
     const cb = _npCallback;
     _npCallback = null;
@@ -3924,6 +3929,8 @@ document.getElementById('np-start-create').addEventListener('click', () => {
   npShowStep('account');
 });
 document.getElementById('np-start-signin').addEventListener('click', () => {
+  const u = document.getElementById('np-signin-username');
+  if (u && !u.value) u.value = get(NAME_KEY) || '';
   npShowStep('signin');
 });
 document.getElementById('np-acc-back').addEventListener('click', () => {
@@ -3965,13 +3972,18 @@ document.getElementById('np-btn-signin').addEventListener('click', async () => {
 
   const displayName = data?.user?.user_metadata?.display_name || nameInput;
   saveUserName(displayName);
-  await pullAndMerge();
   // Returning user — never show onboarding, they've been through setup already
   saveProfile({
     setupComplete: true,
     equipmentTier: getProfile().equipmentTier || 'full-gym',
   });
   closeNamePrompt();
+  // Local-first: the sheet never waits on the sync round-trips. Merge in the
+  // background; the footnote flips SYNC PENDING → SYNCED on its own.
+  pullAndMerge().then(() => {
+    renderHome();
+    renderDataNotice();
+  });
   if (_npCallback) {
     const cb = _npCallback;
     _npCallback = null;
@@ -6123,6 +6135,8 @@ function renderProfilePane() {
       </div>
     `;
     document.getElementById('prof-signin-btn').addEventListener('click', () => {
+      const u = document.getElementById('np-signin-username');
+      if (u && !u.value) u.value = get(NAME_KEY) || '';
       npShowStep('signin');
       document.getElementById('name-prompt').classList.add('open');
       setTimeout(
