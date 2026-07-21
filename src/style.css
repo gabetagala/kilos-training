@@ -7554,3 +7554,14 @@ body {
   background: var(--white);
   border-color: var(--white);
 }
+
+/* Every actionable chip gives feedback — done chips redo, quiet ones start */
+.wp-chip[data-action] {
+  cursor: pointer;
+}
+.wp-chip[data-action]:active {
+  background: var(--bg3);
+}
+.wp-chip.done[data-action]:active {
+  background: #d8d8d5;
+}

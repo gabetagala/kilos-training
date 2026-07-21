@@ -2469,17 +2469,20 @@ function renderWeekPlan() {
 
     const chips = WEEK_PLAN[d.getDay()]
       .map((item) => {
+        // Everything clickable: done → redo (a fresh run of that session),
+        // undone → start/continue, past days included. Only future walk/
+        // engine marks stay inert (can't have done them yet).
         let label = '';
         let done = false;
         let action = '';
         if (item.type === 'rehab') {
           label = 'REHAB';
           done = entries.some((h) => h.rehabId === 'daily');
-          action = isToday && !done ? 'session:daily' : '';
+          action = 'session:daily';
         } else if (item.type === 'hinge') {
           label = 'HINGE';
           done = entries.some((h) => h.rehabId === 'hinge');
-          action = isToday && !done ? 'session:hinge' : '';
+          action = 'session:hinge';
         } else if (item.type === 'lift') {
           const doneEntry = entries.find((h) => h.programId);
           done = !!doneEntry;
@@ -2494,17 +2497,21 @@ function renderWeekPlan() {
                 (cursor + liftOffset) % DENSITY40_SESSIONS.length
               ];
             liftOffset++;
+          } else {
+            // a missed past lift = the next session the queue owes you
+            s2 = DENSITY40_SESSIONS[cursor % DENSITY40_SESSIONS.length];
           }
           label = s2
             ? `LIFT ${s2.name.split('—')[0].trim().toUpperCase()}`
             : 'LIFT';
-          action = isToday && !done && s2 ? `session:${s2.id}` : '';
+          action = s2 ? `session:${s2.id}` : '';
         } else {
           label = item.type.toUpperCase();
           done = dayMarks.includes(item.type);
-          action = isToday ? `mark:${item.type}` : '';
+          action = k <= todayKey ? `mark:${item.type}` : '';
         }
-        return `<button class="wp-chip${done ? ' done' : ''}${action ? ' ready' : ''}"
+        const emphasized = action && isToday && !done;
+        return `<button class="wp-chip${done ? ' done' : ''}${emphasized ? ' ready' : ''}"
           ${action ? `data-action="${action}" data-date="${k}"` : 'disabled'}>${done ? '✓ ' : ''}${label}</button>`;
       })
       .join('');
@@ -2524,6 +2531,12 @@ function renderWeekPlan() {
     chip.addEventListener('click', () => {
       const [kind, id] = chip.dataset.action.split(':');
       if (kind === 'session') {
+        const saved = get(REHAB_STATE_KEY);
+        if (saved?.sessionId === id) {
+          // unfinished = continue where it paused
+          openRehabPlayer(getGuidedSession(id), saved);
+          return;
+        }
         try {
           localStorage.removeItem(REHAB_STATE_KEY);
         } catch {}
