@@ -7543,3 +7543,10 @@ body {
   min-height: 48px;
   cursor: pointer;
 }
+
+/* The ✓ control — the next-arrow doubles as the set logger on manual steps */
+.rp-ctrl.rp-ctrl-log {
+  color: #161616;
+  background: var(--white);
+  border-color: var(--white);
+}

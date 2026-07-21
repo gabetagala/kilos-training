@@ -1421,8 +1421,8 @@ function rhSay(text) {
 
 function rhCue(kind) {
   if (kind === 'work') {
-    beep(880, 0.1);
-    setTimeout(() => beep(1175, 0.14), 120);
+    // the LANDING: one long unmistakable tone — the CrossFit-timer "go"
+    beep(1000, 0.55);
   } else if (kind === 'rest') {
     beep(392, 0.3);
   } else if (kind === 'switch') {
@@ -1431,9 +1431,9 @@ function rhCue(kind) {
   } else if (kind === 'rep') {
     beep(520, 0.05);
   } else if (kind === 'count') {
-    // CrossFit-timer countdown: same uniform tick at 3, 2, 1 — the landing
-    // sound (work double / rest low) is the "long beep".
-    clickTick();
+    // 3-2-1: short bright beeps clearly ABOVE the in-set tick; the landing
+    // (long work tone / low rest tone) is the "long beep".
+    beep(1000, 0.12);
   } else if (kind === 'finish') {
     beep(660, 0.12);
     setTimeout(() => beep(830, 0.12), 160);
@@ -1486,6 +1486,10 @@ function rhAnnounceStep(step) {
       );
     } else if (step.rep > 1) {
       rhCueSay([NUMS[step.rep] || 'go'], String(step.rep));
+    } else if (step.holdSet && step.setTotal > 1) {
+      // "know what I'm expecting": position in the hold sets, spoken
+      const sideBit = step.side ? `${step.side.toLowerCase()} side — ` : '';
+      rhSay(`${sideBit}hold. ${step.setNum} of ${step.setTotal}.`);
     } else {
       rhCueSay(
         step.side ? [`${step.side.toLowerCase()}-side`, 'hold'] : ['hold'],
@@ -1495,7 +1499,15 @@ function rhAnnounceStep(step) {
   } else if (step.phase === 'SWITCH SIDES') {
     rhCueSay(['switch-sides'], 'Switch sides');
   } else if (step.phase === 'REST') {
-    rhCueSay(['rest'], 'Rest');
+    // Leaving an exercise? Say where we're going — the athlete plans the
+    // rest around what's next.
+    const nextLabel = nextWorkLabel(rhQueue, rhIdx);
+    const nextStep = rhQueue.slice(rhIdx + 1).find((st) => st.kind === 'work');
+    if (nextStep && nextStep.exId !== step.exId) {
+      rhSay(`Rest. Next — ${nextLabel.replace('·', ',')}`);
+    } else {
+      rhCueSay(['rest'], 'Rest');
+    }
   }
 }
 
@@ -2024,11 +2036,22 @@ function rhRenderStep() {
   document.getElementById('rp-clock').style.display = step.manual ? 'none' : '';
   document.getElementById('rp-lift').style.display = step.manual ? '' : 'none';
   rhPendingReps = null; // arriving at any step resets the two-stage logger
+  const skipBtn = document.getElementById('rp-skip');
+  const isManualWork = !!(step.manual && step.kind === 'work');
+  skipBtn.innerHTML = isManualWork
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>';
+  skipBtn.setAttribute(
+    'aria-label',
+    isManualWork ? 'Log set and continue' : 'Next step',
+  );
+  skipBtn.classList.toggle('rp-ctrl-log', isManualWork);
   if (step.manual) {
     const showWeight = step.logWeight !== false;
     document.querySelector('.rp-weight-row').style.display = showWeight
       ? ''
       : 'none';
+    document.getElementById('rp-set-done').style.display = 'none';
     document.getElementById('rp-set-done').textContent = showWeight
       ? 'Set done →'
       : 'Done →';
@@ -2760,7 +2783,14 @@ document.getElementById('rp-play').addEventListener('click', () => {
   if (fresh) rhAnnounceStep(step);
 });
 document.getElementById('rp-prev').addEventListener('click', () => rhJump(-1));
-document.getElementById('rp-skip').addEventListener('click', () => rhJump(1));
+document.getElementById('rp-skip').addEventListener('click', () => {
+  const step = rhStep();
+  if (step?.manual && step.kind === 'work') {
+    rhLogSetDone(); // the ✓ — same control, no extra button
+    return;
+  }
+  rhJump(1);
+});
 document.getElementById('rp-voice').addEventListener('click', () => {
   rhVoiceOn = !rhVoiceOn;
   set(REHAB_VOICE_KEY, rhVoiceOn);
@@ -2771,7 +2801,7 @@ document.getElementById('rp-voice').addEventListener('click', () => {
   }
   rhRenderVoiceBtn();
 });
-document.getElementById('rp-set-done').addEventListener('click', () => {
+function rhLogSetDone() {
   const step = rhStep();
   if (!step?.manual) return;
   rhStopGuide(true);
@@ -2825,7 +2855,8 @@ document.getElementById('rp-set-done').addEventListener('click', () => {
   const wasLast = rhIdx + 1 >= rhQueue.length;
   rhJump(1); // announces the landing step
   if (!wasLast && !rhStep()?.manual) rhPlay();
-});
+}
+document.getElementById('rp-set-done').addEventListener('click', rhLogSetDone);
 function rhAdjust(dir) {
   if (rhPendingReps !== null) {
     rhPendingReps = Math.max(0, rhPendingReps + dir);

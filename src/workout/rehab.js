@@ -272,6 +272,9 @@ function pushSetWork(steps, block, setIdx, totalSets, side) {
 
   // hold
   steps.push({
+    holdSet: true,
+    setNum: setIdx + 1,
+    setTotal: totalSets,
     kind: 'work',
     exId: block.ex,
     secs: block.holdSecs,
