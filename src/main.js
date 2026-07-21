@@ -4317,6 +4317,16 @@ function toggleSetDone(setIdx) {
 
   log.done = !log.done;
 
+  if (!log.done) {
+    // Undo must subtract what done added — otherwise a mis-tap permanently
+    // inflates volume/sets into saved (and synced) history.
+    sessionSets = Math.max(0, sessionSets - 1);
+    const w = parseFloat(log.weight) || 0;
+    const r = parseInt(log.reps, 10) || parseInt(ex.reps, 10) || 0;
+    totalWeightMoved = Math.max(0, totalWeightMoved - w * r);
+    saveActiveState();
+  }
+
   if (log.done) {
     if (navigator.vibrate) navigator.vibrate(50);
     sessionSets++;
@@ -4779,13 +4789,28 @@ function finishWorkout() {
 
   const history = get('workoutHistory') || [];
   const isCF = CF_TYPES.has(completed.type);
+  // Logs are the source of truth for the saved entry — live accumulators can
+  // drift (undos, restores); recompute like the rehab finish does.
+  const doneLogs = (completed.exercises || []).flatMap((e) =>
+    (e.logs || []).filter((l) => l.done),
+  );
+  const savedSets =
+    completed.type === 'cardio' || isCF ? sessionSets : doneLogs.length;
+  const savedWeight =
+    completed.type === 'cardio' || isCF
+      ? totalWeightMoved
+      : doneLogs.reduce(
+          (sum, l) =>
+            sum + (parseFloat(l.weight) || 0) * (parseInt(l.reps, 10) || 0),
+          0,
+        );
   const entry = {
     name: completed.name,
     type: completed.type || 'strength',
     date: new Date().toISOString(),
     duration: durationStr,
-    totalWeight: Math.round(totalWeightMoved),
-    sets: sessionSets,
+    totalWeight: Math.round(savedWeight),
+    sets: savedSets,
     newPRs: newPRsThisSession,
     exercises:
       completed.type === 'cardio' || isCF
