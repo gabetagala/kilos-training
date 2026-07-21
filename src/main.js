@@ -714,6 +714,7 @@ function matchWordmarkWidth() {
 
 function renderHome() {
   renderResumeStrip();
+  renderTodayCard();
   renderWeekStrip();
   renderMuscleFrequency();
   renderRecent();
@@ -2890,6 +2891,99 @@ function renderMuscleFrequency() {
 // ─── REST-DAY CARD ────────────────────────────────────────────────────────────
 // Shows on home screen when no workout has been logged today.
 // Surfaces: most-recovered muscle (best next session suggestion) + weekly volume.
+// What does the program want TODAY? Shared derivation (same rules as the
+// Program week view) so Home and Program can't disagree.
+function todayPlan() {
+  const hist = get('workoutHistory') || [];
+  const cursor = get('kilos-d40-cursor') || 0;
+  const todayK = dateKey(new Date());
+  const entries = hist.filter((h) => dateKey(new Date(h.date)) === todayK);
+  const marks = get(WEEK_MARKS_KEY)?.[todayK] || [];
+  return WEEK_PLAN[new Date().getDay()].map((item) => {
+    if (item.type === 'rehab') {
+      return {
+        type: 'rehab',
+        label: 'Rehab',
+        done: entries.some((h) => h.rehabId === 'daily'),
+        sessionId: 'daily',
+      };
+    }
+    if (item.type === 'hinge') {
+      return {
+        type: 'hinge',
+        label: 'Hinge',
+        done: entries.some((h) => h.rehabId === 'hinge'),
+        sessionId: 'hinge',
+      };
+    }
+    if (item.type === 'lift') {
+      const doneEntry = entries.find((h) => h.programId);
+      const s2 = doneEntry
+        ? getProgramSession(doneEntry.programId)
+        : DENSITY40_SESSIONS[cursor % DENSITY40_SESSIONS.length];
+      return {
+        type: 'lift',
+        label: s2 ? `Lift ${s2.name.split('—')[0].trim()}` : 'Lift',
+        done: !!doneEntry,
+        sessionId: s2?.id,
+      };
+    }
+    return {
+      type: item.type,
+      label: item.type,
+      done: marks.includes(item.type),
+      sessionId: null,
+    };
+  });
+}
+
+function renderTodayCard() {
+  const card = document.getElementById('today-card');
+  if (!card) return;
+  const history = get('workoutHistory') || [];
+  if (activeSessionInfo()) {
+    card.style.display = 'none'; // the resume strip owns the slot
+    return;
+  }
+  if (!history.length) {
+    card.style.display = '';
+    card.innerHTML = `
+      <div class="tc-label">DAY ONE</div>
+      <div class="tc-title">First session →</div>
+      <div class="tc-sub">Rehab warm-up + guided lifting. Everything runs itself.</div>`;
+    card.onclick = () => {
+      renderRehabPage();
+      openPage('rehab-page');
+    };
+    return;
+  }
+  const plan = todayPlan();
+  const undone = plan.filter((i) => !i.done);
+  if (!undone.length) {
+    card.style.display = 'none'; // everything done — recovery card can speak
+    return;
+  }
+  const first = undone.find((i) => i.sessionId) || undone[0];
+  const session = first.sessionId ? getGuidedSession(first.sessionId) : null;
+  const mins = session ? `~${estimateSessionMins(session)} MIN · ` : '';
+  card.style.display = '';
+  card.innerHTML = `
+    <div class="tc-label">TODAY</div>
+    <div class="tc-title">${undone.map((i) => i.label.toUpperCase()).join(' + ')}</div>
+    <div class="tc-sub">${mins}${session ? 'START →' : 'OPEN PROGRAM →'}</div>`;
+  card.onclick = () => {
+    if (session) {
+      try {
+        localStorage.removeItem(REHAB_STATE_KEY);
+      } catch {}
+      openRehabPlayer(session);
+    } else {
+      renderRehabPage();
+      openPage('rehab-page');
+    }
+  };
+}
+
 function renderRestDayCard() {
   const card = document.getElementById('rest-day-card');
   if (!card) return;
@@ -2905,8 +2999,12 @@ function renderRestDayCard() {
     return d.getTime() === today.getTime();
   });
 
-  if (trainedToday || activeWorkout) {
-    card.style.display = 'none';
+  // Scheduled work owns Home — the recovery card only speaks on a true
+  // rest day (nothing due, nothing active).
+  const hasWorkDue =
+    history.length > 0 && todayPlan().some((i) => !i.done && i.sessionId);
+  if (!history.length || trainedToday || activeWorkout || hasWorkDue) {
+    card.style.display = 'none'; // day-one card owns the empty state
     return;
   }
 
@@ -2937,7 +3035,7 @@ function renderRestDayCard() {
   // Days since best muscle trained
   const readyLabel =
     bestDays >= 999
-      ? 'Never trained'
+      ? 'Fresh'
       : bestDays >= 3
         ? `${bestDays}d rest`
         : 'Recovered';

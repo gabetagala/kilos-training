@@ -7355,3 +7355,38 @@ body {
   color: var(--grey);
   flex-shrink: 0;
 }
+
+/* Today card — the answer to "what do I do today", one tap to start */
+.today-card {
+  display: block;
+  width: calc(100% - 2 * var(--s-4));
+  margin: var(--s-3) var(--s-4) 0;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 16px;
+  text-align: left;
+  cursor: pointer;
+}
+.today-card:active {
+  background: var(--line);
+}
+.tc-label {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--grey);
+}
+.tc-title {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 28px;
+  line-height: 1.1;
+  color: var(--white);
+  margin: 4px 0 2px;
+}
+.tc-sub {
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text2);
+}
