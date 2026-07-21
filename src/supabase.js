@@ -36,6 +36,7 @@ const SYNC_KEYS = [
   'volPRMap',
   'customWorkouts',
   'userProfile',
+  'kilos-checkins',
 ];
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
@@ -179,6 +180,7 @@ export async function pushData() {
 //   volPRMap       — take max volume per exercise
 //   customWorkouts — union (dedupe by name, local wins on conflict)
 //   userProfile    — local wins (most recent device interaction)
+//   kilos-checkins — union (dedupe by date, local wins on same-date conflict)
 export async function pullAndMerge() {
   if (!supabase) return;
   const session = await getSession();
@@ -245,6 +247,16 @@ export async function pullAndMerge() {
   if (!localProfile && remote.userProfile) {
     _set('userProfile', remote.userProfile);
   }
+
+  // Check-ins — union by date, local wins on a same-date conflict
+  const localCI = _get('kilos-checkins') || [];
+  const remoteCI = remote['kilos-checkins'] || [];
+  const localDates = new Set(localCI.map((e) => e.date));
+  const mergedCI = [
+    ...localCI,
+    ...remoteCI.filter((e) => !localDates.has(e.date)),
+  ].sort((a, b) => (a.date < b.date ? -1 : 1));
+  _set('kilos-checkins', mergedCI);
 
   // Push the merged result back so both ends stay in sync
   await pushData();

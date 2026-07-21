@@ -33,6 +33,7 @@ import {
   WEEK_PLAN,
 } from './workout/program.js';
 import { PROGRAM_DEMOS, REHAB_DEMOS } from './workout/rehabDemos.js';
+import { addCheckin, checkinStatus } from './workout/checkin.js';
 import { currentStreak, longestStreak } from './workout/streak.js';
 import {
   deleteAccount,
@@ -2219,6 +2220,86 @@ function renderWeekPlan() {
   });
 }
 
+// ── Sunday check-in: waist + weight, the fat-loss feedback loop ──────────────
+// Measurement only, no food tracking. The status line runs TRAINING.md's rule:
+// two weeks with no downward trend → add steps first, then trim ~150 kcal.
+const CHECKINS_KEY = 'kilos-checkins';
+let ciEditing = false;
+
+function renderCheckin() {
+  const el = document.getElementById('checkin-card');
+  if (!el) return;
+  const list = get(CHECKINS_KEY) || [];
+  const { state, latest, ref } = checkinStatus(list);
+  const todayK = dateKey(new Date());
+  const isSunday = new Date().getDay() === 0;
+  const due = isSunday && latest?.date !== todayK;
+
+  if (ciEditing) {
+    el.innerHTML = `
+      <div class="ci-card">
+        <div class="ci-edit-row">
+          <label class="ci-field"><span class="ci-label">WEIGHT · KG</span>
+            <input class="ci-input" id="ci-weight" type="number" inputmode="decimal" step="0.1" min="30" max="250" value="${latest?.weightKg ?? ''}" placeholder="0.0"></label>
+          <label class="ci-field"><span class="ci-label">WAIST · CM</span>
+            <input class="ci-input" id="ci-waist" type="number" inputmode="decimal" step="0.1" min="40" max="200" value="${latest?.waistCm ?? ''}" placeholder="0.0"></label>
+        </div>
+        <div class="ci-actions">
+          <button class="ci-btn ci-save" id="ci-save">SAVE</button>
+          <button class="ci-btn" id="ci-cancel">CANCEL</button>
+        </div>
+      </div>`;
+    document.getElementById('ci-save').addEventListener('click', () => {
+      const w = Number.parseFloat(document.getElementById('ci-weight').value);
+      const c = Number.parseFloat(document.getElementById('ci-waist').value);
+      if (!(w >= 30 && w <= 250) || !(c >= 40 && c <= 200)) return;
+      set(
+        CHECKINS_KEY,
+        addCheckin(list, { date: todayK, weightKg: w, waistCm: c }),
+      );
+      ciEditing = false;
+      renderCheckin();
+      pushData();
+    });
+    document.getElementById('ci-cancel').addEventListener('click', () => {
+      ciEditing = false;
+      renderCheckin();
+    });
+    return;
+  }
+
+  const delta = (a, b, unit) => {
+    if (a == null || b == null) return '';
+    const d = +(a - b).toFixed(1);
+    if (Math.abs(d) < 0.05) return `<span class="ci-delta">— flat / 2 wks</span>`;
+    return `<span class="ci-delta">${d < 0 ? '▾' : '▴'} ${Math.abs(d)} ${unit} / 2 wks</span>`;
+  };
+  const STATUS = {
+    first: 'Two numbers, once a week — the trend does the coaching.',
+    building: 'Logged. Two weeks of entries builds your first trend.',
+    trending: 'Trending down — keep the kitchen exactly as is.',
+    stalled:
+      'Flat for 2 weeks → add 1–2k steps/day. Still flat next Sunday → trim ~150 kcal.',
+  };
+  el.innerHTML = `
+    <div class="ci-card">
+      <div class="ci-nums">
+        <div class="ci-num-cell"><span class="ci-label">WEIGHT</span>
+          <span class="ci-num">${latest ? latest.weightKg.toFixed(1) : '—'}<small> kg</small></span>
+          ${latest && ref ? delta(latest.weightKg, ref.weightKg, 'kg') : ''}</div>
+        <div class="ci-num-cell"><span class="ci-label">WAIST</span>
+          <span class="ci-num">${latest ? latest.waistCm.toFixed(1) : '—'}<small> cm</small></span>
+          ${latest && ref ? delta(latest.waistCm, ref.waistCm, 'cm') : ''}</div>
+      </div>
+      <div class="ci-status${state === 'stalled' ? ' stalled' : ''}">${due ? 'Due today · ' : ''}${STATUS[state]}</div>
+      <button class="ci-btn ci-log${due ? ' due' : ''}" id="ci-log">${latest?.date === todayK ? 'EDIT TODAY' : 'LOG CHECK-IN'}</button>
+    </div>`;
+  document.getElementById('ci-log').addEventListener('click', () => {
+    ciEditing = true;
+    renderCheckin();
+  });
+}
+
 // ── Sound check: audition the tempo schemes, pick by ear ─────────────────────
 const TEMPO_SCHEMES = [
   {
@@ -2300,6 +2381,7 @@ function renderSoundCheck() {
 // ── Rehab page (program overview + resume) ────────────────────────────────────
 function renderRehabPage() {
   renderWeekPlan();
+  renderCheckin();
   renderSoundCheck();
   const saved = get(REHAB_STATE_KEY);
   const savedSession = saved ? getGuidedSession(saved.sessionId) : null;
