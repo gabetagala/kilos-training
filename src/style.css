@@ -7580,3 +7580,17 @@ body {
   border-color: var(--white);
   box-shadow: 0 0 0 2px #161616, 0 0 0 3px var(--white);
 }
+
+/* Style picker scrolls horizontally as the library grows */
+.share-style-scroll {
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.share-style-scroll::-webkit-scrollbar {
+  display: none;
+}
+.share-style-scroll .share-bg-btn {
+  flex-shrink: 0;
+}

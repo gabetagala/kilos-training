@@ -318,6 +318,220 @@ function drawMinimal(ctx, data, color) {
   ctx.restore();
 }
 
+
+// ─── STYLE D · DOTS — dot matrix + vertical type ────────────────────────────
+function drawDots(ctx, data, color) {
+  const c = color;
+  // the grid: 4 × 7 dots, full frame
+  for (let row = 0; row < 7; row++) {
+    for (let col = 0; col < 4; col++) {
+      const x = W * (0.12 + col * 0.253);
+      const y = H * (0.06 + row * 0.147);
+      ctx.beginPath();
+      ctx.arc(x, y, 7, 0, Math.PI * 2);
+      ctx.fillStyle = withAlpha(c, 0.9);
+      ctx.fill();
+    }
+  }
+  // index marks
+  ctx.fillStyle = c;
+  ctx.font = `700 12px ${MONO}`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.save();
+  ctx.translate(W * 0.53, 46);
+  ctx.rotate(Math.PI / 2);
+  ctx.fillText(data.dateStr, 0, 0);
+  ctx.restore();
+
+  // vertical block: name huge + details, reading downward
+  ctx.save();
+  ctx.translate(W * 0.62, H * 0.3);
+  ctx.rotate(Math.PI / 2);
+  const nameSize = fitText(ctx, data.workoutName.toUpperCase(), H * 0.62, 44, BEBAS);
+  ctx.font = `${nameSize}px ${BEBAS}`;
+  ctx.fillStyle = c;
+  ctx.textAlign = 'left';
+  ctx.fillText(data.workoutName.toUpperCase(), 0, 0);
+  ctx.font = `700 11px ${MONO}`;
+  let vy = 22;
+  for (const m of data.movements.slice(0, 4)) {
+    ctx.fillText(`${m.name.toUpperCase().slice(0, 26)}  ${m.detail}`.trim(), 0, vy);
+    vy += 18;
+  }
+  if (data.movements.length > 4) {
+    ctx.fillText(`+ ${data.movements.length - 4} MORE`, 0, vy);
+    vy += 18;
+  }
+  ctx.fillText(`${data.duration} ELAPSED`, 0, vy + 6);
+  ctx.restore();
+
+  ctx.fillStyle = c;
+  ctx.font = `20px ${BEBAS}`;
+  ctx.textAlign = 'left';
+  ctx.fillText('KILOS', PAD, H - 42);
+}
+
+// ─── STYLE E · HEADLINE — the big statement, top and bottom ─────────────────
+function drawHeadline(ctx, data, color) {
+  const c = color;
+  ctx.fillStyle = c;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+
+  const year = new Date().getFullYear();
+  const line1 = data.workoutName.toUpperCase().slice(0, 22);
+  const s1 = fitText(ctx, line1, W - PAD * 2, 76, BEBAS);
+  ctx.font = `${s1}px ${BEBAS}`;
+  ctx.fillText(line1, W / 2, 100);
+  ctx.font = `${Math.min(s1, 60)}px ${BEBAS}`;
+  ctx.fillText(`© ${year} SESSION`, W / 2, 100 + Math.min(s1, 60) + 6);
+
+  // mid marks
+  ctx.font = `24px ${BEBAS}`;
+  ctx.textAlign = 'left';
+  ctx.fillText('K—', PAD, H * 0.56);
+  ctx.font = `700 11px ${MONO}`;
+  ctx.textAlign = 'right';
+  ctx.fillText('POWERED BY', W - PAD, H * 0.545);
+  ctx.fillText('KILOS TRAINING', W - PAD, H * 0.56 + 3);
+
+  // movements, quiet, above the bottom statement
+  ctx.font = `700 10px ${MONO}`;
+  ctx.textAlign = 'center';
+  let my = H - 232;
+  for (const m of data.movements.slice(0, 3)) {
+    ctx.fillStyle = withAlpha(c, 0.9);
+    ctx.fillText(`${m.name.toUpperCase().slice(0, 28)}  ${m.detail}`.trim(), W / 2, my);
+    my += 16;
+  }
+  if (data.movements.length > 3) {
+    ctx.fillText(`+ ${data.movements.length - 3} MORE`, W / 2, my);
+  }
+
+  ctx.fillStyle = c;
+  const line3 = `${data.duration} ELAPSED.`;
+  const s3 = fitText(ctx, line3, W - PAD * 2, 84, BEBAS);
+  ctx.font = `${s3}px ${BEBAS}`;
+  ctx.fillText(line3, W / 2, H - 64);
+}
+
+// ─── STYLE F · SPEC — mid spec strip, logotype bleeding the edges ───────────
+function drawSpec(ctx, data, color) {
+  const c = color;
+  ctx.textBaseline = 'alphabetic';
+
+  // the bleeding logotype band
+  ctx.fillStyle = c;
+  ctx.font = `120px ${BEBAS}`;
+  ctx.textAlign = 'left';
+  ctx.fillText('KILOS', -34, H * 0.47);
+  ctx.textAlign = 'right';
+  ctx.font = `84px ${BEBAS}`;
+  ctx.fillText('© KLS', W + 46, H * 0.47);
+
+  // spec columns under the band
+  const top = H * 0.5;
+  ctx.font = `700 10px ${MONO}`;
+  ctx.textAlign = 'left';
+  let y = top;
+  ctx.fillStyle = c;
+  ctx.fillText(`${data.workoutName.toUpperCase().slice(0, 24)} //`, PAD, y);
+  y += 16;
+  for (const m of data.movements.slice(0, 4)) {
+    ctx.fillStyle = withAlpha(c, 0.92);
+    ctx.fillText(`${m.name.toUpperCase().slice(0, 24)} · ${m.detail}`.trim(), PAD, y);
+    y += 15;
+  }
+  if (data.movements.length > 4) {
+    ctx.fillText(`+ ${data.movements.length - 4} MORE`, PAD, y);
+  }
+  let ry = top;
+  ctx.textAlign = 'right';
+  ctx.fillStyle = c;
+  ctx.fillText(`ELAPSED: ${data.duration}`, W - PAD, ry);
+  ry += 16;
+  ctx.fillStyle = withAlpha(c, 0.92);
+  ctx.fillText(`${data.isCF ? 'ROUNDS' : 'SETS'}: ${data.totalSets || '—'}`, W - PAD, ry);
+  ry += 15;
+  ctx.fillText(`DATE: ${data.dateStr}`, W - PAD, ry);
+  ry += 15;
+  ctx.fillText('LOGGED ON KILOS', W - PAD, ry);
+}
+
+// ─── STYLE G · GRAIN — staggered micro-captions in the quiet ────────────────
+function drawGrain(ctx, data, color) {
+  const c = color;
+  addGrain(ctx, 0.16); // double down on the texture
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = `700 12px ${MONO}`;
+
+  let y = H * 0.42;
+  ctx.fillStyle = c;
+  ctx.textAlign = 'left';
+  ctx.fillText('TRAINING LOG', W * 0.2, y);
+  ctx.fillText(`${data.workoutName.toUpperCase().slice(0, 24)} ●●`, W * 0.2, y + 16);
+
+  y += 56;
+  for (const m of data.movements.slice(0, 3)) {
+    ctx.fillText(`${m.name.toUpperCase().slice(0, 24)} ${m.detail}`.trim(), W * 0.32, y);
+    y += 16;
+  }
+  if (data.movements.length > 3) {
+    ctx.fillText(`+${data.movements.length - 3} /KILOS`, W * 0.32, y);
+    y += 16;
+  }
+
+  y += 24;
+  ctx.fillText(`${data.dateStr} · ${data.duration}`, W * 0.14, y);
+  ctx.fillText('●● KILOS', W * 0.14, y + 16);
+}
+
+// ─── STYLE H · ARCHIVE — three-column caption grid ──────────────────────────
+function drawArchive(ctx, data, color) {
+  const c = color;
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = `700 13px ${MONO}`;
+  ctx.fillStyle = c;
+
+  // top grid: three columns
+  ctx.textAlign = 'left';
+  ['KILOS', 'TRAINING', 'LOG'].forEach((wrd, i) => {
+    ctx.fillText(wrd, PAD, 58 + i * 17);
+  });
+  ctx.textAlign = 'center';
+  const nameWords = data.workoutName.toUpperCase().split(/\s+·?\s*/).slice(0, 3);
+  nameWords.forEach((wrd, i) => {
+    ctx.fillText(wrd.slice(0, 14), W / 2, 58 + i * 17);
+  });
+  ctx.textAlign = 'right';
+  [data.dateStr.split(',')[0], `${data.duration}`, 'ELAPSED'].forEach((wrd, i) => {
+    ctx.fillText(wrd, W - PAD, 58 + i * 17);
+  });
+
+  // mid row
+  const midY = H * 0.52;
+  ctx.textAlign = 'left';
+  ctx.fillText(`${data.isCF ? 'RND' : 'SETS'} ${data.totalSets || '—'}`, PAD, midY);
+  ctx.textAlign = 'center';
+  ctx.fillText('©', W / 2, midY);
+  ctx.textAlign = 'right';
+  ctx.fillText(`MOVES ${data.movements.length}`, W - PAD, midY);
+
+  // bottom-left: the movements, small
+  ctx.font = `700 10px ${MONO}`;
+  ctx.textAlign = 'left';
+  let y = H - 96;
+  for (const m of data.movements.slice(0, 3)) {
+    ctx.fillStyle = withAlpha(c, 0.92);
+    ctx.fillText(`${m.name.toUpperCase().slice(0, 26)}  ${m.detail}`.trim(), PAD, y);
+    y += 15;
+  }
+  if (data.movements.length > 3) {
+    ctx.fillText(`+ ${data.movements.length - 3} MORE`, PAD, y);
+  }
+}
+
 // ─── MAIN RENDERER ───────────────────────────────────────────────────────────
 export async function renderShareCard(canvas, data, opts = {}) {
   const { style = 'editorial', color = '#FFFFFF', photo = null } = opts;
@@ -333,7 +547,15 @@ export async function renderShareCard(canvas, data, opts = {}) {
   } else {
     const plate = await loadPlate(style);
     if (plate) {
-      drawCover(ctx, plate, style === 'minimal' ? 0.1 : 0.2);
+      const scrims = {
+        minimal: 0.1,
+        dots: 0.22,
+        spec: 0.16,
+        grain: 0.14,
+        archive: 0.12,
+        headline: 0.3,
+      };
+      drawCover(ctx, plate, scrims[style] ?? 0.2);
       addGrain(ctx, 0.05);
     } else {
       ctx.fillStyle = '#141414';
@@ -342,9 +564,16 @@ export async function renderShareCard(canvas, data, opts = {}) {
     }
   }
 
-  if (style === 'poster') drawPoster(ctx, data, color);
-  else if (style === 'minimal') drawMinimal(ctx, data, color);
-  else drawEditorial(ctx, data, color);
+  const drawers = {
+    poster: drawPoster,
+    minimal: drawMinimal,
+    dots: drawDots,
+    headline: drawHeadline,
+    spec: drawSpec,
+    grain: drawGrain,
+    archive: drawArchive,
+  };
+  (drawers[style] || drawEditorial)(ctx, data, color);
 
   return canvas;
 }
