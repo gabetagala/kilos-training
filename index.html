@@ -423,6 +423,18 @@
       </div>
     </div>
 
+    <!-- ─── FINISH GUIDED SESSION EARLY CONFIRM ─── -->
+    <div class="confirm-overlay" id="rhfinish-confirm">
+      <div class="confirm-sheet">
+        <div class="confirm-title">FINISH SESSION?</div>
+        <div class="confirm-sub" id="rhfinish-sub">Everything you logged is saved. The remaining steps are skipped.</div>
+        <div class="confirm-actions">
+          <button class="confirm-yes" id="btn-rhfinish-yes">Finish &amp; save</button>
+          <button class="confirm-no" id="btn-rhfinish-no">Keep going</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ─── DISCARD PAUSED SESSION CONFIRM ─── -->
     <div class="confirm-overlay" id="discard-confirm">
       <div class="confirm-sheet">
@@ -657,6 +669,7 @@
             <button class="rpo-close" id="rpo-close" aria-label="Close overview">✕</button>
           </div>
           <div class="rpo-list" id="rpo-list"></div>
+          <button class="rpo-finish" id="rpo-finish">Finish session now</button>
         </div>
       </div>
       <!-- Swap sheet — pick a sanctioned alternate for this slot -->

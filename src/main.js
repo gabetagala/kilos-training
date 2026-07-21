@@ -1835,6 +1835,22 @@ document
 document
   .getElementById('rp-cue-more')
   ?.addEventListener('click', rhOpenOverview);
+// Finish early from the overview — logged work saves, the queue is skipped.
+document.getElementById('rpo-finish').addEventListener('click', () => {
+  document.getElementById('rp-overview').classList.remove('open');
+  const n = rhCounted.size;
+  document.getElementById('rhfinish-sub').textContent = n
+    ? `${n} set${n === 1 ? '' : 's'} logged and saved. The remaining steps are skipped.`
+    : 'Nothing logged yet — this saves the session as done anyway.';
+  document.getElementById('rhfinish-confirm').classList.add('open');
+});
+document.getElementById('btn-rhfinish-yes').addEventListener('click', () => {
+  document.getElementById('rhfinish-confirm').classList.remove('open');
+  rhFinish();
+});
+document.getElementById('btn-rhfinish-no').addEventListener('click', () => {
+  document.getElementById('rhfinish-confirm').classList.remove('open');
+});
 document.getElementById('rp-exname').addEventListener('click', rhOpenOverview);
 document.getElementById('rpo-close').addEventListener('click', () => {
   document.getElementById('rp-overview').classList.remove('open');
