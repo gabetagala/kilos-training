@@ -1394,7 +1394,17 @@ function rhProbeArt(exId) {
         break;
       }
     }
-    const art = a ? { a, b } : null;
+    // tween frames enable tempo-synced stop-motion (t0 = bottom … tN = top)
+    const frames = [];
+    for (let i = 0; i < 9; i++) {
+      const f = await tryLoad(`/rehab/${exId}-t${i}.webp`);
+      if (!f) break;
+      frames.push(f);
+    }
+    const art =
+      a || frames.length
+        ? { a, b, frames: frames.length >= 3 ? frames : null }
+        : null;
     rhArtCache.set(exId, art);
     return art;
   })();
@@ -1404,6 +1414,19 @@ function rhProbeArt(exId) {
 
 function rhRenderDemo(demoEl, exId) {
   const art = rhArtCache.get(exId);
+  if (art?.frames) {
+    demoEl.innerHTML = `<div class="rp-art" data-frames="${art.frames.length}">
+      ${art.frames
+        .map(
+          (f, i) =>
+            `<img class="rp-art-img frame${i === 0 ? ' on' : ''}" data-frame="${i}" src="${f}" alt="">`,
+        )
+        .join('')}
+    </div>`;
+    rhFrameState.idx = 0;
+    rhFrameState.exId = exId;
+    return;
+  }
   if (art?.a) {
     const fade = art.b ? ' fade' : '';
     demoEl.innerHTML = `<div class="rp-art">
@@ -1480,6 +1503,42 @@ function rhTempoTick(st, mem) {
   }
 }
 
+// ── Demo frame driver: t-frames scrub with the tempo (up = climb the frames,
+// squeeze = hold the top, slow eccentric = step down slowly). Idle steps get a
+// gentle stop-motion cycle instead.
+const rhFrameState = { idx: -1, exId: null };
+function rhSetDemoFrame(idx) {
+  if (idx === rhFrameState.idx) return;
+  const stage = document.querySelector('#rp-demo .rp-art[data-frames]');
+  if (!stage) return;
+  rhFrameState.idx = idx;
+  stage.querySelectorAll('.rp-art-img.frame').forEach((img) => {
+    img.classList.toggle('on', Number(img.dataset.frame) === idx);
+  });
+}
+function rhFrameCount() {
+  const stage = document.querySelector('#rp-demo .rp-art[data-frames]');
+  return stage ? Number(stage.dataset.frames) : 0;
+}
+// Map a tempo state onto a frame index (0 = start pose, N-1 = contracted).
+function rhFrameForTempo(st, n) {
+  const top = n - 1;
+  if (st.label === 'UP' || st.label === 'LIFT') {
+    return Math.min(top, Math.round(st.phaseProgress * top));
+  }
+  if (st.label === 'SQUEEZE' || st.label === 'PAUSE') return top;
+  // DOWN / LOWER — descend at the eccentric's own speed
+  return Math.max(0, top - Math.round(st.phaseProgress * top));
+}
+function rhIdleFrameTick() {
+  // slow stop-motion cycle when nothing is pacing the figure
+  const n = rhFrameCount();
+  if (!n) return;
+  const t = Math.floor(Date.now() / 900);
+  const cycle = t % (2 * (n - 1));
+  rhSetDemoFrame(cycle < n ? cycle : 2 * (n - 1) - cycle);
+}
+
 // ── Tempo guide for self-paced sets: count-in, then glide-paced reps ─────────
 function rhStopGuide(silent = false) {
   if (rhGuideInterval) clearInterval(rhGuideInterval);
@@ -1527,6 +1586,8 @@ function rhStartGuide() {
     }
     const st = tempoStateAt(g.tempo, elapsed);
     rhTempoTick(st, g);
+    const n = rhFrameCount();
+    if (n) rhSetDemoFrame(rhFrameForTempo(st, n));
     el.textContent = `${st.rep}/${g.tempo.reps} · ${st.label}`;
   }, 100);
 }
@@ -1722,10 +1783,12 @@ function rhTick() {
     rhCue('count');
   }
 
-  // Tempo sets: percussive per-second pacing (thump = drive, tocks = lower).
+  // Tempo sets: percussive per-second pacing + frame-synced figure.
   if (step.tempo) {
     const st = tempoStateAt(step.tempo, step.secs * 1000 - left);
     rhTempoTick(st, rhTempoMem);
+    const n = rhFrameCount();
+    if (n) rhSetDemoFrame(rhFrameForTempo(st, n));
   }
 
   rhRenderClock();
@@ -1809,7 +1872,14 @@ function openRehabPlayer(session, saved = null) {
   if (rhWallInterval) clearInterval(rhWallInterval);
   rhWallInterval = setInterval(() => {
     if (rhStep()?.manual) rhRenderSessionRemain();
-  }, 1000);
+    const pacing = (rhRunning && rhStep()?.tempo) || rhGuide;
+    if (
+      !pacing &&
+      !window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
+    ) {
+      rhIdleFrameTick();
+    }
+  }, 900);
   document.getElementById('rehab-player').classList.add('open');
   rhRenderVoiceBtn();
   rhRenderStep();
