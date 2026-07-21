@@ -2391,7 +2391,8 @@ function renderWeekPlan() {
       <div class="wp-chips">${chips}</div>
     </div>`);
   }
-  el.innerHTML = rows.join('');
+  el.innerHTML = `${rows.join('')}
+    <div class="wp-legend">REHAB warm-up · HINGE hip-hinge lift · LIFT A/B/C the rotation · ENGINE conditioning</div>`;
 
   el.querySelectorAll('.wp-chip[data-action]').forEach((chip) => {
     chip.addEventListener('click', () => {

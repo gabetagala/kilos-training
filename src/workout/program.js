@@ -1,4 +1,4 @@
-// Density 40 — "Armored V-Taper" — Gabe's lifting program as guided sessions.
+// Density 40 — "Armored V-Taper" — the built-in lifting program as guided sessions.
 // Designed 2026-07-20 by the multi-agent research→draft→audit→synthesis run;
 // full document + rationale in TRAINING.md. Static data only; the step engine
 // lives in rehab.js (shared with the rehab protocol).
