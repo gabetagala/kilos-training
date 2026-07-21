@@ -685,7 +685,7 @@ body {
 }
 .home-hero .week-strip {
   border-bottom: none;
-  padding-bottom: 24px;
+  padding-bottom: 16px;
 }
 .home-hero .section-label {
   color: rgba(0, 0, 0, 0.62); /* dark on cream — ≥4.5:1 (WCAG AA) */
@@ -813,7 +813,7 @@ body {
 }
 .home-hero .week-strip {
   border-bottom: none;
-  padding-bottom: 24px;
+  padding-bottom: 16px;
 }
 
 /* ── Home wordmark — brand statement ── */
@@ -7338,7 +7338,7 @@ body {
 .today-card {
   display: block;
   width: calc(100% - 2 * var(--s-4));
-  margin: var(--s-3) var(--s-4) 0;
+  margin: var(--s-4) var(--s-4) 0;
   background: var(--bg3);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
@@ -7368,7 +7368,7 @@ body {
 .tc-sub {
   font-family: "Space Mono", monospace;
   font-size: 11px;
-  line-height: 1;
+  line-height: 1.45;
   letter-spacing: 0.08em;
   color: var(--text2);
 }
