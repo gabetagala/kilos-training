@@ -1285,9 +1285,13 @@ function rhStopBuf() {
 function rhPlayBuf(slug, opts = {}) {
   const buf = rhClipBuffers.get(slug);
   if (!buf) return false;
-  if (rhAnnounceActive()) return false;
+  // Gate on the live announce source too — window arithmetic can drift, a
+  // playing chain cannot.
+  if (rhAnnounceActive() || rhAnnSrc) return false;
   const now = Date.now();
-  if (rhBufUntil - now > 120) {
+  // Counts drop when they'd talk over a word; phase words cut anything with
+  // more than a fade-tail left (30ms) — rep boundaries must land clean.
+  if (rhBufUntil - now > (opts.cut ? 30 : 120)) {
     if (!opts.cut) return false;
     rhStopBuf();
   }
@@ -1310,12 +1314,56 @@ function rhPlayBuf(slug, opts = {}) {
     return false;
   }
 }
+// Announcement playback through the AudioContext (gesture-free on iOS).
+let rhAnnSrc = null;
+function rhStopAnnounce() {
+  try {
+    rhAnnSrc?.stop();
+  } catch {}
+  rhAnnSrc = null;
+}
+function rhPlayClipSeq(slugs) {
+  const ctx = ensureCtx();
+  if (ctx.state === 'suspended') ctx.resume();
+  rhStopBuf(); // announcements outrank tempo words
+  rhStopAnnounce();
+  const bufs = slugs.map((sl) => rhClipBuffers.get(sl)).filter(Boolean);
+  // An announcement belongs to its moment. If the context was suspended and
+  // playback queued, a late clip must be DROPPED, not fired mid-set as a
+  // ghost over the tempo words.
+  const deadline =
+    Date.now() + bufs.reduce((sum, b) => sum + b.duration, 0) * 1000 + 1500;
+  let i = 0;
+  const playNext = () => {
+    if (i >= bufs.length || Date.now() > deadline) {
+      rhAnnounceUntil = 0;
+      rhAnnSrc = null;
+      return;
+    }
+    // re-anchor the mic window each hop — onended latency accumulates, and an
+    // undershot window lets a tempo count talk over the announcement's tail
+    const remaining = bufs
+      .slice(i)
+      .reduce((sum, b) => sum + b.duration, 0);
+    rhAnnounceUntil = Date.now() + remaining * 1000 + 400;
+    const src = ctx.createBufferSource();
+    src.buffer = bufs[i];
+    i += 1;
+    src.connect(ctx.destination);
+    src.onended = playNext;
+    rhAnnSrc = src;
+    src.start(ctx.currentTime);
+  };
+  playNext();
+}
+
 let rhClipAudio = null;
 function rhPlayClips(urls) {
   try {
     rhClipAudio?.pause();
   } catch {}
   rhStopBuf();
+  rhStopAnnounce();
   // ceiling estimate keeps the mic reserved even if `ended` never fires
   // (autoplay rejection); the chain clears it early on real completion.
   rhAnnounceUntil = Date.now() + urls.length * 1100;
@@ -1333,9 +1381,14 @@ function rhPlayClips(urls) {
   };
   next(0);
 }
-// Speak a cue from parts. Clip mode when every part is recorded; else TTS.
+// Speak a cue from parts. Decoded-buffer clips first (play from timers on
+// iOS), HTMLAudio second (still fine mid-gesture), TTS last.
 function rhCueSay(parts, ttsText) {
   if (!rhVoiceOn) return;
+  if (parts.length && parts.every((slug) => rhClipBuffers.get(slug))) {
+    rhPlayClipSeq(parts);
+    return;
+  }
   const urls = parts.map((slug) => rhClipCache.get(slug));
   if (urls.length && urls.every(Boolean)) {
     rhPlayClips(urls);
@@ -2232,28 +2285,10 @@ function openRehabPlayer(session, saved = null) {
     'nine',
     'ten',
   ].forEach((slug) => {
-    rhProbeClip(slug).then(() => {
-      // decode the on-beat words up front (beat cues can't wait on a fetch)
-      if (
-        [
-          'lift',
-          'lower',
-          'squeeze',
-          'hold',
-          'two',
-          'three',
-          'four',
-          'five',
-          'six',
-          'seven',
-          'eight',
-          'nine',
-          'ten',
-        ].includes(slug)
-      ) {
-        rhDecodeClip(slug);
-      }
-    });
+    // Decode everything up front: iOS Safari only allows fresh HTMLAudio
+    // inside a tap, so timer-driven announcements must play through the
+    // (once-unlocked) AudioContext — same path as the beat words.
+    rhProbeClip(slug).then(() => rhDecodeClip(slug));
   });
 }
 
@@ -2878,6 +2913,8 @@ document.addEventListener('visibilitychange', () => {
     if (rhSession) rhPersist();
   } else if (rhSession && rhRunning) {
     rhAcquireWakeLock();
+    // iOS suspends the AudioContext in the background — wake it with the tab
+    if (audioCtx?.state === 'suspended') audioCtx.resume();
     rhTick(); // catch up instantly after a backgrounded stretch
   }
 });
