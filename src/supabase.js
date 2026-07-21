@@ -164,6 +164,19 @@ export async function pushData() {
   SYNC_KEYS.forEach((k) => {
     data[k] = _get(k);
   });
+  // Belt for the overwrite class of bugs: an entirely empty payload can never
+  // improve the cloud copy — refuse to upsert nothing over something.
+  const allEmpty = SYNC_KEYS.every((k) => {
+    const v = data[k];
+    return (
+      v == null || (Array.isArray(v) && v.length === 0) ||
+      (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0)
+    );
+  });
+  if (allEmpty) {
+    clearPendingSync();
+    return;
+  }
   const { error } = await supabase.from('user_data').upsert({
     user_id: session.user.id,
     data,
@@ -190,10 +203,18 @@ export async function pullAndMerge() {
     .from('user_data')
     .select('data')
     .eq('user_id', session.user.id)
-    .single();
+    .maybeSingle();
 
-  // First ever sign-in — no remote data yet, just push local
-  if (error || !row?.data) {
+  // A transient failure (timeout, 5xx, rate limit) must NEVER be mistaken for
+  // "first ever sign-in" — pushing here would overwrite the user's cloud
+  // backup with this device's (possibly empty) state. Leave the pending flag
+  // so the next open retries the PULL, not the push.
+  if (error) {
+    markPendingSync();
+    return;
+  }
+  // True first sign-in — genuinely no remote row yet, seed it from local
+  if (!row?.data) {
     await pushData();
     return;
   }

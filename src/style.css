@@ -6260,11 +6260,13 @@ body {
   background: none;
   border: none;
   font-family: "Space Mono", monospace;
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--grey);
-  padding: var(--s-2) 0 var(--s-4);
+  /* destructive action: real 44px hit area, clearly separated from Resume */
+  min-height: 44px;
+  padding: var(--s-3) var(--s-3) var(--s-4);
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 3px;

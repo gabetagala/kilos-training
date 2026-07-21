@@ -56,6 +56,11 @@ const get = (k) => {
     return null;
   }
 };
+// Local calendar-day key — THE week/day identity everywhere (strip, plan,
+// check-ins). One definition so Home and Program can never disagree again.
+const dateKey = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 const set = (k, v) => {
   try {
     localStorage.setItem(k, JSON.stringify(v));
@@ -658,24 +663,29 @@ function renderHome() {
 }
 
 function renderWeekStrip() {
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const today = new Date().getDay();
+  // THIS calendar week, Monday-first (matching the Program page) — a day
+  // lights only if it's not in the future and something was actually logged
+  // on that local date. The old trailing-7-day weekday bucket lit future
+  // days with last week's sessions.
+  const labels = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
   const history = get('workoutHistory') || [];
-  const doneDays = new Set();
-  history.forEach((h) => {
-    const d = new Date(h.date);
-    if (Date.now() - d.getTime() < 7 * 24 * 60 * 60 * 1000)
-      doneDays.add(d.getDay());
-  });
-  document.getElementById('week-days').innerHTML = days
-    .map(
-      (day, i) => `
-    <div class="day-cell ${i === today ? 'today' : ''} ${doneDays.has(i) ? 'done' : ''}">
-      <div class="day-name">${day.slice(0, 2)}</div>
+  const doneKeys = new Set(history.map((h) => dateKey(new Date(h.date))));
+  const today = new Date();
+  const todayKey = dateKey(today);
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  document.getElementById('week-days').innerHTML = labels
+    .map((day, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      const k = dateKey(d);
+      const done = k <= todayKey && doneKeys.has(k);
+      return `
+    <div class="day-cell ${k === todayKey ? 'today' : ''} ${done ? 'done' : ''}">
+      <div class="day-name">${day}</div>
       <div class="day-dot"></div>
-    </div>
-  `,
-    )
+    </div>`;
+    })
     .join('');
 }
 
@@ -2194,8 +2204,6 @@ function rhFinish() {
 
 // ── Week plan — Mon…Sun with dates; fills in as things get done ──────────────
 const WEEK_MARKS_KEY = 'kilos-week-marks';
-const dateKey = (d) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 function renderWeekPlan() {
   const el = document.getElementById('week-plan');
@@ -2480,10 +2488,11 @@ function renderRehabPage() {
       openRehabPlayer(savedSession, saved);
     });
     document.getElementById('rh-discard-btn').addEventListener('click', () => {
-      try {
-        localStorage.removeItem(REHAB_STATE_KEY);
-      } catch {}
-      renderRehabPage();
+      const n = saved?.liftSets?.length || 0;
+      document.getElementById('discard-confirm-sub').textContent = n
+        ? `${n} logged set${n === 1 ? '' : 's'} will be lost.`
+        : 'Your place in the session will be lost.';
+      document.getElementById('discard-confirm').classList.add('open');
     });
   } else {
     resumeSlot.innerHTML = '';
@@ -2634,6 +2643,17 @@ document.getElementById('rp-w-minus').addEventListener('click', () => {
 document.getElementById('rp-w-plus').addEventListener('click', () => {
   rhWeightKg += rhStep()?.logReps ? 1 : 2.5;
   rhRenderWeight();
+});
+
+document.getElementById('btn-discard-yes').addEventListener('click', () => {
+  try {
+    localStorage.removeItem(REHAB_STATE_KEY);
+  } catch {}
+  document.getElementById('discard-confirm').classList.remove('open');
+  renderRehabPage();
+});
+document.getElementById('btn-discard-no').addEventListener('click', () => {
+  document.getElementById('discard-confirm').classList.remove('open');
 });
 
 // Crash / refresh recovery: a session that was live in the last 30 minutes
