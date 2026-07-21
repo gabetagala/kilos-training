@@ -201,25 +201,32 @@ function beep(freq, duration) {
     osc.stop(audioCtx.currentTime + duration);
   } catch {}
 }
-// Percussive gym sounds — low and punchy, not sci-fi.
-// thump(): kick-drum hit (fast pitch drop) — the DRIVE cue.
-// tock(): short wood-block knock — counts the seconds of an eccentric.
-function thump() {
+// Percussive gym sounds — snap for the drive, knocks for the descent.
+// crack(): short bandpassed noise burst — a snare-like snap for the DRIVE.
+// Noise vs tone = a different texture entirely, and it cuts through phone
+// speakers where low thumps get muffled.
+function crack() {
   try {
     if (!audioCtx)
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    osc.connect(g);
-    g.connect(audioCtx.destination);
-    osc.type = 'sine';
     const t = audioCtx.currentTime;
-    osc.frequency.setValueAtTime(170, t);
-    osc.frequency.exponentialRampToValueAtTime(50, t + 0.11);
-    g.gain.setValueAtTime(0.65, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-    osc.start(t);
-    osc.stop(t + 0.2);
+    const len = Math.floor(audioCtx.sampleRate * 0.07);
+    const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    const bp = audioCtx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 2400;
+    bp.Q.value = 0.9;
+    const g = audioCtx.createGain();
+    src.connect(bp);
+    bp.connect(g);
+    g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(0.85, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+    src.start(t);
   } catch {}
 }
 function tock(freq = 200) {
@@ -1400,12 +1407,12 @@ function rhTempoTick(st, mem) {
   if (mem.key === key) return;
   mem.key = key;
   if (st.label === 'UP' || st.label === 'LIFT') {
-    if (st.phaseSec === 0) thump();
+    if (st.phaseSec === 0) crack(); // drive = a snap, not a tone
   } else if (st.label === 'SQUEEZE' || st.label === 'PAUSE') {
-    tock(300);
+    beep(950, 0.08); // high ping while you hold the top
   } else {
-    // DOWN / LOWER — count each second, stepping lower
-    tock(Math.max(140, 215 - st.phaseSec * 25));
+    // DOWN / LOWER — obvious descending staircase: 480 → 346 → 249 → …
+    tock(Math.max(180, Math.round(480 * 0.72 ** st.phaseSec)));
   }
 }
 
