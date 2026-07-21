@@ -6138,6 +6138,40 @@ function renderProfilePane() {
 }
 
 // Name saves as you leave the field — there's no sheet to close anymore.
+// ── Update to the latest build (iOS PWA caches linger) ─────────────────────
+// Nuclear on purpose: fetch the new SW, drop every cache, unregister, reload.
+// localStorage (all training data) is untouched.
+{
+  const stamp = document.getElementById('build-stamp');
+  if (stamp) stamp.textContent = `Build ${import.meta.env.KILOS_BUILD || 'dev'}`;
+  document
+    .getElementById('btn-check-update')
+    ?.addEventListener('click', async () => {
+      const btn = document.getElementById('btn-check-update');
+      btn.textContent = 'Updating…';
+      btn.disabled = true;
+      try {
+        const regs =
+          (await navigator.serviceWorker?.getRegistrations?.()) || [];
+        for (const r of regs) {
+          try {
+            await r.update();
+          } catch {}
+        }
+        if (window.caches) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((k) => caches.delete(k)));
+        }
+        for (const r of regs) {
+          try {
+            await r.unregister();
+          } catch {}
+        }
+      } catch {}
+      window.location.reload();
+    });
+}
+
 document.getElementById('prof-name-input').addEventListener('change', () => {
   const val = document.getElementById('prof-name-input').value.trim();
   if (val) saveUserName(val);

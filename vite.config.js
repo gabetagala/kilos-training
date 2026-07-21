@@ -2,6 +2,12 @@ import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  define: {
+    // build stamp for the Athlete page's update row
+    'import.meta.env.KILOS_BUILD': JSON.stringify(
+      new Date().toISOString().slice(0, 16).replace('T', ' '),
+    ),
+  },
   server: {
     port: 2100,
     open: true,
