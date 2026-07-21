@@ -581,6 +581,7 @@
       <div class="page-content">
         <p class="rh-intro">Built around a bad back: the daily rehab block is the warm-up — skip it if yours is fine. Every session runs itself — demos, timers, and the voice included.</p>
         <div id="rehab-resume-slot"></div>
+        <div id="rh-today-slot"></div>
         <div class="section-label rh-ex-label">This week</div>
         <div id="week-plan"></div>
         <div class="section-label rh-ex-label">Sunday check-in · waist &amp; weight</div>
@@ -589,10 +590,10 @@
         <div id="rehab-session-list"></div>
         <div class="section-label rh-ex-label">Density 40 — the 40-min lifting rotation (A → B → C)</div>
         <div id="d40-session-list"></div>
-        <div class="section-label rh-ex-label">Sound check · tempo cues</div>
-        <div id="sound-check"></div>
-        <div class="section-label rh-ex-label">The movements</div>
-        <div id="rehab-ex-list"></div>
+        <button class="section-label rh-ex-label rh-toggle" id="rh-toggle-sound" aria-expanded="false">Sound check · tempo cues <span class="rh-toggle-arrow">→</span></button>
+        <div id="sound-check" style="display:none"></div>
+        <button class="section-label rh-ex-label rh-toggle" id="rh-toggle-moves" aria-expanded="false">Movement library <span class="rh-toggle-arrow">→</span></button>
+        <div id="rehab-ex-list" style="display:none"></div>
         <p class="rh-note">Progress only while the back stays quiet — during the session and the day after. Sharp pain = stop.</p>
       </div>
     </div>

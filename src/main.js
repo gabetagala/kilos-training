@@ -576,6 +576,19 @@ document.querySelectorAll('.nav-btn').forEach((btn) => {
 document
   .getElementById('btn-coaches-teaser')
   ?.addEventListener('click', () => goScreen('coaches'));
+for (const [btnId, listId] of [
+  ['rh-toggle-sound', 'sound-check'],
+  ['rh-toggle-moves', 'rehab-ex-list'],
+]) {
+  document.getElementById(btnId)?.addEventListener('click', () => {
+    const list = document.getElementById(listId);
+    const open = list.style.display !== 'none';
+    list.style.display = open ? 'none' : '';
+    const btn = document.getElementById(btnId);
+    btn.setAttribute('aria-expanded', String(!open));
+    btn.querySelector('.rh-toggle-arrow').textContent = open ? '→' : '↓';
+  });
+}
 
 // ─── TRAIN ────────────────────────────────────────────────────────────────────
 // One source of truth for "is something in progress?" — the classic loop's
@@ -2469,6 +2482,7 @@ function renderWeekPlan() {
 // two weeks with no downward trend → add steps first, then trim ~150 kcal.
 const CHECKINS_KEY = 'kilos-checkins';
 let ciEditing = false;
+let ciExpanded = false; // off-Sunday the card rests as one line (f16)
 
 function renderCheckin() {
   const el = document.getElementById('checkin-card');
@@ -2478,6 +2492,21 @@ function renderCheckin() {
   const todayK = dateKey(new Date());
   const isSunday = new Date().getDay() === 0;
   const due = isSunday && latest?.date !== todayK;
+
+  // Off-Sunday with a healthy trend: one quiet line, not a block (f16).
+  if (!ciEditing && !ciExpanded && !due && state !== 'stalled' && latest) {
+    el.innerHTML = `
+      <button class="ci-row" id="ci-expand">
+        <span class="ci-row-vals">${latest.weightKg.toFixed(1)} kg · ${latest.waistCm.toFixed(1)} cm</span>
+        <span class="ci-row-state">${state === 'trending' ? '▾ TRENDING' : 'LOGGED'} · SUNDAYS</span>
+        <span class="cc-arrow">→</span>
+      </button>`;
+    document.getElementById('ci-expand').addEventListener('click', () => {
+      ciExpanded = true;
+      renderCheckin();
+    });
+    return;
+  }
 
   if (ciEditing) {
     el.innerHTML = `
@@ -2502,6 +2531,7 @@ function renderCheckin() {
         addCheckin(list, { date: todayK, weightKg: w, waistCm: c }),
       );
       ciEditing = false;
+      ciExpanded = false;
       renderCheckin();
       pushData();
     });
@@ -2623,10 +2653,45 @@ function renderSoundCheck() {
 }
 
 // ── Rehab page (program overview + resume) ────────────────────────────────────
+// The page's first job: today's action above the fold. Resume outranks it.
+function renderRehabToday() {
+  const slot = document.getElementById('rh-today-slot');
+  if (!slot) return;
+  if (get(REHAB_STATE_KEY)) {
+    slot.innerHTML = ''; // the resume card owns the top
+    return;
+  }
+  const plan = todayPlan();
+  const done = plan.filter((i) => i.done);
+  const undone = plan.filter((i) => !i.done);
+  const next = undone.find((i) => i.sessionId);
+  if (!next) {
+    slot.innerHTML = undone.length
+      ? ''
+      : `<div class="rhs-card rh-today-done"><div class="rhs-top"><div class="rhs-name">Today — all done ✓</div></div></div>`;
+    return;
+  }
+  const session = getGuidedSession(next.sessionId);
+  const doneStr = done.length
+    ? `${done.map((i) => i.label.toUpperCase()).join(' + ')} DONE · `
+    : '';
+  slot.innerHTML = `
+    <button class="rhs-card rh-today" id="rh-today-btn">
+      <div class="rhs-top"><div class="rhs-name">Today · ${next.label}</div><div class="rhs-go">→</div></div>
+      <div class="rhs-meta">${doneStr}~${estimateSessionMins(session)} MIN · START NOW</div>
+    </button>`;
+  document.getElementById('rh-today-btn').addEventListener('click', () => {
+    try {
+      localStorage.removeItem(REHAB_STATE_KEY);
+    } catch {}
+    openRehabPlayer(session);
+  });
+}
 function renderRehabPage() {
   renderWeekPlan();
   renderCheckin();
   renderSoundCheck();
+  renderRehabToday();
   const saved = get(REHAB_STATE_KEY);
   const savedSession = saved ? getGuidedSession(saved.sessionId) : null;
   const resumeSlot = document.getElementById('rehab-resume-slot');

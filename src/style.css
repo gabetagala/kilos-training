@@ -7441,3 +7441,49 @@ body {
   color: var(--text2);
   margin-top: 4px;
 }
+
+/* Program page: today hero, section toggles, one-line check-in */
+.rh-today {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+.rh-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  min-height: 44px;
+  padding: 10px 0;
+}
+.rh-toggle-arrow {
+  color: var(--grey);
+}
+.ci-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  padding: 12px 0;
+  min-height: 44px;
+  cursor: pointer;
+  text-align: left;
+}
+.ci-row-vals {
+  font-family: "Space Mono", monospace;
+  font-size: 13px;
+  color: var(--white);
+}
+.ci-row-state {
+  font-family: "Space Mono", monospace;
+  font-size: var(--type-micro);
+  letter-spacing: 0.06em;
+  color: var(--grey);
+  flex: 1;
+}

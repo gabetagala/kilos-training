@@ -2,7 +2,10 @@
 
 > 37-agent fresh-eyes sweep (7 reviewers → dedupe → adversarial verify → synthesis).
 > 79 raw findings → 28 confirmed, 0 refuted. Evidence: seeded-account screenshots + live Playwright + code.
-> STATUS: f1, f2 fixed+shipped in 54c7546 the same day.
+> STATUS (2026-07-25): 27 of 28 findings FIXED and shipped across 14 commits
+> (54c7546…). The one exception: f25 (unify illustration languages) is
+> deliberately NOT applied — the founder explicitly approved the current
+> color white-mat art direction the same week; revisit only if he reopens it.
 
 ## Verdict
 Not yet — and the gap is specific, not diffuse. The surface is genuinely close: the near-black Bebas/Space Mono system, the quiet-confidence restraint, and instant local-first logging with working crash-restore are NTC/Whoop-class, and no competitor's free tier looks this good. But the sweep proves the app currently lies about the one thing it exists to be true about: the numbers. Sessions physically cannot be finished at phone widths (AMRAP/For Time/cardio never end), an undone set permanently inflates volume into synced history, guided lifts store the literal string "5–8" as reps while +2.5kg auto-fires every session regardless of performance, the week strip lights future days as already trained, and "what did I front-squat last Tuesday" is unanswerable because History was retired while the app still points at it. Any one of these fails the Nike test on first contact; together they make the confident numerals fiction. The diagnosis is also the good news: this is a finishing problem, not a taste problem — the codebase already contains the correct pattern for nearly every fix (the 44px .rp-close hit-area trick, the finish-confirm modal, the recompute-from-logs reduce at rehab finish, the post-workout account nudge), just applied inconsistently. The five P0s are 2S+2M+1L — roughly one hard week to stop breaking the illusion — and P1 is ordered so the first ten items are S-effort data-safety and legibility wins that compound daily.
