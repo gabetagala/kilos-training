@@ -201,49 +201,49 @@ function beep(freq, duration) {
     osc.stop(audioCtx.currentTime + duration);
   } catch {}
 }
-// Percussive gym sounds — snap for the drive, knocks for the descent.
-// crack(): short bandpassed noise burst — a snare-like snap for the DRIVE.
-// Noise vs tone = a different texture entirely, and it cuts through phone
-// speakers where low thumps get muffled.
-function crack() {
+// Tempo sound kit — per the audio research: one uniform harmonic-rich tick
+// (900Hz triangle + 1800Hz body, the same family as the liked countdown), and
+// a two-note rising "da-DUM" accent for the drive. Meaning lives in rhythm,
+// timbre and voice — never in pitch steps.
+function ensureCtx() {
+  if (!audioCtx)
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function tickNote(t, freq, dur, gain, type = 'triangle') {
+  const ctx = ensureCtx();
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.connect(g);
+  g.connect(ctx.destination);
+  osc.type = type;
+  osc.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(gain, t + 0.005);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  osc.start(t);
+  osc.stop(t + dur);
+}
+function clickTick() {
   try {
-    if (!audioCtx)
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const t = audioCtx.currentTime;
-    const len = Math.floor(audioCtx.sampleRate * 0.07);
-    const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
-    const src = audioCtx.createBufferSource();
-    src.buffer = buf;
-    const bp = audioCtx.createBiquadFilter();
-    bp.type = 'bandpass';
-    bp.frequency.value = 2400;
-    bp.Q.value = 0.9;
-    const g = audioCtx.createGain();
-    src.connect(bp);
-    bp.connect(g);
-    g.connect(audioCtx.destination);
-    g.gain.setValueAtTime(0.85, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
-    src.start(t);
+    const t = ensureCtx().currentTime;
+    tickNote(t, 900, 0.1, 0.25, 'triangle');
+    tickNote(t, 1800, 0.1, 0.08, 'sine');
   } catch {}
 }
-function tock(freq = 200) {
+function clickTickDouble() {
   try {
-    if (!audioCtx)
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    osc.connect(g);
-    g.connect(audioCtx.destination);
-    osc.type = 'triangle';
-    const t = audioCtx.currentTime;
-    osc.frequency.setValueAtTime(freq, t);
-    g.gain.setValueAtTime(0.5, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
-    osc.start(t);
-    osc.stop(t + 0.09);
+    const t = ensureCtx().currentTime;
+    tickNote(t, 900, 0.05, 0.22, 'triangle');
+    tickNote(t + 0.12, 900, 0.05, 0.22, 'triangle');
+  } catch {}
+}
+function driveAccent() {
+  try {
+    const t = ensureCtx().currentTime;
+    tickNote(t, 900, 0.06, 0.3, 'triangle');
+    tickNote(t + 0.09, 1350, 0.2, 0.4, 'triangle');
+    tickNote(t + 0.09, 2700, 0.2, 0.1, 'sine');
   } catch {}
 }
 
@@ -1120,6 +1120,34 @@ function rhProbeClip(slug) {
   rhClipCache.set(slug, null);
   return probe;
 }
+const rhClipBuffers = new Map(); // slug → AudioBuffer (beat-accurate playback)
+async function rhDecodeClip(slug) {
+  if (rhClipBuffers.has(slug)) return rhClipBuffers.get(slug);
+  const url = rhClipCache.get(slug);
+  if (!url) return null;
+  try {
+    const res = await fetch(url);
+    const buf = await ensureCtx().decodeAudioData(await res.arrayBuffer());
+    rhClipBuffers.set(slug, buf);
+    return buf;
+  } catch {
+    return null;
+  }
+}
+function rhPlayBuf(slug) {
+  const buf = rhClipBuffers.get(slug);
+  if (!buf) return false;
+  try {
+    const ctx = ensureCtx();
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    src.start(ctx.currentTime);
+    return true;
+  } catch {
+    return false;
+  }
+}
 let rhClipAudio = null;
 function rhPlayClips(urls) {
   try {
@@ -1178,9 +1206,9 @@ function rhCue(kind) {
   } else if (kind === 'rep') {
     beep(520, 0.05);
   } else if (kind === 'count') {
-    // CrossFit-timer countdown: same short beep at 3, 2, 1 — the landing
+    // CrossFit-timer countdown: same uniform tick at 3, 2, 1 — the landing
     // sound (work double / rest low) is the "long beep".
-    beep(900, 0.09);
+    clickTick();
   } else if (kind === 'finish') {
     beep(660, 0.12);
     setTimeout(() => beep(830, 0.12), 160);
@@ -1400,19 +1428,55 @@ function rhRenderDemo(demoEl, exId) {
   }
 }
 
-// One cue per (rep, phase, second): THUMP on the drive, a descending TOCK on
-// every second of the eccentric, firm knocks through a squeeze.
+// Tempo cue schemes (from the audio research — pick by ear in Sound Check):
+//   coach — your voice counting each second over a uniform click; drive = da-DUM + "lift"
+//   voice — pure voice counting, no synthesis
+//   click — pure metronome: tick/s on the eccentric, double-tick on squeeze, da-DUM drive
+const TEMPO_SCHEME_KEY = 'kilos-tempo-scheme';
+const getTempoScheme = () => get(TEMPO_SCHEME_KEY) || 'coach';
+
+const NUM_SLUGS = [
+  'zero',
+  'one',
+  'two',
+  'three',
+  'four',
+  'five',
+  'six',
+  'seven',
+  'eight',
+  'nine',
+  'ten',
+];
+function phaseWordSlug(label) {
+  if (label === 'UP' || label === 'LIFT') return 'lift';
+  if (label === 'SQUEEZE') return 'squeeze';
+  if (label === 'PAUSE') return 'hold';
+  return 'lower';
+}
+
 function rhTempoTick(st, mem) {
   const key = `${st.rep}:${st.label}:${st.phaseSec}`;
   if (mem.key === key) return;
   mem.key = key;
-  if (st.label === 'UP' || st.label === 'LIFT') {
-    if (st.phaseSec === 0) crack(); // drive = a snap, not a tone
-  } else if (st.label === 'SQUEEZE' || st.label === 'PAUSE') {
-    beep(950, 0.08); // high ping while you hold the top
+  const scheme = getTempoScheme();
+  const isDrive = st.label === 'UP' || st.label === 'LIFT';
+  const isSqueeze = st.label === 'SQUEEZE' || st.label === 'PAUSE';
+  // the word: phase word on second 1 (it IS count one), numbers after
+  const slug =
+    st.phaseSec === 0 ? phaseWordSlug(st.label) : NUM_SLUGS[st.phaseSec + 1];
+  const wantVoice = rhVoiceOn && (scheme === 'coach' || scheme === 'voice');
+  const spoke = wantVoice && slug ? rhPlayBuf(slug) : false;
+  if (scheme === 'voice' && spoke) return;
+  // synthesis layer (coach + click, and voice's fallback when a clip is missing)
+  if (isDrive) {
+    if (st.phaseSec === 0) driveAccent();
+    else clickTick();
+  } else if (isSqueeze) {
+    if (scheme === 'click') clickTickDouble();
+    else clickTick();
   } else {
-    // DOWN / LOWER — obvious descending staircase: 480 → 346 → 249 → …
-    tock(Math.max(180, Math.round(480 * 0.72 ** st.phaseSec)));
+    clickTick();
   }
 }
 
@@ -1782,7 +1846,28 @@ function openRehabPlayer(session, saved = null) {
     'nine',
     'ten',
   ].forEach((slug) => {
-    rhProbeClip(slug);
+    rhProbeClip(slug).then(() => {
+      // decode the on-beat words up front (beat cues can't wait on a fetch)
+      if (
+        [
+          'lift',
+          'lower',
+          'squeeze',
+          'hold',
+          'two',
+          'three',
+          'four',
+          'five',
+          'six',
+          'seven',
+          'eight',
+          'nine',
+          'ten',
+        ].includes(slug)
+      ) {
+        rhDecodeClip(slug);
+      }
+    });
   });
 }
 
@@ -2006,9 +2091,88 @@ function renderWeekPlan() {
   });
 }
 
+// ── Sound check: audition the tempo schemes, pick by ear ─────────────────────
+const TEMPO_SCHEMES = [
+  {
+    id: 'coach',
+    name: 'Coach count',
+    desc: 'Your voice counts each second over a click. Drive = da-DUM + "lift".',
+  },
+  {
+    id: 'voice',
+    name: 'Voice only',
+    desc: 'Just your voice: "lower… two… three… lift". No clicks.',
+  },
+  {
+    id: 'click',
+    name: 'Metronome',
+    desc: 'Pure clicks: one per second down, double-tick squeeze, da-DUM drive.',
+  },
+];
+
+let rhDemoTimer = null;
+function playTempoDemo(schemeId) {
+  // one demo RDL rep: 3s down + drive — through the real cue engine
+  const prev = getTempoScheme();
+  set(TEMPO_SCHEME_KEY, schemeId);
+  const mem = { key: null };
+  const seq = [
+    { rep: 1, label: 'DOWN', phaseSec: 0, phaseLen: 3 },
+    { rep: 1, label: 'DOWN', phaseSec: 1, phaseLen: 3 },
+    { rep: 1, label: 'DOWN', phaseSec: 2, phaseLen: 3 },
+    { rep: 1, label: 'UP', phaseSec: 0, phaseLen: 1 },
+  ];
+  if (rhDemoTimer) clearInterval(rhDemoTimer);
+  let i = 0;
+  // make sure the on-beat words are decoded before the demo fires
+  ['lower', 'two', 'three', 'lift'].forEach((slug) => {
+    rhProbeClip(slug).then(() => rhDecodeClip(slug));
+  });
+  rhDemoTimer = setInterval(() => {
+    if (i >= seq.length) {
+      clearInterval(rhDemoTimer);
+      rhDemoTimer = null;
+      set(TEMPO_SCHEME_KEY, prev); // preview never changes the selection
+      return;
+    }
+    rhTempoTick(seq[i], mem);
+    i++;
+  }, 1000);
+}
+
+function renderSoundCheck() {
+  const el = document.getElementById('sound-check');
+  if (!el) return;
+  ['lower', 'two', 'three', 'lift', 'squeeze', 'hold'].forEach((slug) => {
+    rhProbeClip(slug).then(() => rhDecodeClip(slug));
+  });
+  const active = getTempoScheme();
+  el.innerHTML = TEMPO_SCHEMES.map(
+    (sch) => `
+    <div class="sc-row${sch.id === active ? ' active' : ''}" data-scheme="${sch.id}">
+      <button class="sc-pick" data-pick="${sch.id}">
+        <span class="sc-name">${sch.name}</span>
+        <span class="sc-desc">${sch.desc}</span>
+      </button>
+      <button class="sc-play" data-demo="${sch.id}" aria-label="Preview ${sch.name}">▶</button>
+    </div>`,
+  ).join('');
+  el.querySelectorAll('[data-demo]').forEach((btn) => {
+    btn.addEventListener('click', () => playTempoDemo(btn.dataset.demo));
+  });
+  el.querySelectorAll('[data-pick]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      set(TEMPO_SCHEME_KEY, btn.dataset.pick);
+      renderSoundCheck();
+      playTempoDemo(btn.dataset.pick);
+    });
+  });
+}
+
 // ── Rehab page (program overview + resume) ────────────────────────────────────
 function renderRehabPage() {
   renderWeekPlan();
+  renderSoundCheck();
   const saved = get(REHAB_STATE_KEY);
   const savedSession = saved ? getGuidedSession(saved.sessionId) : null;
   const resumeSlot = document.getElementById('rehab-resume-slot');

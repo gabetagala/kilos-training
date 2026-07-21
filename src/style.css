@@ -6856,6 +6856,63 @@ body {
   min-height: 20px;
 }
 
+/* ── Sound check — audition tempo schemes ── */
+.sc-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.sc-row:last-child {
+  border-bottom: none;
+}
+.sc-pick {
+  flex: 1;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0;
+}
+.sc-name {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 19px;
+  letter-spacing: 0.02em;
+  color: var(--grey);
+}
+.sc-row.active .sc-name {
+  color: var(--white);
+}
+.sc-row.active .sc-name::after {
+  content: " ·  ON";
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+.sc-desc {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text2);
+}
+.sc-play {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+.sc-play:active {
+  background: var(--bg3);
+}
+
 /* ── Session overview sheet (peek without skipping) ── */
 .rpo-overlay {
   position: absolute;
