@@ -78,13 +78,11 @@
           <div class="week-strip">
             <div class="section-label">This week</div>
             <div class="days-row" id="week-days"></div>
+            <!-- The session button — part of the calendar: the highlighted
+                 day's plan (or the live session), one tap to go -->
+            <button id="today-card" class="today-card" style="display:none"></button>
           </div>
         </div>
-        <!-- Live/paused session strip — the one source of resume truth -->
-        <button id="resume-strip" class="resume-strip" style="display:none"></button>
-
-        <!-- Today card — what the program wants today, one tap to start -->
-        <button id="today-card" class="today-card" style="display:none"></button>
 
         <!-- Rest-day card — injected by JS when no session today -->
         <div id="rest-day-card" style="display:none"></div>
@@ -148,10 +146,6 @@
         <div class="build-header">
           <div class="build-header-row">
             <h1>Athlete</h1>
-            <button class="profile-btn" id="btn-profile" aria-label="Profile and settings" title="Profile and settings">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-              <span class="profile-btn-name" id="profile-btn-name"></span>
-            </button>
           </div>
           <p>Your records, every session, your settings.</p>
         </div>
@@ -167,6 +161,35 @@
         <div class="pr-row" id="pr-row"></div>
         <div class="section-label ath-log-label">The log</div>
         <div id="history-list"></div>
+        <div class="section-label ath-log-label">Settings</div>
+        <div class="ath-settings">
+          <div class="prof-section">
+            <div class="prof-label">YOUR NAME</div>
+            <input class="prof-name-input" id="prof-name-input" aria-label="Your name" type="text" placeholder="Your name" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="prof-section">
+            <div class="prof-label">WHERE DO YOU TRAIN</div>
+            <div class="prof-eq-grid" id="prof-eq-grid"></div>
+          </div>
+          <div class="prof-section">
+            <div class="prof-label">WEIGHT UNIT</div>
+            <div class="prof-unit-row">
+              <span class="prof-unit-label" id="prof-unit-kg">kg</span>
+              <button class="prof-toggle" id="prof-unit-toggle" role="switch" aria-checked="false">
+                <span class="prof-toggle-thumb"></span>
+              </button>
+              <span class="prof-unit-label" id="prof-unit-lbs">lbs</span>
+            </div>
+          </div>
+          <div class="prof-section" id="prof-sync-section"></div>
+          <div class="prof-section prof-about">
+            <div class="prof-label">ABOUT</div>
+            <button class="prof-link" id="btn-open-privacy">Privacy Policy</button>
+            <button class="prof-link" id="btn-open-terms">Terms of Use</button>
+            <button class="prof-link" id="btn-open-feedback">Send feedback</button>
+            <div class="prof-about-foot">KILOS — Train heavy. Free forever.<br>Your data is yours: export or delete it anytime.</div>
+          </div>
+        </div>
       </div>
 
       <!-- COACHES — Coming Soon -->
@@ -806,49 +829,6 @@
     </div>
 
     <!-- ─── PROFILE SHEET ─── -->
-    <div class="modal-overlay" id="profile-sheet">
-      <div class="modal-sheet prof-sheet">
-
-        <div class="prof-header">
-          <div class="prof-name-row">
-            <input class="prof-name-input" id="prof-name-input" aria-label="Your name" type="text" placeholder="Your name" autocomplete="off" spellcheck="false">
-            <button class="prof-close" id="btn-close-profile" aria-label="Close profile">✕</button>
-          </div>
-        </div>
-
-        <!-- Equipment -->
-        <div class="prof-section">
-          <div class="prof-label">WHERE DO YOU TRAIN</div>
-          <div class="prof-eq-grid" id="prof-eq-grid"></div>
-        </div>
-
-        <!-- Weight unit -->
-        <div class="prof-section">
-          <div class="prof-label">WEIGHT UNIT</div>
-          <div class="prof-unit-row">
-            <span class="prof-unit-label" id="prof-unit-kg">kg</span>
-            <button class="prof-toggle" id="prof-unit-toggle" role="switch" aria-checked="false">
-              <span class="prof-toggle-thumb"></span>
-            </button>
-            <span class="prof-unit-label" id="prof-unit-lbs">lbs</span>
-          </div>
-        </div>
-
-        <!-- Sync / auth -->
-        <div class="prof-section" id="prof-sync-section"></div>
-
-        <!-- About / legal -->
-        <div class="prof-section prof-about">
-          <div class="prof-label">ABOUT</div>
-          <button class="prof-link" id="btn-open-privacy">Privacy Policy</button>
-          <button class="prof-link" id="btn-open-terms">Terms of Use</button>
-          <button class="prof-link" id="btn-open-feedback">Send feedback</button>
-          <div class="prof-about-foot">KILOS — Train heavy. Free forever.<br>Your data is yours: export or delete it anytime.</div>
-        </div>
-
-      </div>
-    </div>
-
 
     <!-- ─── FEEDBACK SHEET ─── -->
     <div id="feedback-sheet" class="fb-overlay">

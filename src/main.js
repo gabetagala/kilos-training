@@ -565,7 +565,10 @@ function goScreen(id) {
     renderHome();
   }
   if (id === 'train') renderTrain();
-  if (id === 'history') renderHistory();
+  if (id === 'history') {
+    renderHistory();
+    renderProfilePane();
+  }
   if (id === 'coaches') renderCoaches(); // was 'legends'
   if (id === 'build') renderBuild();
   if (id === 'active') renderActiveScreen();
@@ -617,19 +620,6 @@ function renderTrain() {
     resumeBtn.classList.toggle('resume-active', !!info);
     resumeBtn.style.order = info ? '-1' : '';
   }
-}
-function renderResumeStrip() {
-  const el = document.getElementById('resume-strip');
-  if (!el) return;
-  const info = activeSessionInfo();
-  if (!info) {
-    el.style.display = 'none';
-    return;
-  }
-  el.style.display = '';
-  el.innerHTML = `<span class="rs-label">${
-    info.kind === 'classic' ? 'SESSION IN PROGRESS' : 'PAUSED SESSION'
-  }</span><span class="rs-name">${info.name}</span><span class="rs-arrow">→</span>`;
 }
 
 // ─── HOME ─────────────────────────────────────────────────────────────────────
@@ -723,7 +713,6 @@ function matchWordmarkWidth() {
 }
 
 function renderHome() {
-  renderResumeStrip();
   renderTodayCard();
   renderWeekStrip();
   renderRecent();
@@ -2879,7 +2868,6 @@ document.addEventListener('visibilitychange', () => {
 
 // ── Legal pages (Privacy / Terms) — opened from the profile sheet ─────────────
 function openLegal(id) {
-  document.getElementById('profile-sheet')?.classList.remove('open');
   openPage(id);
 }
 document
@@ -2949,8 +2937,14 @@ function renderTodayCard() {
   const card = document.getElementById('today-card');
   if (!card) return;
   const history = get('workoutHistory') || [];
-  if (activeSessionInfo()) {
-    card.style.display = 'none'; // the resume strip owns the slot
+  const live = activeSessionInfo();
+  if (live) {
+    card.style.display = '';
+    card.innerHTML = `
+      <div class="tc-label">${live.kind === 'classic' ? 'IN PROGRESS' : 'PAUSED'}</div>
+      <div class="tc-title">${live.name}</div>
+      <div class="tc-sub">RESUME →</div>`;
+    card.onclick = resumeActiveSession;
     return;
   }
   if (!history.length) {
@@ -3110,9 +3104,7 @@ document
   .getElementById('btn-custom')
   .addEventListener('click', () => goScreen('build'));
 document.getElementById('btn-resume').addEventListener('click', resumeActiveSession);
-document
-  .getElementById('resume-strip')
-  ?.addEventListener('click', resumeActiveSession);
+
 
 // ─── COACHES ──────────────────────────────────────────────────────────────────
 function renderCoaches() {
@@ -5792,59 +5784,19 @@ let currentUser = null;
 async function renderDataNotice() {
   const session = await getSession();
   currentUser = session?.user || null;
-
   const notice = document.querySelector('.data-notice');
   if (!notice) return;
-
   if (currentUser) {
-    // Signed in — show username + sync status + sign-out
     const rawEmail = currentUser.email || '';
     const displayId = rawEmail.endsWith('@kilostraining.app')
       ? rawEmail.replace('@kilostraining.app', '')
       : rawEmail;
     const pending = hasPendingSync();
-    const syncLabel = pending
-      ? `<span class="dn-sync-pending">⟳ Sync pending</span>`
-      : `Synced · ${displayId}`;
-    notice.innerHTML = `
-      <div class="dn-top">
-        <span class="dn-label">${syncLabel}</span>
-        <div class="dn-btns">
-          <button class="dn-btn dn-signout" id="btn-signout">Sign out</button>
-        </div>
-      </div>
-      <div class="dn-sub">${pending ? 'Will sync when connection restores' : 'Your data is backed up automatically'}</div>
-    `;
-    document
-      .getElementById('btn-signout')
-      .addEventListener('click', async () => {
-        await signOut();
-        renderDataNotice();
-      });
+    notice.innerHTML = `<div class="dn-foot">${
+      pending ? '⟳ SYNC PENDING' : `SYNCED · ${displayId.toUpperCase()}`
+    }</div>`;
   } else {
-    // Signed out — just show the sync CTA (no confusing export/import buttons)
-    notice.innerHTML = `
-      <div class="dn-top">
-        <span class="dn-label">This device only</span>
-      </div>
-      ${
-        isConfigured
-          ? `<div class="dn-signin-row">
-             <button class="dn-signin-btn" id="btn-dn-signin">Sign in to sync →</button>
-           </div>
-           <div class="dn-sub">Your data, on every device.</div>`
-          : `<div class="dn-sub">Create an account to keep your data across devices.</div>`
-      }
-    `;
-    document.getElementById('btn-dn-signin')?.addEventListener('click', () => {
-      // Open name prompt directly at sign-in step
-      npShowStep('signin');
-      document.getElementById('name-prompt').classList.add('open');
-      setTimeout(
-        () => document.getElementById('np-signin-username')?.focus(),
-        120,
-      );
-    });
+    notice.innerHTML = `<div class="dn-foot">THIS DEVICE ONLY · CREATE AN ACCOUNT TO SYNC</div>`;
   }
 }
 
@@ -6000,7 +5952,7 @@ document.getElementById('ob-skip').addEventListener('click', () => {
 
 // ─── PROFILE SHEET ────────────────────────────────────────────────────────────
 
-function openProfileSheet() {
+function renderProfilePane() {
   const profile = getProfile();
 
   // Name
@@ -6092,22 +6044,16 @@ function openProfileSheet() {
     syncSection.innerHTML = '';
   }
 
-  document.getElementById('profile-sheet').classList.add('open');
-  setTimeout(() => nameInput.focus(), 200);
 }
 
-function closeProfileSheet() {
-  // Save name on close
+// Name saves as you leave the field — there's no sheet to close anymore.
+document.getElementById('prof-name-input').addEventListener('change', () => {
   const val = document.getElementById('prof-name-input').value.trim();
   if (val) saveUserName(val);
-  document.getElementById('profile-sheet').classList.remove('open');
-  // Refresh name in profile button
-  renderProfileBtn();
-}
+});
 
 // ── Account deletion (DPA right to erasure) ───────────────────────────────────
 function openDeleteAccountConfirm() {
-  document.getElementById('profile-sheet').classList.remove('open');
   const status = document.getElementById('delete-status');
   if (status) status.textContent = '';
   document.getElementById('delete-confirm').classList.add('open');
@@ -6141,23 +6087,16 @@ document
   });
 
 function renderProfileBtn() {
-  const name = get(NAME_KEY) || '';
-  const el = document.getElementById('profile-btn-name');
-  if (el) el.textContent = name;
+  // header button retired (settings live inline on the Athlete tab); the
+  // name input there is the source of truth now
+  const el = document.getElementById('prof-name-input');
+  if (el && !el.value) el.value = get(NAME_KEY) || '';
 }
 
-document
-  .getElementById('btn-close-profile')
-  .addEventListener('click', closeProfileSheet);
-document.getElementById('profile-sheet').addEventListener('click', (e) => {
-  if (e.target === document.getElementById('profile-sheet'))
-    closeProfileSheet();
-});
+
 
 // Profile button on home screen → open profile sheet
-document
-  .getElementById('btn-profile')
-  .addEventListener('click', openProfileSheet);
+
 
 // ─── BETA WELCOME ─────────────────────────────────────────────────────────────
 // Fires once on first ever visit, before name prompt + onboarding.

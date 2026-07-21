@@ -690,6 +690,13 @@ body {
 .home-hero .section-label {
   color: rgba(0, 0, 0, 0.62); /* dark on cream — ≥4.5:1 (WCAG AA) */
 }
+
+.home-hero .day-cell .day-date {
+  color: rgba(0, 0, 0, 0.45);
+}
+.home-hero .day-cell.today .day-date {
+  color: var(--bg);
+}
 .home-hero .day-cell {
   border-bottom-color: rgba(0, 0, 0, 0.1);
 }
@@ -6157,6 +6164,13 @@ body {
   gap: 12px;
   counter-increment: folio;
 }
+/* the calendar is a fixture, not a numbered editorial section */
+#home .home-hero .section-label {
+  counter-increment: none;
+}
+#home .home-hero .section-label::before {
+  content: none;
+}
 #home .section-label::before {
   content: counter(folio, decimal-leading-zero);
   font-family: "Space Mono", monospace;
@@ -7319,46 +7333,6 @@ body {
   cursor: pointer;
 }
 
-/* In-progress strip — quiet urgency, one tap back into the session */
-.resume-strip {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: calc(100% - 2 * var(--s-4));
-  margin: var(--s-3) var(--s-4) 0;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--white);
-  border-radius: var(--r-md);
-  padding: 14px 16px;
-  min-height: 52px;
-  cursor: pointer;
-  text-align: left;
-}
-.resume-strip:active {
-  background: var(--line);
-}
-.rs-label {
-  font-family: "Space Mono", monospace;
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  color: var(--grey);
-  flex-shrink: 0;
-}
-.rs-name {
-  font-family: "Bebas Neue", sans-serif;
-  font-size: 18px;
-  letter-spacing: 0.02em;
-  color: var(--white);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1;
-}
-.rs-arrow {
-  color: var(--grey);
-  flex-shrink: 0;
-}
 
 /* Today card — the answer to "what do I do today", one tap to start */
 .today-card {
@@ -7515,7 +7489,7 @@ body {
   margin: 2px 0 4px;
 }
 .day-cell.today .day-date {
-  color: var(--white);
+  color: var(--bg);
 }
 /* Device notice: a whisper, not a card */
 .data-notice {
@@ -7533,4 +7507,21 @@ body {
 }
 .ath-log-label {
   margin-top: var(--s-5);
+}
+
+/* Athlete settings inline + the device notice as a true footnote */
+.ath-settings .prof-section {
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--line);
+}
+.ath-settings .prof-section:last-child {
+  border-bottom: none;
+}
+.dn-foot {
+  font-family: "Space Mono", monospace;
+  font-size: var(--type-micro);
+  letter-spacing: 0.08em;
+  color: var(--grey);
+  opacity: 0.65;
+  text-align: center;
 }
