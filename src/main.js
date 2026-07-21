@@ -6108,7 +6108,7 @@ function renderProfilePane() {
       .getElementById('prof-signout-btn')
       .addEventListener('click', async () => {
         await signOut();
-        closeProfileSheet();
+        renderProfilePane();
         renderDataNotice();
       });
     document
@@ -6123,7 +6123,6 @@ function renderProfilePane() {
       </div>
     `;
     document.getElementById('prof-signin-btn').addEventListener('click', () => {
-      closeProfileSheet();
       npShowStep('signin');
       document.getElementById('name-prompt').classList.add('open');
       setTimeout(
