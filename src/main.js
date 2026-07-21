@@ -226,6 +226,8 @@ function fromDisplayWeight(val) {
 function weightUnit() {
   return isLbs() ? 'lbs' : 'kg';
 }
+// One thousands format everywhere a weight/volume renders (f28).
+const fmtNum = (n) => Number(n).toLocaleString();
 
 // ─── AUDIO ────────────────────────────────────────────────────────────────────
 let audioCtx;
@@ -381,7 +383,7 @@ function showPRToast(exerciseName, weight, reps, type = 'weight') {
   toast.querySelector('.pr-toast-label').textContent =
     type === 'volume' ? 'VOLUME RECORD' : 'NEW PERSONAL RECORD';
   toast.querySelector('.pr-toast-text').textContent =
-    `${exerciseName} — ${weight}kg × ${reps}`;
+    `${exerciseName} — ${toDisplayWeight(weight)}${weightUnit()} × ${reps}`;
   toast.classList.add('show');
   if (navigator.vibrate) navigator.vibrate([50, 30, 100]);
   beep(660, 0.15);
@@ -830,21 +832,23 @@ function renderRecent() {
           ? h.cfRoundsCompleted
           : h.duration || '—'
         : isRehab
-          ? h.totalWeight || h.sets || 0
+          ? h.totalWeight
+            ? fmtNum(toDisplayWeight(h.totalWeight))
+            : h.sets || 0
           : h.type === 'cardio'
             ? h.duration || '0:00'
-            : h.totalWeight || 0;
+            : fmtNum(toDisplayWeight(h.totalWeight || 0));
       const bigUnit = isCFh
         ? h.type === 'amrap'
           ? 'rounds'
           : 'done'
         : isRehab
           ? h.totalWeight
-            ? 'kg volume'
+            ? `${weightUnit()} volume`
             : 'holds'
           : h.type === 'cardio'
             ? 'duration'
-            : 'kg volume';
+            : `${weightUnit()} volume`;
       const meta = isCFh
         ? `${ds} · ${h.type.toUpperCase()} · ${h.duration || '—'}`
         : isRehab
@@ -3071,7 +3075,7 @@ function renderRestDayCard() {
         weekVolume > 0
           ? `
         <div class="rdc-stat">
-          <span class="rdc-stat-val">${Math.round(weekVolume).toLocaleString()}<span class="rdc-stat-unit"> kg</span></span>
+          <span class="rdc-stat-val">${fmtNum(Math.round(toDisplayWeight(weekVolume)))}<span class="rdc-stat-unit"> ${weightUnit()}</span></span>
           <span class="rdc-stat-lbl">this week</span>
         </div>`
           : ''
@@ -3367,7 +3371,7 @@ function renderExerciseList() {
     .map((ex, i) => {
       const last = getLastSession(ex.name);
       const lastText = last
-        ? `Last: ${last[0]?.weight || '—'}kg × ${last[0]?.reps || '—'}`
+        ? `Last: ${last[0]?.weight ? toDisplayWeight(last[0].weight) + weightUnit() : '—'} × ${last[0]?.reps || '—'}`
         : '';
       return `
     <div class="exercise-item" id="ex-item-${i}">
@@ -3583,7 +3587,7 @@ function filterExercises(q) {
       return `<div class="esm-item${isSubbed ? ' esm-subbed' : ''}" data-name="${e.name}">
       <div>
         <div class="esm-item-name">${e.name}${isSubbed ? `<span class="esm-sub-tag">→ ${resolved.name}</span>` : ''}</div>
-        <div class="esm-item-group">${e.group}${pr ? ` · PR: ${pr}kg` : ''}</div>
+        <div class="esm-item-group">${e.group}${pr ? ` · PR: ${toDisplayWeight(pr)}${weightUnit()}` : ''}</div>
       </div>
       <span style="color:var(--grey)">+</span>
     </div>`;
@@ -4416,9 +4420,9 @@ function renderCurrentExercise() {
     const wSets =
       topW > 0
         ? [
-            { w: `${Math.round((topW * 0.4) / 2.5) * 2.5}kg`, r: 10 },
-            { w: `${Math.round((topW * 0.6) / 2.5) * 2.5}kg`, r: 5 },
-            { w: `${Math.round((topW * 0.8) / 2.5) * 2.5}kg`, r: 2 },
+            { w: `${toDisplayWeight(Math.round((topW * 0.4) / 2.5) * 2.5)}${weightUnit()}`, r: 10 },
+            { w: `${toDisplayWeight(Math.round((topW * 0.6) / 2.5) * 2.5)}${weightUnit()}`, r: 5 },
+            { w: `${toDisplayWeight(Math.round((topW * 0.8) / 2.5) * 2.5)}${weightUnit()}`, r: 2 },
           ]
         : [
             { w: '40%', r: 10 },
@@ -4497,7 +4501,7 @@ function renderSetLog() {
           e1rm != null ? (isLbs() ? toDisplayWeight(e1rm) : e1rm) : null;
         const midHint =
           e1rmDisp != null
-            ? `<span class="log-e1rm">e1RM ${e1rmDisp}${unit}</span>`
+            ? `<span class="log-e1rm">EST. 1RM ${e1rmDisp}${unit}</span>`
             : '';
         const dispLogW = log.weight ? toDisplayWeight(log.weight) : '';
         // Pre-fill the suggested set when there's a prior session to beat, so a
@@ -5221,12 +5225,12 @@ function showWorkoutSummary(workout, duration, entry) {
       <div class="wsum-stat"><div class="ws-val">${workout.cardioType || 'Cardio'}</div><div class="ws-lbl">Type</div></div>
     `;
   } else {
-    const vol = Math.round(totalWeightMoved);
+    const vol = Math.round(toDisplayWeight(totalWeightMoved));
     if (vol > 0) {
       statsEl.innerHTML = `
         <div class="wsum-hero">
           <div class="wsum-hero-val" data-count="${vol}">0</div>
-          <div class="wsum-hero-unit">KG · Total Volume</div>
+          <div class="wsum-hero-unit">${weightUnit().toUpperCase()} · Total Volume</div>
         </div>
         <div class="wsum-substats">
           <div class="wsum-stat"><div class="ws-val" data-count="${sessionSets}">0</div><div class="ws-lbl">Sets Done</div></div>
@@ -5259,9 +5263,9 @@ function showWorkoutSummary(workout, duration, entry) {
   if (topPR) {
     const e1 = estimate1RM(topPR.weight, topPR.reps);
     topLiftEl.innerHTML = `<div class="wsum-top-lift-label">Top Lift</div>
-      <div class="wsum-top-lift-val">${topPR.weight}<span class="wsum-top-lift-unit">kg × ${topPR.reps}</span></div>
+      <div class="wsum-top-lift-val">${toDisplayWeight(topPR.weight)}<span class="wsum-top-lift-unit">${weightUnit()} × ${topPR.reps}</span></div>
       <div class="wsum-top-lift-ex">${topPR.name.toUpperCase()}</div>
-      ${e1 != null ? `<div class="wsum-top-lift-e1rm">≈ ${e1}kg est. 1RM</div>` : ''}`;
+      ${e1 != null ? `<div class="wsum-top-lift-e1rm">${toDisplayWeight(e1)}${weightUnit()} EST. 1RM</div>` : ''}`;
     topLiftEl.style.display = '';
   } else if (!isCF && !isCardio) {
     // Best set by volume if no PR
@@ -5278,9 +5282,9 @@ function showWorkoutSummary(workout, duration, entry) {
     if (bestSet?.weight) {
       const e1 = estimate1RM(bestSet.weight, bestSet.reps);
       topLiftEl.innerHTML = `<div class="wsum-top-lift-label">Best Set</div>
-        <div class="wsum-top-lift-val">${bestSet.weight}<span class="wsum-top-lift-unit">kg × ${bestSet.reps}</span></div>
+        <div class="wsum-top-lift-val">${toDisplayWeight(bestSet.weight)}<span class="wsum-top-lift-unit">${weightUnit()} × ${bestSet.reps}</span></div>
         <div class="wsum-top-lift-ex">${bestSet.name.toUpperCase()}</div>
-        ${e1 != null ? `<div class="wsum-top-lift-e1rm">≈ ${e1}kg est. 1RM</div>` : ''}`;
+        ${e1 != null ? `<div class="wsum-top-lift-e1rm">${toDisplayWeight(e1)}${weightUnit()} EST. 1RM</div>` : ''}`;
       topLiftEl.style.display = '';
     } else {
       topLiftEl.style.display = 'none';
@@ -5471,7 +5475,7 @@ function renderHistory() {
         .map(
           ([name, val]) => `
         <div class="pr-card">
-          <div class="pr-val">${val}kg</div>
+          <div class="pr-val">${toDisplayWeight(val)}${weightUnit()}</div>
           <div class="pr-label">${prShortName(name)}</div>
         </div>`,
         )
@@ -5535,10 +5539,12 @@ function renderHistory() {
           ? h.cfRoundsCompleted
           : h.duration || '—'
         : isRehab
-          ? h.totalWeight || h.sets || 0
+          ? h.totalWeight
+            ? fmtNum(toDisplayWeight(h.totalWeight))
+            : h.sets || 0
           : h.type === 'cardio'
             ? h.duration || '0:00'
-            : h.totalWeight || 0;
+            : fmtNum(toDisplayWeight(h.totalWeight || 0));
       const bigUnit = isCF
         ? h.type === 'amrap'
           ? 'rounds'
@@ -5547,11 +5553,11 @@ function renderHistory() {
             : 'rounds'
         : isRehab
           ? h.totalWeight
-            ? 'kg vol'
+            ? `${weightUnit()} vol`
             : 'sets'
           : h.type === 'cardio'
             ? 'duration'
-            : 'kg vol';
+            : `${weightUnit()} vol`;
       const rpeStr = h.rpe ? ` · ${h.rpe}` : '';
       const meta = isCF
         ? `${d} · ${h.cfFormat || h.type} · ${h.duration}`
@@ -5571,7 +5577,7 @@ function renderHistory() {
                   return vol > (b.vol || 0) ? { ...l, vol } : b;
                 }, {});
                 const stat = best.weight
-                  ? `${best.weight}kg × ${best.reps || '?'}`
+                  ? `${toDisplayWeight(best.weight)}${weightUnit()} × ${best.reps || '?'}`
                   : `${ex.sets}×`;
                 return `<div class="hi-ex-row"><span>${ex.name}</span><span>${stat}</span></div>`;
               })
@@ -6011,6 +6017,7 @@ function openProfileSheet() {
   toggle.onclick = () => {
     set(UNIT_KEY, isLbs() ? 'kg' : 'lbs');
     updateUnitUI();
+    renderHome(); // every read surface re-renders in the new unit
     if (activeWorkout) renderSetLog(); // update active workout display if any
   };
 
