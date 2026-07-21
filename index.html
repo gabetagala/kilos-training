@@ -576,6 +576,7 @@
         <div class="rp-bar-track"><div class="rp-bar" id="rp-bar"></div></div>
       </div>
       <div class="rp-lift" id="rp-lift" style="display:none">
+        <button class="rp-swap" id="rp-swap" style="display:none">⇄ Swap exercise</button>
         <button class="rp-guide" id="rp-guide" style="display:none">TAP ▶ FOR TEMPO GUIDE</button>
         <div class="rp-weight-row">
           <button class="rp-wbtn" id="rp-w-minus" aria-label="Less weight">−</button>
@@ -593,6 +594,16 @@
             <button class="rpo-close" id="rpo-close" aria-label="Close overview">✕</button>
           </div>
           <div class="rpo-list" id="rpo-list"></div>
+        </div>
+      </div>
+      <!-- Swap sheet — pick a sanctioned alternate for this slot -->
+      <div class="rpo-overlay" id="rp-swap-sheet">
+        <div class="rpo-sheet">
+          <div class="rpo-head">
+            <div class="rpo-title">SWAP EXERCISE</div>
+            <button class="rpo-close" id="rp-swap-close" aria-label="Close swap picker">✕</button>
+          </div>
+          <div class="rpo-list" id="rp-swap-list"></div>
         </div>
       </div>
       <div class="rp-controls">

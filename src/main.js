@@ -1021,6 +1021,15 @@ function guidedWeightFor(exId) {
   const map = get(GUIDED_WEIGHTS_KEY) || {};
   return map[exId] ?? GUIDED_DEFAULT_KG[exId] ?? 10;
 }
+// Rep-logged exercises (bodyweight variants) reuse the same memory map — the
+// stored number just means reps; the default comes from the range's bottom.
+function guidedRepsFor(exId, repsRange) {
+  const map = get(GUIDED_WEIGHTS_KEY) || {};
+  return map[exId] ?? (Number.parseInt(repsRange, 10) || 5);
+}
+// The athlete's chosen alternates, keyed by each slot's original exercise.
+const SWAPS_KEY = 'kilos-ex-swaps';
+const getSwaps = () => get(SWAPS_KEY) || {};
 function saveGuidedWeight(exId, kg) {
   const map = get(GUIDED_WEIGHTS_KEY) || {};
   map[exId] = kg;
@@ -1402,8 +1411,13 @@ function rhRenderPlayBtn() {
 }
 
 function rhRenderWeight() {
-  document.getElementById('rp-w-val').textContent = toDisplayWeight(rhWeightKg);
-  document.querySelector('.rp-w-unit').textContent = weightUnit();
+  const repMode = rhStep()?.logReps;
+  document.getElementById('rp-w-val').textContent = repMode
+    ? rhWeightKg
+    : toDisplayWeight(rhWeightKg);
+  document.querySelector('.rp-w-unit').textContent = repMode
+    ? 'reps'
+    : weightUnit();
 }
 
 // ── Demo art override ────────────────────────────────────────────────────────
@@ -1663,7 +1677,7 @@ function rhRenderOverview() {
   rhQueue.forEach((st, i) => {
     lastIdxByBi[st.bi] = i;
   });
-  document.getElementById('rpo-list').innerHTML = sessionOverview(rhSession)
+  document.getElementById('rpo-list').innerHTML = sessionOverview(rhSession, getSwaps())
     .map((row, bi2) => {
       const state =
         lastIdxByBi[bi2] < rhIdx ? 'done' : bi2 === currentBi ? 'current' : '';
@@ -1702,6 +1716,68 @@ document.getElementById('rp-overview').addEventListener('click', (e) => {
   if (e.target === document.getElementById('rp-overview')) {
     document.getElementById('rp-overview').classList.remove('open');
   }
+});
+
+// ── Exercise swap: pick a sanctioned alternate for this slot ────────────────
+// The choice persists (kilos-ex-swaps) and applies to every future session;
+// the live queue is rebuilt in place — step counts are identical across
+// variants, so the current index stays valid.
+function rhCloseSwapSheet() {
+  document.getElementById('rp-swap-sheet').classList.remove('open');
+}
+function rhApplySwap(chosenId) {
+  const step = rhStep();
+  if (!step?.baseEx) return;
+  const swaps = getSwaps();
+  if (chosenId === step.baseEx) delete swaps[step.baseEx];
+  else swaps[step.baseEx] = chosenId;
+  set(SWAPS_KEY, swaps);
+  const rebuilt = buildStepQueue(rhSession, swaps);
+  if (rebuilt.length === rhQueue.length) {
+    rhQueue = rebuilt;
+  } else {
+    // fallback (never expected): remap just this slot's steps in place
+    for (const st of rhQueue) {
+      if (st.baseEx === step.baseEx) {
+        const spec = st.altSpecs?.find((a) => a.ex === chosenId);
+        st.exId = chosenId;
+        if (spec?.reps) st.reps = spec.reps;
+      }
+    }
+  }
+  rhCloseSwapSheet();
+  rhRenderStep();
+  rhPersist();
+}
+document.getElementById('rp-swap').addEventListener('click', () => {
+  const step = rhStep();
+  if (!step?.altSpecs) return;
+  document.getElementById('rp-swap-list').innerHTML = step.altSpecs
+    .map((a) => {
+      const ex = GUIDED_EXERCISES[a.ex];
+      const current = a.ex === step.exId;
+      const sub = [
+        a.reps ? `${a.reps} reps` : '',
+        ex?.logReps ? 'logs reps' : '',
+      ]
+        .filter(Boolean)
+        .join(' · ');
+      return `<button class="rps-opt${current ? ' current' : ''}" data-ex="${a.ex}">
+        <span class="rps-name">${ex?.name || a.ex}</span>
+        <span class="rps-sub">${current ? 'CURRENT' : sub}</span>
+      </button>`;
+    })
+    .join('');
+  document.getElementById('rp-swap-sheet').classList.add('open');
+  document.querySelectorAll('#rp-swap-list .rps-opt').forEach((btn) => {
+    btn.addEventListener('click', () => rhApplySwap(btn.dataset.ex));
+  });
+});
+document
+  .getElementById('rp-swap-close')
+  .addEventListener('click', rhCloseSwapSheet);
+document.getElementById('rp-swap-sheet').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('rp-swap-sheet')) rhCloseSwapSheet();
 });
 
 function rhRenderVoiceBtn() {
@@ -1753,7 +1829,9 @@ function rhRenderStep() {
       ? 'Set done →'
       : 'Done →';
     if (showWeight) {
-      rhWeightKg = guidedWeightFor(step.exId);
+      rhWeightKg = step.logReps
+        ? guidedRepsFor(step.exId, step.reps)
+        : guidedWeightFor(step.exId);
       rhRenderWeight();
     }
   } else {
@@ -1772,6 +1850,10 @@ function rhRenderStep() {
   if (guideEl) {
     guideEl.style.display = step.manual && step.repTempo ? '' : 'none';
     guideEl.textContent = 'TAP ▶ FOR TEMPO GUIDE';
+  }
+  const swapEl = document.getElementById('rp-swap');
+  if (swapEl) {
+    swapEl.style.display = step.manual && step.altSpecs ? '' : 'none';
   }
   document.getElementById('rp-prev').disabled = rhIdx === 0;
   const playBtn = document.getElementById('rp-play');
@@ -1914,7 +1996,7 @@ function rhJump(dir) {
 
 function openRehabPlayer(session, saved = null) {
   rhSession = session;
-  rhQueue = buildStepQueue(session);
+  rhQueue = buildStepQueue(session, getSwaps());
   rhIdx = Math.min(saved?.idx ?? 0, rhQueue.length - 1);
   rhCounted = new Set(saved?.counted || []);
   rhLiftSets = saved?.liftSets || [];
@@ -2387,7 +2469,7 @@ function renderRehabPage() {
   const savedSession = saved ? getGuidedSession(saved.sessionId) : null;
   const resumeSlot = document.getElementById('rehab-resume-slot');
   if (savedSession) {
-    const queueLen = buildStepQueue(savedSession).length;
+    const queueLen = buildStepQueue(savedSession, getSwaps()).length;
     resumeSlot.innerHTML = `
       <button class="rhs-card rh-resume" id="rh-resume-btn">
         <div class="rhs-top"><div class="rhs-name">Resume · ${savedSession.name}</div><div class="rhs-go">→</div></div>
@@ -2514,13 +2596,14 @@ document.getElementById('rp-set-done').addEventListener('click', () => {
     rhLiftSets.push({
       exId: step.exId,
       name: ex?.name || step.exId,
-      weight: rhWeightKg,
-      reps: step.reps,
+      weight: step.logReps ? 0 : rhWeightKg,
+      reps: step.logReps ? rhWeightKg : step.reps,
     });
     saveGuidedWeight(step.exId, rhWeightKg);
     if (step.exId === 'rdl') set(REHAB_RDL_KEY, rhWeightKg);
     // PRs are part of the lifting program's scoreboard (not the rehab's).
     if (
+      !step.logReps &&
       isProgramSession(rhSession) &&
       checkAndUpdatePR(ex?.name || step.exId, rhWeightKg)
     ) {
@@ -2544,11 +2627,12 @@ document.getElementById('rp-set-done').addEventListener('click', () => {
   if (!wasLast && !rhStep()?.manual) rhPlay();
 });
 document.getElementById('rp-w-minus').addEventListener('click', () => {
-  rhWeightKg = Math.max(0, rhWeightKg - 2.5);
+  const inc = rhStep()?.logReps ? 1 : 2.5;
+  rhWeightKg = Math.max(rhStep()?.logReps ? 1 : 0, rhWeightKg - inc);
   rhRenderWeight();
 });
 document.getElementById('rp-w-plus').addEventListener('click', () => {
-  rhWeightKg += 2.5;
+  rhWeightKg += rhStep()?.logReps ? 1 : 2.5;
   rhRenderWeight();
 });
 

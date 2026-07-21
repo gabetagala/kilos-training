@@ -6873,6 +6873,56 @@ body {
   min-height: 20px;
 }
 
+/* ── Exercise swap — sanctioned alternates per slot ── */
+.rp-swap {
+  display: block;
+  margin: 0 auto var(--s-2);
+  background: none;
+  border: none;
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--grey);
+  cursor: pointer;
+  min-height: 20px;
+  padding: 4px 8px;
+}
+.rps-opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  padding: 14px 0;
+  min-height: 52px;
+  cursor: pointer;
+  text-align: left;
+}
+.rps-opt:last-child {
+  border-bottom: none;
+}
+.rps-name {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 20px;
+  letter-spacing: 0.02em;
+  color: var(--white);
+}
+.rps-opt.current .rps-name {
+  color: var(--grey);
+}
+.rps-sub {
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--grey);
+  flex-shrink: 0;
+}
+
 /* ── Sunday check-in — waist + weight, measurement only ── */
 .ci-card {
   display: flex;

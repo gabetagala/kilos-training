@@ -282,7 +282,35 @@ function pushSetWork(steps, block, setIdx, totalSets, side) {
   });
 }
 
-export function buildStepQueue(session) {
+// Resolve a block/member against the athlete's swap choices: `swaps` maps the
+// ORIGINAL slot exercise → the chosen alternate's id. Only ids listed in the
+// slot's `alts` are honored, so a stale swap can never smuggle in an exercise
+// the program didn't sanction for that slot.
+function resolveSwap(spec, swaps) {
+  const chosen = spec.alts && swaps?.[spec.ex];
+  if (!chosen || chosen === spec.ex) return spec;
+  const alt = spec.alts.find((a) => a.ex === chosen);
+  if (!alt) return spec;
+  return { ...spec, ex: alt.ex, reps: alt.reps || spec.reps };
+}
+
+// Swap metadata carried onto manual work steps so the player can offer the
+// chooser: the slot's identity (baseEx) + every option with its rep range.
+function swapMeta(orig) {
+  if (!orig.alts) return {};
+  return {
+    baseEx: orig.ex,
+    altSpecs: [
+      { ex: orig.ex, reps: orig.reps },
+      ...orig.alts.map((a) => ({ ex: a.ex, reps: a.reps || orig.reps })),
+    ],
+  };
+}
+
+const exDef = (exId) => REHAB_EXERCISES[exId] || PROGRAM_EXERCISES[exId];
+const repLogged = (exId) => (exDef(exId)?.logReps ? { logReps: true } : {});
+
+export function buildStepQueue(session, swaps = {}) {
   const steps = [];
   const lastExId = () => steps[steps.length - 1]?.exId;
   const prepIfNew = (exId) => {
@@ -296,10 +324,11 @@ export function buildStepQueue(session) {
     };
     // Ramp: unlogged self-paced warm-up sets before a heavy lift.
     if (block.mode === 'ramp') {
-      prepIfNew(block.ex);
+      const r = resolveSwap(block, swaps);
+      prepIfNew(r.ex);
       steps.push({
         kind: 'work',
-        exId: block.ex,
+        exId: r.ex,
         secs: null,
         manual: true,
         logWeight: false,
@@ -307,6 +336,7 @@ export function buildStepQueue(session) {
         meta: 'WARM-UP · NOT LOGGED',
         cueNote: block.note,
         countsAsSet: false,
+        ...swapMeta(block),
       });
       tagBlock();
       continue;
@@ -315,15 +345,17 @@ export function buildStepQueue(session) {
     // Circuit / superset: members alternate for N rounds, short rest between
     // moves, flowing straight into the next round (density formats).
     if (block.mode === 'circuit') {
-      prepIfNew(block.members[0].ex);
+      const rm = block.members.map((m) => resolveSwap(m, swaps));
+      prepIfNew(rm[0].ex);
       const between = block.betweenSecs ?? 45;
       for (let round = 1; round <= block.rounds; round++) {
         block.members.forEach((m, mi) => {
-          const meta = `ROUND ${round} OF ${block.rounds}${m.reps ? ` · ${m.reps} REPS` : ''}`;
+          const r = rm[mi];
+          const meta = `ROUND ${round} OF ${block.rounds}${r.reps ? ` · ${r.reps} REPS` : ''}`;
           if (m.secs) {
             steps.push({
               kind: 'work',
-              exId: m.ex,
+              exId: r.ex,
               secs: m.secs,
               phase: m.phase || 'HOLD',
               meta,
@@ -334,16 +366,18 @@ export function buildStepQueue(session) {
           } else {
             steps.push({
               kind: 'work',
-              exId: m.ex,
+              exId: r.ex,
               secs: null,
               manual: true,
               logWeight: m.logWeight !== false,
               phase: 'YOUR PACE',
               meta,
-              reps: m.reps,
+              reps: r.reps,
               cueNote:
                 round === block.rounds ? m.lastRoundNote || m.note : m.note,
               countsAsSet: m.countsAsSet !== false,
+              ...swapMeta(m),
+              ...repLogged(r.ex),
             });
           }
           const isLast =
@@ -357,7 +391,7 @@ export function buildStepQueue(session) {
               mi === block.members.length - 1
                 ? `ROUND ${round + 1} NEXT`
                 : `ROUND ${round} OF ${block.rounds}`;
-            steps.push(restStep(block.members[mi].ex, secs, 'REST', nextMeta));
+            steps.push(restStep(rm[mi].ex, secs, 'REST', nextMeta));
           }
         });
       }
@@ -365,27 +399,30 @@ export function buildStepQueue(session) {
       continue;
     }
 
-    prepIfNew(block.ex);
+    const rb = resolveSwap(block, swaps);
+    prepIfNew(rb.ex);
 
     if (block.mode === 'lift') {
       for (let set = 1; set <= block.sets; set++) {
         steps.push({
           kind: 'work',
-          exId: block.ex,
+          exId: rb.ex,
           secs: null,
           manual: true,
           logWeight: true,
           phase: 'YOUR PACE',
-          meta: `SET ${set} OF ${block.sets} · ${block.reps} REPS`,
-          reps: block.reps,
+          meta: `SET ${set} OF ${block.sets} · ${rb.reps} REPS`,
+          reps: rb.reps,
           cueNote:
             set === block.sets ? block.lastSetNote || block.note : block.note,
           countsAsSet: true,
-          ...guideFor(block.ex, block.reps),
+          ...guideFor(rb.ex, rb.reps),
+          ...swapMeta(block),
+          ...repLogged(rb.ex),
         });
         if (set < block.sets) {
           steps.push(
-            restStep(block.ex, block.restSecs, 'REST', `SET ${set + 1} NEXT`),
+            restStep(rb.ex, block.restSecs, 'REST', `SET ${set + 1} NEXT`),
           );
         }
       }
@@ -421,21 +458,22 @@ export function buildStepQueue(session) {
 }
 
 // Human overview of a session, one row per block — for the in-player peek.
-export function sessionOverview(session) {
+export function sessionOverview(session, swaps = {}) {
   const name = (exId) =>
     (REHAB_EXERCISES[exId] || PROGRAM_EXERCISES[exId])?.name || exId;
   return session.blocks.map((block) => {
     if (block.mode === 'ramp') {
       return {
-        title: `${name(block.ex)} — warm-up ramp`,
+        title: `${name(resolveSwap(block, swaps).ex)} — warm-up ramp`,
         detail: 'not logged',
       };
     }
     if (block.mode === 'circuit') {
-      const members = [...new Set(block.members.map((m) => name(m.ex)))];
-      const bits = block.members
-        .filter((m, i, arr) => arr.findIndex((x) => x.ex === m.ex) === i)
-        .map((m) => (m.secs ? `${m.secs}s` : m.reps))
+      const rm = block.members.map((m) => resolveSwap(m, swaps));
+      const members = [...new Set(rm.map((r) => name(r.ex)))];
+      const bits = rm
+        .filter((r, i, arr) => arr.findIndex((x) => x.ex === r.ex) === i)
+        .map((r, i) => (block.members[i]?.secs ? `${block.members[i].secs}s` : r.reps))
         .join(' · ');
       return {
         title: members.join(' + '),
@@ -444,7 +482,8 @@ export function sessionOverview(session) {
     }
     const side = block.perSide ? ' / side' : '';
     if (block.mode === 'lift') {
-      return { title: name(block.ex), detail: `${block.sets} × ${block.reps}` };
+      const r = resolveSwap(block, swaps);
+      return { title: name(r.ex), detail: `${block.sets} × ${r.reps}` };
     }
     if (block.mode === 'tempo') {
       return {

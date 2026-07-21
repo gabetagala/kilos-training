@@ -635,3 +635,14 @@ PROGRAM_DEMOS['band-lateral-raise'] = svg(
 );
 PROGRAM_DEMOS['supinated-curl'] = PROGRAM_DEMOS['hammer-curl'];
 PROGRAM_DEMOS['reverse-wrist-curl'] = PROGRAM_DEMOS['wrist-curl'];
+// Sanctioned-alternate demos alias their base movement's figure until each
+// gets its own art.
+PROGRAM_DEMOS['pull-up-bw'] = PROGRAM_DEMOS['pull-up'];
+PROGRAM_DEMOS['db-split-squat'] = PROGRAM_DEMOS['rfe-split-squat'];
+PROGRAM_DEMOS['db-floor-press'] = PROGRAM_DEMOS['floor-press'];
+PROGRAM_DEMOS['incline-db-press'] = PROGRAM_DEMOS['floor-press'];
+PROGRAM_DEMOS['chest-supported-row'] = PROGRAM_DEMOS['cable-row-1arm'];
+PROGRAM_DEMOS['cable-lateral-raise'] = PROGRAM_DEMOS['db-lateral-raise'];
+PROGRAM_DEMOS['reverse-curl'] = PROGRAM_DEMOS['hammer-curl'];
+PROGRAM_DEMOS['cable-fly-low'] = PROGRAM_DEMOS['band-fly'];
+PROGRAM_DEMOS['band-pull-apart'] = PROGRAM_DEMOS['face-pull'];

@@ -190,6 +190,99 @@ export const PROGRAM_EXERCISES = {
     why: 'Grip, traps, engine — the athletic finisher.',
     yt: 'farmers carry form',
   },
+
+  // ── Sanctioned alternates (TRAINING.md swap lists) — selectable in-player ──
+  'pull-up-bw': {
+    logReps: true,
+    repTempo: [
+      ['UP', 1],
+      ['DOWN', 2],
+    ],
+    name: 'Strict Pull-Up',
+    cue: 'Bodyweight, dead-hang stretch every rep, zero swing. Log the reps — own 4×8 before loading.',
+    why: 'The earn-it step before weighted — same lats, same grip.',
+    yt: 'strict pull up form',
+  },
+  'db-split-squat': {
+    repTempo: [
+      ['DOWN', 2],
+      ['UP', 1],
+    ],
+    name: 'Heavy DB Split Squat',
+    cue: 'DBs at sides, shoe lift on, right leg first. Torso tall, knee tracks the toes.',
+    why: 'The front squat’s zero-penalty swap — same legs, half the axial load.',
+    yt: 'dumbbell split squat form',
+  },
+  'db-floor-press': {
+    repTempo: [
+      ['DOWN', 2],
+      ['UP', 1],
+    ],
+    name: 'DB Floor Press',
+    cue: 'Sit with DBs on thighs, roll back as one unit. Exit: lower DBs, roll to your side.',
+    why: 'Press heavy with no bench and no spotter risk.',
+    yt: 'dumbbell floor press form',
+  },
+  'incline-db-press': {
+    repTempo: [
+      ['DOWN', 2],
+      ['UP', 1],
+    ],
+    name: '30° Incline DB Press',
+    cue: 'Moderate arch only, ribs down. Start ~20–25% under your floor press.',
+    why: 'The upper-chest slot the program is built toward — needs the bench.',
+    yt: 'incline dumbbell press 30 degrees',
+  },
+  'chest-supported-row': {
+    repTempo: [
+      ['UP', 1],
+      ['DOWN', 2],
+    ],
+    name: 'Chest-Supported DB Row',
+    cue: 'Chest on the 30–45° bench, spine fully unloaded. Pull to the hips.',
+    why: 'Row rotation once the bench arrives — zero brace cost.',
+    yt: 'chest supported dumbbell row',
+  },
+  'cable-lateral-raise': {
+    repTempo: [
+      ['UP', 1],
+      ['DOWN', 2],
+    ],
+    name: 'Cable Lateral Raise',
+    cue: 'Cable behind the body, lean slightly away, lead with the knuckles.',
+    why: 'Constant tension the DBs can’t give — same taper target.',
+    yt: 'cable lateral raise form',
+  },
+  'reverse-curl': {
+    repTempo: [
+      ['UP', 1],
+      ['DOWN', 2],
+    ],
+    name: 'DB Reverse Curl',
+    cue: 'Knuckles up, strict, wrists straight — no lean-back.',
+    why: 'Brachioradialis from the other side — forearm rotation option.',
+    yt: 'dumbbell reverse curl form',
+  },
+  'cable-fly-low': {
+    repTempo: [
+      ['UP', 1],
+      ['DOWN', 2],
+    ],
+    name: '1-Arm Low-Cable Fly',
+    cue: 'Low pulley, step forward, sweep low-to-high. Ribs down, no lean-back.',
+    why: 'The band fly’s rotation — smoother resistance curve.',
+    yt: 'single arm low cable fly',
+  },
+  'band-pull-apart': {
+    repTempo: [
+      ['UP', 1],
+      ['DOWN', 2],
+    ],
+    name: 'Band Pull-Apart',
+    cue: 'Arms long, squeeze the shoulder blades, control the return.',
+    why: 'Rear delts + posture — the face pull’s no-cable twin.',
+    yt: 'band pull apart form',
+  },
 };
 
 export const DENSITY40_SESSIONS = [
@@ -202,11 +295,16 @@ export const DENSITY40_SESSIONS = [
     blocks: [
       {
         ex: 'pull-up',
+        alts: [{ ex: 'pull-up-bw' }, { ex: 'lat-pulldown' }],
         mode: 'ramp',
         note: 'Ramp: 1 easy set of 3–5 pull-ups (or light pulldown ×8). Not logged.',
       },
       {
         ex: 'pull-up',
+        alts: [
+          { ex: 'pull-up-bw', reps: '5–8' },
+          { ex: 'lat-pulldown', reps: '8–10' },
+        ],
         mode: 'lift',
         sets: 4,
         reps: '5–8',
@@ -218,9 +316,10 @@ export const DENSITY40_SESSIONS = [
         rounds: 3,
         betweenSecs: 45,
         members: [
-          { ex: 'cable-row-1arm', reps: '8–12/side' },
+          { ex: 'cable-row-1arm', reps: '8–12/side', alts: [{ ex: 'chest-supported-row' }] },
           {
             ex: 'db-lateral-raise',
+            alts: [{ ex: 'cable-lateral-raise' }, { ex: 'band-lateral-raise' }],
             reps: '12–15',
             lastRoundNote: 'LAST ROUND: drop the weight ~30% and rep out once.',
           },
@@ -231,8 +330,8 @@ export const DENSITY40_SESSIONS = [
         rounds: 3,
         betweenSecs: 45,
         members: [
-          { ex: 'rope-pushdown', reps: '10–15' },
-          { ex: 'hammer-curl', reps: '10–12' },
+          { ex: 'rope-pushdown', reps: '10–15', alts: [{ ex: 'overhead-triceps' }] },
+          { ex: 'hammer-curl', reps: '10–12', alts: [{ ex: 'reverse-curl' }, { ex: 'supinated-curl' }] },
         ],
       },
       {
@@ -257,11 +356,13 @@ export const DENSITY40_SESSIONS = [
     blocks: [
       {
         ex: 'front-squat',
+        alts: [{ ex: 'db-split-squat' }],
         mode: 'ramp',
         note: 'Ramp: empty bar ×5 → ~50% ×3 → ~80% ×2. Only barbell setup today.',
       },
       {
         ex: 'front-squat',
+        alts: [{ ex: 'db-split-squat', reps: '6–8/leg' }],
         mode: 'lift',
         sets: 4,
         reps: '4–6',
@@ -270,6 +371,7 @@ export const DENSITY40_SESSIONS = [
       },
       {
         ex: 'rfe-split-squat',
+        alts: [{ ex: 'db-split-squat', reps: '6–8/leg' }],
         mode: 'lift',
         sets: 3,
         reps: '8–10/leg',
@@ -282,10 +384,11 @@ export const DENSITY40_SESSIONS = [
         members: [
           {
             ex: 'db-lateral-raise',
+            alts: [{ ex: 'cable-lateral-raise' }, { ex: 'band-lateral-raise' }],
             reps: '12–20',
             lastRoundNote: 'LAST ROUND: drop the weight ~30% and rep out once.',
           },
-          { ex: 'face-pull', reps: '15–20' },
+          { ex: 'face-pull', reps: '15–20', alts: [{ ex: 'band-pull-apart' }] },
         ],
       },
       {
@@ -310,11 +413,13 @@ export const DENSITY40_SESSIONS = [
     blocks: [
       {
         ex: 'floor-press',
+        alts: [{ ex: 'db-floor-press' }, { ex: 'incline-db-press' }],
         mode: 'ramp',
         note: 'Bar on LOW safeties. 2×3–5 explosive push-ups first, then ~50% ×5 → ~80% ×2.',
       },
       {
         ex: 'floor-press',
+        alts: [{ ex: 'db-floor-press' }, { ex: 'incline-db-press' }],
         mode: 'lift',
         sets: 4,
         reps: '6–10',
@@ -335,12 +440,13 @@ export const DENSITY40_SESSIONS = [
         rounds: 3,
         betweenSecs: 45,
         members: [
-          { ex: 'band-fly', reps: '12–15', logWeight: false },
-          { ex: 'supinated-curl', reps: '8–12' },
+          { ex: 'band-fly', reps: '12–15', logWeight: false, alts: [{ ex: 'cable-fly-low' }] },
+          { ex: 'supinated-curl', reps: '8–12', alts: [{ ex: 'hammer-curl' }, { ex: 'reverse-curl' }] },
         ],
       },
       {
         ex: 'overhead-triceps',
+        alts: [{ ex: 'rope-pushdown' }],
         mode: 'lift',
         sets: 3,
         reps: '10–15',

@@ -6,6 +6,7 @@ import {
   nextWorkLabel,
   REHAB_EXERCISES,
   REHAB_SESSIONS,
+  sessionOverview,
   sessionSetTotal,
   tempoStateAt,
 } from '../../src/workout/rehab.js';
@@ -274,5 +275,60 @@ describe('Density 40 program', () => {
       expect(mins).toBeGreaterThanOrEqual(20);
       expect(mins).toBeLessThanOrEqual(40);
     }
+  });
+});
+
+describe('exercise swaps (sanctioned alternates)', () => {
+  const d40a = getProgramSession('d40-a');
+  const d40b = getProgramSession('d40-b');
+
+  it('unswapped queue is unchanged and carries swap metadata', () => {
+    const q = buildStepQueue(d40a);
+    const lift = q.filter((s) => s.exId === 'pull-up' && s.countsAsSet);
+    expect(lift).toHaveLength(4);
+    expect(lift[0].baseEx).toBe('pull-up');
+    expect(lift[0].altSpecs.map((a) => a.ex)).toEqual([
+      'pull-up',
+      'pull-up-bw',
+      'lat-pulldown',
+    ]);
+    expect(lift[0].logReps).toBeUndefined();
+  });
+
+  it('swapping pull-up → bodyweight flips the slot to rep logging', () => {
+    const q = buildStepQueue(d40a, { 'pull-up': 'pull-up-bw' });
+    expect(q.some((s) => s.exId === 'pull-up')).toBe(false);
+    const lift = q.filter((s) => s.exId === 'pull-up-bw' && s.countsAsSet);
+    expect(lift).toHaveLength(4);
+    expect(lift[0].logReps).toBe(true);
+    expect(lift[0].reps).toBe('5–8');
+    // the ramp block swaps with its lift slot
+    expect(q.find((s) => s.phase === 'RAMP').exId).toBe('pull-up-bw');
+    // queue shape is variant-independent (the player relies on this)
+    expect(q).toHaveLength(buildStepQueue(d40a).length);
+  });
+
+  it('alt rep ranges override the slot (front squat → DB split squat)', () => {
+    const q = buildStepQueue(d40b, { 'front-squat': 'db-split-squat' });
+    const lift = q.filter((s) => s.exId === 'db-split-squat' && s.countsAsSet);
+    expect(lift[0].reps).toBe('6–8/leg');
+    expect(lift[0].logReps).toBeUndefined();
+  });
+
+  it('circuit members swap too, and unsanctioned swaps are ignored', () => {
+    const q = buildStepQueue(d40a, {
+      'hammer-curl': 'reverse-curl',
+      'db-lateral-raise': 'front-squat', // not in that slot's alts
+    });
+    expect(q.some((s) => s.exId === 'reverse-curl')).toBe(true);
+    expect(q.some((s) => s.exId === 'hammer-curl')).toBe(false);
+    expect(q.filter((s) => s.exId === 'db-lateral-raise').length).toBeGreaterThan(0);
+  });
+
+  it('sessionOverview reflects the chosen variants', () => {
+    const rows = sessionOverview(d40a, { 'pull-up': 'lat-pulldown' });
+    expect(rows[0].title).toContain('Lat Pulldown');
+    expect(rows[1].title).toBe('Lat Pulldown');
+    expect(rows[1].detail).toBe('4 × 8–10');
   });
 });
