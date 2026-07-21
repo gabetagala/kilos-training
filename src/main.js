@@ -3741,9 +3741,14 @@ function requireName(callback) {
     return;
   }
   _npCallback = callback;
-  npShowStep('account');
+  npShowStep('start');
+  // Accounts are a sync feature, not a gate — hide the door when the backend
+  // isn't configured so nobody walks into a dead end.
+  document.getElementById('np-start-create').style.display = isConfigured
+    ? ''
+    : 'none';
   document.getElementById('name-prompt').classList.add('open');
-  setTimeout(() => document.getElementById('np-display-name').focus(), 320);
+  setTimeout(() => document.getElementById('np-start-name').focus(), 320);
 }
 
 function closeNamePrompt() {
@@ -3752,7 +3757,7 @@ function closeNamePrompt() {
 }
 
 function npShowStep(step) {
-  ['account', 'signin'].forEach((s) => {
+  ['start', 'account', 'signin'].forEach((s) => {
     document.getElementById(`np-step-${s}`).style.display =
       s === step ? '' : 'none';
   });
@@ -3817,9 +3822,9 @@ document.getElementById('np-password').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') document.getElementById('np-btn-create').click();
 });
 
-// Skip — save locally with just the name
+// The primary path: a name and straight into training — local-first.
 document.getElementById('np-local-btn').addEventListener('click', () => {
-  const name = document.getElementById('np-display-name').value.trim();
+  const name = document.getElementById('np-start-name').value.trim();
   saveUserName(name || 'Athlete');
   closeNamePrompt();
   if (_npCallback) {
@@ -3827,6 +3832,21 @@ document.getElementById('np-local-btn').addEventListener('click', () => {
     _npCallback = null;
     cb();
   }
+});
+document.getElementById('np-start-name').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('np-local-btn').click();
+});
+document.getElementById('np-start-create').addEventListener('click', () => {
+  const n = document.getElementById('np-start-name').value.trim();
+  if (n) document.getElementById('np-display-name').value = n;
+  npShowStep('account');
+});
+document.getElementById('np-start-signin').addEventListener('click', () => {
+  npShowStep('signin');
+});
+document.getElementById('np-acc-back').addEventListener('click', () => {
+  npSetError('np-create-error', '');
+  npShowStep('start');
 });
 
 // Account → Sign in
@@ -6108,22 +6128,8 @@ document
 // Fires once on first ever visit, before name prompt + onboarding.
 const BETA_SEEN_KEY = 'kilos-beta-seen';
 
-let _bwCallback = null;
-
-function showBetaWelcome(callback) {
-  _bwCallback = callback || null;
-  document.getElementById('beta-welcome').classList.add('open');
-}
-
-document.getElementById('bw-cta').addEventListener('click', () => {
-  set(BETA_SEEN_KEY, '1');
-  document.getElementById('beta-welcome').classList.remove('open');
-  if (_bwCallback) {
-    const cb = _bwCallback;
-    _bwCallback = null;
-    cb();
-  }
-});
+// (The standalone beta-welcome gate was folded into the start sheet — the
+// key stays so upgrading users don't see anything new.)
 
 // ─── FEEDBACK ─────────────────────────────────────────────────────────────────
 const fbOverlay = document.getElementById('feedback-sheet');
@@ -6317,15 +6323,10 @@ function runPostNameFlow() {
 }
 
 setTimeout(() => {
-  if (!get(BETA_SEEN_KEY)) {
-    // Brand new visitor — show beta welcome first, then chain into name + onboarding
-    showBetaWelcome(() => {
-      requireName(runPostNameFlow);
-    });
-  } else {
-    // Returning user — skip beta welcome, show name prompt if somehow missing
-    requireName(runPostNameFlow);
-  }
+  // One gate, maximum: the beta letter folded into the start sheet's footer
+  // note — Strong/Hevy let you log first, and so do we.
+  if (!get(BETA_SEEN_KEY)) set(BETA_SEEN_KEY, true);
+  requireName(runPostNameFlow);
 }, 300);
 
 // ─── OFFLINE SYNC RETRY ───────────────────────────────────────────────────────

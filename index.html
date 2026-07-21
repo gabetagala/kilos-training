@@ -765,9 +765,22 @@
     <div id="name-prompt" class="np-overlay">
       <div class="np-card">
 
-        <!-- Create account -->
-        <div class="np-step" id="np-step-account">
+        <!-- Start — name only, training first; accounts are optional -->
+        <div class="np-step" id="np-step-start">
           <div class="np-title">LET'S GO.</div>
+          <input type="text" id="np-start-name" aria-label="Your name" class="np-input" placeholder="Your name"
+                 autocomplete="given-name" autocorrect="off" autocapitalize="words" />
+          <button class="np-cta" id="np-local-btn">Start training →</button>
+          <div class="np-footer-links">
+            <button class="np-link" id="np-start-create">Create account</button>
+            <button class="np-link" id="np-start-signin">Sign in</button>
+          </div>
+          <p class="np-note">You're in early — the feedback link in Profile reaches me directly. — Gabe</p>
+        </div>
+
+        <!-- Create account -->
+        <div class="np-step" id="np-step-account" style="display:none">
+          <div class="np-title">KEEP IT SAFE.</div>
           <input type="text" id="np-display-name" aria-label="Your name" class="np-input" placeholder="Your name"
                  autocomplete="given-name" autocorrect="off" autocapitalize="words" />
           <input type="password" id="np-password" aria-label="Password" class="np-input" placeholder="Password"
@@ -776,7 +789,7 @@
           <button class="np-cta" id="np-btn-create">Create account →</button>
           <div class="np-footer-links">
             <button class="np-link" id="np-btn-go-signin">Already have an account? Sign in</button>
-            <button class="np-local-btn" id="np-local-btn">No account →</button>
+            <button class="np-link" id="np-acc-back">← Back</button>
           </div>
         </div>
 
@@ -794,16 +807,6 @@
           </div>
         </div>
 
-      </div>
-    </div>
-
-    <!-- ─── BETA WELCOME — shown once on first ever visit, before name prompt ─── -->
-    <div id="beta-welcome" class="bw-overlay">
-      <div class="bw-card">
-        <div class="bw-title">KILOS TRAINING.</div>
-        <p class="bw-body">Train heavy. Track everything. Free forever.<br><br>You're in early. If something feels off, the message icon is always there — I read every one.</p>
-        <div class="bw-sig">— Gabe</div>
-        <button class="bw-cta" id="bw-cta">Let's go →</button>
       </div>
     </div>
 

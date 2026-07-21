@@ -7390,3 +7390,11 @@ body {
   letter-spacing: 0.08em;
   color: var(--text2);
 }
+
+/* First-run start sheet — the free path is the primary path */
+.np-note {
+  margin-top: 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text2);
+}
