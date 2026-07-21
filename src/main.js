@@ -497,7 +497,7 @@ function getLastSession(exerciseName) {
 }
 
 // ─── NAVIGATION ───────────────────────────────────────────────────────────────
-const SCREEN_ORDER = ['home', 'train', 'coaches', 'build', 'active'];
+const SCREEN_ORDER = ['home', 'train', 'history', 'coaches', 'build', 'active'];
 
 function goScreen(id) {
   const currentEl = document.querySelector('.screen.active');
@@ -552,6 +552,7 @@ function goScreen(id) {
     renderHome();
   }
   if (id === 'train') renderTrain();
+  if (id === 'history') renderHistory();
   if (id === 'coaches') renderCoaches(); // was 'legends'
   if (id === 'build') renderBuild();
   if (id === 'active') renderActiveScreen();
@@ -559,6 +560,9 @@ function goScreen(id) {
 document.querySelectorAll('.nav-btn').forEach((btn) => {
   btn.addEventListener('click', () => goScreen(btn.dataset.screen));
 });
+document
+  .getElementById('btn-coaches-teaser')
+  ?.addEventListener('click', () => goScreen('coaches'));
 
 // ─── TRAIN ────────────────────────────────────────────────────────────────────
 // The movement launcher (Quick Start / Legends / CrossFit / Custom / Resume).
@@ -751,7 +755,13 @@ function renderRecent() {
       </div>`;
     return;
   }
-  el.innerHTML = history
+  // Daily rehab would occupy every slot — keep the latest rehab entry as one
+  // row and fill the rest with actual lifts/WODs by recency.
+  const nonRehab = history.filter((h) => h.type !== 'rehab');
+  const latestRehab = [...history].reverse().find((h) => h.type === 'rehab');
+  const pool = [...nonRehab.slice(-4), ...(latestRehab ? [latestRehab] : [])];
+  pool.sort((a, b) => new Date(a.date) - new Date(b.date));
+  el.innerHTML = pool
     .slice(-5)
     .reverse()
     .map((h) => {
@@ -795,7 +805,7 @@ function renderRecent() {
           : h.type === 'cardio'
             ? `${ds} · ${h.distance || '—'} dist`
             : `${ds} · ${h.sets || 0} sets · ${h.duration || '0:00'}`;
-      return `<div class="recent-card">
+      return `<div class="recent-card" data-ridx="${history.indexOf(h)}">
       <div class="rc-left">
         <div class="rc-name"><span class="rc-type">${typeTag}</span><span class="rc-name-text">${h.name}</span></div>
         <div class="rc-meta">${meta}</div>
@@ -807,6 +817,13 @@ function renderRecent() {
     </div>`;
     })
     .join('');
+  el.querySelectorAll('.recent-card[data-ridx]').forEach((card) => {
+    card.addEventListener('click', () => {
+      expandedHistory.clear();
+      expandedHistory.add(Number(card.dataset.ridx));
+      goScreen('history');
+    });
+  });
 }
 
 // ─── PAGE OVERLAYS (Quick Start / Legends / CrossFit) ─────────────────────────
@@ -5080,7 +5097,7 @@ document.getElementById('wsum-share').addEventListener('click', () => {
 });
 document.getElementById('wsum-history').addEventListener('click', () => {
   document.getElementById('workout-summary').classList.remove('open');
-  goScreen('home'); // history + PRs live on Home now
+  goScreen('history');
 });
 document.getElementById('wsum-close').addEventListener('click', () => {
   document.getElementById('workout-summary').classList.remove('open');
@@ -5244,6 +5261,15 @@ function renderHistory() {
   const listEl = document.getElementById('history-list');
   if (!listEl) return;
   if (!history.length) {
+    listEl.innerHTML = `
+      <div class="recent-empty">
+        <div class="re-fig">00</div>
+        <div class="re-cap">Nothing logged yet</div>
+        <div class="re-sub">Finish a session and it lands here — every set, every kilo, forever.</div>
+      </div>`;
+    return;
+  }
+  if (!history.length) {
     listEl.innerHTML = `<div class="history-empty"><div class="big-num">0</div><p>No sessions yet.<br>Finish a workout to see it here.</p></div>`;
     return;
   }
@@ -5265,11 +5291,14 @@ function renderHistory() {
         year: 'numeric',
       });
       const isCF = CF_TYPES.has(h.type);
+      const isRehab = h.type === 'rehab';
       const typeTag = isCF
         ? CF_TYPE_TAGS[h.type] || 'CF'
-        : h.type === 'cardio'
-          ? 'CDO'
-          : 'STR';
+        : isRehab
+          ? 'RHB'
+          : h.type === 'cardio'
+            ? 'CDO'
+            : 'STR';
       const prLine = h.newPRs?.length
         ? `<div class="hi-pr">PR — ${h.newPRs.map((p) => p.name).join(', ')}</div>`
         : '';
@@ -5277,18 +5306,24 @@ function renderHistory() {
         ? h.cfRoundsCompleted != null
           ? h.cfRoundsCompleted
           : h.duration || '—'
-        : h.type === 'cardio'
-          ? h.duration || '0:00'
-          : h.totalWeight || 0;
+        : isRehab
+          ? h.totalWeight || h.sets || 0
+          : h.type === 'cardio'
+            ? h.duration || '0:00'
+            : h.totalWeight || 0;
       const bigUnit = isCF
         ? h.type === 'amrap'
           ? 'rounds'
           : h.type === 'fortime'
             ? 'done'
             : 'rounds'
-        : h.type === 'cardio'
-          ? 'duration'
-          : 'kg vol';
+        : isRehab
+          ? h.totalWeight
+            ? 'kg vol'
+            : 'sets'
+          : h.type === 'cardio'
+            ? 'duration'
+            : 'kg vol';
       const rpeStr = h.rpe ? ` · ${h.rpe}` : '';
       const meta = isCF
         ? `${d} · ${h.cfFormat || h.type} · ${h.duration}`

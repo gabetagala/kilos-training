@@ -104,6 +104,12 @@
           <div id="recent-list"></div>
         </div>
 
+        <!-- Coaches teaser — quiet footer card (nav slot went to History) -->
+        <button class="coaches-card" id="btn-coaches-teaser">
+          <span class="cc-text">LOCAL COACHES · COMING SOON</span>
+          <span class="cc-arrow">→</span>
+        </button>
+
         <!-- Data safety notice -->
         <div class="data-notice">
           <div class="dn-top">
@@ -151,6 +157,17 @@
             </button>
           </div>
         </div>
+      </div>
+
+      <!-- HISTORY — the log is the product's spine -->
+      <div id="history" class="screen">
+        <div class="build-header">
+          <div class="build-header-row">
+            <h1>History</h1>
+          </div>
+          <p>Every session, every set. Tap one to open it.</p>
+        </div>
+        <div id="history-list"></div>
       </div>
 
       <!-- COACHES — Coming Soon -->
@@ -314,10 +331,9 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/></svg>
         <span>Train</span>
       </button>
-      <button class="nav-btn nav-btn-soon" data-screen="coaches">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        <span>Coaches</span>
-        <span class="nav-soon">SOON</span>
+      <button class="nav-btn" data-screen="history">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>History</span>
       </button>
     </nav>
 

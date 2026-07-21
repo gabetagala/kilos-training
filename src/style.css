@@ -7256,3 +7256,31 @@ body {
 .rc-name-text {
   min-width: 0;
 }
+
+/* History screen list + quiet Coaches teaser (nav slot went to History) */
+#history-list {
+  padding: 0 var(--s-4);
+}
+.coaches-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: calc(100% - 2 * var(--s-4));
+  margin: var(--s-4) var(--s-4) 0;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  min-height: 48px;
+  cursor: pointer;
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text2);
+}
+.coaches-card:active {
+  background: var(--bg3);
+}
+.cc-arrow {
+  color: var(--grey);
+}
