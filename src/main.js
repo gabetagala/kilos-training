@@ -66,6 +66,31 @@ const get = (k) => {
 const dateKey = (d) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
+// PR tiles are tiny — but truncating to the LAST word turns "Romanian
+// Deadlift" into a conventional-deadlift claim. Curated names for the
+// program lifts; ambiguous last words keep their qualifier.
+const PR_SHORT_NAMES = {
+  'Romanian Deadlift': 'ROMANIAN DL',
+  'Front Squat': 'FRONT SQUAT',
+  'Barbell Floor Press': 'FLOOR PRESS',
+  'DB Floor Press': 'DB FLOOR PRESS',
+  'Weighted Pull-Up': 'WTD PULL-UP',
+  'Strict Pull-Up': 'PULL-UP',
+  '30° Incline DB Press': 'INCLINE DB',
+};
+const PR_AMBIGUOUS = new Set([
+  'squat', 'press', 'deadlift', 'row', 'curl', 'raise', 'pulldown', 'bridge',
+]);
+function prShortName(name) {
+  if (PR_SHORT_NAMES[name]) return PR_SHORT_NAMES[name];
+  const words = String(name).trim().split(/\s+/);
+  const last = words[words.length - 1];
+  if (words.length >= 2 && PR_AMBIGUOUS.has(last.toLowerCase())) {
+    return `${words[words.length - 2]} ${last}`;
+  }
+  return last;
+}
+
 const set = (k, v) => {
   try {
     localStorage.setItem(k, JSON.stringify(v));
@@ -520,8 +545,6 @@ function goScreen(id) {
 
   // Hide the floating feedback button on the active screen — it overlaps the
   // set-log controls (done / ± steppers) and isn't needed mid-set.
-  const fab = document.getElementById('feedback-btn');
-  if (fab) fab.style.display = id === 'active' ? 'none' : '';
 
   // 6. Render content
   if (id === 'home') {
@@ -774,7 +797,7 @@ function renderRecent() {
             : `${ds} · ${h.sets || 0} sets · ${h.duration || '0:00'}`;
       return `<div class="recent-card">
       <div class="rc-left">
-        <div class="rc-name"><span class="rc-type">${typeTag}</span> ${h.name}</div>
+        <div class="rc-name"><span class="rc-type">${typeTag}</span><span class="rc-name-text">${h.name}</span></div>
         <div class="rc-meta">${meta}</div>
       </div>
       <div>
@@ -968,7 +991,13 @@ function renderCFPage() {
         <div class="lwc-left">
           <div class="lwc-name">${w.name}</div>
           <div class="lwc-exlist">${movLine}</div>
-          <div class="lwc-meta">${w.badge} · ${w.description}</div>
+          <div class="lwc-meta">${
+            w.description
+              ?.toLowerCase()
+              .includes(String(w.badge || '').toLowerCase())
+              ? w.description
+              : [w.badge, w.description].filter(Boolean).join(' · ')
+          }</div>
         </div>
         <div class="lwc-right">
           <div class="lwc-sets">${w.movements?.length || 0}</div>
@@ -5198,7 +5227,7 @@ function renderHistory() {
           ([name, val]) => `
         <div class="pr-card">
           <div class="pr-val">${val}kg</div>
-          <div class="pr-label">${name.split(' ').slice(-1)[0]}</div>
+          <div class="pr-label">${prShortName(name)}</div>
         </div>`,
         )
         .join('')}
@@ -5207,6 +5236,7 @@ function renderHistory() {
         <div class="pr-label">Add</div>
       </div>`;
     document.getElementById('btn-add-prs').addEventListener('click', openPRLog);
+    document.getElementById('pr-count')?.addEventListener('click', openPRLog);
   }
 
   // PR board (above) lives on Home; the full session list was retired with the
@@ -5288,7 +5318,7 @@ function renderHistory() {
       return `<div class="history-item${isExpanded ? ' expanded' : ''}" data-ridx="${realIdx}">
       <div class="hi-main">
         <div class="hi-left">
-          <div class="hi-name"><span class="rc-type">${typeTag}</span> ${h.name}</div>
+          <div class="hi-name"><span class="rc-type">${typeTag}</span><span class="rc-name-text">${h.name}</span></div>
           <div class="hi-meta">${meta}</div>
           ${prLine}
         </div>
@@ -5870,7 +5900,7 @@ function openFeedback(prefill = '') {
 }
 
 document
-  .getElementById('feedback-btn')
+  .getElementById('btn-open-feedback')
   .addEventListener('click', () => openFeedback());
 
 document.getElementById('fb-close').addEventListener('click', () => {

@@ -35,9 +35,8 @@
 <meta name="twitter:title"       content="KILOS TRAINING">
 <meta name="twitter:description" content="Train heavy. Track everything. Free forever.">
 <meta name="twitter:image"       content="https://kilostraining.vercel.app/og-image.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="preload" href="/fonts/bebasneue-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/spacemono-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/src/style.css">
 <!-- FOUC prevention: set wordmark letter-spacing before JS splits into spans -->
 <style>
@@ -95,7 +94,7 @@
             <button class="export-btn" id="btn-export" aria-label="Export workout history as CSV" title="Export CSV">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             </button>
-            <span class="pr-chip" id="pr-count">0 PRs</span>
+            <button class="pr-chip" id="pr-count" aria-label="Open PR log">0 PRs</button>
           </div>
         </div>
         <div class="pr-row" id="pr-row"></div>
@@ -811,18 +810,13 @@
           <div class="prof-label">ABOUT</div>
           <button class="prof-link" id="btn-open-privacy">Privacy Policy</button>
           <button class="prof-link" id="btn-open-terms">Terms of Use</button>
+          <button class="prof-link" id="btn-open-feedback">Send feedback</button>
           <div class="prof-about-foot">KILOS — Train heavy. Free forever.<br>Your data is yours: export or delete it anytime.</div>
         </div>
 
       </div>
     </div>
 
-    <!-- ─── FEEDBACK FLOAT BUTTON ─── -->
-    <button id="feedback-btn" class="feedback-float" aria-label="Send feedback">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" aria-hidden="true">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-      </svg>
-    </button>
 
     <!-- ─── FEEDBACK SHEET ─── -->
     <div id="feedback-sheet" class="fb-overlay">
