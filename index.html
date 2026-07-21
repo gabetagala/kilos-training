@@ -72,10 +72,6 @@
               <div class="hw-training">TRAINING</div>
             </div>
             <div class="home-utils">
-              <button class="profile-btn" id="btn-profile" aria-label="Profile and settings" title="Edit profile">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-                <span class="profile-btn-name" id="profile-btn-name"></span>
-              </button>
               <div class="streak-chip" id="streak-count">0 day streak</div>
             </div>
           </div>
@@ -93,28 +89,10 @@
         <!-- Rest-day card — injected by JS when no session today -->
         <div id="rest-day-card" style="display:none"></div>
 
-        <!-- Personal Records (your progress) -->
-        <div class="pr-board-head">
-          <div class="section-label history-pr-label">Personal Records</div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <button class="export-btn" id="btn-export" aria-label="Export workout history as CSV" title="Export CSV">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            </button>
-            <button class="pr-chip" id="pr-count" aria-label="Open PR log">0 PRs</button>
-          </div>
-        </div>
-        <div class="pr-row" id="pr-row"></div>
-
         <div class="recent-section">
           <div class="section-label">Recent sessions</div>
           <div id="recent-list"></div>
         </div>
-
-        <!-- Coaches teaser — quiet footer card (nav slot went to History) -->
-        <button class="coaches-card" id="btn-coaches-teaser">
-          <span class="cc-text">LOCAL COACHES · COMING SOON</span>
-          <span class="cc-arrow">→</span>
-        </button>
 
         <!-- Data safety notice -->
         <div class="data-notice">
@@ -165,14 +143,29 @@
         </div>
       </div>
 
-      <!-- HISTORY — the log is the product's spine -->
+      <!-- ATHLETE — your numbers: PRs, the full log, settings -->
       <div id="history" class="screen">
         <div class="build-header">
           <div class="build-header-row">
-            <h1>History</h1>
+            <h1>Athlete</h1>
+            <button class="profile-btn" id="btn-profile" aria-label="Profile and settings" title="Profile and settings">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+              <span class="profile-btn-name" id="profile-btn-name"></span>
+            </button>
           </div>
-          <p>Every session, every set. Tap one to open it.</p>
+          <p>Your records, every session, your settings.</p>
         </div>
+        <div class="pr-board-head">
+          <div class="section-label history-pr-label">Personal Records</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="export-btn" id="btn-export" aria-label="Export workout history as CSV" title="Export CSV">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </button>
+            <button class="pr-chip" id="pr-count" aria-label="Open PR log">0 PRs</button>
+          </div>
+        </div>
+        <div class="pr-row" id="pr-row"></div>
+        <div class="section-label ath-log-label">The log</div>
         <div id="history-list"></div>
       </div>
 
@@ -338,8 +331,8 @@
         <span>Train</span>
       </button>
       <button class="nav-btn" data-screen="history">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        <span>History</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        <span>Athlete</span>
       </button>
     </nav>
 
@@ -485,6 +478,7 @@
       </div>
       <div class="wsum-actions">
         <button class="wsum-share" id="wsum-share">Share Workout →</button>
+        <button class="wsum-history" id="wsum-undo" style="display:none">Undo — keep training</button>
         <button class="wsum-history" id="wsum-history">See History</button>
         <button class="wsum-close" id="wsum-close">Close</button>
       </div>
@@ -590,8 +584,6 @@
         <div id="rehab-session-list"></div>
         <div class="section-label rh-ex-label">Density 40 — the 40-min lifting rotation (A → B → C)</div>
         <div id="d40-session-list"></div>
-        <button class="section-label rh-ex-label rh-toggle" id="rh-toggle-sound" aria-expanded="false">Sound check · tempo cues <span class="rh-toggle-arrow">→</span></button>
-        <div id="sound-check" style="display:none"></div>
         <button class="section-label rh-ex-label rh-toggle" id="rh-toggle-moves" aria-expanded="false">Movement library <span class="rh-toggle-arrow">→</span></button>
         <div id="rehab-ex-list" style="display:none"></div>
         <p class="rh-note">Progress only while the back stays quiet — during the session and the day after. Sharp pain = stop.</p>

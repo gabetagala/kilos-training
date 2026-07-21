@@ -573,13 +573,7 @@ function goScreen(id) {
 document.querySelectorAll('.nav-btn').forEach((btn) => {
   btn.addEventListener('click', () => goScreen(btn.dataset.screen));
 });
-document
-  .getElementById('btn-coaches-teaser')
-  ?.addEventListener('click', () => goScreen('coaches'));
-for (const [btnId, listId] of [
-  ['rh-toggle-sound', 'sound-check'],
-  ['rh-toggle-moves', 'rehab-ex-list'],
-]) {
+for (const [btnId, listId] of [['rh-toggle-moves', 'rehab-ex-list']]) {
   document.getElementById(btnId)?.addEventListener('click', () => {
     const list = document.getElementById(listId);
     const open = list.style.display !== 'none';
@@ -732,7 +726,6 @@ function renderHome() {
   renderResumeStrip();
   renderTodayCard();
   renderWeekStrip();
-  renderMuscleFrequency();
   renderRecent();
   renderHistory(); // PR board lives on Home now (the personal hub)
   updateStreak();
@@ -777,6 +770,7 @@ function renderWeekStrip() {
       return `
     <div class="day-cell ${k === todayKey ? 'today' : ''} ${done ? 'done' : ''}">
       <div class="day-name">${day}</div>
+      <div class="day-date">${d.getDate()}</div>
       <div class="day-dot"></div>
     </div>`;
     })
@@ -2364,6 +2358,7 @@ function rhFinish() {
   pushData();
   lastFinishedWorkout = completed;
   lastFinishedEntry = entry;
+  lastFinishSnapshot = null; // guided finishes advance state — no undo
   renderHome();
   showWorkoutSummary(completed, durationStr, entry);
 }
@@ -2574,84 +2569,6 @@ function renderCheckin() {
   });
 }
 
-// ── Sound check: audition the tempo schemes, pick by ear ─────────────────────
-const TEMPO_SCHEMES = [
-  {
-    id: 'coach',
-    name: 'Coach count',
-    desc: 'Your voice counts each second over a click. Drive = da-DUM + "lift".',
-  },
-  {
-    id: 'voice',
-    name: 'Voice only',
-    desc: 'Just your voice: "lower… two… three… lift". No clicks.',
-  },
-  {
-    id: 'click',
-    name: 'Metronome',
-    desc: 'Pure clicks: one per second down, double-tick squeeze, da-DUM drive.',
-  },
-];
-
-let rhDemoTimer = null;
-function playTempoDemo(schemeId) {
-  // one demo RDL rep: 3s down + drive — through the real cue engine
-  const prev = getTempoScheme();
-  set(TEMPO_SCHEME_KEY, schemeId);
-  const mem = { key: null };
-  const seq = [
-    { rep: 1, label: 'DOWN', phaseSec: 0, phaseLen: 3 },
-    { rep: 1, label: 'DOWN', phaseSec: 1, phaseLen: 3 },
-    { rep: 1, label: 'DOWN', phaseSec: 2, phaseLen: 3 },
-    { rep: 1, label: 'UP', phaseSec: 0, phaseLen: 1 },
-  ];
-  if (rhDemoTimer) clearInterval(rhDemoTimer);
-  let i = 0;
-  // make sure the on-beat words are decoded before the demo fires
-  ['lower', 'two', 'three', 'lift'].forEach((slug) => {
-    rhProbeClip(slug).then(() => rhDecodeClip(slug));
-  });
-  rhDemoTimer = setInterval(() => {
-    if (i >= seq.length) {
-      clearInterval(rhDemoTimer);
-      rhDemoTimer = null;
-      set(TEMPO_SCHEME_KEY, prev); // preview never changes the selection
-      return;
-    }
-    rhTempoTick(seq[i], mem);
-    i++;
-  }, 1000);
-}
-
-function renderSoundCheck() {
-  const el = document.getElementById('sound-check');
-  if (!el) return;
-  ['lower', 'two', 'three', 'lift', 'squeeze', 'hold'].forEach((slug) => {
-    rhProbeClip(slug).then(() => rhDecodeClip(slug));
-  });
-  const active = getTempoScheme();
-  el.innerHTML = TEMPO_SCHEMES.map(
-    (sch) => `
-    <div class="sc-row${sch.id === active ? ' active' : ''}" data-scheme="${sch.id}">
-      <button class="sc-pick" data-pick="${sch.id}">
-        <span class="sc-name">${sch.name}</span>
-        <span class="sc-desc">${sch.desc}</span>
-      </button>
-      <button class="sc-play" data-demo="${sch.id}" aria-label="Preview ${sch.name}">▶</button>
-    </div>`,
-  ).join('');
-  el.querySelectorAll('[data-demo]').forEach((btn) => {
-    btn.addEventListener('click', () => playTempoDemo(btn.dataset.demo));
-  });
-  el.querySelectorAll('[data-pick]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      set(TEMPO_SCHEME_KEY, btn.dataset.pick);
-      renderSoundCheck();
-      playTempoDemo(btn.dataset.pick);
-    });
-  });
-}
-
 // ── Rehab page (program overview + resume) ────────────────────────────────────
 // The page's first job: today's action above the fold. Resume outranks it.
 function renderRehabToday() {
@@ -2690,7 +2607,6 @@ function renderRehabToday() {
 function renderRehabPage() {
   renderWeekPlan();
   renderCheckin();
-  renderSoundCheck();
   renderRehabToday();
   const saved = get(REHAB_STATE_KEY);
   const savedSession = saved ? getGuidedSession(saved.sessionId) : null;
@@ -2979,57 +2895,6 @@ document
   .getElementById('terms-back')
   ?.addEventListener('click', () => closePage('terms-page'));
 
-function renderMuscleFrequency() {
-  const history = get('workoutHistory') || [];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const freq = {};
-  MUSCLES.forEach((m) => {
-    freq[m] = null;
-  });
-  [...history].reverse().forEach((h) => {
-    loggedExercisesOf(h).forEach((ex) => {
-      const group = resolveMuscleGroup(ex.name, EXERCISES_DB);
-      if (group && freq[group] === null) {
-        const d = new Date(h.date);
-        d.setHours(0, 0, 0, 0);
-        freq[group] = d;
-      }
-    });
-  });
-
-  let el = document.getElementById('muscle-freq');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'muscle-freq';
-    el.className = 'muscle-freq-section';
-    document.querySelector('.week-strip').insertAdjacentElement('afterend', el);
-  }
-  el.innerHTML = `
-    <div class="section-label">Muscle status</div>
-    <div class="mf-row">
-      ${MUSCLES.map((m) => {
-        const d = freq[m];
-        let label = 'GO',
-          cls = 'fresh';
-        if (d) {
-          const days = Math.round((today - d) / 864e5);
-          label = days === 0 ? 'Today' : `${days}d`;
-          cls = days === 0 ? 'hot' : days <= 3 ? 'warm' : 'fresh';
-        }
-        const MF_LABELS = {
-          Chest: 'CHEST',
-          Back: 'BACK',
-          Legs: 'LEGS',
-          Shoulders: 'SHLD',
-          Biceps: 'BI',
-          Triceps: 'TRI',
-          Core: 'CORE',
-        };
-        return `<div class="mf-cell ${cls}"><div class="mf-muscle">${MF_LABELS[m] || m.toUpperCase()}</div><div class="mf-days">${label}</div></div>`;
-      }).join('')}
-    </div>`;
-}
 
 // ─── REST-DAY CARD ────────────────────────────────────────────────────────────
 // Shows on home screen when no workout has been logged today.
@@ -4045,6 +3910,7 @@ document.getElementById('np-btn-go-create').addEventListener('click', () => {
 
 // ─── ACTIVE WORKOUT ───────────────────────────────────────────────────────────
 let pendingBegin = null;
+let lastFinishSnapshot = null;
 function beginWorkout(name, type, exercises) {
   const info = activeSessionInfo();
   if (info) {
@@ -5269,6 +5135,14 @@ function finishWorkout() {
       completed.type === 'amrap' ? cfRoundsCompleted : cfCurrentRound;
     entry.cfMovements = (completed.cf?.movements || []).map((m) => m.name);
   }
+  // Snapshot for "Undo — keep training" on the summary (classic loop only):
+  // accidental finishes restore the live session and drop the entry.
+  lastFinishSnapshot = {
+    workout: completed,
+    startTime: workoutStartTime,
+    entryDate: entry.date,
+    totals: { totalWeightMoved, sessionSets },
+  };
   history.push(entry);
   // The finished workout must never celebrate a save that didn't happen —
   // write raw (the get/set helper swallows quota errors), retry once after
@@ -5310,6 +5184,8 @@ function finishWorkout() {
 
 // ─── POST-WORKOUT SUMMARY SCREEN ─────────────────────────────────────────────
 function showWorkoutSummary(workout, duration, entry) {
+  const undoBtn = document.getElementById('wsum-undo');
+  if (undoBtn) undoBtn.style.display = lastFinishSnapshot ? '' : 'none';
   const isCF = CF_TYPES.has(workout.type);
   const isCardio = workout.type === 'cardio';
 
@@ -5459,6 +5335,28 @@ document.getElementById('wsum-share').addEventListener('click', () => {
 document.getElementById('wsum-history').addEventListener('click', () => {
   document.getElementById('workout-summary').classList.remove('open');
   goScreen('history');
+});
+document.getElementById('wsum-undo').addEventListener('click', () => {
+  const snap = lastFinishSnapshot;
+  if (!snap) return;
+  lastFinishSnapshot = null;
+  // Drop the entry that was just saved…
+  const history = get('workoutHistory') || [];
+  const idx = history.findLastIndex((h) => h.date === snap.entryDate);
+  if (idx >= 0) {
+    history.splice(idx, 1);
+    set('workoutHistory', history);
+    pushData();
+  }
+  // …and put the session back exactly where it was.
+  activeWorkout = snap.workout;
+  workoutStartTime = snap.startTime;
+  totalWeightMoved = snap.totals.totalWeightMoved;
+  sessionSets = snap.totals.sessionSets;
+  saveActiveState();
+  document.getElementById('workout-summary').classList.remove('open');
+  renderActiveScreen();
+  goScreen('active');
 });
 document.getElementById('wsum-close').addEventListener('click', () => {
   document.getElementById('workout-summary').classList.remove('open');

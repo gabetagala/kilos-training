@@ -7487,3 +7487,50 @@ body {
   color: var(--grey);
   flex: 1;
 }
+
+/* ── Founder pass: focused Home ── */
+/* Today card in white — the loudest thing on the page is the plan */
+.today-card {
+  background: var(--white);
+  border-color: var(--white);
+}
+.today-card:active {
+  background: #e6e5e2;
+}
+.today-card .tc-label {
+  color: rgba(22, 22, 22, 0.55);
+}
+.today-card .tc-title {
+  color: #161616;
+}
+.today-card .tc-sub {
+  color: rgba(22, 22, 22, 0.6);
+}
+/* Week strip dates */
+.day-date {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 14px;
+  color: var(--grey);
+  line-height: 1;
+  margin: 2px 0 4px;
+}
+.day-cell.today .day-date {
+  color: var(--white);
+}
+/* Device notice: a whisper, not a card */
+.data-notice {
+  border: none !important;
+  background: none !important;
+  padding: 10px var(--s-4) 0 !important;
+  text-align: center;
+}
+.data-notice .dn-label {
+  font-size: var(--type-micro);
+}
+.data-notice .dn-sub {
+  font-size: var(--type-micro);
+  color: var(--grey);
+}
+.ath-log-label {
+  margin-top: var(--s-5);
+}
