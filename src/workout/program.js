@@ -11,7 +11,7 @@ export const PROGRAM_EXERCISES = {
   'pull-up': {
     repTempo: [
       ['UP', 1],
-      ['DOWN', 2],
+      ['DOWN', 3],
     ],
     name: 'Weighted Pull-Up',
     cue: 'Strict, dead-hang stretch every rep, zero swing. Load with the backpack.',
@@ -137,7 +137,7 @@ export const PROGRAM_EXERCISES = {
   'lat-pulldown': {
     repTempo: [
       ['UP', 1],
-      ['DOWN', 2],
+      ['DOWN', 3],
     ],
     name: 'Lat Pulldown',
     cue: 'Overhand, just outside shoulders, full stretch + 1-s pause at the top.',
@@ -177,7 +177,7 @@ export const PROGRAM_EXERCISES = {
   'overhead-triceps': {
     repTempo: [
       ['UP', 1],
-      ['DOWN', 2],
+      ['DOWN', 3],
     ],
     name: 'Overhead Rope Extension',
     cue: 'Facing away from the low pulley, elbows by the ears. Ribs down, glutes on — no arch.',
@@ -196,7 +196,7 @@ export const PROGRAM_EXERCISES = {
     logReps: true,
     repTempo: [
       ['UP', 1],
-      ['DOWN', 2],
+      ['DOWN', 3],
     ],
     name: 'Strict Pull-Up',
     cue: 'Bodyweight, dead-hang stretch every rep, zero swing. Log the reps — own 4×8 before loading.',

@@ -95,7 +95,7 @@ export const REHAB_EXERCISES = {
 const BRIDGE_TEMPO = [
   ['LIFT', 1],
   ['SQUEEZE', 2],
-  ['LOWER', 1],
+  ['LOWER', 2], // the eccentric is the point — 1s read as a drop, not a lower
 ];
 
 export const REHAB_SESSIONS = [

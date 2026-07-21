@@ -1473,7 +1473,7 @@ function rhAnnounceStep(step) {
     'ten',
   ];
   if (step.kind === 'prep') {
-    rhCueSay(['get-set'], `Get set — ${ex.name}`);
+    rhCueSay(['get-set', `name-${step.exId}`], `Get set — ${ex.name}`);
   } else if (step.kind === 'work') {
     if (step.manual && step.logWeight === false) {
       rhCueSay(['warm-up'], 'Warm up — your pace');
@@ -1488,8 +1488,10 @@ function rhAnnounceStep(step) {
       rhCueSay([NUMS[step.rep] || 'go'], String(step.rep));
     } else if (step.holdSet && step.setTotal > 1) {
       // "know what I'm expecting": position in the hold sets, spoken
+      const parts = step.side ? [`${step.side.toLowerCase()}-side`] : [];
+      parts.push('hold', NUMS[step.setNum] || 'go', 'of', NUMS[step.setTotal] || 'go');
       const sideBit = step.side ? `${step.side.toLowerCase()} side — ` : '';
-      rhSay(`${sideBit}hold. ${step.setNum} of ${step.setTotal}.`);
+      rhCueSay(parts, `${sideBit}hold. ${step.setNum} of ${step.setTotal}.`);
     } else {
       rhCueSay(
         step.side ? [`${step.side.toLowerCase()}-side`, 'hold'] : ['hold'],
@@ -1504,7 +1506,9 @@ function rhAnnounceStep(step) {
     const nextLabel = nextWorkLabel(rhQueue, rhIdx);
     const nextStep = rhQueue.slice(rhIdx + 1).find((st) => st.kind === 'work');
     if (nextStep && nextStep.exId !== step.exId) {
-      rhSay(`Rest. Next — ${nextLabel.replace('·', ',')}`);
+      const parts = ['rest', 'next', `name-${nextStep.exId}`];
+      if (nextStep.side) parts.push(`${nextStep.side.toLowerCase()}-side`);
+      rhCueSay(parts, `Rest. Next — ${nextLabel.replace('·', ',')}`);
     } else {
       rhCueSay(['rest'], 'Rest');
     }
@@ -2307,6 +2311,9 @@ function openRehabPlayer(session, saved = null) {
     'eight',
     'nine',
     'ten',
+    'of',
+    'next',
+    ...Object.keys(GUIDED_EXERCISES).map((id) => `name-${id}`),
   ].forEach((slug) => {
     // Decode everything up front: iOS Safari only allows fresh HTMLAudio
     // inside a tap, so timer-driven announcements must play through the

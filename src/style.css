@@ -404,7 +404,7 @@ body {
   #app {
     width: 390px;
     height: 844px;
-    max-height: calc(100vh - 80px);
+    max-height: calc(100dvh - 80px);
     border-radius: 48px;
     overflow: hidden;
     position: relative;
@@ -4900,7 +4900,7 @@ body {
 .share-canvas-frame canvas {
   width: 100%;
   height: auto;
-  max-height: calc(100vh - 190px);
+  max-height: calc(100dvh - 190px);
   object-fit: contain;
   border-radius: 4px;
 }

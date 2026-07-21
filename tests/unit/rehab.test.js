@@ -130,9 +130,9 @@ describe('buildStepQueue', () => {
     );
     expect(bridges).toHaveLength(2);
     for (const b of bridges) {
-      expect(b.secs).toBe(40); // 10 reps × 4s tempo
+      expect(b.secs).toBe(50); // 10 reps × 5s tempo (2s eccentric)
       expect(b.tempo.reps).toBe(10);
-      expect(b.tempo.secsPerRep).toBe(4);
+      expect(b.tempo.secsPerRep).toBe(5);
     }
   });
 
@@ -160,7 +160,7 @@ describe('buildStepQueue', () => {
     );
     expect(slb.map((s) => s.side)).toEqual(['LEFT', 'RIGHT', 'LEFT', 'RIGHT']);
     for (const s of slb) {
-      expect(s.secs).toBe(24); // 6 reps × 4s tempo
+      expect(s.secs).toBe(30); // 6 reps × 5s tempo (2s eccentric)
       expect(s.tempo.reps).toBe(6);
     }
   });
