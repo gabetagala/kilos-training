@@ -1134,15 +1134,45 @@ async function rhDecodeClip(slug) {
     return null;
   }
 }
-function rhPlayBuf(slug) {
+// One voice, one mic: announcements (rest / get set / side — go) outrank
+// tempo words; tempo counts DROP rather than talk over anything; a phase
+// word may cut a lingering count's tail. Without this, the buffer channel
+// and the announcement channel play simultaneously — audible pile-ups at
+// set start ("go" + "lift") and set end (last count + "rest").
+let rhBufSrc = null;
+let rhBufUntil = 0;
+let rhAnnounceUntil = 0;
+const rhAnnounceActive = () => Date.now() < rhAnnounceUntil;
+function rhStopBuf() {
+  try {
+    rhBufSrc?.stop();
+  } catch {}
+  rhBufSrc = null;
+  rhBufUntil = 0;
+}
+function rhPlayBuf(slug, opts = {}) {
   const buf = rhClipBuffers.get(slug);
   if (!buf) return false;
+  if (rhAnnounceActive()) return false;
+  const now = Date.now();
+  if (rhBufUntil - now > 120) {
+    if (!opts.cut) return false;
+    rhStopBuf();
+  }
   try {
     const ctx = ensureCtx();
     const src = ctx.createBufferSource();
     src.buffer = buf;
     src.connect(ctx.destination);
     src.start(ctx.currentTime);
+    rhBufSrc = src;
+    rhBufUntil = now + buf.duration * 1000;
+    src.onended = () => {
+      if (rhBufSrc === src) {
+        rhBufSrc = null;
+        rhBufUntil = 0;
+      }
+    };
     return true;
   } catch {
     return false;
@@ -1153,11 +1183,21 @@ function rhPlayClips(urls) {
   try {
     rhClipAudio?.pause();
   } catch {}
+  rhStopBuf();
+  // ceiling estimate keeps the mic reserved even if `ended` never fires
+  // (autoplay rejection); the chain clears it early on real completion.
+  rhAnnounceUntil = Date.now() + urls.length * 1100;
+  const done = () => {
+    rhAnnounceUntil = 0;
+  };
   const next = (i) => {
-    if (i >= urls.length) return;
+    if (i >= urls.length) {
+      done();
+      return;
+    }
     rhClipAudio = new Audio(urls[i]);
     rhClipAudio.onended = () => next(i + 1);
-    rhClipAudio.play().catch(() => {});
+    rhClipAudio.play().catch(done);
   };
   next(0);
 }
@@ -1489,8 +1529,11 @@ function rhTempoTick(st, mem) {
   const slug =
     st.phaseSec === 0 ? phaseWordSlug(st.label) : NUM_SLUGS[st.phaseSec + 1];
   const wantVoice = rhVoiceOn && (scheme === 'coach' || scheme === 'voice');
-  const spoke = wantVoice && slug ? rhPlayBuf(slug) : false;
-  if (scheme === 'voice' && spoke) return;
+  // phase words may cut a lingering count; plain counts never talk over
+  const spoke = wantVoice && slug ? rhPlayBuf(slug, { cut: st.phaseSec === 0 }) : false;
+  // in voice scheme, a word silenced by an announcement stays silent — no
+  // surprise ticks in a tickless scheme
+  if (scheme === 'voice' && (spoke || rhAnnounceActive())) return;
   // synthesis layer (coach + click, and voice's fallback when a clip is missing)
   if (isDrive) {
     if (st.phaseSec === 0) driveAccent();
