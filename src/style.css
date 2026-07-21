@@ -7352,19 +7352,23 @@ body {
 .tc-label {
   font-family: "Space Mono", monospace;
   font-size: 10px;
+  line-height: 1;
   letter-spacing: 0.1em;
   color: var(--grey);
 }
 .tc-title {
   font-family: "Bebas Neue", sans-serif;
   font-size: 28px;
-  line-height: 1.1;
+  line-height: 0.95;
   color: var(--white);
-  margin: 4px 0 2px;
+  /* Bebas carries extra top bearing in its em box — trim it so the card's
+     optical top/bottom padding match */
+  margin: 6px 0 7px;
 }
 .tc-sub {
   font-family: "Space Mono", monospace;
   font-size: 11px;
+  line-height: 1;
   letter-spacing: 0.08em;
   color: var(--text2);
 }
