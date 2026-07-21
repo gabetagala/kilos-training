@@ -7411,3 +7411,33 @@ body {
   padding: 10px 0 0;
   line-height: 1.7;
 }
+
+/* Guided player: glance context + deliberate MORE + overview notes */
+.rp-context {
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--text2);
+  text-align: center;
+  margin-bottom: var(--s-2);
+  min-height: 16px;
+}
+.rp-cue-more {
+  display: block;
+  margin: 0 auto;
+  background: none;
+  border: none;
+  font-family: "Space Mono", monospace;
+  font-size: var(--type-micro);
+  letter-spacing: 0.1em;
+  color: var(--grey);
+  min-height: 32px;
+  padding: 4px 16px;
+  cursor: pointer;
+}
+.rpo-item-note {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text2);
+  margin-top: 4px;
+}

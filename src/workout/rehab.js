@@ -334,7 +334,7 @@ export function buildStepQueue(session, swaps = {}) {
         logWeight: false,
         phase: 'RAMP',
         meta: 'WARM-UP · NOT LOGGED',
-        cueNote: block.note,
+        blockNote: block.note,
         countsAsSet: false,
         ...swapMeta(block),
       });
@@ -413,8 +413,8 @@ export function buildStepQueue(session, swaps = {}) {
           phase: 'YOUR PACE',
           meta: `SET ${set} OF ${block.sets} · ${rb.reps} REPS`,
           reps: rb.reps,
-          cueNote:
-            set === block.sets ? block.lastSetNote || block.note : block.note,
+          blockNote: block.note,
+          cueNote: set === block.sets ? block.lastSetNote : undefined,
           countsAsSet: true,
           ...guideFor(rb.ex, rb.reps),
           ...swapMeta(block),
@@ -466,6 +466,7 @@ export function sessionOverview(session, swaps = {}) {
       return {
         title: `${name(resolveSwap(block, swaps).ex)} — warm-up ramp`,
         detail: 'not logged',
+        note: block.note,
       };
     }
     if (block.mode === 'circuit') {
@@ -483,7 +484,11 @@ export function sessionOverview(session, swaps = {}) {
     const side = block.perSide ? ' / side' : '';
     if (block.mode === 'lift') {
       const r = resolveSwap(block, swaps);
-      return { title: name(r.ex), detail: `${block.sets} × ${r.reps}` };
+      return {
+        title: name(r.ex),
+        detail: `${block.sets} × ${r.reps}`,
+        note: block.note,
+      };
     }
     if (block.mode === 'tempo') {
       return {

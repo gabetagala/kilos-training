@@ -1131,7 +1131,16 @@ const GUIDED_DEFAULT_KG = {
 };
 function guidedWeightFor(exId) {
   const map = get(GUIDED_WEIGHTS_KEY) || {};
-  return map[exId] ?? GUIDED_DEFAULT_KG[exId] ?? 10;
+  if (map[exId] != null) return map[exId];
+  // No memory yet (e.g. first session after a swap) — the last logged weight
+  // for this exercise anywhere in history beats a hardcoded guess.
+  const name = GUIDED_EXERCISES[exId]?.name;
+  const lastLogs = name ? getLastSession(name) : null;
+  const w = lastLogs?.length
+    ? Math.max(...lastLogs.map((l) => parseFloat(l.weight) || 0))
+    : 0;
+  if (w > 0) return w;
+  return GUIDED_DEFAULT_KG[exId] ?? 10;
 }
 // Rep-logged exercises (bodyweight variants) reuse the same memory map — the
 // stored number just means reps; the default comes from the range's bottom.
@@ -1802,6 +1811,7 @@ function rhRenderOverview() {
       return `<div class="rpo-item ${state}" ${state === 'current' ? 'data-current' : ''}>
         <div class="rpo-item-title">${row.title}</div>
         <div class="rpo-item-detail">${row.detail}</div>
+        ${row.note ? `<div class="rpo-item-note">${row.note}</div>` : ''}
       </div>`;
     })
     .join('');
@@ -1826,6 +1836,9 @@ document.getElementById('rp-guide').addEventListener('click', () => {
 document
   .getElementById('rp-overview-btn')
   .addEventListener('click', rhOpenOverview);
+document
+  .getElementById('rp-cue-more')
+  ?.addEventListener('click', rhOpenOverview);
 document.getElementById('rp-exname').addEventListener('click', rhOpenOverview);
 document.getElementById('rpo-close').addEventListener('click', () => {
   document.getElementById('rp-overview').classList.remove('open');
@@ -1929,10 +1942,17 @@ function rhRenderStep() {
 
   document.getElementById('rp-exname').textContent = ex.name;
   document.getElementById('rp-meta').textContent = step.meta || '';
-  document.getElementById('rp-cue').textContent =
+  const cueEl = document.getElementById('rp-cue');
+  cueEl.textContent =
     step.kind === 'prep'
       ? `${ex.cue} — ${ex.why}`
       : [ex.cue, step.cueNote].filter(Boolean).join(' — ');
+  // A clamped cue gets a deliberate door, never a silent ellipsis.
+  const moreEl = document.getElementById('rp-cue-more');
+  if (moreEl) {
+    moreEl.style.display =
+      cueEl.scrollHeight > cueEl.clientHeight + 2 ? '' : 'none';
+  }
   document.getElementById('rp-phase').textContent = step.phase;
 
   // Countdown vs self-paced set (with or without a weight to log)
@@ -1952,6 +1972,30 @@ function rhRenderStep() {
         ? guidedRepsFor(step.exId, step.reps)
         : guidedWeightFor(step.exId);
       rhRenderWeight();
+    }
+    // Glance context: what you did last time and what today asks for.
+    const ctxEl = document.getElementById('rp-context');
+    if (ctxEl) {
+      let ctx = '';
+      if (showWeight) {
+        const lastLogs = getLastSession(ex?.name);
+        if (lastLogs?.length) {
+          const top = lastLogs.reduce((b, l) =>
+            (parseFloat(l.weight) || 0) > (parseFloat(b.weight) || 0) ? l : b,
+          );
+          if (step.logReps) {
+            ctx = `LAST ${top.reps || '—'} REPS`;
+          } else {
+            const sugg = suggestNextWeight(lastLogs, step.reps);
+            ctx = `LAST ${toDisplayWeight(top.weight)}×${top.reps || '—'}`;
+            if (sugg) {
+              ctx += ` · TARGET ${toDisplayWeight(sugg)}${weightUnit()}`;
+            }
+          }
+        }
+      }
+      ctxEl.textContent = ctx;
+      ctxEl.style.display = ctx ? '' : 'none';
     }
   } else {
     rhRenderClock();
@@ -2761,25 +2805,45 @@ document.getElementById('rp-set-done').addEventListener('click', () => {
   rhJump(1); // announces the landing step
   if (!wasLast && !rhStep()?.manual) rhPlay();
 });
-document.getElementById('rp-w-minus').addEventListener('click', () => {
+function rhAdjust(dir) {
   if (rhPendingReps !== null) {
-    rhPendingReps = Math.max(0, rhPendingReps - 1);
+    rhPendingReps = Math.max(0, rhPendingReps + dir);
     rhRenderWeight();
     return;
   }
   const inc = rhStep()?.logReps ? 1 : 2.5;
-  rhWeightKg = Math.max(rhStep()?.logReps ? 1 : 0, rhWeightKg - inc);
+  rhWeightKg = Math.max(rhStep()?.logReps ? 1 : 0, rhWeightKg + dir * inc);
   rhRenderWeight();
-});
-document.getElementById('rp-w-plus').addEventListener('click', () => {
-  if (rhPendingReps !== null) {
-    rhPendingReps += 1;
-    rhRenderWeight();
-    return;
-  }
-  rhWeightKg += rhStep()?.logReps ? 1 : 2.5;
-  rhRenderWeight();
-});
+}
+// Tap = one step; hold = repeat (sweaty-thumb travel to a far weight).
+function rhHoldRepeat(el, dir) {
+  let holdTimer = null;
+  let repeater = null;
+  let held = false;
+  el.addEventListener('pointerdown', () => {
+    held = false;
+    holdTimer = setTimeout(() => {
+      held = true;
+      repeater = setInterval(() => rhAdjust(dir), 110);
+    }, 420);
+  });
+  const stop = () => {
+    clearTimeout(holdTimer);
+    clearInterval(repeater);
+  };
+  el.addEventListener('pointerup', stop);
+  el.addEventListener('pointerleave', stop);
+  el.addEventListener('pointercancel', stop);
+  el.addEventListener('click', () => {
+    if (held) {
+      held = false;
+      return; // the hold already moved the value
+    }
+    rhAdjust(dir);
+  });
+}
+rhHoldRepeat(document.getElementById('rp-w-minus'), -1);
+rhHoldRepeat(document.getElementById('rp-w-plus'), 1);
 
 document.getElementById('btn-startover-resume').addEventListener('click', () => {
   document.getElementById('startover-confirm').classList.remove('open');
