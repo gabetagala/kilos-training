@@ -39,6 +39,7 @@ import {
 } from './workout/program.js';
 import { PROGRAM_DEMOS, REHAB_DEMOS } from './workout/rehabDemos.js';
 import { addCheckin, checkinStatus } from './workout/checkin.js';
+import { loggedExercisesOf, resolveMuscleGroup } from './workout/muscles.js';
 import { currentStreak, longestStreak } from './workout/streak.js';
 import {
   deleteAccount,
@@ -889,11 +890,11 @@ function getMuscleDaysAgo(muscle) {
   today.setHours(0, 0, 0, 0);
   for (let i = history.length - 1; i >= 0; i--) {
     const h = history[i];
-    if (h.type !== 'strength') continue;
-    const hasMusc = (h.exercises || []).some((ex) => {
-      const dbEx = EXERCISES_DB.find((e) => e.name === ex.name);
-      return dbEx?.group?.toLowerCase() === muscle.toLowerCase();
-    });
+    const hasMusc = loggedExercisesOf(h).some(
+      (ex) =>
+        resolveMuscleGroup(ex.name, EXERCISES_DB)?.toLowerCase() ===
+        muscle.toLowerCase(),
+    );
     if (hasMusc) {
       const d = new Date(h.date);
       d.setHours(0, 0, 0, 0);
@@ -2853,13 +2854,12 @@ function renderMuscleFrequency() {
     freq[m] = null;
   });
   [...history].reverse().forEach((h) => {
-    if (h.type !== 'strength') return;
-    (h.exercises || []).forEach((ex) => {
-      const dbEx = EXERCISES_DB.find((e) => e.name === ex.name);
-      if (dbEx && freq[dbEx.group] === null) {
+    loggedExercisesOf(h).forEach((ex) => {
+      const group = resolveMuscleGroup(ex.name, EXERCISES_DB);
+      if (group && freq[group] === null) {
         const d = new Date(h.date);
         d.setHours(0, 0, 0, 0);
-        freq[dbEx.group] = d;
+        freq[group] = d;
       }
     });
   });
@@ -2876,14 +2876,23 @@ function renderMuscleFrequency() {
     <div class="mf-row">
       ${MUSCLES.map((m) => {
         const d = freq[m];
-        let label = '—',
+        let label = 'GO',
           cls = 'fresh';
         if (d) {
           const days = Math.round((today - d) / 864e5);
           label = days === 0 ? 'Today' : `${days}d`;
           cls = days === 0 ? 'hot' : days <= 3 ? 'warm' : 'fresh';
         }
-        return `<div class="mf-cell ${cls}"><div class="mf-muscle">${m.slice(0, 3).toUpperCase()}</div><div class="mf-days">${label}</div></div>`;
+        const MF_LABELS = {
+          Chest: 'CHEST',
+          Back: 'BACK',
+          Legs: 'LEGS',
+          Shoulders: 'SHLD',
+          Biceps: 'BI',
+          Triceps: 'TRI',
+          Core: 'CORE',
+        };
+        return `<div class="mf-cell ${cls}"><div class="mf-muscle">${MF_LABELS[m] || m.toUpperCase()}</div><div class="mf-days">${label}</div></div>`;
       }).join('')}
     </div>`;
 }
