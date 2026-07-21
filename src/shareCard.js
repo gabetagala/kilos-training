@@ -1,15 +1,37 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// KILOS — shareCard.js  (editorial redesign)
-// Left-aligned asymmetric layout. KG is the hero. Movements are the grid.
-// Geometric K watermark behind everything.
+// KILOS — shareCard.js  (three-style redesign)
+// Styles: editorial (ruled table), poster (brutalist type), minimal (airy
+// stat overlay) — each over a generated photographic plate, or the user's
+// own photo. Content: workout · movements · sets×reps · elapsed time.
+// Color-themable: white (default) / bright yellow / bright red.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const W = 540;
 const H = 960;
-const PAD = 36;
+const PAD = 40;
 
-// ─── GRAIN ───────────────────────────────────────────────────────────────────
-function addGrain(ctx, opacity = 0.18) {
+const BEBAS = "'Bebas Neue', sans-serif";
+const MONO = "'Space Mono', monospace";
+
+// ─── PLATES ──────────────────────────────────────────────────────────────────
+const plateCache = new Map(); // style → Promise<Image|null>
+function loadPlate(style) {
+  if (!plateCache.has(style)) {
+    plateCache.set(
+      style,
+      new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = `/share/share-${style}.webp`;
+      }),
+    );
+  }
+  return plateCache.get(style);
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function addGrain(ctx, opacity = 0.1) {
   const off = document.createElement('canvas');
   off.width = W;
   off.height = H;
@@ -28,335 +50,301 @@ function addGrain(ctx, opacity = 0.18) {
   ctx.restore();
 }
 
-// ─── BACKGROUND ──────────────────────────────────────────────────────────────
-function drawBackground(ctx, mode, bgImage) {
-  if (mode === 'photo' && bgImage) {
-    const scale = Math.max(W / bgImage.width, H / bgImage.height);
-    const sw = bgImage.width * scale;
-    const sh = bgImage.height * scale;
-    ctx.filter = 'grayscale(100%) blur(8px)';
-    ctx.drawImage(bgImage, (W - sw) / 2, (H - sh) / 2, sw, sh);
-    ctx.filter = 'none';
-    ctx.fillStyle = 'rgba(0,0,0,0.68)';
+function drawCover(ctx, img, scrim = 0) {
+  const scale = Math.max(W / img.width, H / img.height);
+  const sw = img.width * scale;
+  const sh = img.height * scale;
+  ctx.drawImage(img, (W - sw) / 2, (H - sh) / 2, sw, sh);
+  if (scrim > 0) {
+    ctx.fillStyle = `rgba(0,0,0,${scrim})`;
     ctx.fillRect(0, 0, W, H);
-    addGrain(ctx, 0.09);
-  } else {
-    ctx.fillStyle = '#111111';
-    ctx.fillRect(0, 0, W, H);
-    // Subtle top-right glow
-    const glow = ctx.createRadialGradient(
-      W * 0.85,
-      H * 0.08,
-      0,
-      W * 0.85,
-      H * 0.08,
-      W * 0.65,
-    );
-    glow.addColorStop(0, 'rgba(255,255,255,0.04)');
-    glow.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, W, H);
-    addGrain(ctx, 0.2);
   }
 }
 
-// ─── GEOMETRIC K WATERMARK ───────────────────────────────────────────────────
-// Giant Bebas K, bleeding off the top-right — lives behind all content
-function drawGeoK(ctx) {
-  ctx.save();
-  ctx.globalAlpha = 0.055;
-  ctx.fillStyle = '#ffffff';
-  ctx.font = `720px 'Bebas Neue', sans-serif`;
-  ctx.textAlign = 'right';
-  ctx.textBaseline = 'top';
-  // Bleed off right edge and slightly off top
-  ctx.fillText('K', W + 90, -30);
-  ctx.restore();
-}
-
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
 function fitText(ctx, text, maxWidth, maxSize, fontStr) {
   let size = maxSize;
   ctx.font = `${size}px ${fontStr}`;
-  while (ctx.measureText(text).width > maxWidth && size > 20) {
-    size -= 3;
+  while (ctx.measureText(text).width > maxWidth && size > 16) {
+    size -= 2;
     ctx.font = `${size}px ${fontStr}`;
   }
   return size;
 }
 
-function rule(ctx, y, alpha = 0.1) {
-  ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+function withAlpha(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+// ─── DATA ────────────────────────────────────────────────────────────────────
+export function buildShareData({
+  workout,
+  duration,
+  cfRoundsCompleted,
+  streak = 0,
+}) {
+  const type = workout?.type || 'strength';
+  const isCF = ['emom', 'amrap', 'rounds', 'fortime'].includes(type);
+
+  // Movements: name + honest sets×reps from the done logs.
+  let movements = [];
+  if (isCF) {
+    movements = (workout?.cf?.movements || []).map((m) => ({
+      name: m.name,
+      detail: m.reps ? String(m.reps) : '',
+    }));
+  } else {
+    movements = (workout?.exercises || []).map((ex) => {
+      const done = (ex.logs || []).filter((l) => l.done);
+      const sets = done.length || ex.sets || 0;
+      const reps = [
+        ...new Set(
+          done
+            .map((l) => parseInt(l.reps, 10))
+            .filter((r) => Number.isFinite(r) && r > 0),
+        ),
+      ];
+      let repStr = '';
+      if (reps.length === 1) repStr = `×${reps[0]}`;
+      else if (reps.length > 1)
+        repStr = `×${Math.min(...reps)}–${Math.max(...reps)}`;
+      else if (ex.reps) repStr = `×${ex.reps}`;
+      return { name: ex.name, detail: `${sets}${repStr}` };
+    });
+  }
+
+  const totalSets = isCF
+    ? cfRoundsCompleted || 0
+    : (workout?.exercises || []).reduce(
+        (sum, ex) => sum + (ex.logs || []).filter((l) => l.done).length,
+        0,
+      );
+
+  return {
+    workoutName: workout?.name || 'Workout',
+    type,
+    isCF,
+    movements,
+    totalSets,
+    duration: duration || '—',
+    streak,
+    dateStr: new Date()
+      .toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+      .toUpperCase(),
+  };
+}
+
+// ─── STYLE A · EDITORIAL — ruled table, top-left ─────────────────────────────
+function drawEditorial(ctx, data, color) {
+  const c = color;
+  ctx.textBaseline = 'alphabetic';
+
+  ctx.fillStyle = c;
+  ctx.font = `700 12px ${MONO}`;
+  ctx.textAlign = 'left';
+  ctx.fillText('KILOS — TRAINING LOG', PAD, 74);
+
+  const nameSize = fitText(
+    ctx,
+    data.workoutName.toUpperCase(),
+    W - PAD * 2,
+    40,
+    BEBAS,
+  );
+  ctx.font = `${nameSize}px ${BEBAS}`;
+  ctx.fillText(data.workoutName.toUpperCase(), PAD, 74 + nameSize + 12);
+
+  let y = 74 + nameSize + 40;
+  const rows = data.movements.slice(0, 6);
+  for (const m of rows) {
+    ctx.fillStyle = withAlpha(c, 0.7);
+    ctx.fillRect(PAD, y, W - PAD * 2, 1);
+    y += 31;
+    ctx.fillStyle = c;
+    const sz = fitText(ctx, m.name, W - PAD * 2 - 110, 24, BEBAS);
+    ctx.font = `${sz}px ${BEBAS}`;
+    ctx.textAlign = 'left';
+    ctx.fillText(m.name, PAD, y);
+    ctx.font = `12px ${MONO}`;
+    ctx.textAlign = 'right';
+    ctx.fillText(m.detail, W - PAD, y);
+    y += 15;
+  }
+  if (data.movements.length > 6) {
+    ctx.fillStyle = withAlpha(c, 0.7);
+    ctx.fillRect(PAD, y, W - PAD * 2, 1);
+    y += 26;
+    ctx.font = `11px ${MONO}`;
+    ctx.textAlign = 'left';
+    ctx.fillStyle = withAlpha(c, 0.85);
+    ctx.fillText(`+ ${data.movements.length - 6} MORE`, PAD, y);
+    y += 12;
+  }
+  ctx.fillStyle = withAlpha(c, 0.7);
   ctx.fillRect(PAD, y, W - PAD * 2, 1);
+
+  ctx.fillStyle = c;
+  ctx.font = `700 12px ${MONO}`;
+  ctx.textAlign = 'left';
+  ctx.fillText(data.dateStr, PAD, H - 44);
+  ctx.textAlign = 'right';
+  ctx.fillText(`${data.duration} ELAPSED`, W - PAD, H - 44);
+  ctx.font = `28px ${BEBAS}`;
+  ctx.fillText('KILOS', W - PAD, H - 74);
+}
+
+// ─── STYLE B · POSTER — brutalist type, the time enormous ───────────────────
+function drawChecker(ctx, x, y, cell, color) {
+  ctx.fillStyle = color;
+  for (let r = 0; r < 4; r++) {
+    for (let col = 0; col < 4; col++) {
+      if ((r + col) % 2 === 0) {
+        ctx.fillRect(x + col * cell, y + r * cell, cell, cell);
+      }
+    }
+  }
+}
+
+function drawPoster(ctx, data, color) {
+  const c = color;
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = c;
+  ctx.font = `700 13px ${MONO}`;
+  ctx.textAlign = 'left';
+  ctx.fillText('—KILOS', PAD, 58);
+  ctx.textAlign = 'center';
+  ctx.fillText(data.dateStr, W / 2, 58);
+  drawChecker(ctx, W - PAD - 30, 42, 8, c);
+
+  const dur = String(data.duration);
+  const [big, small] = dur.includes(':') ? dur.split(':') : [dur, null];
+  ctx.fillStyle = c;
+  ctx.font = `220px ${BEBAS}`;
+  ctx.textAlign = 'left';
+  ctx.fillText(big, PAD + 6, 396);
+  if (small != null) {
+    ctx.textAlign = 'right';
+    ctx.fillText(small, W - PAD - 6, 600);
+    ctx.font = `700 12px ${MONO}`;
+    ctx.fillText('MIN : SEC ELAPSED', W - PAD - 6, 636);
+  }
+
+  let y = 706;
+  ctx.font = `700 12px ${MONO}`;
+  ctx.textAlign = 'left';
+  ctx.fillStyle = c;
+  ctx.fillText(data.workoutName.toUpperCase().slice(0, 40), PAD, y);
+  y += 24;
+  ctx.font = `11px ${MONO}`;
+  for (const m of data.movements.slice(0, 5)) {
+    ctx.fillStyle = withAlpha(c, 0.85);
+    ctx.fillText(
+      `${m.name.toUpperCase().slice(0, 30)}  ${m.detail}`.trim(),
+      PAD,
+      y,
+    );
+    y += 20;
+  }
+  if (data.movements.length > 5) {
+    ctx.fillStyle = withAlpha(c, 0.85);
+    ctx.fillText(`+ ${data.movements.length - 5} MORE`, PAD, y);
+  }
+
+  ctx.fillStyle = c;
+  ctx.fillRect(PAD, H - 62, 11, 11);
+  ctx.font = `700 12px ${MONO}`;
+  ctx.fillText('KILOS TRAINING — FREE FOREVER', PAD + 20, H - 52);
+}
+
+// ─── STYLE C · MINIMAL — airy stat overlay ──────────────────────────────────
+function drawMinimal(ctx, data, color) {
+  const c = color;
+  ctx.save();
+  ctx.textBaseline = 'alphabetic';
+  ctx.shadowColor = 'rgba(0,0,0,0.35)';
+  ctx.shadowBlur = 10;
+
+  const cols = [W * 0.32, W * 0.68];
+  const stats = [
+    ['ELAPSED', data.duration],
+    ['MOVEMENTS', String(data.movements.length)],
+    [data.isCF ? 'ROUNDS' : 'SETS', String(data.totalSets || '—')],
+    ['DATE', data.dateStr.replace(/, \d{4}$/, '')],
+  ];
+  let y = 200;
+  stats.forEach(([label, val], i) => {
+    const x = cols[i % 2];
+    if (i === 2) y += 104;
+    ctx.fillStyle = withAlpha(c, 0.85);
+    ctx.font = `700 11px ${MONO}`;
+    ctx.textAlign = 'center';
+    ctx.fillText(label, x, y);
+    ctx.fillStyle = c;
+    ctx.font = `46px ${BEBAS}`;
+    ctx.fillText(val, x, y + 50);
+  });
+
+  let cy = H - 174;
+  ctx.font = `700 12px ${MONO}`;
+  ctx.fillStyle = c;
+  ctx.textAlign = 'center';
+  ctx.fillText(data.workoutName.toUpperCase().slice(0, 40), W / 2, cy);
+  cy += 22;
+  ctx.font = `11px ${MONO}`;
+  for (const m of data.movements.slice(0, 4)) {
+    ctx.fillStyle = withAlpha(c, 0.85);
+    ctx.fillText(
+      `${m.name.toUpperCase().slice(0, 30)}  ${m.detail}`.trim(),
+      W / 2,
+      cy,
+    );
+    cy += 18;
+  }
+  if (data.movements.length > 4) {
+    ctx.fillStyle = withAlpha(c, 0.85);
+    ctx.fillText(`+ ${data.movements.length - 4} MORE`, W / 2, cy);
+  }
+
+  ctx.font = `20px ${BEBAS}`;
+  ctx.fillStyle = c;
+  ctx.fillText('KILOS', W / 2, H - 40);
+  ctx.restore();
 }
 
 // ─── MAIN RENDERER ───────────────────────────────────────────────────────────
-export async function renderShareCard(
-  canvas,
-  data,
-  mode = 'dark',
-  bgImage = null,
-) {
+export async function renderShareCard(canvas, data, opts = {}) {
+  const { style = 'editorial', color = '#FFFFFF', photo = null } = opts;
   await document.fonts.ready;
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  const {
-    workoutName,
-    date,
-    duration,
-    heroStr,
-    heroLabel,
-    heroSub,
-    sets,
-    exercises,
-    streak,
-  } = data;
-
-  // ── Background + K ──
-  drawBackground(ctx, mode, bgImage);
-  drawGeoK(ctx);
-
-  // ── Top rule ──
-  ctx.fillStyle = 'rgba(255,255,255,0.20)';
-  ctx.fillRect(0, 0, W, 2);
-
-  // ── Header row ──
-  ctx.fillStyle = 'rgba(255,255,255,0.90)';
-  ctx.font = `16px 'Bebas Neue', sans-serif`;
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'alphabetic';
-  ctx.fillText('KILOS TRAINING', PAD, 54);
-
-  ctx.fillStyle = 'rgba(255,255,255,0.32)';
-  ctx.font = `9px 'Space Mono', monospace`;
-  ctx.textAlign = 'right';
-  ctx.fillText(date.toUpperCase(), W - PAD, 54);
-
-  rule(ctx, 68, 0.12);
-
-  // ── HERO NUMBER ──
-  ctx.fillStyle = '#ffffff';
-  ctx.textAlign = 'left';
-  fitText(ctx, heroStr, W - PAD * 2 - 20, 196, `'Bebas Neue', sans-serif`);
-  ctx.fillText(heroStr, PAD, 292);
-
-  // Hero label (+ optional sub for CF types like "AMRAP 20 MIN")
-  ctx.fillStyle = 'rgba(255,255,255,0.32)';
-  ctx.font = `9px 'Space Mono', monospace`;
-  ctx.textAlign = 'left';
-  ctx.fillText(heroLabel, PAD, 316);
-  if (heroSub) {
-    ctx.fillStyle = 'rgba(255,255,255,0.18)';
-    ctx.fillText(heroSub, PAD, 330);
+  // Background: the user's photo beats the style plate; flat dark last.
+  if (photo) {
+    drawCover(ctx, photo, 0.45);
+    addGrain(ctx, 0.08);
+  } else {
+    const plate = await loadPlate(style);
+    if (plate) {
+      drawCover(ctx, plate, style === 'minimal' ? 0.1 : 0.2);
+      addGrain(ctx, 0.05);
+    } else {
+      ctx.fillStyle = '#141414';
+      ctx.fillRect(0, 0, W, H);
+      addGrain(ctx, 0.15);
+    }
   }
 
-  // ── WORKOUT NAME (left) + secondary stat (right) ──
-  const nameStr = workoutName.toUpperCase();
-  ctx.fillStyle = 'rgba(255,255,255,0.82)';
-  ctx.textAlign = 'left';
-  fitText(ctx, nameStr, W * 0.58, 60, `'Bebas Neue', sans-serif`);
-  ctx.fillText(nameStr, PAD, 400);
-
-  // Show duration top-right unless the hero IS the time (for time / RFT)
-  const heroIsTime =
-    heroLabel === 'FOR TIME' ||
-    heroLabel.includes('ROUNDS FOR TIME') ||
-    heroLabel === 'DURATION';
-  if (!heroIsTime && duration && duration !== '—') {
-    ctx.fillStyle = 'rgba(255,255,255,0.50)';
-    ctx.font = `50px 'Bebas Neue', sans-serif`;
-    ctx.textAlign = 'right';
-    ctx.fillText(duration, W - PAD, 392);
-
-    ctx.fillStyle = 'rgba(255,255,255,0.22)';
-    ctx.font = `8px 'Space Mono', monospace`;
-    ctx.textAlign = 'right';
-    ctx.fillText('TIME', W - PAD, 408);
-  }
-
-  ctx.fillStyle = 'rgba(255,255,255,0.22)';
-  ctx.font = `8px 'Space Mono', monospace`;
-  ctx.textAlign = 'left';
-  ctx.fillText('WORKOUT', PAD, 418);
-
-  // ── Divider ──
-  rule(ctx, 444, 0.12);
-
-  // ── Movements section header ──
-  ctx.fillStyle = 'rgba(255,255,255,0.28)';
-  ctx.font = `8px 'Space Mono', monospace`;
-  ctx.textAlign = 'left';
-  ctx.fillText('MOVEMENTS', PAD, 468);
-
-  if (sets > 0) {
-    ctx.textAlign = 'right';
-    ctx.fillText(`${sets} SETS`, W - PAD, 468);
-  }
-
-  rule(ctx, 478, 0.07);
-
-  // ── Movement rows ──
-  const listItems = (exercises || []).slice(0, 6);
-  const rowH = listItems.length > 4 ? 46 : 52;
-
-  listItems.forEach((ex, i) => {
-    const y = 510 + i * rowH;
-
-    // Exercise name (left)
-    ctx.fillStyle = 'rgba(255,255,255,0.82)';
-    ctx.font = `10px 'Space Mono', monospace`;
-    ctx.textAlign = 'left';
-    let name = ex.name.toUpperCase();
-    while (ctx.measureText(name).width > 290 && name.length > 4)
-      name = name.slice(0, -1);
-    if (name !== ex.name.toUpperCase()) name += '—';
-    ctx.fillText(name, PAD, y);
-
-    // Stat (right) — sets×reps
-    ctx.fillStyle = 'rgba(255,255,255,0.40)';
-    ctx.textAlign = 'right';
-    ctx.fillText(ex.stat, W - PAD, y);
-
-    if (i < listItems.length - 1) rule(ctx, y + 13, 0.05);
-  });
-
-  // ── Footer ──
-  rule(ctx, H - 58, 0.1);
-
-  ctx.fillStyle = 'rgba(255,255,255,0.20)';
-  ctx.font = `8px 'Space Mono', monospace`;
-  ctx.textAlign = 'left';
-  ctx.fillText('KILOSTRAINING.APP', PAD, H - 34);
-
-  ctx.textAlign = 'right';
-  ctx.fillText('#KILOS', W - PAD, H - 34);
-
-  // Streak — centered between the footer marks (only when there's a chain).
-  if (streak >= 2) {
-    ctx.fillStyle = 'rgba(255,255,255,0.32)';
-    ctx.textAlign = 'center';
-    ctx.fillText(`${streak} DAY STREAK`, W / 2, H - 34);
-  }
-
-  // Bottom rule
-  ctx.fillStyle = 'rgba(255,255,255,0.12)';
-  ctx.fillRect(0, H - 2, W, 2);
+  if (style === 'poster') drawPoster(ctx, data, color);
+  else if (style === 'minimal') drawMinimal(ctx, data, color);
+  else drawEditorial(ctx, data, color);
 
   return canvas;
-}
-
-// ─── BUILD SHARE DATA ────────────────────────────────────────────────────────
-export function buildShareData({
-  workout,
-  totalWeightMoved,
-  sessionSets,
-  cfRoundsCompleted,
-  duration,
-  streak = 0,
-}) {
-  const type = workout?.type || 'strength';
-  const isCF = ['emom', 'amrap', 'rounds', 'fortime'].includes(type);
-  const isCardio = type === 'cardio';
-  const cf = workout?.cf || {};
-
-  // ── Hero number + label — changes per workout type ──
-  let heroStr, heroLabel, heroSub;
-
-  if (type === 'amrap') {
-    heroStr = String(cfRoundsCompleted || 0);
-    heroLabel = 'ROUNDS';
-    heroSub = `AMRAP ${cf.timeCap || '—'} MIN`;
-  } else if (type === 'fortime') {
-    heroStr = duration || '—';
-    heroLabel = 'FOR TIME';
-    heroSub = null;
-  } else if (type === 'emom') {
-    const total = cf.rounds || cf.timeCap || '—';
-    heroStr = `${cfRoundsCompleted || 0}/${total}`;
-    heroLabel = 'INTERVALS';
-    heroSub = `EMOM`;
-  } else if (type === 'rounds') {
-    heroStr = duration || '—';
-    heroLabel = `${cf.rounds || '—'} ROUNDS FOR TIME`;
-    heroSub = null;
-  } else if (totalWeightMoved > 0) {
-    // Strength — check for Olympic lifts (single heavy sets)
-    const olympicNames = [
-      'snatch',
-      'clean',
-      'jerk',
-      'clean and jerk',
-      'clean & jerk',
-    ];
-    const isOlympic = (workout?.exercises || []).some((e) =>
-      olympicNames.some((o) => e.name.toLowerCase().includes(o)),
-    );
-    if (isOlympic) {
-      // Hero = best single lift weight across all exercises
-      const bestWeight = (workout?.exercises || []).reduce((max, e) => {
-        const top = (e.logs || [])
-          .filter((l) => l.done)
-          .reduce((m, l) => Math.max(m, parseFloat(l.weight) || 0), 0);
-        return Math.max(max, top);
-      }, 0);
-      heroStr =
-        bestWeight > 0
-          ? String(bestWeight)
-          : Math.round(totalWeightMoved).toLocaleString();
-      heroLabel = bestWeight > 0 ? 'KG · BEST LIFT' : 'KG TOTAL';
-      heroSub = null;
-    } else {
-      heroStr = Math.round(totalWeightMoved).toLocaleString();
-      heroLabel = 'KG TOTAL';
-      heroSub = null;
-    }
-  } else {
-    heroStr = duration || '—';
-    heroLabel = 'DURATION';
-    heroSub = null;
-  }
-
-  // ── Movement list ──
-  const exercises = isCF
-    ? (cf.movements || []).slice(0, 6).map((m) => ({
-        name: m.name,
-        stat: m.reps ? `${m.reps} REPS` : '—',
-      }))
-    : isCardio
-      ? []
-      : (workout?.exercises || [])
-          .filter((e) => e.logs?.some((l) => l.done))
-          .slice(0, 6)
-          .map((e) => {
-            const done = e.logs.filter((l) => l.done);
-            const bestReps = done.reduce(
-              (max, l) => Math.max(max, parseInt(l.reps, 10) || 0),
-              0,
-            );
-            return {
-              name: e.name,
-              stat: bestReps
-                ? `${done.length}×${bestReps}`
-                : `${done.length} SETS`,
-            };
-          });
-
-  return {
-    workoutName: workout?.name || 'WORKOUT',
-    date: new Date().toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    }),
-    duration: duration || '—',
-    heroStr,
-    heroLabel,
-    heroSub,
-    sets: sessionSets || 0,
-    exercises,
-    isCF,
-    streak: streak || 0,
-  };
 }

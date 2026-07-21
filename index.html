@@ -551,12 +551,19 @@
         <div class="share-canvas-frame">
           <canvas id="share-canvas"></canvas>
         </div>
-        <!-- Background mode selector -->
-        <div class="share-bg-row">
-          <button class="share-bg-btn active" id="share-bg-dark">Dark</button>
+        <!-- Style + color selectors -->
+        <div class="share-bg-row" id="share-style-row">
+          <button class="share-bg-btn active" data-style="editorial">Editorial</button>
+          <button class="share-bg-btn" data-style="poster">Poster</button>
+          <button class="share-bg-btn" data-style="minimal">Minimal</button>
+        </div>
+        <div class="share-bg-row share-color-row">
+          <button class="share-color-dot active" data-color="#FFFFFF" style="background:#fff" aria-label="White"></button>
+          <button class="share-color-dot" data-color="#FFE01B" style="background:#FFE01B" aria-label="Yellow"></button>
+          <button class="share-color-dot" data-color="#FF3B30" style="background:#FF3B30" aria-label="Red"></button>
           <button class="share-bg-btn" id="share-bg-photo">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            Use Photo
+            Photo
           </button>
           <input type="file" id="share-bg-file" accept="image/*" style="display:none">
         </div>

@@ -194,7 +194,8 @@ let lastFinishedEntry = null;
 
 // ── Share card state ──────────────────────────────────────────────────────────
 let currentShareData = null;
-let currentShareMode = 'dark';
+let currentShareStyle = 'editorial';
+let currentShareColor = '#FFFFFF';
 let currentShareBgImage = null;
 
 // ── CrossFit build state ──────────────────────────────────────────────────────
@@ -423,18 +424,13 @@ document.getElementById('prc-share').addEventListener('click', () => {
     const dur = `${Math.floor(elapsed / 60)}:${(elapsed % 60).toString().padStart(2, '0')}`;
     currentShareData = buildShareData({
       workout: activeWorkout,
-      totalWeightMoved,
-      sessionSets,
-      newPRsThisSession,
       cfRoundsCompleted,
-      cfCurrentRound,
       duration: dur,
       streak: currentStreak(get('workoutHistory') || []),
     });
-    currentShareMode = 'dark';
+    currentShareStyle = get('kilos-share-style') || 'editorial';
+    currentShareColor = get('kilos-share-color') || '#FFFFFF';
     currentShareBgImage = null;
-    document.getElementById('share-bg-dark').classList.add('active');
-    document.getElementById('share-bg-photo').classList.remove('active');
     document.getElementById('share-modal').classList.add('open');
     _renderShareCanvas();
   }
@@ -5474,45 +5470,57 @@ function showShareCard(workout, duration, _entry) {
   // Build the data model for the canvas renderer
   currentShareData = buildShareData({
     workout,
-    totalWeightMoved,
-    sessionSets,
-    newPRsThisSession,
     cfRoundsCompleted,
-    cfCurrentRound,
     duration,
     streak: currentStreak(get('workoutHistory') || []),
   });
-  currentShareMode = 'dark';
+  currentShareStyle = get('kilos-share-style') || 'editorial';
+  currentShareColor = get('kilos-share-color') || '#FFFFFF';
   currentShareBgImage = null;
 
-  // Reset UI state
-  document.getElementById('share-bg-dark').classList.add('active');
+  // Reflect persisted choices in the pickers
+  document.querySelectorAll('#share-style-row .share-bg-btn').forEach((b) => {
+    b.classList.toggle('active', b.dataset.style === currentShareStyle);
+  });
+  document.querySelectorAll('.share-color-dot').forEach((b) => {
+    b.classList.toggle('active', b.dataset.color === currentShareColor);
+  });
   document.getElementById('share-bg-photo').classList.remove('active');
   document.getElementById('share-bg-file').value = '';
 
   document.getElementById('share-modal').classList.add('open');
-
-  // Render immediately
   _renderShareCanvas();
 }
 
 async function _renderShareCanvas() {
   const canvas = document.getElementById('share-canvas');
   if (!canvas || !currentShareData) return;
-  await renderShareCard(
-    canvas,
-    currentShareData,
-    currentShareMode,
-    currentShareBgImage,
-  );
+  await renderShareCard(canvas, currentShareData, {
+    style: currentShareStyle,
+    color: currentShareColor,
+    photo: currentShareBgImage,
+  });
 }
 
-document.getElementById('share-bg-dark').addEventListener('click', () => {
-  currentShareMode = 'dark';
-  currentShareBgImage = null;
-  document.getElementById('share-bg-dark').classList.add('active');
-  document.getElementById('share-bg-photo').classList.remove('active');
-  _renderShareCanvas();
+document.querySelectorAll('#share-style-row .share-bg-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    currentShareStyle = btn.dataset.style;
+    set('kilos-share-style', currentShareStyle);
+    document.querySelectorAll('#share-style-row .share-bg-btn').forEach((b) => {
+      b.classList.toggle('active', b === btn);
+    });
+    _renderShareCanvas();
+  });
+});
+document.querySelectorAll('.share-color-dot').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    currentShareColor = btn.dataset.color;
+    set('kilos-share-color', currentShareColor);
+    document.querySelectorAll('.share-color-dot').forEach((b) => {
+      b.classList.toggle('active', b === btn);
+    });
+    _renderShareCanvas();
+  });
 });
 
 document.getElementById('share-bg-photo').addEventListener('click', () => {
@@ -5526,9 +5534,7 @@ document.getElementById('share-bg-file').addEventListener('change', (e) => {
   const img = new Image();
   img.onload = () => {
     currentShareBgImage = img;
-    currentShareMode = 'photo';
     document.getElementById('share-bg-photo').classList.add('active');
-    document.getElementById('share-bg-dark').classList.remove('active');
     _renderShareCanvas();
   };
   img.src = url;

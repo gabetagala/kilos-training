@@ -7565,3 +7565,18 @@ body {
 .wp-chip.done[data-action]:active {
   background: #d8d8d5;
 }
+
+/* Share color dots */
+.share-color-dot {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+.share-color-dot.active {
+  border-color: var(--white);
+  box-shadow: 0 0 0 2px #161616, 0 0 0 3px var(--white);
+}
