@@ -84,6 +84,9 @@
             <div class="days-row" id="week-days"></div>
           </div>
         </div>
+        <!-- Live/paused session strip — the one source of resume truth -->
+        <button id="resume-strip" class="resume-strip" style="display:none"></button>
+
         <!-- Rest-day card — injected by JS when no session today -->
         <div id="rest-day-card" style="display:none"></div>
 
@@ -385,6 +388,18 @@
         <div class="confirm-actions">
           <button class="confirm-yes" id="btn-finish-yes">Yes, finish</button>
           <button class="confirm-no" id="btn-finish-no">Keep going</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── START-OVER-ACTIVE-SESSION CONFIRM ─── -->
+    <div class="confirm-overlay" id="startover-confirm">
+      <div class="confirm-sheet">
+        <div class="confirm-title">SESSION IN PROGRESS</div>
+        <div class="confirm-sub" id="startover-sub">You have an unfinished session.</div>
+        <div class="confirm-actions">
+          <button class="confirm-no" id="btn-startover-resume">Resume it</button>
+          <button class="confirm-yes danger" id="btn-startover-new">Discard &amp; start new</button>
         </div>
       </div>
     </div>

@@ -132,6 +132,16 @@ function saveActiveState() {
 function loadActiveState() {
   const s = get(ACTIVE_STATE_KEY);
   if (!s?.activeWorkout) return false;
+  // Schema guard: a drifted or corrupt snapshot must not brick boot — a
+  // strength workout without a real exercises array can't render.
+  const w = s.activeWorkout;
+  if (
+    !CF_TYPES.has(w.type) &&
+    w.type !== 'cardio' &&
+    !Array.isArray(w.exercises)
+  ) {
+    return false;
+  }
   activeWorkout = s.activeWorkout;
   currentExIdx = s.currentExIdx || 0;
   currentSetIdx = s.currentSetIdx || 0;
@@ -565,17 +575,51 @@ document
   ?.addEventListener('click', () => goScreen('coaches'));
 
 // ─── TRAIN ────────────────────────────────────────────────────────────────────
+// One source of truth for "is something in progress?" — the classic loop's
+// live workout OR a paused guided session. Home's strip, Train's Resume and
+// the begin-workout guard all read THIS, so they can never disagree.
+function activeSessionInfo() {
+  if (activeWorkout) {
+    return { kind: 'classic', name: activeWorkout.name };
+  }
+  const saved = get(REHAB_STATE_KEY);
+  if (saved?.sessionId) {
+    const session = getGuidedSession(saved.sessionId);
+    if (session) return { kind: 'guided', name: session.name, session, saved };
+  }
+  return null;
+}
+function resumeActiveSession() {
+  const info = activeSessionInfo();
+  if (!info) return;
+  if (info.kind === 'classic') goScreen('active');
+  else openRehabPlayer(info.session, info.saved);
+}
+
 // The movement launcher (Quick Start / Legends / CrossFit / Custom / Resume).
 function renderTrain() {
+  const info = activeSessionInfo();
   const sub = document.getElementById('resume-sub');
-  if (sub) {
-    sub.textContent = activeWorkout ? activeWorkout.name : 'No active session';
-  }
+  if (sub) sub.textContent = info ? info.name : 'No active session';
   const resumeBtn = document.getElementById('btn-resume');
   if (resumeBtn) {
-    resumeBtn.classList.toggle('resume-active', !!activeWorkout);
-    resumeBtn.style.order = activeWorkout ? '-1' : '';
+    resumeBtn.style.display = info ? '' : 'none';
+    resumeBtn.classList.toggle('resume-active', !!info);
+    resumeBtn.style.order = info ? '-1' : '';
   }
+}
+function renderResumeStrip() {
+  const el = document.getElementById('resume-strip');
+  if (!el) return;
+  const info = activeSessionInfo();
+  if (!info) {
+    el.style.display = 'none';
+    return;
+  }
+  el.style.display = '';
+  el.innerHTML = `<span class="rs-label">${
+    info.kind === 'classic' ? 'SESSION IN PROGRESS' : 'PAUSED SESSION'
+  }</span><span class="rs-name">${info.name}</span><span class="rs-arrow">→</span>`;
 }
 
 // ─── HOME ─────────────────────────────────────────────────────────────────────
@@ -669,6 +713,7 @@ function matchWordmarkWidth() {
 }
 
 function renderHome() {
+  renderResumeStrip();
   renderWeekStrip();
   renderMuscleFrequency();
   renderRecent();
@@ -2729,6 +2774,24 @@ document.getElementById('rp-w-plus').addEventListener('click', () => {
   rhRenderWeight();
 });
 
+document.getElementById('btn-startover-resume').addEventListener('click', () => {
+  document.getElementById('startover-confirm').classList.remove('open');
+  pendingBegin = null;
+  resumeActiveSession();
+});
+document.getElementById('btn-startover-new').addEventListener('click', () => {
+  document.getElementById('startover-confirm').classList.remove('open');
+  activeWorkout = null;
+  try {
+    localStorage.removeItem(ACTIVE_STATE_KEY);
+    localStorage.removeItem(REHAB_STATE_KEY);
+  } catch {}
+  if (pendingBegin) {
+    const { name, type, exercises } = pendingBegin;
+    pendingBegin = null;
+    beginWorkoutNow(name, type, exercises);
+  }
+});
 document.getElementById('btn-discard-yes').addEventListener('click', () => {
   try {
     localStorage.removeItem(REHAB_STATE_KEY);
@@ -2940,10 +3003,10 @@ function quickStartWorkout(muscle) {
 document
   .getElementById('btn-custom')
   .addEventListener('click', () => goScreen('build'));
-document.getElementById('btn-resume').addEventListener('click', () => {
-  if (activeWorkout) goScreen('active');
-  else goScreen('build');
-});
+document.getElementById('btn-resume').addEventListener('click', resumeActiveSession);
+document
+  .getElementById('resume-strip')
+  ?.addEventListener('click', resumeActiveSession);
 
 // ─── COACHES ──────────────────────────────────────────────────────────────────
 function renderCoaches() {
@@ -3720,7 +3783,19 @@ document.getElementById('np-btn-go-create').addEventListener('click', () => {
 });
 
 // ─── ACTIVE WORKOUT ───────────────────────────────────────────────────────────
+let pendingBegin = null;
 function beginWorkout(name, type, exercises) {
+  const info = activeSessionInfo();
+  if (info) {
+    pendingBegin = { name, type, exercises };
+    document.getElementById('startover-sub').textContent =
+      `${info.name} is unfinished. Starting new discards it.`;
+    document.getElementById('startover-confirm').classList.add('open');
+    return;
+  }
+  beginWorkoutNow(name, type, exercises);
+}
+function beginWorkoutNow(name, type, exercises) {
   newPRsThisSession = [];
   activeWorkout = { name, type, exercises };
   currentExIdx = 0;
@@ -4934,7 +5009,32 @@ function finishWorkout() {
     entry.cfMovements = (completed.cf?.movements || []).map((m) => m.name);
   }
   history.push(entry);
-  set('workoutHistory', history);
+  // The finished workout must never celebrate a save that didn't happen —
+  // write raw (the get/set helper swallows quota errors), retry once after
+  // pruning non-essential keys, and if it STILL fails keep the session open.
+  let historySaved = false;
+  try {
+    localStorage.setItem('workoutHistory', JSON.stringify(history));
+    historySaved = true;
+  } catch {
+    try {
+      localStorage.removeItem('kilos-launch-workout');
+      localStorage.removeItem(`${ACTIVE_STATE_KEY}-bak`);
+      localStorage.setItem('workoutHistory', JSON.stringify(history));
+      historySaved = true;
+    } catch {}
+  }
+  if (!historySaved) {
+    history.pop();
+    const note = document.createElement('div');
+    note.className = 'save-fail-note';
+    note.setAttribute('role', 'alert');
+    note.textContent =
+      "Couldn't save to this device — your session is still open. Free up storage and finish again.";
+    document.body.appendChild(note);
+    setTimeout(() => note.remove(), 6000);
+    return; // active state intact; nothing lost
+  }
 
   // Auto-sync to cloud if signed in
   pushData();
@@ -6029,11 +6129,19 @@ function showCrashScreen(err) {
       <p class="kc-body">Your last workout is saved on this device — nothing was
         lost. Reload to pick up where you left off.</p>
       <button class="kc-reload" id="kc-reload">Reload</button>
+      <button class="kc-fresh" id="kc-fresh">Start fresh — your history is safe</button>
     </div>`;
   document.body.appendChild(el);
   document
     .getElementById('kc-reload')
     .addEventListener('click', () => window.location.reload());
+  document.getElementById('kc-fresh').addEventListener('click', () => {
+    try {
+      localStorage.removeItem(ACTIVE_STATE_KEY);
+      localStorage.removeItem(REHAB_STATE_KEY);
+    } catch {}
+    window.location.reload();
+  });
 }
 
 // Restore in-progress workout from localStorage (task #1). Wrapped so a boot
@@ -6047,8 +6155,25 @@ try {
   renderHome();
   renderCoaches();
   renderProfileBtn();
+  sessionStorage.removeItem('kilos-boot-retry'); // clean boot → arm the retry again
 } catch (err) {
-  showCrashScreen(err);
+  // One shot at self-healing: quarantine the active-session snapshot (the
+  // usual culprit after a schema change) and reload once. The crash screen
+  // only shows when a CLEAN boot also fails.
+  let retrying = false;
+  try {
+    if (!sessionStorage.getItem('kilos-boot-retry')) {
+      sessionStorage.setItem('kilos-boot-retry', '1');
+      const snap = localStorage.getItem(ACTIVE_STATE_KEY);
+      if (snap != null) {
+        localStorage.setItem(`${ACTIVE_STATE_KEY}-bak`, snap);
+        localStorage.removeItem(ACTIVE_STATE_KEY);
+      }
+      retrying = true;
+      window.location.reload();
+    }
+  } catch {}
+  if (!retrying) showCrashScreen(err);
   throw err; // still surface it to monitoring / console
 }
 
