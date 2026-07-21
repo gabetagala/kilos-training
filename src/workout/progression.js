@@ -1,8 +1,16 @@
 // Progression math — pure, no DOM, no storage. Unit-tested in
 // tests/unit/progression.test.js. Extracted from main.js per STANDARDS.md §4.
 
+// Rep prescriptions are ranges ("5–8", "8–12/side") — double progression
+// gates on the TOP of the range: every set at the top → add load. Gating on
+// the bottom made +2.5kg fire on every session regardless of performance.
+export function repTargetTop(targetRepsStr) {
+  const nums = String(targetRepsStr ?? '').match(/\d+/g);
+  return nums?.length ? Number.parseInt(nums[nums.length - 1], 10) : null;
+}
+
 // Suggest the next working weight based on the previous session.
-// If the lifter hit all target reps last time → add 2.5 kg.
+// If the lifter hit the TOP of the rep range on every set → add 2.5 kg.
 // If they fell short on any set → same weight, keep working.
 // Returns a number (kg) or null when there's nothing to base it on.
 export function suggestNextWeight(lastLogs, targetRepsStr) {
@@ -12,7 +20,7 @@ export function suggestNextWeight(lastLogs, targetRepsStr) {
     .filter((w) => w > 0);
   if (!weights.length) return null;
   const topW = Math.max(...weights);
-  const target = parseInt(targetRepsStr, 10) || 8;
+  const target = repTargetTop(targetRepsStr) ?? 8;
   const allMet = lastLogs.every(
     (l) => !l.reps || parseInt(l.reps, 10) >= target,
   );
@@ -42,10 +50,10 @@ export function bestE1RM(logs) {
   return best;
 }
 
-// Did the lifter meet the rep target on every logged set last session?
-// Drives the "+2.5kg from last session" vs "hit all reps first" copy.
+// Did the lifter meet the TOP of the rep range on every logged set last
+// session? Drives the "+2.5kg from last session" vs "hit all reps first" copy.
 export function allRepsMet(lastLogs, targetRepsStr) {
   if (!lastLogs?.length) return false;
-  const target = parseInt(targetRepsStr, 10) || 8;
+  const target = repTargetTop(targetRepsStr) ?? 8;
   return lastLogs.every((l) => !l.reps || parseInt(l.reps, 10) >= target);
 }

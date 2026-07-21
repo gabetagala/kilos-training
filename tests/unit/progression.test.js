@@ -3,6 +3,7 @@ import {
   allRepsMet,
   bestE1RM,
   estimate1RM,
+  repTargetTop,
   suggestNextWeight,
 } from '../../src/workout/progression.js';
 
@@ -113,5 +114,39 @@ describe('bestE1RM', () => {
     expect(bestE1RM([])).toBeNull();
     expect(bestE1RM(null)).toBeNull();
     expect(bestE1RM([{ weight: '0', reps: '0' }])).toBeNull();
+  });
+});
+
+describe('repTargetTop — range prescriptions gate on the TOP', () => {
+  it('parses the upper bound of a range', () => {
+    expect(repTargetTop('5–8')).toBe(8);
+    expect(repTargetTop('8–12/side')).toBe(12);
+    expect(repTargetTop('12-15')).toBe(15);
+  });
+
+  it('passes plain numbers through and nulls junk', () => {
+    expect(repTargetTop('8')).toBe(8);
+    expect(repTargetTop(8)).toBe(8);
+    expect(repTargetTop('')).toBeNull();
+    expect(repTargetTop(undefined)).toBeNull();
+  });
+
+  it('suggestNextWeight only escalates at the top of the range', () => {
+    const bottomOnly = [
+      { weight: '60', reps: '5' },
+      { weight: '60', reps: '5' },
+    ];
+    const topHit = [
+      { weight: '60', reps: '8' },
+      { weight: '60', reps: '8' },
+    ];
+    expect(suggestNextWeight(bottomOnly, '5–8')).toBe(60);
+    expect(suggestNextWeight(topHit, '5–8')).toBe(62.5);
+  });
+
+  it('legacy range-string reps ("5–8" stored as reps) never auto-escalate', () => {
+    const legacy = [{ weight: '60', reps: '5–8' }];
+    expect(suggestNextWeight(legacy, '5–8')).toBe(60);
+    expect(allRepsMet(legacy, '5–8')).toBe(false);
   });
 });

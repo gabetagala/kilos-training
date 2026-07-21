@@ -15,7 +15,12 @@ import {
 } from './personalization.js';
 import { initMonitoring, reportError } from './monitoring.js';
 import { buildShareData, renderShareCard } from './shareCard.js';
-import { estimate1RM, suggestNextWeight } from './workout/progression.js';
+import {
+  allRepsMet,
+  estimate1RM,
+  repTargetTop,
+  suggestNextWeight,
+} from './workout/progression.js';
 import {
   buildStepQueue,
   estimateSessionMins,
@@ -1056,6 +1061,11 @@ let rhInterval = null;
 let rhStartedAt = null;
 let rhCounted = new Set(); // step indices whose set already counted (idempotent)
 let rhLiftSets = []; // [{weight, reps}] logged RDL sets
+// Two-stage logging for range prescriptions ("5–8"): first tap flips the
+// stepper to reps (prefilled at the range top), second tap logs the truth.
+// null = weight stage. Exact prescriptions stay single-tap.
+let rhPendingReps = null;
+const repsIsRange = (r) => /\d\D+\d/.test(String(r ?? ''));
 let rhWeightKg = 40;
 let rhLastBeepSec = null;
 const rhTempoMem = { key: null }; // cue dedupe for timed tempo sets
@@ -1421,10 +1431,11 @@ function rhRenderPlayBtn() {
 }
 
 function rhRenderWeight() {
-  const repMode = rhStep()?.logReps;
+  const repMode = rhStep()?.logReps || rhPendingReps !== null;
+  const val = rhPendingReps !== null ? rhPendingReps : rhWeightKg;
   document.getElementById('rp-w-val').textContent = repMode
-    ? rhWeightKg
-    : toDisplayWeight(rhWeightKg);
+    ? val
+    : toDisplayWeight(val);
   document.querySelector('.rp-w-unit').textContent = repMode
     ? 'reps'
     : weightUnit();
@@ -1830,6 +1841,7 @@ function rhRenderStep() {
   // Countdown vs self-paced set (with or without a weight to log)
   document.getElementById('rp-clock').style.display = step.manual ? 'none' : '';
   document.getElementById('rp-lift').style.display = step.manual ? '' : 'none';
+  rhPendingReps = null; // arriving at any step resets the two-stage logger
   if (step.manual) {
     const showWeight = step.logWeight !== false;
     document.querySelector('.rp-weight-row').style.display = showWeight
@@ -2600,14 +2612,34 @@ document.getElementById('rp-set-done').addEventListener('click', () => {
   const step = rhStep();
   if (!step?.manual) return;
   rhStopGuide(true);
+  // Stage 1 for range prescriptions: confirm what ACTUALLY happened before
+  // it enters history — "5–8" is a plan, not a result.
+  if (
+    step.logWeight !== false &&
+    !step.logReps &&
+    repsIsRange(step.reps) &&
+    rhPendingReps === null
+  ) {
+    rhPendingReps = repTargetTop(step.reps) ?? 8;
+    rhRenderWeight();
+    document.getElementById('rp-set-done').textContent = 'Log reps ✓';
+    return;
+  }
   if (step.logWeight !== false) {
     const ex = GUIDED_EXERCISES[step.exId];
+    const repsDone =
+      rhPendingReps !== null
+        ? rhPendingReps
+        : step.logReps
+          ? rhWeightKg
+          : Number.parseInt(step.reps, 10) || 0;
     rhLiftSets.push({
       exId: step.exId,
       name: ex?.name || step.exId,
       weight: step.logReps ? 0 : rhWeightKg,
-      reps: step.logReps ? rhWeightKg : step.reps,
+      reps: repsDone,
     });
+    rhPendingReps = null;
     saveGuidedWeight(step.exId, rhWeightKg);
     if (step.exId === 'rdl') set(REHAB_RDL_KEY, rhWeightKg);
     // PRs are part of the lifting program's scoreboard (not the rehab's).
@@ -2619,13 +2651,9 @@ document.getElementById('rp-set-done').addEventListener('click', () => {
       newPRsThisSession.push({
         name: ex?.name || step.exId,
         weight: rhWeightKg,
-        reps: parseInt(step.reps, 10) || 0,
+        reps: repsDone,
       });
-      showPRToast(
-        ex?.name || step.exId,
-        rhWeightKg,
-        parseInt(step.reps, 10) || 0,
-      );
+      showPRToast(ex?.name || step.exId, rhWeightKg, repsDone);
     }
   }
   rhCounted.add(rhIdx);
@@ -2636,11 +2664,21 @@ document.getElementById('rp-set-done').addEventListener('click', () => {
   if (!wasLast && !rhStep()?.manual) rhPlay();
 });
 document.getElementById('rp-w-minus').addEventListener('click', () => {
+  if (rhPendingReps !== null) {
+    rhPendingReps = Math.max(0, rhPendingReps - 1);
+    rhRenderWeight();
+    return;
+  }
   const inc = rhStep()?.logReps ? 1 : 2.5;
   rhWeightKg = Math.max(rhStep()?.logReps ? 1 : 0, rhWeightKg - inc);
   rhRenderWeight();
 });
 document.getElementById('rp-w-plus').addEventListener('click', () => {
+  if (rhPendingReps !== null) {
+    rhPendingReps += 1;
+    rhRenderWeight();
+    return;
+  }
   rhWeightKg += rhStep()?.logReps ? 1 : 2.5;
   rhRenderWeight();
 });
@@ -4176,11 +4214,7 @@ function renderSetLog() {
   const rows = document.getElementById('set-log-rows');
   // Overload hint: show specific weight + rep prescription
   const lastLogs = lastSession || [];
-  const lastAllMet =
-    lastLogs.length > 0 &&
-    lastLogs.every(
-      (l) => !l.reps || parseInt(l.reps, 10) >= (parseInt(ex.reps, 10) || 8),
-    );
+  const lastAllMet = allRepsMet(lastLogs, ex.reps);
   const dispSugg = suggestion
     ? isLbs()
       ? toDisplayWeight(suggestion)
