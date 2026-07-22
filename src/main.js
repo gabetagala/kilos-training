@@ -6297,7 +6297,8 @@ function renderProfilePane() {
 // localStorage (all training data) is untouched.
 {
   const stamp = document.getElementById('build-stamp');
-  if (stamp) stamp.textContent = `Build ${import.meta.env.KILOS_BUILD || 'dev'}`;
+  if (stamp)
+    stamp.textContent = `Version ${import.meta.env.KILOS_BUILD || 'dev'} · ${import.meta.env.KILOS_COMMIT || '—'}`;
   document
     .getElementById('btn-check-update')
     ?.addEventListener('click', async () => {

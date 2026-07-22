@@ -8259,3 +8259,12 @@ body {
 #rehab-player .rp-coach-row {
   padding: 5px 0 4px;
 }
+
+/* Version row — lives right under Check for update, not in the small print */
+.prof-version {
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--grey);
+  padding: 4px 0 10px;
+}

@@ -1,12 +1,24 @@
+import { execSync } from 'node:child_process'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const commit =
+  process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ||
+  (() => {
+    try {
+      return execSync('git rev-parse --short HEAD').toString().trim()
+    } catch {
+      return 'local'
+    }
+  })()
+
 export default defineConfig({
   define: {
-    // build stamp for the Athlete page's update row
+    // build stamp + commit for the Athlete page's version row
     'import.meta.env.KILOS_BUILD': JSON.stringify(
       new Date().toISOString().slice(0, 16).replace('T', ' '),
     ),
+    'import.meta.env.KILOS_COMMIT': JSON.stringify(commit),
   },
   server: {
     port: 2100,
