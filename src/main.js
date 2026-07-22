@@ -236,6 +236,9 @@ function beep(freq, duration) {
   try {
     if (!audioCtx)
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // iOS/PWA suspends the context after a lock/background/idle stretch — a
+    // countdown that resumes into a suspended context is silent. Wake it first.
+    if (audioCtx.state === 'suspended') audioCtx.resume();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.connect(gain);
@@ -258,6 +261,7 @@ function beep(freq, duration) {
 function ensureCtx() {
   if (!audioCtx)
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
   return audioCtx;
 }
 function tickNote(t, freq, dur, gain, type = 'triangle') {
@@ -3000,11 +3004,15 @@ document.getElementById('btn-discard-no').addEventListener('click', () => {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     if (rhSession) rhPersist();
-  } else if (rhSession && rhRunning) {
-    rhAcquireWakeLock();
-    // iOS suspends the AudioContext in the background — wake it with the tab
+  } else {
+    // iOS suspends the AudioContext in the background — wake it on ANY return to
+    // foreground so the next countdown/rest-over beep actually sounds (not just
+    // the rehab player: the strength/CF rest timer relies on this too).
     if (audioCtx?.state === 'suspended') audioCtx.resume();
-    rhTick(); // catch up instantly after a backgrounded stretch
+    if (rhSession && rhRunning) {
+      rhAcquireWakeLock();
+      rhTick(); // catch up instantly after a backgrounded stretch
+    }
   }
 });
 
@@ -5024,7 +5032,7 @@ function startTimer(seconds, phase) {
 
       // AMRAP: time's up
       if (timerPhase === 'amrap') {
-        beep(660, 0.15);
+        setTimeout(() => beep(660, 0.15), 300); // after the 880 lands — a two-note, not a clash
         setTimerText('DONE', 'TIME UP');
         const el = document.getElementById('ring-time');
         el.classList.remove('tick');
@@ -5034,8 +5042,9 @@ function startTimer(seconds, phase) {
         return;
       }
 
-      // Standard rest/work
-      beep(660, 0.15);
+      // Standard rest/work — second note delayed so it reads as a rising
+      // "da-DUM", not two tones stacked at the same instant.
+      setTimeout(() => beep(660, 0.15), 300);
       const doneWord = timerPhase === 'rest' ? 'GO' : 'DONE';
       const doneLbl = timerPhase === 'rest' ? 'REST OVER' : 'SET DONE';
       setTimerText(doneWord, doneLbl);
@@ -6647,8 +6656,21 @@ function syncThemeColor() {
     meta.setAttribute('content', color);
   }
 }
+// The tab bar has no place mid-session — the active workout owns the whole
+// screen (Hevy/Strong both hide it during a live session). Hidden purely on the
+// active screen; overlays already sit above the nav on their own z-layer.
+function syncNavVisibility() {
+  const nav = document.getElementById('nav');
+  if (!nav) return;
+  const onActive = document.querySelector('.screen.active')?.id === 'active';
+  nav.classList.toggle('nav-hidden', onActive);
+}
+function syncChrome() {
+  syncThemeColor();
+  syncNavVisibility();
+}
 {
-  const tcObserver = new MutationObserver(syncThemeColor);
+  const tcObserver = new MutationObserver(syncChrome);
   for (const el of [
     document.getElementById('rehab-player'),
     document.getElementById('workout-summary'),
@@ -6659,5 +6681,5 @@ function syncThemeColor() {
       tcObserver.observe(el, { attributes: true, attributeFilter: ['class'] });
     }
   }
-  syncThemeColor();
+  syncChrome();
 }

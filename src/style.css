@@ -580,6 +580,10 @@ body {
   display: flex;
   padding: 10px 0 max(10px, calc(env(safe-area-inset-bottom) - 16px));
 }
+/* Mid-session the tab bar is hidden — the active workout owns the screen. */
+#nav.nav-hidden {
+  display: none;
+}
 .nav-btn {
   flex: 1;
   display: flex;
@@ -651,6 +655,25 @@ body {
   position: relative;
   overflow: hidden;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+/* iOS standalone forces WHITE status-bar glyphs (black-translucent) and the
+   cream hero runs under them — the clock/battery would wash out. A soft scrim
+   confined to the status-bar inset restores contrast without a hard "bar" edge;
+   zero-height (fades to nothing) on browsers/devices with no top inset. */
+.home-hero::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top);
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.22),
+    rgba(0, 0, 0, 0)
+  );
+  pointer-events: none;
+  z-index: 1;
 }
 /* Flip child colours to dark-on-light */
 .home-hero .home-header {
@@ -2040,9 +2063,9 @@ body {
    ACTIVE WORKOUT — BOLD TYPE TIMER
 ══════════════════════════════════════════ */
 #active {
-  /* bottom clearance so Finish can scroll above the fixed nav — without it
-     AMRAP/For Time/cardio sessions can never be ended on phone widths */
-  padding: 0 0 calc(96px + env(safe-area-inset-bottom));
+  /* Nav is hidden during a session (see #nav.nav-hidden), so the screen only
+     needs to clear the home indicator — Finish rides just above it. */
+  padding: 0 0 max(20px, env(safe-area-inset-bottom));
   background: var(--bg);
 }
 
@@ -2143,8 +2166,9 @@ body {
 
 /* Exercise display — compact */
 .exercise-display {
-  /* now the first element on the screen — carry the safe-area top inset */
-  padding: max(20px, calc(env(safe-area-inset-top) + 8px)) 24px 4px;
+  /* First element on screen — hug the hardware like the player (.rp-overlay):
+     ride just under the Dynamic Island, not a full inset PLUS 8px of dead band. */
+  padding: max(16px, calc(env(safe-area-inset-top) - 8px)) 24px 4px;
   flex-shrink: 0;
 }
 .ex-current-name {
