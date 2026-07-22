@@ -1,5 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <defs>
+    <pattern id="rubber" patternUnits="userSpaceOnUse" width="10" height="10">
+      <rect width="10" height="10" fill="#ffffff"/>
+      <circle cx="5" cy="5" r="1.0" fill="#222222" opacity="0.18"/>
+    </pattern>
     <!-- Subtle radial glow in the icon area -->
     <radialGradient id="glow" cx="27%" cy="50%" r="28%">
       <stop offset="0%" stop-color="#3a3a3a"/>
@@ -27,16 +31,19 @@
   ══════════════════════ -->
   <!-- Icon squircle (240×240 centered in left column x=70..320, y=195..435) -->
   <rect x="70" y="195" width="240" height="240" rx="54" ry="54" fill="#2a2a2a"/>
-  <!-- G mark — bold Impact letter, optically centered in the squircle -->
-  <text
-    x="190" y="385"
-    font-family="Impact, 'Arial Black', 'Helvetica Neue', Arial, sans-serif"
-    font-size="220"
-    font-weight="900"
-    fill="#ffffff"
-    text-anchor="middle"
-    letter-spacing="-4"
-  >G</text>
+  <!-- Tiled K mark — the favicon grid, scaled into the squircle -->
+  <g transform="translate(95,195) scale(0.6897) translate(-118,-82)" fill="url(#rubber)">
+    <rect x="118" y="82"  width="60" height="60" rx="6"/>
+    <rect x="334" y="82"  width="60" height="60" rx="6"/>
+    <rect x="118" y="154" width="60" height="60" rx="6"/>
+    <rect x="262" y="154" width="60" height="60" rx="6"/>
+    <rect x="118" y="226" width="60" height="60" rx="6"/>
+    <rect x="190" y="226" width="60" height="60" rx="6"/>
+    <rect x="118" y="298" width="60" height="60" rx="6"/>
+    <rect x="262" y="298" width="60" height="60" rx="6"/>
+    <rect x="118" y="370" width="60" height="60" rx="6"/>
+    <rect x="334" y="370" width="60" height="60" rx="6"/>
+  </g>
 
   <!-- ══════════════════════
        RIGHT — Text
