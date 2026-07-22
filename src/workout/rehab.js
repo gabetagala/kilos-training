@@ -31,36 +31,48 @@
 export const REHAB_EXERCISES = {
   'dead-hang': {
     name: 'Dead Hang',
+    feel: 'A long, opening stretch down the spine',
+    avoid: 'Shrugging — let the shoulders unpack',
     cue: 'Grip the bar, feet off the floor, let everything go loose. Slow breaths.',
     why: 'Decompression — the "opened up" feeling in the lower back.',
     yt: 'dead hang lower back decompression',
   },
   'mcgill-curlup': {
     name: 'McGill Curl-Up',
+    feel: 'Front abs bracing — neck stays easy',
+    avoid: 'Chin tucking, spine bending to lift',
     cue: 'Hands under the low back, one knee bent. Lift head + shoulders barely off the floor — the spine never bends.',
     why: 'Front-side stiffness without spine flexion.',
     yt: 'mcgill curl up form',
   },
   'side-plank': {
     name: 'Side Plank',
+    feel: 'The side of your waist holding you up',
+    avoid: 'Hips sagging toward the floor',
     cue: 'Elbow under shoulder, hips tall. One straight line from ear to ankle.',
     why: 'Side-core stiffness with near-zero disc load.',
     yt: 'side plank mcgill big 3',
   },
   'bird-dog': {
     name: 'Bird Dog',
+    feel: 'Glute + upper back, belly braced',
+    avoid: 'Hips rotating as the leg reaches',
     cue: 'Opposite arm + leg out. Reach long, not high — hips stay square, spine stays still.',
     why: 'Back-side stiffness while the limbs move around a quiet spine.',
     yt: 'bird dog exercise mcgill',
   },
   'glute-bridge': {
     name: 'Glute Bridge',
+    feel: 'Glutes lifting, hamstrings helping',
+    avoid: 'Low back arching at the top',
     cue: 'Drive through the heels — up, squeeze two seconds, lower slow. Ribs down.',
     why: 'Wakes up glutes that under-fire, so the low back stops compensating.',
     yt: 'glute bridge form',
   },
   rdl: {
     name: 'Romanian Deadlift',
+    feel: 'Hamstrings loading as hips go back',
+    avoid: 'Bar drifting away, back rounding',
     repTempo: [
       ['DOWN', 3],
       ['UP', 1],
@@ -73,18 +85,24 @@ export const REHAB_EXERCISES = {
   },
   'single-leg-bridge': {
     name: 'Single-Leg Bridge',
+    feel: 'The down-leg glute working alone',
+    avoid: 'Pelvis tipping — hips stay level',
     cue: 'One foot down, other leg straight and in line with your body. Drive through the heel — hips stay level.',
     why: 'Each hip works alone — the strong side can’t cover for the weak one.',
     yt: 'single leg glute bridge form',
   },
   'hamstring-stretch': {
     name: 'Hamstring Stretch',
+    feel: 'A soft pull down the back of the thigh',
+    avoid: 'Yanking — pain means too far',
     cue: 'On your back, one leg up, hands behind the thigh. Gentle pull — breathe into it.',
     why: 'Tight hamstrings drag the pelvis and load the low back.',
     yt: 'lying hamstring stretch',
   },
   'hip-flexor-stretch': {
     name: 'Hip Flexor Stretch',
+    feel: 'Stretch across the front of the rear hip',
+    avoid: 'Arching the low back to fake range',
     cue: 'Half-kneeling, tuck the tail, shift hips forward. Stretch in the front of the rear hip.',
     why: 'Tight hip flexors tilt the pelvis and cramp the hinge.',
     yt: 'half kneeling hip flexor stretch',
@@ -482,6 +500,11 @@ export function sessionOverview(session, swaps = {}) {
       return {
         title: members.join(' + '),
         detail: `${block.rounds} rounds · ${bits}`,
+        rounds: block.rounds,
+        members: rm.map((r, i) => ({
+          name: name(r.ex),
+          detail: block.members[i]?.secs ? `${block.members[i].secs}s` : r.reps,
+        })),
       };
     }
     const side = block.perSide ? ' / side' : '';

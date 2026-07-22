@@ -623,20 +623,6 @@ function renderTrain() {
 // same quiet-confidence rules: earned, never loud, never guilt.
 
 
-function matchWordmarkWidth() {
-  const trainingEl = document.querySelector('.hw-training');
-  const kilosEl = document.querySelector('.hw-kilos');
-  if (!trainingEl || !kilosEl || trainingEl.dataset.split) return;
-  trainingEl.dataset.split = '1';
-  trainingEl.innerHTML = [...'TRAINING']
-    .map((l) => `<span>${l}</span>`)
-    .join('');
-  // Pin TRAINING to KILOS's measured width and kill the static tracking —
-  // flex space-between then justifies the letters exactly edge-to-edge.
-  trainingEl.style.letterSpacing = '0';
-  trainingEl.style.width = `${kilosEl.getBoundingClientRect().width}px`;
-}
-
 // Day-glance hero: the date as the headline, the day as a sentence.
 function renderDayHero() {
   const now = new Date();
@@ -648,11 +634,20 @@ function renderDayHero() {
   const name = getUserName() || 'Athlete';
   const hour = now.getHours();
   const salut = hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening';
+  // The greeting IS the poster: two full-width lines, details drop below.
+  const helloEl = document.getElementById('dg-hello');
+  if (helloEl) {
+    helloEl.innerHTML = `
+      <span class="dg-line" id="dg-l1">${salut.toUpperCase()},</span>
+      <span class="dg-line" id="dg-l2">${name.toUpperCase()}.</span>`;
+    fitLineFont(document.getElementById('dg-l1'), 78, 36);
+    fitLineFont(document.getElementById('dg-l2'), 78, 36);
+  }
   const b = (t) => `<strong>${t}</strong>`;
   const history = get('workoutHistory') || [];
   let line;
   if (!history.length) {
-    line = `${salut}, ${b(name)}. Day one — ${b('rehab + guided lifting')} is ready.`;
+    line = `Day one — ${b('rehab + guided lifting')} is ready.`;
   } else {
     const plan = todayPlan().filter((i) => i.sessionId);
     const mins = plan.reduce((sum, i) => {
@@ -661,8 +656,8 @@ function renderDayHero() {
     }, 0);
     const labels = plan.map((i) => b(i.label)).join(' + ');
     line = plan.length
-      ? `${salut}, ${b(name)}. ${labels} on today's plan — about ${b(`${mins} min`)} all in.`
-      : `${salut}, ${b(name)}. Nothing on the plan — an off day, on purpose.`;
+      ? `${labels} on today's plan — about ${b(`${mins} min`)} all in.`
+      : `Nothing on the plan — an off day, on purpose.`;
   }
   sumEl.innerHTML = line;
 }
@@ -713,7 +708,6 @@ function renderHome() {
   renderDataNotice();
 
 
-  matchWordmarkWidth();
 }
 
 
@@ -1988,6 +1982,17 @@ function rhRenderStep() {
     moreEl.style.display =
       cueEl.scrollHeight > cueEl.clientHeight + 2 ? '' : 'none';
   }
+  // Coach rows — where to feel it, what gives the rep away.
+  const coachEl = document.getElementById('rp-coach');
+  if (coachEl) {
+    coachEl.style.display = ex.feel || ex.avoid ? '' : 'none';
+    const feelEl = document.getElementById('rp-coach-feel');
+    const avoidEl = document.getElementById('rp-coach-avoid');
+    feelEl.textContent = ex.feel || '';
+    avoidEl.textContent = ex.avoid || '';
+    feelEl.parentElement.style.display = ex.feel ? '' : 'none';
+    avoidEl.parentElement.style.display = ex.avoid ? '' : 'none';
+  }
   document.getElementById('rp-phase').textContent = step.phase;
 
   // Countdown vs self-paced set (with or without a weight to log)
@@ -2606,6 +2611,72 @@ function renderCheckin() {
   });
 }
 
+// ── Session preview — what's inside, before you press go ────────────────────
+let _spSession = null;
+let _spAfter = null;
+function openSessionPreview(session, after = null) {
+  _spSession = session;
+  _spAfter = after;
+  document.getElementById('sp-title').textContent = session.name.toUpperCase();
+  document.getElementById('sp-meta').textContent =
+    `~${estimateSessionMins(session)} MIN · ${session.blocks.length} BLOCKS · ${(session.blurb || session.freq || '').toUpperCase().replace(/\.$/, '')}`;
+  const rows = sessionOverview(session, getSwaps());
+  const prettyDetail = (d) =>
+    d
+      .replace(/^(\d+) × (.+)$/, '$1 SETS × $2 REPS')
+      .replace(/\/side/gi, ' / SIDE')
+      .toUpperCase();
+  document.getElementById('sp-list').innerHTML = rows
+    .map((r) => {
+      if (r.members?.length > 1) {
+        // per-side members appear once, marked PER SIDE
+        const seen = new Map();
+        for (const m of r.members) {
+          const key = `${m.name}|${m.detail}`;
+          if (seen.has(key)) seen.get(key).perSide = true;
+          else seen.set(key, { ...m });
+        }
+        const collapsed = [...seen.values()].map((m) => ({
+          ...m,
+          detail: `${m.detail || ''}${m.perSide ? ' · PER SIDE' : ''}`,
+        }));
+        const lines = collapsed
+          .map(
+            (m) => `
+        <div class="sp-row-name">${m.name}</div>
+        <div class="sp-row-sub">${prettyDetail(String(m.detail || ''))}</div>`,
+          )
+          .join('');
+        return `
+    <div class="sp-row">
+      <div class="sp-row-kicker">SUPERSET · ${r.rounds} ROUNDS</div>${lines}
+    </div>`;
+      }
+      return `
+    <div class="sp-row">
+      <div class="sp-row-name">${r.title}</div>
+      <div class="sp-row-sub">${prettyDetail(r.detail)}</div>
+    </div>`;
+    })
+    .join('');
+  const afterEl = document.getElementById('sp-after');
+  afterEl.textContent = after ? `THEN — ${after.toUpperCase()}` : '';
+  afterEl.style.display = after ? '' : 'none';
+  openPage('session-preview');
+  fitLineFont(document.querySelector('.sp-title'), 84, 30);
+}
+document.getElementById('sp-back').addEventListener('click', () => {
+  closePage('session-preview');
+});
+document.getElementById('sp-start').addEventListener('click', () => {
+  if (!_spSession) return;
+  closePage('session-preview');
+  try {
+    localStorage.removeItem(REHAB_STATE_KEY);
+  } catch {}
+  openRehabPlayer(_spSession);
+});
+
 // ── Rehab page (program overview + resume) ────────────────────────────────────
 // The page's first job: today's action above the fold. Resume outranks it.
 function renderRehabToday() {
@@ -2994,10 +3065,18 @@ function todayPlan() {
 // Scale a one-line element's font so the text fills its box (poster move).
 function fitLineFont(el, maxPx, minPx) {
   if (!el) return;
-  el.style.fontSize = `${maxPx}px`;
-  const boxW = el.clientWidth;
+  el.style.whiteSpace = 'nowrap';
+  // Fit the TEXT to the content box — clientWidth includes padding, so a
+  // padded line (e.g. .tl-text reserving arrow room) would otherwise fill
+  // into it. A Range measures the rendered text without the padding.
+  const cs = getComputedStyle(el);
+  const boxW =
+    el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const range = document.createRange();
+  range.selectNodeContents(el);
   let size = maxPx;
-  while (size > minPx && el.scrollWidth > boxW) {
+  el.style.fontSize = `${size}px`;
+  while (size > minPx && range.getBoundingClientRect().width > boxW) {
     size -= 2;
     el.style.fontSize = `${size}px`;
   }
@@ -3068,10 +3147,8 @@ function renderTodayCard() {
   fitLineFont(card.querySelector('.tl-text'), 118, 34);
   card.onclick = () => {
     if (session) {
-      try {
-        localStorage.removeItem(REHAB_STATE_KEY);
-      } catch {}
-      openRehabPlayer(session);
+      const rest = undone.filter((i) => i.sessionId && i !== first);
+      openSessionPreview(session, rest.length ? rest[0].label : null);
     } else {
       renderRehabPage();
       openPage('rehab-page');
@@ -5316,8 +5393,14 @@ function showWorkoutSummary(workout, duration, entry) {
   const isCF = CF_TYPES.has(workout.type);
   const isCardio = workout.type === 'cardio';
 
-  // Header
-  document.getElementById('wsum-name').textContent = workout.name.toUpperCase();
+  // Header — "Density 40 · A — Pull" splits into a mono kicker + a poster
+  // line fitted to the width, same treatment as the session preview title.
+  const nameEl = document.getElementById('wsum-name');
+  const fullName = workout.name.toUpperCase();
+  const dotAt = fullName.indexOf(' · ');
+  const kicker = dotAt > 0 ? fullName.slice(0, dotAt) : '';
+  const poster = dotAt > 0 ? fullName.slice(dotAt + 3) : fullName;
+  nameEl.innerHTML = `${kicker ? `<span class="wsum-name-kicker">${kicker}</span>` : ''}<span class="wsum-name-poster" id="wsum-name-poster">${poster}</span>`;
 
   // Streak — the reward moment. The finished session is already in history,
   // so this reflects the extended chain.
@@ -5357,72 +5440,81 @@ function showWorkoutSummary(workout, duration, entry) {
       <div class="wsum-stat"><div class="ws-val">${workout.cardioType || 'Cardio'}</div><div class="ws-lbl">Type</div></div>
     `;
   } else {
-    const vol = Math.round(toDisplayWeight(totalWeightMoved));
-    if (vol > 0) {
-      statsEl.innerHTML = `
-        <div class="wsum-hero">
-          <div class="wsum-hero-val" data-count="${vol}">0</div>
-          <div class="wsum-hero-unit">${weightUnit().toUpperCase()} · Total Volume</div>
-        </div>
-        <div class="wsum-substats">
-          <div class="wsum-stat"><div class="ws-val" data-count="${sessionSets}">0</div><div class="ws-lbl">Sets Done</div></div>
-          <div class="wsum-stat"><div class="ws-val">${duration}</div><div class="ws-lbl">Duration</div></div>
-        </div>
-      `;
-    } else {
-      // Bodyweight / no load logged — lead with sets instead of an empty "0 kg".
-      statsEl.innerHTML = `
-        <div class="wsum-hero">
-          <div class="wsum-hero-val" data-count="${sessionSets}">0</div>
-          <div class="wsum-hero-unit">Sets Completed</div>
-        </div>
-        <div class="wsum-substats">
-          <div class="wsum-stat"><div class="ws-val">${duration}</div><div class="ws-lbl">Duration</div></div>
-          <div class="wsum-stat"><div class="ws-val">${(workout.exercises || []).length}</div><div class="ws-lbl">Exercises</div></div>
-        </div>
-      `;
-    }
+    // No totals — the work itself is the record. Sets + time, then the list.
+    statsEl.innerHTML = `
+      <div class="wsum-substats">
+        <div class="wsum-stat"><div class="ws-val" data-count="${sessionSets}">0</div><div class="ws-lbl">Sets Done</div></div>
+        <div class="wsum-stat"><div class="ws-val">${duration}</div><div class="ws-lbl">Duration</div></div>
+      </div>
+    `;
   }
 
-  // Top lift of the session
-  const topLiftEl = document.getElementById('wsum-top-lift');
-  const topPR = newPRsThisSession.length
-    ? newPRsThisSession.reduce(
-        (best, pr) => (!best || pr.weight > best.weight ? pr : best),
-        null,
-      )
-    : null;
-  if (topPR) {
-    const e1 = estimate1RM(topPR.weight, topPR.reps);
-    topLiftEl.innerHTML = `<div class="wsum-top-lift-label">Top Lift</div>
-      <div class="wsum-top-lift-val">${toDisplayWeight(topPR.weight)}<span class="wsum-top-lift-unit">${weightUnit()} × ${topPR.reps}</span></div>
-      <div class="wsum-top-lift-ex">${topPR.name.toUpperCase()}</div>
-      ${e1 != null ? `<div class="wsum-top-lift-e1rm">${toDisplayWeight(e1)}${weightUnit()} EST. 1RM</div>` : ''}`;
-    topLiftEl.style.display = '';
-  } else if (!isCF && !isCardio) {
-    // Best set by volume if no PR
-    let bestSet = null;
-    (workout.exercises || []).forEach((e) => {
-      (e.logs || [])
-        .filter((l) => l.done)
-        .forEach((l) => {
-          const vol = (parseFloat(l.weight) || 0) * (parseInt(l.reps, 10) || 0);
-          if (!bestSet || vol > bestSet.vol)
-            bestSet = { name: e.name, weight: l.weight, reps: l.reps, vol };
-        });
-    });
-    if (bestSet?.weight) {
-      const e1 = estimate1RM(bestSet.weight, bestSet.reps);
-      topLiftEl.innerHTML = `<div class="wsum-top-lift-label">Best Set</div>
-        <div class="wsum-top-lift-val">${toDisplayWeight(bestSet.weight)}<span class="wsum-top-lift-unit">${weightUnit()} × ${bestSet.reps}</span></div>
-        <div class="wsum-top-lift-ex">${bestSet.name.toUpperCase()}</div>
-        ${e1 != null ? `<div class="wsum-top-lift-e1rm">${toDisplayWeight(e1)}${weightUnit()} EST. 1RM</div>` : ''}`;
-      topLiftEl.style.display = '';
-    } else {
-      topLiftEl.style.display = 'none';
+  // The work, in full — every movement with its honest sets × reps (+ top
+  // weight where one was logged). Replaces the old total-volume/best-set focus.
+  document.getElementById('wsum-top-lift').style.display = 'none';
+  const workEl = document.getElementById('wsum-work');
+  if (workEl) {
+    const esc = (t) =>
+      String(t).replace(
+        /[&<>"']/g,
+        (c) =>
+          ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+          })[c],
+      );
+    let rows = [];
+    if (isCF) {
+      rows = (workout.cf?.movements || []).map((m) => ({
+        name: m.name,
+        detail: m.reps ? `${m.reps} REPS / ROUND` : '',
+      }));
+    } else if (!isCardio) {
+      rows = (workout.exercises || [])
+        .map((ex) => {
+          const done = (ex.logs || []).filter((l) => l.done);
+          const sets = done.length || ex.sets || 0;
+          if (!sets) return null;
+          const reps = [
+            ...new Set(
+              done
+                .map((l) => parseInt(l.reps, 10))
+                .filter((r) => Number.isFinite(r) && r > 0),
+            ),
+          ];
+          let repStr = '';
+          if (reps.length === 1) repStr = ` × ${reps[0]} REPS`;
+          else if (reps.length > 1)
+            repStr = ` × ${Math.min(...reps)}–${Math.max(...reps)} REPS`;
+          else if (ex.reps) repStr = ` × ${ex.reps} REPS`;
+          const top = Math.max(
+            0,
+            ...done.map((l) => parseFloat(l.weight) || 0),
+          );
+          const wStr =
+            top > 0
+              ? ` · ${toDisplayWeight(top)} ${weightUnit().toUpperCase()}`
+              : '';
+          return {
+            name: ex.name,
+            detail: `${sets} SET${sets > 1 ? 'S' : ''}${repStr}${wStr}`,
+          };
+        })
+        .filter(Boolean);
     }
-  } else {
-    topLiftEl.style.display = 'none';
+    workEl.style.display = rows.length ? '' : 'none';
+    workEl.innerHTML = rows.length
+      ? `<div class="wsum-work-label">The Work</div>` +
+        rows
+          .map(
+            (r) =>
+              `<div class="wsum-work-row"><div class="wsum-work-name">${esc(r.name.toUpperCase())}</div>${r.detail ? `<div class="wsum-work-sub">${esc(r.detail)}</div>` : ''}</div>`,
+          )
+          .join('')
+      : '';
   }
 
   // Smart account nudge: only for signed-out users, and only the first few
@@ -5436,6 +5528,7 @@ function showWorkoutSummary(workout, duration, entry) {
   }
 
   document.getElementById('workout-summary').classList.add('open');
+  fitLineFont(document.getElementById('wsum-name-poster'), 76, 28);
   animateSummaryNumbers();
 }
 

@@ -38,7 +38,7 @@
 <link rel="preload" href="/fonts/bebasneue-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/spacemono-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/src/style.css">
-<!-- FOUC prevention: set wordmark letter-spacing before JS splits into spans -->
+<!-- Wordmark tracking, inline so it never flashes unstyled -->
 <style>
   .hw-training { letter-spacing: 0.245em; }
 </style>
@@ -75,7 +75,8 @@
               <div class="streak-chip" id="streak-count">0 day streak</div>
             </div>
           </div>
-          <!-- The day as a sentence, then the month as a calendar -->
+          <!-- The greeting as the poster, the plan as the caption -->
+          <div class="dg-hello" id="dg-hello"></div>
           <p class="day-summary" id="day-summary"></p>
           <!-- The month, one box per day -->
           <div class="month-grid" id="month-grid"></div>
@@ -503,7 +504,8 @@
         <div class="wsum-pr-badge" id="wsum-pr-badge" style="display:none"></div>
       </div>
       <div class="wsum-stats" id="wsum-stats"></div>
-      <div class="wsum-top-lift" id="wsum-top-lift"></div>
+      <div class="wsum-work" id="wsum-work"></div>
+      <div class="wsum-top-lift" id="wsum-top-lift" style="display:none"></div>
       <!-- Account nudge — only for signed-out users, only the first few sessions -->
       <div class="wsum-nudge" id="wsum-nudge" style="display:none">
         <div class="wsum-nudge-text">These PRs live only on this phone. Create a free account to back them up and sync across devices.</div>
@@ -518,6 +520,7 @@
         <button class="wsum-history" id="wsum-history">See History</button>
         <button class="wsum-close" id="wsum-close">Close</button>
       </div>
+      <div class="hero-mark wsum-folio">© ’26 — KILOS LOG</div>
     </div>
 
     <!-- Modals -->
@@ -614,6 +617,27 @@
       <div class="page-content" id="cf-page-content"></div>
     </div>
 
+    <!-- ─── SESSION PREVIEW — what's inside, before you press go ─── -->
+    <div class="page-overlay" id="session-preview">
+      <div class="page-header">
+        <button class="page-back" id="sp-back">← Back</button>
+        <div class="page-title" id="sp-header-title">TODAY</div>
+      </div>
+      <div class="page-content sp-content">
+        <div class="sp-hero">
+          <div class="sp-title" id="sp-title">SESSION</div>
+          <div class="sp-meta" id="sp-meta"></div>
+        </div>
+        <div class="sp-list" id="sp-list"></div>
+        <div class="sp-after" id="sp-after"></div>
+        <button class="sp-start" id="sp-start">
+          <span class="tl-text sp-start-text">START</span>
+          <span class="tl-arrow">→</span>
+        </button>
+        <div class="hero-mark">© ’26 — KILOS LOG</div>
+      </div>
+    </div>
+
     <!-- ─── REHAB PAGE — the program, before you press go ─── -->
     <div class="page-overlay" id="rehab-page">
       <div class="page-header">
@@ -657,6 +681,10 @@
       <div class="rp-meta" id="rp-meta"></div>
       <p class="rp-cue" id="rp-cue"></p>
       <button class="rp-cue-more" id="rp-cue-more" style="display:none">MORE</button>
+      <div class="rp-coach" id="rp-coach">
+        <div class="rp-coach-row"><span class="rp-coach-k">FEEL</span><span class="rp-coach-v" id="rp-coach-feel"></span></div>
+        <div class="rp-coach-row"><span class="rp-coach-k">AVOID</span><span class="rp-coach-v" id="rp-coach-avoid"></span></div>
+      </div>
       <div class="rp-clock" id="rp-clock">
         <div class="rp-phase" id="rp-phase">GET SET</div>
         <div class="rp-time" id="rp-time">0:10</div>

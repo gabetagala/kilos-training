@@ -7774,26 +7774,29 @@ body {
 /* ── Refit 2: matched wordmark, month grid, intentional spacing ── */
 .home-hero .home-wordmark {
   width: fit-content;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 9px;
 }
 .home-hero .hw-kilos {
-  font-size: 22px;
+  font-size: 20px;
 }
 .home-hero .hw-training {
-  font-size: 8px;
-  margin-top: 1px;
+  font-size: 9px;
+  margin-top: 0;
 }
 .home-hero .home-header {
-  padding-bottom: 14px; /* air under TRAINING → the rule reads deliberate */
+  padding-bottom: 10px; /* one-line lockup → the banner sits slim over the rule */
 }
 
 .home-hero {
   padding-top: calc(14px + env(safe-area-inset-top)) !important;
 }
 .day-summary {
-  padding: 26px 0 20px;
+  padding: 10px 0 22px;
   border-bottom: none;
-  font-size: 24px;
-  line-height: 1.45;
+  font-size: 17px;
+  line-height: 1.5;
 }
 
 /* Month grid — one box per day, filled when trained */
@@ -7893,7 +7896,8 @@ body {
 .today-line .tl-text {
   white-space: nowrap;
   line-height: 0.92;
-  padding-right: 0;
+  /* keep the base 44px right pad — long names (FIRST SESSION) must stop
+     short of the arrow; short names (LIFT A) never reach it anyway */
 }
 .today-line {
   padding-right: 0;
@@ -7908,4 +7912,333 @@ body {
   color: rgba(0, 0, 0, 0.4);
   text-align: right;
   padding: 14px 0 4px;
+}
+
+/* ── Session preview — the peg language: poster, rules, marks ── */
+#session-preview .page-content {
+  background: var(--off);
+  color: var(--bg);
+  position: relative;
+}
+#session-preview .sp-content::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+#session-preview .sp-content > * {
+  position: relative;
+  z-index: 1;
+}
+.sp-hero {
+  padding: 10px 0 4px;
+}
+.sp-title {
+  font-family: "Bebas Neue", sans-serif;
+  line-height: 0.92;
+  color: var(--bg);
+  white-space: nowrap;
+}
+.sp-meta {
+  font-family: "Space Mono", monospace;
+  font-size: var(--type-micro);
+  letter-spacing: 0.06em;
+  color: rgba(0, 0, 0, 0.5);
+  margin-top: 10px;
+  line-height: 1.6;
+}
+.sp-list {
+  margin-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.16);
+}
+.sp-row {
+  padding: 9px 0 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.16);
+}
+.sp-row-name {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 18px;
+  color: var(--bg);
+}
+.sp-row-sub {
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: rgba(0, 0, 0, 0.55);
+  margin: 1px 0 0;
+}
+.sp-row-name + .sp-row-sub + .sp-row-name {
+  margin-top: 7px;
+}
+.sp-row-kicker {
+  font-family: "Space Mono", monospace;
+  font-size: var(--type-micro);
+  letter-spacing: 0.1em;
+  color: rgba(0, 0, 0, 0.4);
+  margin-bottom: 5px;
+}
+.sp-after {
+  font-family: "Space Mono", monospace;
+  font-size: var(--type-micro);
+  letter-spacing: 0.08em;
+  color: rgba(0, 0, 0, 0.45);
+  padding: 14px 0 0;
+}
+.sp-start {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  border-top: 1px solid rgba(0, 0, 0, 0.14);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.14);
+  margin-top: 16px;
+  padding: 10px 0 12px;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+}
+.sp-start .tl-text {
+  font-size: 52px;
+  padding-right: 44px;
+}
+#session-preview .page-header {
+  background: var(--off);
+  color: var(--bg);
+}
+#session-preview .page-title,
+#session-preview .page-back {
+  color: var(--bg);
+}
+
+/* The greeting as the poster */
+.dg-hello {
+  padding-top: 22px;
+}
+.dg-line {
+  display: block;
+  font-family: "Bebas Neue", sans-serif;
+  color: var(--bg);
+  line-height: 0.88;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+/* ── Player editorial chrome — Home's language carried into the dark room.
+   Pure chrome: same slots, same tap targets, zero behavior change. ── */
+#rehab-player::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+#rehab-player .rp-top {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  padding-bottom: 8px;
+}
+/* The demo rides on a paper slab — full-bleed, as tall as the screen allows.
+   flex-shrink still protects short screens: the slab gives height back before
+   anything below it moves. */
+#rehab-player .rp-demo {
+  background: var(--off);
+  border-radius: 0;
+  margin-left: -24px;
+  margin-right: -24px;
+  padding-top: 12px;
+  max-height: 36vh;
+}
+#rehab-player .rp-demo > svg {
+  filter: invert(1); /* rig fallback draws light-on-dark; paper wants ink */
+  opacity: 0.82;
+}
+#rehab-player .rp-art-img {
+  filter: none; /* the light rim was for the dark bg — paper doesn't need it */
+}
+/* Rest dims the FIGURE, not the paper — the panel is furniture, it stays */
+#rehab-player.phase-rest .rp-demo {
+  opacity: 1;
+}
+#rehab-player.phase-rest .rp-demo > svg,
+#rehab-player.phase-rest .rp-art {
+  opacity: 0.3;
+}
+/* Phase word as a mono kicker over the numeral — calendar-caption grammar */
+#rehab-player .rp-phase {
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  margin-bottom: 2px;
+}
+#rehab-player .rp-bar-track,
+#rehab-player .rp-bar {
+  border-radius: 0;
+}
+/* Squared controls — nothing on the new surfaces is a circle */
+#rehab-player .rp-ctrl,
+#rehab-player .rp-wbtn {
+  border-radius: 5px;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+#rehab-player .rp-ctrl.main {
+  border-radius: 5px;
+}
+#rehab-player .rp-done {
+  border-radius: 5px;
+}
+#rehab-player .rp-controls {
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  padding-top: 16px;
+}
+
+/* ── Summary editorial chrome — print grain, ruled sections, no soft cards ── */
+#workout-summary::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+/* Best set: a ruled section, not a floating card */
+#workout-summary .wsum-top-lift {
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 16px 0 18px;
+}
+#workout-summary .wsum-stat {
+  box-shadow: none;
+}
+#workout-summary .wsum-share {
+  border-radius: 5px;
+}
+#workout-summary .wsum-history {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 5px;
+  color: rgba(255, 255, 255, 0.85);
+}
+#workout-summary .wsum-nudge {
+  border-radius: 6px;
+}
+
+/* Coach rows — FEEL / AVOID as ruled ledger lines under the cue */
+.rp-coach {
+  flex-shrink: 0;
+  margin-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+.rp-coach-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 7px 0 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.rp-coach-k {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: rgba(255, 255, 255, 0.38);
+  width: 46px;
+  flex-shrink: 0;
+}
+.rp-coach-v {
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Short screens: the cue gives up a line and the slab shrinks further so the
+   coach rows never push the controls off-screen */
+@media (max-height: 700px) {
+  #rehab-player .rp-cue {
+    -webkit-line-clamp: 2;
+    height: calc(2 * 1.45 * 13px);
+  }
+  #rehab-player .rp-demo {
+    min-height: 86px;
+  }
+  #rehab-player .rp-coach-row {
+    padding: 5px 0 4px;
+  }
+}
+
+/* Finish page: kicker + fitted poster title, ruled top band, folio */
+#workout-summary .wsum-top {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+.wsum-name-kicker {
+  display: block;
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 6px 0 3px;
+}
+.wsum-name-poster {
+  display: block;
+  font-family: "Bebas Neue", sans-serif;
+  line-height: 0.9;
+  color: #fff;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis; /* custom names longer than the 28px floor */
+}
+#workout-summary .wsum-folio {
+  color: rgba(255, 255, 255, 0.3);
+  padding: 8px 0 0;
+}
+
+/* The Work — the session's movements as a ruled ledger on the finish page */
+.wsum-work {
+  margin-bottom: 22px;
+}
+.wsum-work-label {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.38);
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+.wsum-work-row {
+  padding: 8px 0 9px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.wsum-work-name {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 18px;
+  line-height: 1;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+.wsum-work-sub {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.45);
+  margin-top: 3px;
+}
+
+/* With no volume hero the title band stops hoarding space: content stacks
+   from the top like every other page; actions + folio anchor the bottom. */
+#workout-summary .wsum-top {
+  flex: 0 0 auto;
+  justify-content: flex-start;
+}
+#workout-summary .wsum-actions {
+  margin-top: auto;
 }
