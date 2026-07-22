@@ -6387,8 +6387,10 @@ body {
   z-index: 610;
   background: #0d0d0d;
   flex-direction: column;
-  padding: max(20px, env(safe-area-inset-top)) 24px
-    max(12px, env(safe-area-inset-bottom));
+  /* PWA: hug the hardware — the ✕ row tucks under the Dynamic Island and the
+     controls ride just above the home indicator, instead of inset + padding */
+  padding: max(12px, calc(env(safe-area-inset-top) - 10px)) 24px
+    max(8px, calc(env(safe-area-inset-bottom) - 14px));
 }
 .rp-overlay.open {
   display: flex;
@@ -8047,6 +8049,7 @@ body {
   border-radius: 0;
   margin-left: -24px;
   margin-right: -24px;
+  margin-top: 0; /* paper meets the top bar's rule — no black seam */
   padding-top: 12px;
   max-height: 44vh;
 }
