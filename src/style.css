@@ -7738,7 +7738,8 @@ body {
 .tl-arrow {
   position: absolute;
   right: 0;
-  bottom: 18px;
+  top: 50%;
+  transform: translateY(-50%);
   font-family: "Bebas Neue", sans-serif;
   font-size: 40px;
   color: var(--bg);
@@ -7779,30 +7780,34 @@ body {
 }
 .home-hero .hw-training {
   font-size: 8px;
-  margin-top: 3px;
+  margin-top: 1px;
 }
-.home-hero .day-hero {
-  margin-top: 26px;
-  padding-top: 0;
+.home-hero .home-header {
+  padding-bottom: 14px; /* air under TRAINING → the rule reads deliberate */
+}
+
+.home-hero {
+  padding-top: calc(14px + env(safe-area-inset-top)) !important;
 }
 .day-summary {
-  padding: 8px 0 20px;
+  padding: 26px 0 20px;
   border-bottom: none;
+  font-size: 24px;
+  line-height: 1.45;
 }
 
 /* Month grid — one box per day, filled when trained */
 .month-grid {
-  padding: 2px 0 20px;
+  padding: 2px 0 34px;
 }
 .mg-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 5px;
-  max-width: 210px;
+  gap: 6px;
 }
 .mg-cell {
   aspect-ratio: 1;
-  border-radius: 3px;
+  border-radius: 4px;
   background: rgba(0, 0, 0, 0.07);
 }
 .mg-cell.ghost {
@@ -7821,8 +7826,7 @@ body {
 .mg-caption {
   display: flex;
   justify-content: space-between;
-  max-width: 210px;
-  padding-top: 8px;
+  padding-bottom: 12px;
   font-family: "Space Mono", monospace;
   font-size: var(--type-micro);
   letter-spacing: 0.08em;
@@ -7839,4 +7843,69 @@ body {
   margin-top: 8px;
   padding-right: 44px;
   line-height: 1.5;
+}
+
+/* Calendar grid: weekday header + day numerals */
+.mg-headrow {
+  margin-bottom: 6px;
+}
+.mg-head {
+  font-family: "Space Mono", monospace;
+  font-size: var(--type-micro);
+  letter-spacing: 0.06em;
+  color: rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+.mg-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  color: rgba(0, 0, 0, 0.5);
+}
+.mg-cell.on {
+  color: var(--off);
+  font-weight: 700;
+}
+.mg-cell.now {
+  color: var(--bg);
+  font-weight: 700;
+}
+.mg-cell.ahead {
+  color: rgba(0, 0, 0, 0.28);
+}
+
+/* ── The three missing ingredients: grain, poster scale, index marks ── */
+.home-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.home-hero > * {
+  position: relative;
+  z-index: 1;
+}
+.today-line .tl-text {
+  white-space: nowrap;
+  line-height: 0.92;
+  padding-right: 0;
+}
+.today-line {
+  padding-right: 0;
+}
+.today-line .tl-sub {
+  padding-right: 44px;
+}
+.hero-mark {
+  font-family: "Space Mono", monospace;
+  font-size: var(--type-micro);
+  letter-spacing: 0.1em;
+  color: rgba(0, 0, 0, 0.4);
+  text-align: right;
+  padding: 14px 0 4px;
 }

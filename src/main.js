@@ -625,32 +625,24 @@ function renderTrain() {
 
 function matchWordmarkWidth() {
   const trainingEl = document.querySelector('.hw-training');
-  if (!trainingEl || trainingEl.dataset.split) return;
+  const kilosEl = document.querySelector('.hw-kilos');
+  if (!trainingEl || !kilosEl || trainingEl.dataset.split) return;
   trainingEl.dataset.split = '1';
-  // flex space-between justifies the letters across the KILOS width — the
-  // wordmark container must shrink-wrap for that width to be KILOS's own
   trainingEl.innerHTML = [...'TRAINING']
     .map((l) => `<span>${l}</span>`)
     .join('');
+  // Pin TRAINING to KILOS's measured width and kill the static tracking —
+  // flex space-between then justifies the letters exactly edge-to-edge.
+  trainingEl.style.letterSpacing = '0';
+  trainingEl.style.width = `${kilosEl.getBoundingClientRect().width}px`;
 }
 
 // Day-glance hero: the date as the headline, the day as a sentence.
 function renderDayHero() {
-  const el = document.getElementById('day-hero');
-  if (!el) return;
   const now = new Date();
-  const day = now.getDate();
-  const mon = now
-    .toLocaleDateString('en-US', { month: 'short' })
-    .toUpperCase();
-  const wk = now
-    .toLocaleDateString('en-US', { weekday: 'long' })
-    .toUpperCase();
-  el.innerHTML = `
-    <div class="dh-num">${day}<span class="dh-dot"></span></div>
-    <div class="dh-date">${mon} ’${String(now.getFullYear()).slice(2)}<br>${wk}</div>`;
-
-  // The sentence: greeting + what's done, what's next, where the week stands.
+  // The sentence is fixed for the day-part: salutation + what today HOLDS.
+  // Progress lives in the grid and the action line — the greeting never
+  // changes because you trained or reloaded.
   const sumEl = document.getElementById('day-summary');
   if (!sumEl) return;
   const name = getUserName() || 'Athlete';
@@ -658,32 +650,19 @@ function renderDayHero() {
   const salut = hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening';
   const b = (t) => `<strong>${t}</strong>`;
   const history = get('workoutHistory') || [];
-  const plan = todayPlan();
-  const done = plan.filter((i) => i.done);
-  const next = plan.find((i) => !i.done && i.sessionId);
-  // sessions logged this calendar week (Mon-first)
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-  monday.setHours(0, 0, 0, 0);
-  const weekCount = new Set(
-    history
-      .filter((h) => new Date(h.date) >= monday)
-      .map((h) => dateKey(new Date(h.date)) + (h.programId || h.rehabId || h.name)),
-  ).size;
-
   let line;
   if (!history.length) {
     line = `${salut}, ${b(name)}. Day one — ${b('rehab + guided lifting')} is ready.`;
-  } else if (activeSessionInfo()) {
-    line = `${salut}, ${b(name)}. ${b(activeSessionInfo().name)} is ${activeSessionInfo().kind === 'classic' ? 'in progress' : 'paused'} — jump back in below.`;
-  } else if (next) {
-    const session = getGuidedSession(next.sessionId);
-    const donePart = done.length
-      ? `${done.map((i) => b(i.label)).join(' and ')} done. `
-      : '';
-    line = `${salut}, ${b(name)}. ${donePart}${b(next.label)} is next — about ${b(`${estimateSessionMins(session)} min`)}.`;
   } else {
-    line = `${salut}, ${b(name)}. Everything on the plan is ${b('done')}. ${weekCount ? `${b(String(weekCount))} sessions banked this week.` : ''}`;
+    const plan = todayPlan().filter((i) => i.sessionId);
+    const mins = plan.reduce((sum, i) => {
+      const sess = getGuidedSession(i.sessionId);
+      return sum + (sess ? estimateSessionMins(sess) : 0);
+    }, 0);
+    const labels = plan.map((i) => b(i.label)).join(' + ');
+    line = plan.length
+      ? `${salut}, ${b(name)}. ${labels} on today's plan — about ${b(`${mins} min`)} all in.`
+      : `${salut}, ${b(name)}. Nothing on the plan — an off day, on purpose.`;
   }
   sumEl.innerHTML = line;
 }
@@ -716,9 +695,11 @@ function renderMonthGrid() {
   const monName = now
     .toLocaleDateString('en-US', { month: 'long' })
     .toUpperCase();
+  const jan1 = new Date(year, 0, 1);
+  const week = Math.ceil(((now - jan1) / 864e5 + ((jan1.getDay() + 6) % 7) + 1) / 7);
   el.innerHTML = `
-    <div class="mg-grid">${cells.join('')}</div>
-    <div class="mg-caption"><span>${monName}</span><span>${trained} TRAINED</span></div>`;
+    <div class="mg-caption"><span>${monName} — W${week}</span><span>${trained} TRAINED</span></div>
+    <div class="mg-grid">${cells.join('')}</div>`;
 }
 
 function renderHome() {
@@ -3010,6 +2991,18 @@ function todayPlan() {
   });
 }
 
+// Scale a one-line element's font so the text fills its box (poster move).
+function fitLineFont(el, maxPx, minPx) {
+  if (!el) return;
+  el.style.fontSize = `${maxPx}px`;
+  const boxW = el.clientWidth;
+  let size = maxPx;
+  while (size > minPx && el.scrollWidth > boxW) {
+    size -= 2;
+    el.style.fontSize = `${size}px`;
+  }
+}
+
 function renderTodayCard() {
   const card = document.getElementById('today-card');
   if (!card) return;
@@ -3018,17 +3011,16 @@ function renderTodayCard() {
   if (live) {
     card.style.display = '';
     card.innerHTML = `
-      <span class="tl-label">${live.kind === 'classic' ? 'IN PROGRESS' : 'PAUSED'}</span>
       <span class="tl-text">RESUME ${live.name.toUpperCase().slice(0, 22)}</span>
-      <span class="tl-sub">PICK UP EXACTLY WHERE YOU LEFT OFF</span>
+      <span class="tl-sub">${live.kind === 'classic' ? 'IN PROGRESS' : 'PAUSED'} · PICK UP WHERE YOU LEFT OFF</span>
       <span class="tl-arrow">→</span>`;
     card.onclick = resumeActiveSession;
+    fitLineFont(card.querySelector('.tl-text'), 118, 34);
     return;
   }
   if (!history.length) {
     card.style.display = '';
     card.innerHTML = `
-      <span class="tl-label">DAY ONE</span>
       <span class="tl-text">FIRST SESSION</span>
       <span class="tl-sub">REHAB WARM-UP + GUIDED LIFTING · DEMOS, TIMERS, VOICE</span>
       <span class="tl-arrow">→</span>`;
@@ -3036,6 +3028,7 @@ function renderTodayCard() {
       renderRehabPage();
       openPage('rehab-page');
     };
+    fitLineFont(card.querySelector('.tl-text'), 118, 34);
     return;
   }
   const plan = todayPlan();
@@ -3048,15 +3041,31 @@ function renderTodayCard() {
   const session = first.sessionId ? getGuidedSession(first.sessionId) : null;
   const mins = session ? ` · ~${estimateSessionMins(session)} MIN` : '';
   card.style.display = '';
-  let blurb = (session?.blurb || '').toUpperCase().replace(/\.$/, '');
-  if (blurb.length > 58) {
-    blurb = `${blurb.slice(0, 58).replace(/\s+\S*$/, '')}…`;
+  // One compact line: the session's movements by name, then the time.
+  let moveLine = '';
+  if (session) {
+    const ids = [];
+    for (const bl of session.blocks || []) {
+      for (const ex of bl.members ? bl.members.map((m) => m.ex) : [bl.ex]) {
+        if (ex && !ids.includes(ex)) ids.push(ex);
+      }
+    }
+    const names = ids.map((id) => prShortName(GUIDED_EXERCISES[id]?.name || id));
+    const out = [];
+    let len = 0;
+    for (const n of names) {
+      if (len + n.length + 3 > 34) break;
+      out.push(n.toUpperCase());
+      len += n.length + 3;
+    }
+    const extra = names.length - out.length;
+    moveLine = out.join(' · ') + (extra > 0 ? ` +${extra}` : '');
   }
   card.innerHTML = `
-    <span class="tl-label">TODAY${mins}</span>
     <span class="tl-text">${undone.map((i) => i.label.toUpperCase()).join(' + ')}</span>
-    ${blurb ? `<span class="tl-sub">${blurb}</span>` : ''}
+    ${moveLine ? `<span class="tl-sub">${moveLine}${mins.toUpperCase()}</span>` : ''}
     <span class="tl-arrow">→</span>`;
+  fitLineFont(card.querySelector('.tl-text'), 118, 34);
   card.onclick = () => {
     if (session) {
       try {
