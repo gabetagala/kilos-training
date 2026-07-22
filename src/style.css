@@ -8268,3 +8268,16 @@ body {
   color: var(--grey);
   padding: 4px 0 10px;
 }
+
+/* SET AS NEXT — quiet queue control on the non-cursor program cards */
+.rhs-setnext {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 6px 0;
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--grey);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

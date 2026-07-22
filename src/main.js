@@ -2769,6 +2769,7 @@ function renderRehabPage() {
       <div class="rhs-top"><div class="rhs-name">${s2.name}</div><div class="rhs-go">${i === cursor ? 'NEXT →' : '→'}</div></div>
       <div class="rhs-meta">~${estimateSessionMins(s2)} MIN · ${s2.freq.toUpperCase()}</div>
       <div class="rhs-blurb">${s2.blurb}</div>
+      ${i !== cursor ? `<span class="rhs-setnext" data-setnext="${i}" role="button">SET AS NEXT</span>` : ''}
     </button>`,
     ).join('');
   document.querySelectorAll('#d40-session-list [data-d40]').forEach((card) => {
@@ -2777,6 +2778,18 @@ function renderRehabPage() {
         localStorage.removeItem(REHAB_STATE_KEY);
       } catch {}
       openRehabPlayer(getProgramSession(card.dataset.d40));
+    });
+  });
+  // Queue control — every finish advances the rotation (test runs included),
+  // so the athlete can point it back at the session they actually owe.
+  document.querySelectorAll('#d40-session-list [data-setnext]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      set('kilos-d40-cursor', Number(el.dataset.setnext));
+      renderRehabPage();
+      renderDayHero();
+      renderTodayCard();
+      renderMonthGrid();
     });
   });
 

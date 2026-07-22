@@ -6,9 +6,12 @@
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
-  "background_color": "#222222",
-  "theme_color": "#222222",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "background_color": "#0d0d0d",
+  "theme_color": "#0d0d0d",
   "orientation": "portrait",
   "icons": [
     {
