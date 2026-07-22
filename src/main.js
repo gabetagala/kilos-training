@@ -6305,13 +6305,13 @@ function renderProfilePane() {
       btn.textContent = 'Updating…';
       btn.disabled = true;
       try {
+        // 1. Prove the network is reachable and pull a fresh shell FIRST —
+        //    never wipe caches while offline (that bricks the app till signal).
+        const probe = await fetch(`/?u=${Date.now()}`, { cache: 'reload' });
+        if (!probe.ok) throw new Error(`status ${probe.status}`);
+        // 2. Nothing stale survives: caches gone, workers gone.
         const regs =
           (await navigator.serviceWorker?.getRegistrations?.()) || [];
-        for (const r of regs) {
-          try {
-            await r.update();
-          } catch {}
-        }
         if (window.caches) {
           const keys = await caches.keys();
           await Promise.all(keys.map((k) => caches.delete(k)));
@@ -6321,8 +6321,16 @@ function renderProfilePane() {
             await r.unregister();
           } catch {}
         }
-      } catch {}
-      window.location.reload();
+        // 3. Cache-busted navigation — a unique URL cannot be served from the
+        //    HTTP cache, so this lands on the newest deploy in one tap.
+        window.location.replace(`/?u=${Date.now()}`);
+      } catch {
+        btn.textContent = 'Offline — try again later';
+        setTimeout(() => {
+          btn.textContent = 'Check for update';
+          btn.disabled = false;
+        }, 2500);
+      }
     });
 }
 
