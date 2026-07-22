@@ -3887,26 +3887,47 @@ document.getElementById('np-btn-create').addEventListener('click', async () => {
   btn.textContent = 'Creating…';
   btn.disabled = true;
 
-  const { error } = await signUpWithPassword(displayName, username, password);
-  btn.disabled = false;
-  btn.textContent = 'Create account →';
+  let result;
+  try {
+    result = await Promise.race([
+      signUpWithPassword(displayName, username, password),
+      new Promise((resolve) =>
+        setTimeout(() => resolve({ error: { message: '__timeout' } }), 15000),
+      ),
+    ]);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Create account →';
+  }
+  let { error } = result;
 
-  if (error) {
-    const msg = error.message?.includes('already registered')
-      ? 'Name taken — try a different one.'
-      : error.message || 'Something went wrong.';
-    npSetError('np-create-error', msg);
+  // The account may already exist — including from a create that succeeded
+  // server-side while the phone lost the response. Just sign them in.
+  if (error?.message?.includes('already registered')) {
+    const signin = await Promise.race([
+      signInWithPassword(username, password),
+      new Promise((resolve) =>
+        setTimeout(() => resolve({ error: { message: '__timeout' } }), 15000),
+      ),
+    ]);
+    if (!signin.error) error = null;
+    else {
+      npSetError('np-create-error', 'Name taken — try a different one.');
+      return;
+    }
+  } else if (error?.message === '__timeout') {
+    npSetError(
+      'np-create-error',
+      'Taking too long — check your connection. If it already went through, use Sign in.',
+    );
+    return;
+  } else if (error) {
+    npSetError('np-create-error', error.message || 'Something went wrong.');
     return;
   }
 
   saveUserName(displayName);
   closeNamePrompt();
-  // New account: seed the cloud from local in the background — creating an
-  // account must feel as instant as the auth call itself.
-  pullAndMerge().then(() => {
-    renderHome();
-    renderDataNotice();
-  });
   if (_npCallback) {
     const cb = _npCallback;
     _npCallback = null;
@@ -3970,12 +3991,27 @@ document.getElementById('np-btn-signin').addEventListener('click', async () => {
   btn.textContent = 'Signing in…';
   btn.disabled = true;
 
-  const { data, error } = await signInWithPassword(username, password);
-  btn.disabled = false;
-  btn.textContent = 'Sign in →';
+  let result;
+  try {
+    result = await Promise.race([
+      signInWithPassword(username, password),
+      new Promise((resolve) =>
+        setTimeout(() => resolve({ error: { message: '__timeout' } }), 15000),
+      ),
+    ]);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Sign in →';
+  }
+  const { data, error } = result;
 
   if (error) {
-    npSetError('np-signin-error', 'Wrong name or password.');
+    npSetError(
+      'np-signin-error',
+      error.message === '__timeout'
+        ? 'Taking too long — check your connection and try again.'
+        : 'Wrong name or password.',
+    );
     return;
   }
 
@@ -3987,12 +4023,6 @@ document.getElementById('np-btn-signin').addEventListener('click', async () => {
     equipmentTier: getProfile().equipmentTier || 'full-gym',
   });
   closeNamePrompt();
-  // Local-first: the sheet never waits on the sync round-trips. Merge in the
-  // background; the footnote flips SYNC PENDING → SYNCED on its own.
-  pullAndMerge().then(() => {
-    renderHome();
-    renderDataNotice();
-  });
   if (_npCallback) {
     const cb = _npCallback;
     _npCallback = null;
@@ -5924,16 +5954,22 @@ async function renderDataNotice() {
 
 // Listen for auth state changes (sign-in redirect returns here)
 if (supabase) {
-  supabase.auth.onAuthStateChange(async (event) => {
+  // NEVER await supabase calls inside onAuthStateChange — the client holds
+  // its auth lock until subscribers return, so signIn/signUp would deadlock
+  // (server succeeds, the app hangs on "Creating…"/"Signing in…" forever).
+  // Defer all follow-up work out of the callback.
+  supabase.auth.onAuthStateChange((event) => {
     if (event === 'SIGNED_IN') {
-      await pullAndMerge();
-      // Returning user — skip onboarding regardless of what pullAndMerge restored
-      saveProfile({
-        setupComplete: true,
-        equipmentTier: getProfile().equipmentTier || 'full-gym',
-      });
-      renderHome();
-      renderHistory();
+      setTimeout(async () => {
+        await pullAndMerge();
+        saveProfile({
+          setupComplete: true,
+          equipmentTier: getProfile().equipmentTier || 'full-gym',
+        });
+        renderHome();
+        renderHistory();
+        renderDataNotice();
+      }, 0);
     }
     if (event === 'SIGNED_OUT') {
       renderDataNotice();
