@@ -1853,9 +1853,15 @@ document.getElementById('rp-guide').addEventListener('click', () => {
 document
   .getElementById('rp-overview-btn')
   .addEventListener('click', rhOpenOverview);
-document
-  .getElementById('rp-cue-more')
-  ?.addEventListener('click', rhOpenOverview);
+// MORE expands the clamped cue in place (its whole purpose) — it must NOT jump
+// to the full session overview. LESS re-clamps it.
+document.getElementById('rp-cue-more')?.addEventListener('click', () => {
+  const cue = document.getElementById('rp-cue');
+  const btn = document.getElementById('rp-cue-more');
+  if (!cue || !btn) return;
+  const expanded = cue.classList.toggle('expanded');
+  btn.textContent = expanded ? 'LESS' : 'MORE';
+});
 // Finish early from the overview — logged work saves, the queue is skipped.
 document.getElementById('rpo-finish').addEventListener('click', () => {
   document.getElementById('rp-overview').classList.remove('open');
@@ -1980,9 +1986,13 @@ function rhRenderStep() {
     step.kind === 'prep'
       ? `${ex.cue} — ${ex.why}`
       : [ex.cue, step.cueNote].filter(Boolean).join(' — ');
-  // A clamped cue gets a deliberate door, never a silent ellipsis.
+  // A clamped cue gets a deliberate door, never a silent ellipsis. Reset to the
+  // clamped state first so the overflow test is measured against 2 lines, not a
+  // previously-expanded cue.
   const moreEl = document.getElementById('rp-cue-more');
   if (moreEl) {
+    cueEl.classList.remove('expanded');
+    moreEl.textContent = 'MORE';
     moreEl.style.display =
       cueEl.scrollHeight > cueEl.clientHeight + 2 ? '' : 'none';
   }
@@ -6656,14 +6666,20 @@ function syncThemeColor() {
     meta.setAttribute('content', color);
   }
 }
-// The tab bar has no place mid-session — the active workout owns the whole
-// screen (Hevy/Strong both hide it during a live session). Hidden purely on the
-// active screen; overlays already sit above the nav on their own z-layer.
+// The tab bar belongs only to the five top-level tab screens. It's hidden for
+// the active workout AND for any full-screen page/player: #screens owns its own
+// stacking context (z-index:1) while the fixed nav sits at z-index:100, so a
+// page-overlay opened over a tab screen would otherwise let the nav bleed across
+// its bottom (PROGRAM, session preview, etc.). One rule, uniform everywhere.
 function syncNavVisibility() {
   const nav = document.getElementById('nav');
   if (!nav) return;
   const onActive = document.querySelector('.screen.active')?.id === 'active';
-  nav.classList.toggle('nav-hidden', onActive);
+  const overlayOpen =
+    !!document.querySelector('.page-overlay.open') ||
+    !!document.getElementById('rehab-player')?.classList.contains('open') ||
+    !!document.getElementById('workout-summary')?.classList.contains('open');
+  nav.classList.toggle('nav-hidden', onActive || overlayOpen);
 }
 function syncChrome() {
   syncThemeColor();

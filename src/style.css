@@ -656,25 +656,6 @@ body {
   overflow: hidden;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
-/* iOS standalone forces WHITE status-bar glyphs (black-translucent) and the
-   cream hero runs under them — the clock/battery would wash out. A soft scrim
-   confined to the status-bar inset restores contrast without a hard "bar" edge;
-   zero-height (fades to nothing) on browsers/devices with no top inset. */
-.home-hero::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: env(safe-area-inset-top);
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.22),
-    rgba(0, 0, 0, 0)
-  );
-  pointer-events: none;
-  z-index: 1;
-}
 /* Flip child colours to dark-on-light */
 .home-hero .home-header {
   border-bottom-color: rgba(0, 0, 0, 0.07);
@@ -3334,7 +3315,10 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 16px 24px 14px;
+  /* Full-screen page (position:absolute, inset:0) — it runs under the Dynamic
+     Island, so carry the top inset like the tab screens do or the title lands
+     on top of the status bar. Same floor as the screen bands = uniform top. */
+  padding: max(16px, env(safe-area-inset-top)) 24px 14px;
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
 }
@@ -8276,6 +8260,12 @@ body {
 #rehab-player .rp-cue {
   -webkit-line-clamp: 2;
   height: calc(2 * 1.45 * 13px);
+}
+/* MORE opens the description in place — un-clamp, don't jump to the session. */
+#rehab-player .rp-cue.expanded {
+  -webkit-line-clamp: unset;
+  height: auto;
+  overflow: visible;
 }
 #rehab-player .rp-coach {
   margin-top: 8px;
