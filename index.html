@@ -75,6 +75,9 @@
               <div class="streak-chip" id="streak-count">0 day streak</div>
             </div>
           </div>
+          <!-- Day-glance hero: the date as headline, the day as a sentence -->
+          <div class="day-hero" id="day-hero"></div>
+          <p class="day-summary" id="day-summary"></p>
           <div class="week-strip">
             <div class="section-label">This week</div>
             <div class="days-row" id="week-days"></div>
@@ -86,6 +89,9 @@
 
         <!-- Rest-day card — injected by JS when no session today -->
         <div id="rest-day-card" style="display:none"></div>
+
+        <!-- Editorial consistency bar — the week as segments -->
+        <div class="week-bar" id="week-bar" style="display:none"></div>
 
         <div class="recent-section">
           <div class="section-label">Recent sessions</div>

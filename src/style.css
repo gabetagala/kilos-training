@@ -7594,3 +7594,99 @@ body {
 .share-style-scroll .share-bg-btn {
   flex-shrink: 0;
 }
+
+/* ── Day-glance hero — the date as headline, the day as a sentence ── */
+.day-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 18px 0 4px;
+}
+.dh-num {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 96px;
+  line-height: 0.82;
+  color: var(--bg);
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.dh-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--bg);
+  margin-top: 10px;
+}
+.dh-date {
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  line-height: 1.6;
+  color: rgba(0, 0, 0, 0.55);
+  text-align: right;
+  padding-top: 8px;
+}
+.day-summary {
+  font-family: var(--font-body);
+  font-size: 19px;
+  line-height: 1.5;
+  color: rgba(0, 0, 0, 0.45);
+  padding: 10px 0 18px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  margin: 0;
+}
+.day-summary strong {
+  color: var(--bg);
+  font-weight: 700;
+}
+
+/* ── Week consistency bar — the week as monochrome segments ── */
+.week-bar {
+  padding: var(--s-4) var(--s-4) 0;
+}
+.wb-track {
+  display: flex;
+  gap: 4px;
+}
+.wb-seg {
+  flex: 1;
+  height: 34px;
+  border-radius: 3px;
+  background: var(--bg3);
+  border: 1px solid var(--line);
+}
+.wb-seg.on {
+  background: var(--white);
+  border-color: var(--white);
+}
+.wb-seg.now {
+  background: var(--bg3);
+  border-color: var(--grey);
+}
+.wb-seg.off {
+  background: none;
+}
+.wb-caption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-top: 10px;
+}
+.wb-label {
+  font-family: "Space Mono", monospace;
+  font-size: var(--type-micro);
+  letter-spacing: 0.1em;
+  color: var(--grey);
+}
+.wb-count {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 30px;
+  color: var(--white);
+}
+.wb-count small {
+  font-size: 13px;
+  color: var(--grey);
+  letter-spacing: 0.06em;
+}

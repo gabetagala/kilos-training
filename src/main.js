@@ -557,7 +557,6 @@ function goScreen(id) {
 
   // 6. Render content
   if (id === 'home') {
-    pickHomeGreeting(); // fresh greeting each time you land on Home
     renderHome();
   }
   if (id === 'train') renderTrain();
@@ -619,85 +618,10 @@ function renderTrain() {
 }
 
 // ─── HOME ─────────────────────────────────────────────────────────────────────
-// Greeting under the wordmark — rotates each visit so Home feels alive, and
-// quietly *rewards coming back*: it reads your streak / return / milestone from
-// real history and folds it into the line. Tone is quiet-confidence — earned,
-// never cheerleader-loud, and never guilt (loss-aversion points at your own
-// past self, per the retention loop). See [[quiet-confidence-vibe]].
-function ordinal(n) {
-  const s = ['th', 'st', 'nd', 'rd'];
-  const v = n % 100;
-  return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
-}
+// The day-glance hero replaced the rotating one-liner: the date is the
+// headline, the sentence is data-driven (done / next / week standing) —
+// same quiet-confidence rules: earned, never loud, never guilt.
 
-function buildHomeGreetings(name) {
-  const history = get('workoutHistory') || [];
-  const total = history.length;
-
-  // First-timer — no history to reward yet.
-  if (total === 0) {
-    return [
-      `Let's log your first one, ${name}.`,
-      `Welcome, ${name}. First session?`,
-      `Ready to start, ${name}?`,
-    ];
-  }
-
-  const streak = currentStreak(history);
-  const best = Math.max(get('bestStreak') || 0, longestStreak(history));
-  const last = new Date(history[history.length - 1].date);
-  last.setHours(0, 0, 0, 0);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const daysSince = Math.round((today - last) / 86400000);
-
-  // Always-eligible "ready to train" lines (keep the variety).
-  const generic = [
-    `Ready to train, ${name}?`,
-    `Let's get to work, ${name}.`,
-    `Time to lift, ${name}.`,
-    `Let's move, ${name}.`,
-    `What's the session, ${name}?`,
-    `Back at it, ${name}.`,
-  ];
-
-  // Data-aware reward lines — only the ones that make sense right now.
-  const rewards = [];
-  if (streak >= 2) {
-    rewards.push(`Back for the ${ordinal(streak)} straight, ${name}?`);
-    rewards.push(`Day ${streak} of the streak, ${name}.`);
-    rewards.push(`${streak} in a row, ${name} — keep it.`);
-  }
-  if (streak > 0 && streak >= best && best >= 3) {
-    rewards.push(`Best run yet, ${name}. ${streak} and counting.`);
-  } else if (streak > 0 && best - streak >= 1 && best - streak <= 2) {
-    rewards.push(`${best - streak} off your best, ${name}.`);
-  }
-  if (daysSince >= 4) {
-    // Warm, not guilt — the door's open whenever they walk back in.
-    rewards.push(`Good to have you back, ${name}.`);
-    rewards.push(`Welcome back, ${name}. Let's ease in.`);
-  }
-  rewards.push(`Session ${total + 1}, ${name}.`);
-
-  // Weight rewards a little heavier than plain generic so returns get noticed,
-  // without making the line predictable.
-  return [...rewards, ...rewards, ...generic];
-}
-
-let currentHomeGreeting = null;
-let lastHomeGreeting = null;
-// Pick a fresh line (avoiding an immediate repeat). Called on each navigation
-// *into* Home — not on in-place re-renders, so it doesn't flicker mid-screen.
-function pickHomeGreeting() {
-  const pool = buildHomeGreetings(getUserName() || 'Athlete');
-  let pick = pool[Math.floor(Math.random() * pool.length)];
-  for (let i = 0; pick === lastHomeGreeting && pool.length > 1 && i < 6; i++) {
-    pick = pool[Math.floor(Math.random() * pool.length)];
-  }
-  lastHomeGreeting = pick;
-  currentHomeGreeting = pick;
-}
 
 function matchWordmarkWidth() {
   const trainingEl = document.querySelector('.hw-training');
@@ -708,7 +632,100 @@ function matchWordmarkWidth() {
     .join('');
 }
 
+// Day-glance hero: the date as the headline, the day as a sentence.
+function renderDayHero() {
+  const el = document.getElementById('day-hero');
+  if (!el) return;
+  const now = new Date();
+  const day = now.getDate();
+  const mon = now
+    .toLocaleDateString('en-US', { month: 'short' })
+    .toUpperCase();
+  const wk = now
+    .toLocaleDateString('en-US', { weekday: 'long' })
+    .toUpperCase();
+  el.innerHTML = `
+    <div class="dh-num">${day}<span class="dh-dot"></span></div>
+    <div class="dh-date">${mon} ’${String(now.getFullYear()).slice(2)}<br>${wk}</div>`;
+
+  // The sentence: greeting + what's done, what's next, where the week stands.
+  const sumEl = document.getElementById('day-summary');
+  if (!sumEl) return;
+  const name = getUserName() || 'Athlete';
+  const hour = now.getHours();
+  const salut = hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening';
+  const b = (t) => `<strong>${t}</strong>`;
+  const history = get('workoutHistory') || [];
+  const plan = todayPlan();
+  const done = plan.filter((i) => i.done);
+  const next = plan.find((i) => !i.done && i.sessionId);
+  // sessions logged this calendar week (Mon-first)
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  monday.setHours(0, 0, 0, 0);
+  const weekCount = new Set(
+    history
+      .filter((h) => new Date(h.date) >= monday)
+      .map((h) => dateKey(new Date(h.date)) + (h.programId || h.rehabId || h.name)),
+  ).size;
+
+  let line;
+  if (!history.length) {
+    line = `${salut}, ${b(name)}. Day one — ${b('rehab + guided lifting')} is ready. Everything runs itself.`;
+  } else if (activeSessionInfo()) {
+    line = `${salut}, ${b(name)}. ${b(activeSessionInfo().name)} is ${activeSessionInfo().kind === 'classic' ? 'in progress' : 'paused'} — jump back in below.`;
+  } else if (next) {
+    const session = getGuidedSession(next.sessionId);
+    const donePart = done.length
+      ? `${done.map((i) => b(i.label)).join(' and ')} done. `
+      : '';
+    line = `${salut}, ${b(name)}. ${donePart}${b(next.label)} is next — about ${b(`${estimateSessionMins(session)} min`)}.`;
+  } else {
+    line = `${salut}, ${b(name)}. Everything on the plan is ${b('done')}. ${weekCount ? `${b(String(weekCount))} sessions banked this week.` : ''}`;
+  }
+  sumEl.innerHTML = line;
+}
+
+// Editorial consistency bar: the week as monochrome segments.
+function renderWeekBar() {
+  const el = document.getElementById('week-bar');
+  if (!el) return;
+  const history = get('workoutHistory') || [];
+  if (!history.length) {
+    el.style.display = 'none';
+    return;
+  }
+  el.style.display = '';
+  const now = new Date();
+  const todayK = dateKey(now);
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  const doneKeys = new Set(history.map((h) => dateKey(new Date(h.date))));
+  let doneN = 0;
+  const cells = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const k = dateKey(d);
+    const state =
+      k <= todayK && doneKeys.has(k)
+        ? 'on'
+        : k < todayK
+          ? 'off'
+          : k === todayK
+            ? 'now'
+            : 'ahead';
+    if (state === 'on') doneN++;
+    cells.push(`<span class="wb-seg ${state}"></span>`);
+  }
+  el.innerHTML = `
+    <div class="wb-track">${cells.join('')}</div>
+    <div class="wb-caption"><span class="wb-label">TRAINED</span><span class="wb-count">${doneN}<small> OF 7 DAYS</small></span></div>`;
+}
+
 function renderHome() {
+  renderDayHero();
+  renderWeekBar();
   renderTodayCard();
   renderWeekStrip();
   renderRecent();
@@ -717,19 +734,6 @@ function renderHome() {
   renderRestDayCard();
   renderDataNotice();
 
-  // Greeting under the wordmark (replaces the old equipment-tier + units tags;
-  // units stay switchable mid-set on the logging screen). Rotated by
-  // pickHomeGreeting() on each Home visit; pick one now on first load.
-  if (!currentHomeGreeting) pickHomeGreeting();
-  let greet = document.getElementById('home-greeting');
-  if (!greet) {
-    greet = document.createElement('div');
-    greet.id = 'home-greeting';
-    greet.className = 'home-greeting';
-    const header = document.querySelector('.home-header');
-    header.insertAdjacentElement('afterend', greet);
-  }
-  greet.textContent = currentHomeGreeting;
 
   matchWordmarkWidth();
 }
