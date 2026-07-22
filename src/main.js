@@ -627,6 +627,8 @@ function matchWordmarkWidth() {
   const trainingEl = document.querySelector('.hw-training');
   if (!trainingEl || trainingEl.dataset.split) return;
   trainingEl.dataset.split = '1';
+  // flex space-between justifies the letters across the KILOS width — the
+  // wordmark container must shrink-wrap for that width to be KILOS's own
   trainingEl.innerHTML = [...'TRAINING']
     .map((l) => `<span>${l}</span>`)
     .join('');
@@ -686,46 +688,42 @@ function renderDayHero() {
   sumEl.innerHTML = line;
 }
 
-// Editorial consistency bar: the week as monochrome segments.
-function renderWeekBar() {
-  const el = document.getElementById('week-bar');
+// The month at a glance: one box per day, filled when you trained.
+function renderMonthGrid() {
+  const el = document.getElementById('month-grid');
   if (!el) return;
   const history = get('workoutHistory') || [];
-  if (!history.length) {
-    el.style.display = 'none';
-    return;
-  }
-  el.style.display = '';
   const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
   const todayK = dateKey(now);
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  const daysIn = new Date(year, month + 1, 0).getDate();
+  const offset = (new Date(year, month, 1).getDay() + 6) % 7; // Mon-first
   const doneKeys = new Set(history.map((h) => dateKey(new Date(h.date))));
-  let doneN = 0;
+  let trained = 0;
   const cells = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    const k = dateKey(d);
-    const state =
-      k <= todayK && doneKeys.has(k)
-        ? 'on'
-        : k < todayK
-          ? 'off'
-          : k === todayK
-            ? 'now'
-            : 'ahead';
-    if (state === 'on') doneN++;
-    cells.push(`<span class="wb-seg ${state}"></span>`);
+  for (let i = 0; i < offset; i++) cells.push('<span class="mg-cell ghost"></span>');
+  for (let d = 1; d <= daysIn; d++) {
+    const k = dateKey(new Date(year, month, d));
+    let cls = 'ahead';
+    if (k <= todayK && doneKeys.has(k)) {
+      cls = 'on';
+      trained++;
+    } else if (k === todayK) cls = 'now';
+    else if (k < todayK) cls = 'off';
+    cells.push(`<span class="mg-cell ${cls}"></span>`);
   }
+  const monName = now
+    .toLocaleDateString('en-US', { month: 'long' })
+    .toUpperCase();
   el.innerHTML = `
-    <div class="wb-track">${cells.join('')}</div>
-    <div class="wb-caption"><span class="wb-label">TRAINED</span><span class="wb-count">${doneN}<small> OF 7 DAYS</small></span></div>`;
+    <div class="mg-grid">${cells.join('')}</div>
+    <div class="mg-caption"><span>${monName}</span><span>${trained} TRAINED</span></div>`;
 }
 
 function renderHome() {
   renderDayHero();
-  renderWeekBar();
+  renderMonthGrid();
   renderTodayCard();
   renderRecent();
   renderHistory(); // PR board lives on Home now (the personal hub)
@@ -3022,6 +3020,7 @@ function renderTodayCard() {
     card.innerHTML = `
       <span class="tl-label">${live.kind === 'classic' ? 'IN PROGRESS' : 'PAUSED'}</span>
       <span class="tl-text">RESUME ${live.name.toUpperCase().slice(0, 22)}</span>
+      <span class="tl-sub">PICK UP EXACTLY WHERE YOU LEFT OFF</span>
       <span class="tl-arrow">→</span>`;
     card.onclick = resumeActiveSession;
     return;
@@ -3031,6 +3030,7 @@ function renderTodayCard() {
     card.innerHTML = `
       <span class="tl-label">DAY ONE</span>
       <span class="tl-text">FIRST SESSION</span>
+      <span class="tl-sub">REHAB WARM-UP + GUIDED LIFTING · DEMOS, TIMERS, VOICE</span>
       <span class="tl-arrow">→</span>`;
     card.onclick = () => {
       renderRehabPage();
@@ -3048,9 +3048,14 @@ function renderTodayCard() {
   const session = first.sessionId ? getGuidedSession(first.sessionId) : null;
   const mins = session ? ` · ~${estimateSessionMins(session)} MIN` : '';
   card.style.display = '';
+  let blurb = (session?.blurb || '').toUpperCase().replace(/\.$/, '');
+  if (blurb.length > 58) {
+    blurb = `${blurb.slice(0, 58).replace(/\s+\S*$/, '')}…`;
+  }
   card.innerHTML = `
     <span class="tl-label">TODAY${mins}</span>
     <span class="tl-text">${undone.map((i) => i.label.toUpperCase()).join(' + ')}</span>
+    ${blurb ? `<span class="tl-sub">${blurb}</span>` : ''}
     <span class="tl-arrow">→</span>`;
   card.onclick = () => {
     if (session) {
