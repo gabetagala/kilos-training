@@ -6598,3 +6598,44 @@ window.addEventListener('online', () => {
 
 // Startup retry (async, non-blocking — runs after init)
 setTimeout(retrySyncIfNeeded, 2000);
+
+// ── iOS standalone paints the status-bar strip with theme-color ──────────────
+// Keep it matched to the surface on screen, or Home wears a black slab over
+// its cream hero. Watched, not wired: any surface toggling 'open'/'active'
+// re-syncs automatically.
+function syncThemeColor() {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) return;
+  const CREAM = '#f0eeea';
+  const DARK = '#0d0d0d';
+  let color = DARK;
+  if (
+    document.getElementById('rehab-player')?.classList.contains('open') ||
+    document.getElementById('workout-summary')?.classList.contains('open')
+  ) {
+    color = DARK;
+  } else {
+    const overlay = document.querySelector('.page-overlay.open');
+    if (overlay) color = overlay.id === 'session-preview' ? CREAM : DARK;
+    else
+      color =
+        document.querySelector('.screen.active')?.id === 'home' ? CREAM : DARK;
+  }
+  if (meta.getAttribute('content') !== color) {
+    meta.setAttribute('content', color);
+  }
+}
+{
+  const tcObserver = new MutationObserver(syncThemeColor);
+  for (const el of [
+    document.getElementById('rehab-player'),
+    document.getElementById('workout-summary'),
+    ...document.querySelectorAll('.page-overlay'),
+    ...document.querySelectorAll('.screen'),
+  ]) {
+    if (el) {
+      tcObserver.observe(el, { attributes: true, attributeFilter: ['class'] });
+    }
+  }
+  syncThemeColor();
+}
