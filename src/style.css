@@ -7690,3 +7690,82 @@ body {
   color: var(--grey);
   letter-spacing: 0.06em;
 }
+
+/* ── Founder refit: compact wordmark, giant action line, ruled recents ── */
+.home-hero .hw-kilos {
+  font-size: 24px;
+}
+.home-hero .hw-training {
+  font-size: 8.5px;
+}
+.home-hero .home-header {
+  padding-bottom: 0;
+}
+
+/* The action line — today's session as giant type between hairlines */
+.today-line {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  border-top: 1px solid rgba(0, 0, 0, 0.14);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.14);
+  padding: 16px 0 18px;
+  margin: 4px 0 0;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+}
+.today-line:active {
+  background: rgba(0, 0, 0, 0.04);
+}
+.tl-label {
+  display: block;
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: rgba(0, 0, 0, 0.5);
+  margin-bottom: 4px;
+}
+.tl-text {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 52px;
+  line-height: 0.95;
+  color: var(--bg);
+  display: block;
+  padding-right: 44px;
+}
+.tl-arrow {
+  position: absolute;
+  right: 0;
+  bottom: 18px;
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 40px;
+  color: var(--bg);
+}
+
+/* Recent sessions as a ruled editorial list, not cards */
+#recent-list .recent-card {
+  background: none !important;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 16px 0;
+  margin: 0;
+}
+#recent-list .recent-card:last-child {
+  border-bottom: none;
+}
+#recent-list .rc-name {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 21px;
+  letter-spacing: 0.02em;
+}
+#recent-list .rc-name .rc-name-text {
+  font-family: "Bebas Neue", sans-serif;
+}
+#recent-list .rc-meta {
+  font-family: "Space Mono", monospace;
+  font-size: var(--type-micro);
+  letter-spacing: 0.06em;
+}

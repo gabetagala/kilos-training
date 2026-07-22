@@ -671,7 +671,7 @@ function renderDayHero() {
 
   let line;
   if (!history.length) {
-    line = `${salut}, ${b(name)}. Day one — ${b('rehab + guided lifting')} is ready. Everything runs itself.`;
+    line = `${salut}, ${b(name)}. Day one — ${b('rehab + guided lifting')} is ready.`;
   } else if (activeSessionInfo()) {
     line = `${salut}, ${b(name)}. ${b(activeSessionInfo().name)} is ${activeSessionInfo().kind === 'classic' ? 'in progress' : 'paused'} — jump back in below.`;
   } else if (next) {
@@ -727,7 +727,6 @@ function renderHome() {
   renderDayHero();
   renderWeekBar();
   renderTodayCard();
-  renderWeekStrip();
   renderRecent();
   renderHistory(); // PR board lives on Home now (the personal hub)
   updateStreak();
@@ -738,33 +737,6 @@ function renderHome() {
   matchWordmarkWidth();
 }
 
-function renderWeekStrip() {
-  // THIS calendar week, Monday-first (matching the Program page) — a day
-  // lights only if it's not in the future and something was actually logged
-  // on that local date. The old trailing-7-day weekday bucket lit future
-  // days with last week's sessions.
-  const labels = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-  const history = get('workoutHistory') || [];
-  const doneKeys = new Set(history.map((h) => dateKey(new Date(h.date))));
-  const today = new Date();
-  const todayKey = dateKey(today);
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
-  document.getElementById('week-days').innerHTML = labels
-    .map((day, i) => {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
-      const k = dateKey(d);
-      const done = k <= todayKey && doneKeys.has(k);
-      return `
-    <div class="day-cell ${k === todayKey ? 'today' : ''} ${done ? 'done' : ''}">
-      <div class="day-name">${day}</div>
-      <div class="day-date">${d.getDate()}</div>
-      <div class="day-dot"></div>
-    </div>`;
-    })
-    .join('');
-}
 
 function updateStreak() {
   const history = get('workoutHistory') || [];
@@ -775,15 +747,18 @@ function updateStreak() {
   set('bestStreak', best);
 
   const chip = document.getElementById('streak-count');
-  if (streak > 0) {
+  // Earned elements only: no chip until there's a chain worth naming.
+  if (streak >= 2) {
+    chip.style.display = '';
     chip.textContent =
       best > streak
         ? `${streak} day streak · best ${best}`
         : `${streak} day streak`;
-  } else if (best > 0) {
+  } else if (best >= 3) {
+    chip.style.display = '';
     chip.textContent = `Best ${best} · go again`; // loss-aversion nudge
   } else {
-    chip.textContent = '0 day streak';
+    chip.style.display = 'none';
   }
   chip.className = `streak-chip${streak >= 7 ? ' hot' : streak >= 3 ? ' warm' : ''}`;
 }
@@ -3045,18 +3020,18 @@ function renderTodayCard() {
   if (live) {
     card.style.display = '';
     card.innerHTML = `
-      <div class="tc-label">${live.kind === 'classic' ? 'IN PROGRESS' : 'PAUSED'}</div>
-      <div class="tc-title">${live.name}</div>
-      <div class="tc-sub">RESUME →</div>`;
+      <span class="tl-label">${live.kind === 'classic' ? 'IN PROGRESS' : 'PAUSED'}</span>
+      <span class="tl-text">RESUME ${live.name.toUpperCase().slice(0, 22)}</span>
+      <span class="tl-arrow">→</span>`;
     card.onclick = resumeActiveSession;
     return;
   }
   if (!history.length) {
     card.style.display = '';
     card.innerHTML = `
-      <div class="tc-label">DAY ONE</div>
-      <div class="tc-title">First session →</div>
-      <div class="tc-sub">Rehab warm-up + guided lifting. Everything runs itself.</div>`;
+      <span class="tl-label">DAY ONE</span>
+      <span class="tl-text">FIRST SESSION</span>
+      <span class="tl-arrow">→</span>`;
     card.onclick = () => {
       renderRehabPage();
       openPage('rehab-page');
@@ -3071,12 +3046,12 @@ function renderTodayCard() {
   }
   const first = undone.find((i) => i.sessionId) || undone[0];
   const session = first.sessionId ? getGuidedSession(first.sessionId) : null;
-  const mins = session ? `~${estimateSessionMins(session)} MIN · ` : '';
+  const mins = session ? ` · ~${estimateSessionMins(session)} MIN` : '';
   card.style.display = '';
   card.innerHTML = `
-    <div class="tc-label">TODAY</div>
-    <div class="tc-title">${undone.map((i) => i.label.toUpperCase()).join(' + ')}</div>
-    <div class="tc-sub">${mins}${session ? 'START →' : 'OPEN PROGRAM →'}</div>`;
+    <span class="tl-label">TODAY${mins}</span>
+    <span class="tl-text">${undone.map((i) => i.label.toUpperCase()).join(' + ')}</span>
+    <span class="tl-arrow">→</span>`;
   card.onclick = () => {
     if (session) {
       try {
