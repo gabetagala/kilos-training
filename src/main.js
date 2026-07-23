@@ -1853,15 +1853,8 @@ document.getElementById('rp-guide').addEventListener('click', () => {
 document
   .getElementById('rp-overview-btn')
   .addEventListener('click', rhOpenOverview);
-// MORE expands the clamped cue in place (its whole purpose) — it must NOT jump
-// to the full session overview. LESS re-clamps it.
-document.getElementById('rp-cue-more')?.addEventListener('click', () => {
-  const cue = document.getElementById('rp-cue');
-  const btn = document.getElementById('rp-cue-more');
-  if (!cue || !btn) return;
-  const expanded = cue.classList.toggle('expanded');
-  btn.textContent = expanded ? 'LESS' : 'MORE';
-});
+// MORE is retired — the cue now shows in full (compact), so there's no button
+// to wire. The element stays hidden in the DOM.
 // Finish early from the overview — logged work saves, the queue is skipped.
 document.getElementById('rpo-finish').addEventListener('click', () => {
   document.getElementById('rp-overview').classList.remove('open');
@@ -1986,16 +1979,9 @@ function rhRenderStep() {
     step.kind === 'prep'
       ? `${ex.cue} — ${ex.why}`
       : [ex.cue, step.cueNote].filter(Boolean).join(' — ');
-  // A clamped cue gets a deliberate door, never a silent ellipsis. Reset to the
-  // clamped state first so the overflow test is measured against 2 lines, not a
-  // previously-expanded cue.
+  // Full cue always shows now (no clamp, compact type) — MORE stays hidden.
   const moreEl = document.getElementById('rp-cue-more');
-  if (moreEl) {
-    cueEl.classList.remove('expanded');
-    moreEl.textContent = 'MORE';
-    moreEl.style.display =
-      cueEl.scrollHeight > cueEl.clientHeight + 2 ? '' : 'none';
-  }
+  if (moreEl) moreEl.style.display = 'none';
   // Coach rows — where to feel it, what gives the rep away.
   const coachEl = document.getElementById('rp-coach');
   if (coachEl) {
