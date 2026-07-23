@@ -8322,8 +8322,9 @@ body {
   margin-left: -24px;
   margin-right: -24px;
   margin-top: 0; /* paper meets the top bar's rule — no black seam */
-  padding-top: 12px;
-  max-height: 44vh;
+  padding-top: 8px;
+  /* Bigger paper stage — the movement fills more of the top of the screen. */
+  max-height: 54vh;
 }
 #rehab-player .rp-demo > svg {
   filter: invert(1); /* rig fallback draws light-on-dark; paper wants ink */
@@ -8331,6 +8332,7 @@ body {
 }
 #rehab-player .rp-art-img {
   filter: none; /* the light rim was for the dark bg — paper doesn't need it */
+  object-position: center; /* centred in the taller slab, not floor-anchored */
 }
 /* Rest dims the FIGURE, not the paper — the panel is furniture, it stays */
 #rehab-player.phase-rest .rp-demo {
