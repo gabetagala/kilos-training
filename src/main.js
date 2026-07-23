@@ -237,11 +237,12 @@ const fmtNum = (n) => Number(n).toLocaleString();
 let audioCtx;
 function beep(freq, duration) {
   try {
-    if (!audioCtx)
+    if (!audioCtx || audioCtx.state === 'closed')
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    // iOS/PWA suspends the context after a lock/background/idle stretch — a
-    // countdown that resumes into a suspended context is silent. Wake it first.
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    // iOS/PWA parks the context after a lock/background stretch — and marks it
+    // 'interrupted', NOT 'suspended', when the PWA is backgrounded. Anything
+    // short of 'running' needs a wake or the beep is silent.
+    if (audioCtx.state !== 'running') audioCtx.resume();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.connect(gain);
@@ -262,9 +263,9 @@ function beep(freq, duration) {
 // a two-note rising "da-DUM" accent for the drive. Meaning lives in rhythm,
 // timbre and voice — never in pitch steps.
 function ensureCtx() {
-  if (!audioCtx)
+  if (!audioCtx || audioCtx.state === 'closed')
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (audioCtx.state !== 'running') audioCtx.resume(); // incl. iOS 'interrupted'
   return audioCtx;
 }
 function tickNote(t, freq, dur, gain, type = 'triangle') {
@@ -1657,7 +1658,7 @@ function rhStopAnnounce() {
 }
 function rhPlayClipSeq(slugs) {
   const ctx = ensureCtx();
-  if (ctx.state === 'suspended') ctx.resume();
+  if (ctx.state !== 'running') ctx.resume();
   rhStopBuf(); // announcements outrank tempo words
   rhStopAnnounce();
   const bufs = slugs.map((sl) => rhClipBuffers.get(sl)).filter(Boolean);
@@ -2484,6 +2485,13 @@ function rhPlay() {
 
 function rhTick() {
   if (!rhRunning) return;
+  // Self-heal: if iOS parked the context mid-set (backgrounding, Siri, a
+  // call), quietly wake it so the next beep/word lands.
+  if (audioCtx && audioCtx.state !== 'running') {
+    try {
+      audioCtx.resume();
+    } catch {}
+  }
   const left = rhEndsAt - Date.now();
   if (left <= 0) {
     rhComplete(-left);
@@ -3387,10 +3395,23 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     if (rhSession) rhPersist();
   } else {
-    // iOS suspends the AudioContext in the background — wake it on ANY return to
-    // foreground so the next countdown/rest-over beep actually sounds (not just
-    // the rehab player: the strength/CF rest timer relies on this too).
-    if (audioCtx?.state === 'suspended') audioCtx.resume();
+    // iOS parks the AudioContext in the background — as 'interrupted', not
+    // 'suspended', for a backgrounded PWA — so wake anything short of
+    // 'running' on EVERY return. Retry after a beat, and if WebKit insists on
+    // a gesture, the next tap anywhere resumes it.
+    const wake = () => {
+      if (audioCtx && audioCtx.state !== 'running') {
+        try {
+          audioCtx.resume();
+        } catch {}
+      }
+    };
+    wake();
+    setTimeout(wake, 400);
+    document.addEventListener('touchstart', wake, {
+      once: true,
+      passive: true,
+    });
     if (rhSession && rhRunning) {
       rhAcquireWakeLock();
       rhTick(); // catch up instantly after a backgrounded stretch
