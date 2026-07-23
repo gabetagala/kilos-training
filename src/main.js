@@ -644,9 +644,11 @@ function renderDayHero() {
     // Reveal only on the first paint of the app, not on every re-render/return.
     const rc = helloEl.dataset.revealed ? '' : ' dg-reveal';
     helloEl.dataset.revealed = '1';
+    // Title case, not shouting caps — "Afternoon, Gabe."
+    const capName = name.charAt(0).toUpperCase() + name.slice(1);
     helloEl.innerHTML = `
-      <span class="dg-line${rc}" id="dg-l1">${salut.toUpperCase()},</span>
-      <span class="dg-line${rc}" id="dg-l2">${name.toUpperCase()}.</span>`;
+      <span class="dg-line${rc}" id="dg-l1">${salut},</span>
+      <span class="dg-line${rc}" id="dg-l2">${capName}.</span>`;
     fitLineFont(document.getElementById('dg-l1'), 56, 34);
     fitLineFont(document.getElementById('dg-l2'), 56, 34);
   }
