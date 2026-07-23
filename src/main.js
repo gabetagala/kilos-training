@@ -1011,44 +1011,88 @@ const NAV_TABS = ['home', 'train', 'history'];
     document.querySelector('.modal-overlay.open') ||
     document.getElementById('rehab-player')?.classList.contains('open') ||
     document.getElementById('workout-summary')?.classList.contains('open');
+  // Release the live-follow inline styles — snap back smoothly, or clear instantly
+  // so goScreen's own class-based transition can drive the hand-off.
+  const releaseFollow = (el, snapBack) => {
+    if (!el) return;
+    if (snapBack) {
+      el.style.transition =
+        'transform .26s cubic-bezier(.2,.8,.2,1), opacity .26s';
+      el.style.setProperty('transform', 'translateX(0)', 'important');
+      el.style.setProperty('opacity', '1', 'important');
+      setTimeout(() => {
+        el.style.transition = '';
+        el.style.removeProperty('transform');
+        el.style.removeProperty('opacity');
+      }, 290);
+    } else {
+      el.style.transition = '';
+      el.style.removeProperty('transform');
+      el.style.removeProperty('opacity');
+    }
+  };
   window.addEventListener(
     'touchstart',
     (e) => {
       if (e.touches.length !== 1 || blocked()) return;
-      const active = document.querySelector('.screen.active')?.id;
-      if (!NAV_TABS.includes(active)) return;
-      const t = e.touches[0];
-      ts = { x0: t.clientX, y0: t.clientY, active, decided: false, horiz: false };
+      const el = document.querySelector('.screen.active');
+      if (!el || !NAV_TABS.includes(el.id)) return;
+      ts = {
+        x0: e.touches[0].clientX,
+        y0: e.touches[0].clientY,
+        el,
+        active: el.id,
+        decided: false,
+        horiz: false,
+        dx: 0,
+      };
     },
     { passive: true },
   );
   window.addEventListener(
     'touchmove',
     (e) => {
-      if (!ts || ts.decided) return;
+      if (!ts) return;
       const t = e.touches[0];
       const dx = t.clientX - ts.x0;
       const dy = t.clientY - ts.y0;
-      if (Math.abs(dx) < 12 && Math.abs(dy) < 12) return;
-      ts.decided = true;
-      ts.horiz = Math.abs(dx) > Math.abs(dy) * 1.3; // clearly sideways, not a scroll
+      if (!ts.decided) {
+        if (Math.abs(dx) < 12 && Math.abs(dy) < 12) return;
+        ts.decided = true;
+        ts.horiz = Math.abs(dx) > Math.abs(dy) * 1.3; // sideways, not a scroll
+        if (ts.horiz) ts.el.style.transition = 'none';
+      }
+      if (!ts.horiz) return;
+      ts.dx = dx;
+      // Live follow — the screen tracks the thumb (dampened), with more
+      // resistance at the ends where there's no neighbouring tab.
+      const i = NAV_TABS.indexOf(ts.active);
+      const atEnd =
+        (dx < 0 && i >= NAV_TABS.length - 1) || (dx > 0 && i <= 0);
+      const follow = dx * (atEnd ? 0.12 : 0.34);
+      const w = window.innerWidth || 390;
+      const dim = 1 - Math.min(Math.abs(dx) / w, 1) * (atEnd ? 0.05 : 0.22);
+      ts.el.style.setProperty('transform', `translateX(${follow}px)`, 'important');
+      ts.el.style.setProperty('opacity', String(dim), 'important');
     },
     { passive: true },
   );
-  window.addEventListener(
-    'touchend',
-    (e) => {
-      if (!ts) return;
-      const { x0, active, horiz } = ts;
-      ts = null;
-      const dx = e.changedTouches[0].clientX - x0;
-      if (!horiz || Math.abs(dx) < 60) return;
-      const i = NAV_TABS.indexOf(active);
-      const ni = dx < 0 ? i + 1 : i - 1; // swipe left → next tab
-      if (ni >= 0 && ni < NAV_TABS.length) goScreen(NAV_TABS[ni]);
-    },
-    { passive: true },
-  );
+  const onEnd = () => {
+    if (!ts) return;
+    const { el, active, horiz, dx } = ts;
+    ts = null;
+    if (!horiz) return;
+    const i = NAV_TABS.indexOf(active);
+    const ni = dx < 0 ? i + 1 : i - 1; // swipe left → next tab
+    if (Math.abs(dx) > 64 && ni >= 0 && ni < NAV_TABS.length) {
+      releaseFollow(el, false); // hand off to goScreen's transition
+      goScreen(NAV_TABS[ni]);
+    } else {
+      releaseFollow(el, true); // snap back
+    }
+  };
+  window.addEventListener('touchend', onEnd, { passive: true });
+  window.addEventListener('touchcancel', onEnd, { passive: true });
 }
 
 // ── Quick Start page ──────────────────────────────────────────────────────────
