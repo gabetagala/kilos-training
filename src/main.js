@@ -833,6 +833,60 @@ function closePage(id) {
   document.getElementById(id).classList.remove('open');
 }
 
+// ── Swipe from the left edge to go back (any open .page-overlay) ──────────────
+// Mirrors iOS's native back gesture: start within the left edge, drag right; the
+// page follows the finger and dismisses past a third of the width (else snaps
+// back). All page backs are just closePage(), so removing .open matches exactly.
+{
+  let sw = null;
+  const EDGE = 28; // px from the left where the gesture may start
+  window.addEventListener(
+    'touchstart',
+    (e) => {
+      if (e.touches.length !== 1) return;
+      const overlay = document.querySelector('.page-overlay.open');
+      if (!overlay) return;
+      const t = e.touches[0];
+      if (t.clientX > EDGE) return;
+      sw = { overlay, x0: t.clientX, y0: t.clientY, dx: 0, on: false };
+    },
+    { passive: true },
+  );
+  window.addEventListener(
+    'touchmove',
+    (e) => {
+      if (!sw) return;
+      const t = e.touches[0];
+      const dx = t.clientX - sw.x0;
+      const dy = t.clientY - sw.y0;
+      if (!sw.on) {
+        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+        if (Math.abs(dy) > Math.abs(dx)) {
+          sw = null; // vertical intent — let the page scroll
+          return;
+        }
+        sw.on = true;
+        sw.overlay.style.transition = 'none';
+      }
+      sw.dx = Math.max(0, dx);
+      sw.overlay.style.transform = `translateX(${sw.dx}px)`;
+      if (e.cancelable) e.preventDefault();
+    },
+    { passive: false },
+  );
+  const end = () => {
+    if (!sw) return;
+    const { overlay, dx, on } = sw;
+    sw = null;
+    if (!on) return;
+    overlay.style.transition = ''; // restore the CSS slide
+    overlay.style.transform = ''; // fall back to CSS (.open = 0, closed = 100%)
+    if (dx > overlay.offsetWidth * 0.32) overlay.classList.remove('open');
+  };
+  window.addEventListener('touchend', end, { passive: true });
+  window.addEventListener('touchcancel', end, { passive: true });
+}
+
 // ── Quick Start page ──────────────────────────────────────────────────────────
 const QS_MUSCLES = Object.keys(SHUFFLE_PLANS);
 
