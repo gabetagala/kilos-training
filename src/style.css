@@ -6506,19 +6506,26 @@ body {
   z-index: 610;
   background: #0d0d0d;
   flex-direction: column;
-  /* PWA: hug the hardware — the ✕ row tucks under the Dynamic Island and the
-     controls ride just above the home indicator, instead of inset + padding */
-  padding: max(12px, calc(env(safe-area-inset-top) - 10px)) 24px
-    max(8px, calc(env(safe-area-inset-bottom) - 14px));
+  /* No top padding — the paper stage runs edge-to-edge from the very top of the
+     screen; the chrome row floats over it (see .rp-top). Bottom hugs the home
+     indicator. */
+  padding: 0 24px max(8px, calc(env(safe-area-inset-bottom) - 14px));
 }
 .rp-overlay.open {
   display: flex;
 }
+/* Chrome floats over the top of the paper stage instead of sitting above it */
 .rp-top {
+  position: absolute;
+  top: 0;
+  left: 24px;
+  right: 24px;
+  z-index: 5;
   display: flex;
   align-items: center;
   gap: var(--s-3);
   flex-shrink: 0;
+  padding-top: max(12px, calc(env(safe-area-inset-top) - 6px));
 }
 .rp-close {
   width: 44px;
@@ -8310,8 +8317,21 @@ body {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 #rehab-player .rp-top {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
   padding-bottom: 8px;
+}
+/* Chrome sits on the cream paper now → ink, not light. */
+#rehab-player .rp-session {
+  color: var(--bg);
+}
+#rehab-player .rp-count {
+  color: rgba(0, 0, 0, 0.5);
+}
+#rehab-player .rp-close,
+#rehab-player .rp-voice {
+  color: rgba(0, 0, 0, 0.7);
+}
+#rehab-player .rp-voice[aria-pressed="true"] {
+  color: var(--bg);
 }
 /* The demo rides on a paper slab — full-bleed, as tall as the screen allows.
    flex-shrink still protects short screens: the slab gives height back before
@@ -8321,10 +8341,10 @@ body {
   border-radius: 0;
   margin-left: -24px;
   margin-right: -24px;
-  margin-top: 0; /* paper meets the top bar's rule — no black seam */
-  padding-top: 8px;
-  /* Bigger paper stage — the movement fills more of the top of the screen. */
-  max-height: 54vh;
+  margin-top: 0;
+  /* Paper runs to the very top; pad the figure clear of the floating chrome. */
+  padding-top: calc(env(safe-area-inset-top) + 44px);
+  max-height: 56vh;
 }
 #rehab-player .rp-demo > svg {
   filter: invert(1); /* rig fallback draws light-on-dark; paper wants ink */
