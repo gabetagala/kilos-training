@@ -529,9 +529,9 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  /* Nav is in the flow now (not overlapping), so screens don't reserve a big
-     bottom band — just breathing room after the last content. */
-  padding-bottom: 24px;
+  /* Clear the absolute tab bar (nav height + home-indicator inset) so the last
+     content scrolls above it, not under it. */
+  padding-bottom: calc(60px + env(safe-area-inset-bottom));
   /* Transition-based visibility — no display:none flash */
   opacity: 0;
   pointer-events: none;
@@ -578,17 +578,16 @@ body {
 
 /* ─── NAV — frosted glass ─── */
 #nav {
-  /* In the flex flow (NOT fixed) — the last item in #app's column, so it sits
-     flush at the true screen bottom. Fixed positioning disagreed with the
-     100dvh app box in iOS standalone and left a grey strip beneath it; the
-     PROGRAM overlay never had that because it, too, lives in the flow.
-     (bottom/left/right kept for the desktop `position:absolute` frame override.) */
-  position: relative;
+  /* Anchored to #app's bottom with `absolute` — the SAME mechanism the PROGRAM
+     overlay uses, which is the only thing that reaches the true screen bottom in
+     an iOS standalone PWA. Fixed-to-viewport and normal-flow both landed short
+     and exposed the darker app background as a strip beneath the tab bar.
+     Screens carry bottom padding to scroll clear of it (see .screen / #home). */
+  position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
   z-index: 100;
-  flex-shrink: 0;
   /* Solid --bg0, matched EXACTLY by the root layers (html/body/#phone-frame).
      iOS standalone won't paint the home-indicator strip even with a
      fixed/inset root, so instead of chasing coverage we make the nav and that
@@ -663,7 +662,7 @@ body {
    HOME
 ══════════════════════════════════════════ */
 #home {
-  padding: 0 24px 24px;
+  padding: 0 24px calc(60px + env(safe-area-inset-bottom));
 }
 
 /* ── Home hero — off-white panel ── */
