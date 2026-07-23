@@ -602,14 +602,19 @@ body {
   left: 0;
   right: 0;
   z-index: 100;
-  /* Liquid glass — translucent, blurs + saturates the content scrolling beneath
-     it (the nav sits above #screens, which reaches the true bottom via the 100vh
-     root). Root layers stay var(--bg0), so the fill behind the glass is solid.
-     Slimmer than before: tighter top padding, home-indicator inset preserved. */
-  background: rgba(20, 20, 20, 0.6);
-  backdrop-filter: blur(28px) saturate(200%);
-  -webkit-backdrop-filter: blur(28px) saturate(200%);
-  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  /* Liquid glass — a LIT pane, not a dim layer. Heavy blur turns whatever
+     scrolls beneath into a soft wash (no cheap text ghosting); brightness +
+     saturation make it luminous; the vertical sheen gradient + bright top rim
+     read as light travelling through glass. Root stays var(--bg0) behind it. */
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.16),
+    rgba(255, 255, 255, 0.04) 34%,
+    rgba(8, 8, 8, 0.22)
+  );
+  backdrop-filter: blur(40px) saturate(200%) brightness(1.08);
+  -webkit-backdrop-filter: blur(40px) saturate(200%) brightness(1.08);
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
   display: flex;
   padding: 5px 0 max(8px, env(safe-area-inset-bottom));
 }
@@ -6033,11 +6038,12 @@ body {
     var(--elev-sheet);
 }
 #nav {
-  /* Glass rim: a bright top specular edge + a soft lift shadow so the bar reads
-     as a floating pane of liquid glass, not a flat strip. */
+  /* Glass rim: a bright top specular edge, a faint inner base glow, and a soft
+     lift shadow so the bar reads as a floating pane of liquid glass. */
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 -6px 24px rgba(0, 0, 0, 0.28);
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    0 -8px 30px rgba(0, 0, 0, 0.22);
 }
 
 /* ── 2. HERO GLASS — the active-workout surface (most-seen screen). Nothing
