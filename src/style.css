@@ -6715,12 +6715,12 @@ body {
 }
 .rp-meta {
   font-family: "Space Mono", monospace;
-  font-size: 13px;
-  letter-spacing: 0.1em;
+  font-size: 10px;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--text);
+  color: rgba(255, 255, 255, 0.38);
   margin-top: var(--s-2);
-  min-height: 18px;
+  min-height: 14px;
   flex-shrink: 0;
 }
 /* Every row below the stage is a FIXED slot — text length and step type can
