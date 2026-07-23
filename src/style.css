@@ -543,9 +543,8 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  /* Clear the absolute tab bar (nav height + home-indicator inset) so the last
-     content scrolls above it, not under it. */
-  padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  /* Clear the floating tab pill so the last content scrolls above it. */
+  padding-bottom: calc(74px + env(safe-area-inset-bottom));
   /* Transition-based visibility — no display:none flash */
   opacity: 0;
   pointer-events: none;
@@ -590,83 +589,83 @@ body {
   overflow-x: hidden;
 }
 
-/* ─── NAV — frosted glass ─── */
+/* ─── NAV — floating liquid-glass pill (icons collapse, active expands) ─── */
 #nav {
-  /* Anchored to #app's bottom with `absolute` — the SAME mechanism the PROGRAM
-     overlay uses, which is the only thing that reaches the true screen bottom in
-     an iOS standalone PWA. Fixed-to-viewport and normal-flow both landed short
-     and exposed the darker app background as a strip beneath the tab bar.
-     Screens carry bottom padding to scroll clear of it (see .screen / #home). */
+  /* Floats above the home indicator, centred, hugging its content — the whole
+     bar grows/shrinks smoothly as the active pill reveals its label. Absolute in
+     #app so it rides the true bottom (the 100vh standalone root fix). */
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: max(12px, calc(env(safe-area-inset-bottom) - 8px));
+  left: 20px;
+  right: 20px;
   z-index: 100;
-  /* Liquid glass — a LIT pane, not a dim layer. Heavy blur turns whatever
-     scrolls beneath into a soft wash (no cheap text ghosting); brightness +
-     saturation make it luminous; the vertical sheen gradient + bright top rim
-     read as light travelling through glass. Root stays var(--bg0) behind it. */
-  background: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.16),
-    rgba(255, 255, 255, 0.04) 34%,
-    rgba(8, 8, 8, 0.22)
-  );
-  backdrop-filter: blur(40px) saturate(200%) brightness(1.08);
-  -webkit-backdrop-filter: blur(40px) saturate(200%) brightness(1.08);
-  border-top: 1px solid rgba(255, 255, 255, 0.16);
   display: flex;
-  /* Balanced padding top vs bottom so the icon+label group reads as centred in
-     the bar (not jammed to the top). The bottom keeps ~home-indicator clearance
-     without reserving the full 34px inset as dead space. */
-  padding: 8px 0 max(8px, calc(env(safe-area-inset-bottom) - 12px));
+  align-items: center;
+  justify-content: space-around; /* wide bar, items spread across it */
+  padding: 6px;
+  border-radius: 999px;
+  /* Deep glass — a clean, near-solid dark tint (no muddy sheen gradient) so the
+     white active pill pops and the icons stay crisp; blur keeps it glassy. */
+  background: rgba(18, 18, 20, 0.72);
+  backdrop-filter: blur(26px) saturate(160%);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+  border: none;
 }
-/* Mid-session the tab bar is hidden — the active workout owns the screen.
-   Removed from the flow, so #screens grows to fill the whole app box. */
+/* Mid-session the tab bar is hidden — the active workout owns the screen. */
 #nav.nav-hidden {
   display: none;
 }
 .nav-btn {
-  flex: 1;
+  flex: 0 0 auto;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  justify-content: center; /* centre the icon+label group in the bar */
-  gap: 3px;
   background: none;
   border: none;
-  color: #555;
+  color: rgba(255, 255, 255, 0.55);
   cursor: pointer;
-  transition: color 0.15s;
   position: relative;
-  min-height: 40px;
-}
-.nav-btn.active {
-  color: var(--white);
-}
-.nav-btn.active::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 20px;
-  height: 2px;
-  background: var(--white);
-  border-radius: 0 0 2px 2px;
+  height: 46px;
+  padding: 0 14px;
+  border-radius: 999px;
+  transition:
+    background 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.2s,
+    padding 0.32s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .nav-btn svg {
-  width: 20px;
-  height: 20px;
-}
-.nav-btn.active svg {
-  stroke-width: 2.5;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
 }
 .nav-btn span {
   font-size: var(--type-caption);
   font-family: "Space Mono", monospace;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  white-space: nowrap;
+  max-width: 0;
+  margin-left: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition:
+    max-width 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+    margin-left 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.24s ease;
+}
+/* Active = an expanded solid pill: dark icon + label on a bright fill. */
+.nav-btn.active {
+  background: var(--white);
+  color: var(--bg);
+  padding: 0 18px;
+}
+.nav-btn.active svg {
+  stroke-width: 2.5;
+}
+.nav-btn.active span {
+  max-width: 96px;
+  margin-left: 8px;
+  opacity: 1;
 }
 .nav-soon {
   font-family: "Space Mono", monospace;
@@ -685,7 +684,7 @@ body {
    HOME
 ══════════════════════════════════════════ */
 #home {
-  padding: 0 24px calc(60px + env(safe-area-inset-bottom));
+  padding: 0 24px calc(74px + env(safe-area-inset-bottom));
 }
 
 /* ── Home hero — off-white panel ── */
@@ -4583,11 +4582,7 @@ body {
    so the cascade wins over any position:fixed defined above.
    ───────────────────────────────────────────────────────────────────────── */
 @media (min-width: 600px) and (min-height: 501px) {
-  /* Nav stays inside the phone frame */
-  #nav {
-    position: absolute;
-    border-radius: 0 0 44px 44px;
-  }
+  /* Floating pill already works inside the frame (absolute, centred) */
   /* Desktop keeps the nav as an absolute overlay inside the frame, so screens
      restore bottom clearance to scroll clear of it. */
   .screen {
@@ -6041,12 +6036,11 @@ body {
     var(--elev-sheet);
 }
 #nav {
-  /* Glass rim: a bright top specular edge, a faint inner base glow, and a soft
-     lift shadow so the bar reads as a floating pane of liquid glass. */
+  /* Crisp bright top rim + a real drop shadow so the pill floats off the page. */
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.3),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
-    0 -8px 30px rgba(0, 0, 0, 0.22);
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 14px 40px rgba(0, 0, 0, 0.5),
+    0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* ── 2. HERO GLASS — the active-workout surface (most-seen screen). Nothing
