@@ -216,13 +216,16 @@ function getUnit() {
 function isLbs() {
   return getUnit() === 'lbs';
 }
+// Weights are unit-agnostic numbers: a lift you log as "100" reads as 100
+// whether the label says kg or lbs. Plates are plates — switching the unit in
+// the profile relabels everything, it never re-does the math (converting a
+// clean 100 into 220.5 was the annoyance). Both helpers stay as pass-throughs
+// so every call site (logging, history, PRs, stepper) keeps the number intact.
 function toDisplayWeight(kg) {
-  if (!isLbs()) return kg;
-  return kg ? Math.round(parseFloat(kg) * 2.2046 * 4) / 4 : kg; // round to nearest 0.25 lbs
+  return kg;
 }
 function fromDisplayWeight(val) {
-  if (!isLbs()) return val;
-  return val ? Math.round((parseFloat(val) / 2.2046) * 10) / 10 : val;
+  return val;
 }
 function weightUnit() {
   return isLbs() ? 'lbs' : 'kg';
