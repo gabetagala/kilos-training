@@ -1046,12 +1046,15 @@ const NAV_TABS = ['home', 'train', 'history'];
           'important',
         );
     }
+    // Land the tab-bar switcher immediately (its pill morph rides the settle);
+    // the screen's .active swap waits for the slide to finish to avoid a jump.
+    const finalId = complete && incoming ? incoming.id : el.id;
+    for (const b of document.querySelectorAll('.nav-btn'))
+      b.classList.toggle('active', b.dataset.screen === finalId);
     setTimeout(() => {
       if (complete && incoming) {
         el.classList.remove('active');
         incoming.classList.add('active');
-        for (const b of document.querySelectorAll('.nav-btn'))
-          b.classList.toggle('active', b.dataset.screen === incoming.id);
       }
       clear(el);
       clear(incoming);
@@ -1076,6 +1079,7 @@ const NAV_TABS = ['home', 'train', 'history'];
         w: el.offsetWidth || window.innerWidth || 390,
         dx: 0,
         t0: performance.now(),
+        navTarget: el.id,
       };
     },
     { passive: true },
@@ -1128,6 +1132,15 @@ const NAV_TABS = ['home', 'train', 'history'];
           `translate3d(${-ts.dir * w + dx}px,0,0)`,
           'important',
         );
+        // Move the tab-bar switcher live: once you're past the commit point the
+        // destination pill takes over (its own morph animates it); reverts if you
+        // pull back. Same threshold as the release commit, so it stays in sync.
+        const wantId = Math.abs(dx) > w * 0.4 ? ts.incoming.id : ts.active;
+        if (wantId !== ts.navTarget) {
+          ts.navTarget = wantId;
+          for (const b of document.querySelectorAll('.nav-btn'))
+            b.classList.toggle('active', b.dataset.screen === wantId);
+        }
       } else {
         // No neighbour — rubber-band resistance, then snap back.
         const r = dx * 0.2 * (1 - Math.min(Math.abs(dx) / w, 0.6));
@@ -1149,7 +1162,7 @@ const NAV_TABS = ['home', 'train', 'history'];
     const v = s.dx / Math.max(dt, 1); // px/ms — a fast flick commits on less travel
     const complete =
       !!s.incoming &&
-      (Math.abs(s.dx) > s.w * 0.32 ||
+      (Math.abs(s.dx) > s.w * 0.4 ||
         (Math.abs(s.dx) > 40 && Math.abs(v) > 0.5));
     settle(s, complete);
   };
