@@ -7952,6 +7952,82 @@ body {
   color: rgba(0, 0, 0, 0.28);
 }
 
+/* Tactile press — each day scales down under the finger. */
+.mg-cell {
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+.mg-cell:active {
+  transform: scale(0.84);
+}
+.mg-cell.ghost {
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Floating micro-card: that day's session, above the tapped square. */
+#mg-tip {
+  position: absolute;
+  z-index: 40;
+  transform: translate(-50%, -100%) translateY(-2px);
+  background: var(--bg);
+  border-radius: 11px;
+  padding: 9px 13px 10px;
+  min-width: 92px;
+  max-width: 190px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.18s ease,
+    transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+#mg-tip.show {
+  opacity: 1;
+  transform: translate(-50%, -100%) translateY(-9px);
+}
+#mg-tip::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 10px;
+  height: 10px;
+  background: var(--bg);
+  transform: translateX(-50%) rotate(45deg);
+  border-radius: 2px;
+}
+.mg-tip-date {
+  font-family: "Space Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.5);
+}
+.mg-tip-title {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 18px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: #fff;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mg-tip-sub {
+  font-family: "Space Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 4px;
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mg-cell:active {
+    transform: none;
+  }
+}
+
 /* ── The three missing ingredients: grain, poster scale, index marks ── */
 .home-hero::after {
   content: "";

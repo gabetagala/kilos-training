@@ -670,6 +670,7 @@ function renderDayHero() {
 }
 
 // The month at a glance: one box per day, filled when you trained.
+let _mgDays = {}; // dateKey → { name, meta } for the day-tap tooltip
 function renderMonthGrid() {
   const el = document.getElementById('month-grid');
   if (!el) return;
@@ -681,6 +682,15 @@ function renderMonthGrid() {
   const daysIn = new Date(year, month + 1, 0).getDate();
   const offset = (new Date(year, month, 1).getDay() + 6) % 7; // Mon-first
   const doneKeys = new Set(history.map((h) => dateKey(new Date(h.date))));
+  // Per-day summary for the tap tooltip (last session that day wins).
+  _mgDays = {};
+  for (const h of history) {
+    const k = dateKey(new Date(h.date));
+    const meta = [h.sets ? `${h.sets} SETS` : null, h.duration || null]
+      .filter(Boolean)
+      .join(' · ');
+    _mgDays[k] = { name: (h.name || 'Session').toUpperCase(), meta };
+  }
   let trained = 0;
   const cells = [];
   for (let i = 0; i < offset; i++) cells.push('<span class="mg-cell ghost"></span>');
@@ -692,7 +702,9 @@ function renderMonthGrid() {
       trained++;
     } else if (k === todayK) cls = 'now';
     else if (k < todayK) cls = 'off';
-    cells.push(`<span class="mg-cell ${cls}"></span>`);
+    cells.push(
+      `<span class="mg-cell ${cls}" data-k="${k}" data-d="${d}" data-cls="${cls}"></span>`,
+    );
   }
   const monName = now
     .toLocaleDateString('en-US', { month: 'long' })
@@ -702,6 +714,77 @@ function renderMonthGrid() {
   el.innerHTML = `
     <div class="mg-caption"><span>${monName} — W${week}</span><span>${trained} TRAINED</span></div>
     <div class="mg-grid">${cells.join('')}</div>`;
+}
+
+// ── Calendar day tap → floating micro-card with that day's summary ────────────
+let _mgTipTimer = null;
+function mgHideTip() {
+  document.getElementById('mg-tip')?.classList.remove('show');
+}
+function mgShowTip(cell) {
+  const hero = document.querySelector('.home-hero');
+  if (!hero) return;
+  let tip = document.getElementById('mg-tip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'mg-tip';
+    hero.appendChild(tip);
+  }
+  const { k, cls } = cell.dataset;
+  const [y, m, d] = k.split('-').map(Number);
+  const wd = new Date(y, m - 1, d)
+    .toLocaleDateString('en-US', { weekday: 'short' })
+    .toUpperCase();
+  const day = _mgDays[k];
+  let title;
+  let sub;
+  if (cls === 'on' && day) {
+    title = day.name;
+    sub = day.meta || 'DONE';
+  } else if (cls === 'now') {
+    title = day ? day.name : 'TODAY';
+    sub = day ? day.meta || 'DONE' : 'NOT LOGGED YET';
+  } else if (cls === 'off') {
+    title = 'REST';
+    sub = 'NO SESSION';
+  } else {
+    title = 'UPCOMING';
+    sub = '';
+  }
+  tip.innerHTML =
+    `<div class="mg-tip-date">${wd} ${d}</div>` +
+    `<div class="mg-tip-title">${title}</div>` +
+    (sub ? `<div class="mg-tip-sub">${sub}</div>` : '');
+  const hr = hero.getBoundingClientRect();
+  const cr = cell.getBoundingClientRect();
+  tip.style.left = `${cr.left - hr.left + cr.width / 2}px`;
+  tip.style.top = `${cr.top - hr.top}px`;
+  // clamp horizontally so the card never bleeds past the hero edges
+  tip.classList.add('show');
+  const tr = tip.getBoundingClientRect();
+  let shift = 0;
+  if (tr.left < hr.left + 8) shift = hr.left + 8 - tr.left;
+  else if (tr.right > hr.right - 8) shift = hr.right - 8 - tr.right;
+  if (shift) tip.style.left = `${cr.left - hr.left + cr.width / 2 + shift}px`;
+  if (navigator.vibrate) navigator.vibrate(8);
+  clearTimeout(_mgTipTimer);
+  _mgTipTimer = setTimeout(mgHideTip, 2800);
+}
+{
+  const grid = document.getElementById('month-grid');
+  grid?.addEventListener('click', (e) => {
+    const cell = e.target.closest('.mg-cell');
+    if (!cell || cell.classList.contains('ghost') || !cell.dataset.k) {
+      mgHideTip();
+      return;
+    }
+    mgShowTip(cell);
+  });
+  // Tap anywhere off the grid dismisses the card.
+  document.addEventListener('pointerdown', (e) => {
+    if (!e.target.closest('#month-grid') && !e.target.closest('#mg-tip'))
+      mgHideTip();
+  });
 }
 
 function renderHome() {
