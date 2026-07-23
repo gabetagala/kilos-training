@@ -515,10 +515,22 @@ function getLastSession(exerciseName) {
 // ─── NAVIGATION ───────────────────────────────────────────────────────────────
 const SCREEN_ORDER = ['home', 'train', 'history', 'coaches', 'build', 'active'];
 
+// Where the user was before entering the active session, so Exit returns there
+// (they usually launch from Train). Falls back to Home.
+let preActiveScreen = 'home';
+function exitActiveScreen() {
+  // Non-destructive: the session stays in localStorage and is reachable via
+  // Resume. Just slide back to where they came from.
+  goScreen(preActiveScreen || 'home');
+}
+
 function goScreen(id) {
   const currentEl = document.querySelector('.screen.active');
   const nextEl = document.getElementById(id);
   if (!nextEl || currentEl?.id === id) return;
+  if (id === 'active' && ['home', 'train', 'history'].includes(currentEl?.id)) {
+    preActiveScreen = currentEl.id;
+  }
 
   const ci = SCREEN_ORDER.indexOf(currentEl?.id ?? '');
   const ni = SCREEN_ORDER.indexOf(id);
@@ -961,14 +973,37 @@ function heroExpandPage(pageEl, originEl) {
     'touchstart',
     (e) => {
       if (e.touches.length !== 1) return;
+      // A page-overlay wins; otherwise the active session screen is swipeable
+      // (its nav is hidden, so the edge gesture is the way back).
       const overlay = document.querySelector('.page-overlay.open');
-      if (!overlay) return;
+      const activeScreen =
+        !overlay && document.querySelector('.screen.active')?.id === 'active'
+          ? document.getElementById('active')
+          : null;
+      const target = overlay || activeScreen;
+      if (!target) return;
       const t = e.touches[0];
       if (t.clientX > EDGE) return;
-      sw = { overlay, x0: t.clientX, y0: t.clientY, dx: 0, on: false };
+      sw = {
+        target,
+        kind: overlay ? 'overlay' : 'active',
+        x0: t.clientX,
+        y0: t.clientY,
+        dx: 0,
+        on: false,
+      };
     },
     { passive: true },
   );
+  // .screen.active forces `transform: none !important`, so moving #active needs
+  // an !important inline write; page-overlays take a plain one.
+  const setX = (sw, px) => {
+    if (sw.kind === 'active') {
+      sw.target.style.setProperty('transform', `translateX(${px}px)`, 'important');
+    } else {
+      sw.target.style.transform = `translateX(${px}px)`;
+    }
+  };
   window.addEventListener(
     'touchmove',
     (e) => {
@@ -983,22 +1018,25 @@ function heroExpandPage(pageEl, originEl) {
           return;
         }
         sw.on = true;
-        sw.overlay.style.transition = 'none';
+        sw.target.style.transition = 'none';
       }
       sw.dx = Math.max(0, dx);
-      sw.overlay.style.transform = `translateX(${sw.dx}px)`;
+      setX(sw, sw.dx);
       if (e.cancelable) e.preventDefault();
     },
     { passive: false },
   );
   const end = () => {
     if (!sw) return;
-    const { overlay, dx, on } = sw;
+    const { target, kind, dx, on } = sw;
     sw = null;
     if (!on) return;
-    overlay.style.transition = ''; // restore the CSS slide
-    overlay.style.transform = ''; // fall back to CSS (.open = 0, closed = 100%)
-    if (dx > overlay.offsetWidth * 0.32) overlay.classList.remove('open');
+    target.style.transition = ''; // restore the CSS slide
+    target.style.removeProperty('transform'); // back to CSS rest position
+    if (dx > target.offsetWidth * 0.32) {
+      if (kind === 'overlay') target.classList.remove('open');
+      else exitActiveScreen();
+    }
   };
   window.addEventListener('touchend', end, { passive: true });
   window.addEventListener('touchcancel', end, { passive: true });
@@ -3634,6 +3672,9 @@ document
   .getElementById('btn-custom')
   .addEventListener('click', () => goScreen('build'));
 document.getElementById('btn-resume').addEventListener('click', resumeActiveSession);
+document
+  .getElementById('active-exit')
+  ?.addEventListener('click', exitActiveScreen);
 
 
 // ─── COACHES ──────────────────────────────────────────────────────────────────

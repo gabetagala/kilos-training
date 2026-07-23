@@ -2253,10 +2253,38 @@ body {
 }
 
 /* Exercise display — compact */
+/* Exit row — hugs the top inset like the player chrome; the exercise header
+   below it drops its own top inset so nothing double-stacks. */
+.active-top {
+  display: flex;
+  align-items: center;
+  padding: max(8px, calc(env(safe-area-inset-top) - 10px)) 18px 0;
+  flex-shrink: 0;
+}
+.active-exit {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: -7px; /* optically align the chevron to the 24px gutter */
+  color: var(--grey);
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--dur-fast) var(--ease-smooth);
+}
+.active-exit svg {
+  width: 26px;
+  height: 26px;
+}
+.active-exit:active {
+  color: var(--text);
+}
 .exercise-display {
-  /* First element on screen — hug the hardware like the player (.rp-overlay):
-     ride just under the Dynamic Island, not a full inset PLUS 8px of dead band. */
-  padding: max(16px, calc(env(safe-area-inset-top) - 8px)) 24px 4px;
+  /* Top inset now lives in .active-top above — just a small gap here. */
+  padding: 2px 24px 4px;
   flex-shrink: 0;
 }
 .ex-current-name {

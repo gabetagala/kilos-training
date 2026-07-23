@@ -280,6 +280,13 @@
 
       <!-- ACTIVE -->
       <div id="active" class="screen">
+        <!-- Exit — leaves the session (it stays in Resume); pairs with the
+             left-edge swipe-back. Nav is hidden here, so this is the way out. -->
+        <div class="active-top">
+          <button type="button" class="active-exit" id="active-exit" aria-label="Exit session — it stays in Resume">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+        </div>
         <!-- No-workout empty state -->
         <div id="active-placeholder" class="active-placeholder" style="display:none">
           <div class="ap-label">NO SESSION<br>ACTIVE</div>
