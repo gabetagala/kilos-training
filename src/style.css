@@ -8162,6 +8162,43 @@ body {
   color: var(--bg);
 }
 
+/* Hero expansion — a page-overlay unfolds from the tapped action line
+   (scale + fade from that vertical origin) and its title/content rise in,
+   instead of the flat slide. Applied by heroExpandPage(). */
+.page-overlay.pg-expand {
+  animation: spExpand 0.44s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transform-origin: 50% var(--sp-oy, 60%);
+}
+@keyframes spExpand {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.page-overlay.pg-expand .sp-title,
+.page-overlay.pg-expand .page-title {
+  animation: spTitleIn 0.52s 0.08s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.page-overlay.pg-expand .sp-meta,
+.page-overlay.pg-expand .sp-list,
+.page-overlay.pg-expand .page-content > *:nth-child(-n + 3) {
+  animation: spTitleIn 0.5s 0.16s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes spTitleIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* The greeting as the poster */
 .dg-hello {
   padding-top: 10px;

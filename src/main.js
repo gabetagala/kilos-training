@@ -919,6 +919,32 @@ function closePage(id) {
   document.getElementById(id).classList.remove('open');
 }
 
+// Hero expansion: open a page-overlay by unfolding it from the tapped element
+// (scale + fade from that vertical origin) rather than the flat slide. Falls
+// back to the normal slide with no origin or under reduced-motion.
+function heroExpandPage(pageEl, originEl) {
+  if (!pageEl) return;
+  const reduce = window.matchMedia?.(
+    '(prefers-reduced-motion: reduce)',
+  )?.matches;
+  if (!originEl || reduce) {
+    pageEl.classList.add('open');
+    return;
+  }
+  const r = originEl.getBoundingClientRect();
+  const oy = ((r.top + r.height / 2) / window.innerHeight) * 100;
+  pageEl.style.setProperty('--sp-oy', `${Math.max(20, Math.min(80, oy))}%`);
+  pageEl.classList.add('pg-expand', 'open');
+  pageEl.addEventListener(
+    'animationend',
+    function done() {
+      pageEl.classList.remove('pg-expand');
+      pageEl.removeEventListener('animationend', done);
+    },
+    { once: true },
+  );
+}
+
 // ── Swipe from the left edge to go back (any open .page-overlay) ──────────────
 // Mirrors iOS's native back gesture: start within the left edge, drag right; the
 // page follows the finger and dismisses past a third of the width (else snaps
@@ -2806,7 +2832,7 @@ function renderCheckin() {
 // ── Session preview — what's inside, before you press go ────────────────────
 let _spSession = null;
 let _spAfter = null;
-function openSessionPreview(session, after = null) {
+function openSessionPreview(session, after = null, originEl = null) {
   _spSession = session;
   _spAfter = after;
   document.getElementById('sp-title').textContent = session.name.toUpperCase();
@@ -2854,7 +2880,8 @@ function openSessionPreview(session, after = null) {
   const afterEl = document.getElementById('sp-after');
   afterEl.textContent = after ? `THEN — ${after.toUpperCase()}` : '';
   afterEl.style.display = after ? '' : 'none';
-  openPage('session-preview');
+  // Hero expansion when launched from the action line (else a flat slide).
+  heroExpandPage(document.getElementById('session-preview'), originEl);
   fitLineFont(document.querySelector('.sp-title'), 84, 30);
 }
 document.getElementById('sp-back').addEventListener('click', () => {
@@ -3357,10 +3384,10 @@ function renderTodayCard() {
   card.onclick = () => {
     if (session) {
       const rest = undone.filter((i) => i.sessionId && i !== first);
-      openSessionPreview(session, rest.length ? rest[0].label : null);
+      openSessionPreview(session, rest.length ? rest[0].label : null, card);
     } else {
       renderRehabPage();
-      openPage('rehab-page');
+      heroExpandPage(document.getElementById('rehab-page'), card);
     }
   };
 }
