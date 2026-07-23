@@ -887,6 +887,58 @@ function closePage(id) {
   window.addEventListener('touchcancel', end, { passive: true });
 }
 
+// ── Swipe left/right anywhere to move between the tab screens ─────────────────
+// Home ⇆ Train ⇆ Athlete. Only when a plain tab screen is showing (no overlay,
+// player, or modal) and the gesture is clearly horizontal, so vertical scrolling
+// is untouched. Hands off to goScreen, which runs the existing slide animation.
+const NAV_TABS = ['home', 'train', 'history'];
+{
+  let ts = null;
+  const blocked = () =>
+    document.querySelector('.page-overlay.open') ||
+    document.querySelector('.modal-overlay.open') ||
+    document.getElementById('rehab-player')?.classList.contains('open') ||
+    document.getElementById('workout-summary')?.classList.contains('open');
+  window.addEventListener(
+    'touchstart',
+    (e) => {
+      if (e.touches.length !== 1 || blocked()) return;
+      const active = document.querySelector('.screen.active')?.id;
+      if (!NAV_TABS.includes(active)) return;
+      const t = e.touches[0];
+      ts = { x0: t.clientX, y0: t.clientY, active, decided: false, horiz: false };
+    },
+    { passive: true },
+  );
+  window.addEventListener(
+    'touchmove',
+    (e) => {
+      if (!ts || ts.decided) return;
+      const t = e.touches[0];
+      const dx = t.clientX - ts.x0;
+      const dy = t.clientY - ts.y0;
+      if (Math.abs(dx) < 12 && Math.abs(dy) < 12) return;
+      ts.decided = true;
+      ts.horiz = Math.abs(dx) > Math.abs(dy) * 1.3; // clearly sideways, not a scroll
+    },
+    { passive: true },
+  );
+  window.addEventListener(
+    'touchend',
+    (e) => {
+      if (!ts) return;
+      const { x0, active, horiz } = ts;
+      ts = null;
+      const dx = e.changedTouches[0].clientX - x0;
+      if (!horiz || Math.abs(dx) < 60) return;
+      const i = NAV_TABS.indexOf(active);
+      const ni = dx < 0 ? i + 1 : i - 1; // swipe left → next tab
+      if (ni >= 0 && ni < NAV_TABS.length) goScreen(NAV_TABS[ni]);
+    },
+    { passive: true },
+  );
+}
+
 // ── Quick Start page ──────────────────────────────────────────────────────────
 const QS_MUSCLES = Object.keys(SHUFFLE_PLANS);
 

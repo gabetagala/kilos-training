@@ -616,7 +616,10 @@ body {
   -webkit-backdrop-filter: blur(40px) saturate(200%) brightness(1.08);
   border-top: 1px solid rgba(255, 255, 255, 0.16);
   display: flex;
-  padding: 5px 0 max(8px, env(safe-area-inset-bottom));
+  /* Balanced padding top vs bottom so the icon+label group reads as centred in
+     the bar (not jammed to the top). The bottom keeps ~home-indicator clearance
+     without reserving the full 34px inset as dead space. */
+  padding: 8px 0 max(8px, calc(env(safe-area-inset-bottom) - 12px));
 }
 /* Mid-session the tab bar is hidden — the active workout owns the screen.
    Removed from the flow, so #screens grows to fill the whole app box. */
@@ -628,6 +631,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center; /* centre the icon+label group in the bar */
   gap: 3px;
   background: none;
   border: none;
@@ -635,7 +639,6 @@ body {
   cursor: pointer;
   transition: color 0.15s;
   position: relative;
-  padding-top: 4px;
   min-height: 40px;
 }
 .nav-btn.active {
