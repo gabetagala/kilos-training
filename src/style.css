@@ -7816,10 +7816,9 @@ body {
 .home-hero .home-header {
   padding-bottom: 10px; /* one-line lockup → the banner sits slim over the rule */
 }
-
-.home-hero {
-  padding-top: max(14px, calc(env(safe-area-inset-top) - 6px)) !important;
-}
+/* NOTE: the safe-area top inset lives ONLY on .home-header (like PROGRAM's
+   .page-header). A duplicate `.home-hero { padding-top: inset }` used to stack a
+   SECOND inset here, making Home's top ~2x taller than every other screen. */
 .day-summary {
   padding: 10px 0 22px;
   border-bottom: none;
