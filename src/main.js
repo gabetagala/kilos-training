@@ -647,8 +647,8 @@ function renderDayHero() {
     helloEl.innerHTML = `
       <span class="dg-line${rc}" id="dg-l1">${salut.toUpperCase()},</span>
       <span class="dg-line${rc}" id="dg-l2">${name.toUpperCase()}.</span>`;
-    fitLineFont(document.getElementById('dg-l1'), 78, 36);
-    fitLineFont(document.getElementById('dg-l2'), 78, 36);
+    fitLineFont(document.getElementById('dg-l1'), 56, 34);
+    fitLineFont(document.getElementById('dg-l2'), 56, 34);
   }
   const b = (t) => `<strong>${t}</strong>`;
   const history = get('workoutHistory') || [];
@@ -3001,7 +3001,7 @@ function openSessionPreview(session, after = null, originEl = null) {
   afterEl.style.display = after ? '' : 'none';
   // Hero expansion when launched from the action line (else a flat slide).
   heroExpandPage(document.getElementById('session-preview'), originEl);
-  fitLineFont(document.querySelector('.sp-title'), 84, 30);
+  fitLineFont(document.querySelector('.sp-title'), 62, 28);
 }
 document.getElementById('sp-back').addEventListener('click', () => {
   closePage('session-preview');
@@ -3449,7 +3449,7 @@ function renderTodayCard() {
       <span class="tl-sub">${live.kind === 'classic' ? 'IN PROGRESS' : 'PAUSED'} · PICK UP WHERE YOU LEFT OFF</span>
       <span class="tl-arrow">→</span>`;
     card.onclick = resumeActiveSession;
-    fitLineFont(card.querySelector('.tl-text'), 118, 34);
+    fitLineFont(card.querySelector('.tl-text'), 82, 32);
     return;
   }
   if (!history.length) {
@@ -3462,7 +3462,7 @@ function renderTodayCard() {
       renderRehabPage();
       openPage('rehab-page');
     };
-    fitLineFont(card.querySelector('.tl-text'), 118, 34);
+    fitLineFont(card.querySelector('.tl-text'), 82, 32);
     return;
   }
   const plan = todayPlan();
@@ -3499,7 +3499,7 @@ function renderTodayCard() {
     <span class="tl-text">${undone.map((i) => i.label.toUpperCase()).join(' + ')}</span>
     ${moveLine ? `<span class="tl-sub">${moveLine}${mins.toUpperCase()}</span>` : ''}
     <span class="tl-arrow">→</span>`;
-  fitLineFont(card.querySelector('.tl-text'), 118, 34);
+  fitLineFont(card.querySelector('.tl-text'), 82, 32);
   card.onclick = () => {
     if (session) {
       const rest = undone.filter((i) => i.sessionId && i !== first);
@@ -5884,7 +5884,7 @@ function showWorkoutSummary(workout, duration, entry) {
   }
 
   document.getElementById('workout-summary').classList.add('open');
-  fitLineFont(document.getElementById('wsum-name-poster'), 76, 28);
+  fitLineFont(document.getElementById('wsum-name-poster'), 58, 26);
   animateSummaryNumbers();
 }
 
