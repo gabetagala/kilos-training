@@ -211,7 +211,7 @@ let cfRoundLog = []; // [bool] one per EMOM round
 // ─── UNIT SYSTEM ─────────────────────────────────────────────────────────────
 const UNIT_KEY = 'kilos-unit';
 function getUnit() {
-  return get(UNIT_KEY) || 'kg';
+  return get(UNIT_KEY) || 'lbs'; // lbs is the default; kg is opt-in via Profile
 }
 function isLbs() {
   return getUnit() === 'lbs';
