@@ -1,8 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- KILOS — faceted geometric K: stem + lower triangle (one shape) + upper arm -->
+  <!-- KILOS — bold faceted K: full-height stem + two solid arms meeting mid-right
+       with a V-notch opening to the right (matches the old brutalist mark). -->
   <rect width="512" height="512" rx="118" ry="118" fill="#222222"/>
-  <g fill="#ffffff" transform="translate(57.6 64) scale(3.2)">
-    <path d="M26 22 H46 V52 L98 98 H26 Z"/>
-    <path d="M44 48 L82 22 H98 L58 54 Z"/>
+  <g fill="#ffffff" transform="translate(10 22) scale(3.9)">
+    <rect x="26" y="24" width="20" height="72"/>
+    <path d="M46 60 L94 24 H100 L100 44 L60 60 Z"/>
+    <path d="M46 60 L94 96 H100 L100 76 L60 60 Z"/>
   </g>
 </svg>
