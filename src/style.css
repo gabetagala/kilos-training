@@ -8306,9 +8306,9 @@ body {
   }
 }
 
-/* The greeting as the poster */
+/* The greeting as the poster — sits close under the wordmark, not floating. */
 .dg-hello {
-  padding-top: 22px;
+  padding-top: 8px;
 }
 .dg-line {
   display: block;
