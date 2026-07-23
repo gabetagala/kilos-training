@@ -254,14 +254,28 @@ body {
 
 /* ─── PHONE FRAME ─── */
 #phone-frame {
-  /* Anchor the root to the visual viewport with fixed/inset — this is the only
-     reliable way to fill an iOS standalone PWA edge-to-edge. 100dvh/100vh/100%
-     all under-report the home-indicator strip in standalone, which is what left
-     the grey band at the very bottom. */
-  position: fixed;
-  inset: 0;
+  width: 100%;
+  height: 100%;
   display: block; /* no flex centering on mobile — prevents vertical offset */
-  background: var(--bg0); /* matches the nav so the home-indicator strip is seamless */
+  background: var(--bg0);
+}
+
+/* THE bottom-strip fix. In an iOS standalone PWA the small viewport
+   (100dvh/100svh/innerHeight) reports 812 on an 874px screen — 62px short —
+   leaving a dead strip below the page that no CSS can reach. Only 100vh/100lvh
+   resolve to the full 874 there (measured on-device). So in standalone, size the
+   whole root chain with 100vh; browser tabs keep 100dvh (correct with toolbars).
+   Scoped to phone widths so a desktop-installed PWA keeps its framed shell. */
+@media (display-mode: standalone) and (max-width: 599px) {
+  html,
+  body,
+  #phone-frame,
+  #app {
+    height: 100vh;
+  }
+  body {
+    min-height: 100vh;
+  }
 }
 #dynamic-island {
   display: none;
