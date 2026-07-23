@@ -14,37 +14,16 @@
   font-display: swap;
   src: url("/fonts/spacemono-700.woff2") format("woff2");
 }
-/* Switzer — the display face (replaces Bebas). Default/400 maps to Medium so the
-   big poster headlines read refined, not blocky; 700/900 for heavier accents. */
+/* Teko — the sole display face (tall condensed). Two real weights (500 Medium,
+   600 SemiBold); default/400 → SemiBold so display type carries; 700/900 map to
+   SemiBold too (Teko's heaviest here) so no synthetic bolding. */
 @font-face {
-  font-family: "Switzer";
+  font-family: "Teko";
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("/fonts/switzer-500.woff2") format("woff2");
+  src: url("/fonts/teko-600.woff2") format("woff2");
 }
-@font-face {
-  font-family: "Switzer";
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url("/fonts/switzer-500.woff2") format("woff2");
-}
-@font-face {
-  font-family: "Switzer";
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url("/fonts/switzer-700.woff2") format("woff2");
-}
-@font-face {
-  font-family: "Switzer";
-  font-style: normal;
-  font-weight: 900;
-  font-display: swap;
-  src: url("/fonts/switzer-900.woff2") format("woff2");
-}
-/* Teko — tall condensed face, used only for the KILOS TRAINING wordmark. */
 @font-face {
   font-family: "Teko";
   font-style: normal;
@@ -56,6 +35,20 @@
   font-family: "Teko";
   font-style: normal;
   font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/teko-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Teko";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/teko-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Teko";
+  font-style: normal;
+  font-weight: 900;
   font-display: swap;
   src: url("/fonts/teko-600.woff2") format("woff2");
 }
@@ -202,18 +195,18 @@
    (≥12px, enforced by scripts/check-design-system.mjs); tracked Space-Mono
    micro-labels (.t-micro) may sit at 9px as an editorial device only. ─── */
 .t-hero {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: clamp(64px, 22vw, 120px);
   line-height: 0.92;
   letter-spacing: 0.01em;
 }
 .t-display {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 32px;
   line-height: 1;
 }
 .t-title {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 20px;
   line-height: 1.05;
 }
@@ -265,7 +258,7 @@ body {
 
 /* Bebas Neue utility class — display numbers and headlines */
 .bc {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
 }
 
 /* ─── TYPE SYSTEM ─── */
@@ -278,7 +271,7 @@ body {
   color: var(--grey);
 }
 .wordmark {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 26px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -338,7 +331,7 @@ body {
     position: fixed;
     top: 24px;
     left: 32px;
-    font-family: "Switzer", sans-serif;
+    font-family: "Teko", sans-serif;
     font-size: 18px;
     color: rgba(255, 255, 255, 0.18);
     letter-spacing: 0.06em;
@@ -1100,7 +1093,7 @@ body {
   gap: 4px;
 }
 .qb-title {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 34px;
   line-height: 0.92;
   letter-spacing: 0.02em;
@@ -1114,7 +1107,7 @@ body {
   letter-spacing: 0.08em;
 }
 .qb-arrow {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 28px;
   color: var(--grey);
   line-height: 1;
@@ -1180,7 +1173,7 @@ body {
   line-height: 1.7;
 }
 .rc-big {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: clamp(48px, 14vw, 68px);
   letter-spacing: 0.04em;
   line-height: 0.92;
@@ -1220,7 +1213,7 @@ body {
   margin-bottom: 0;
 }
 .coaches-header h1 {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 48px;
   line-height: 1;
   letter-spacing: 0.04em;
@@ -1266,7 +1259,7 @@ body {
   margin-bottom: 14px;
 }
 .cs-title {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: clamp(
     42px,
     13vw,
@@ -1391,7 +1384,7 @@ body {
   min-width: 0;
 }
 .wc-name {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 20px;
   letter-spacing: 0.02em;
   line-height: 1.05;
@@ -1418,7 +1411,7 @@ body {
   text-align: right;
 }
 .wc-big {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: clamp(52px, 15vw, 72px);
   letter-spacing: 0.04em;
   line-height: 0.92;
@@ -1440,7 +1433,7 @@ body {
   border: none;
   border-radius: 0;
   padding: 12px 18px;
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 18px;
   cursor: pointer;
   text-transform: uppercase;
@@ -1500,7 +1493,7 @@ body {
   align-items: center;
 }
 .build-header h1 {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: clamp(
     42px,
     13vw,
@@ -1652,7 +1645,7 @@ body {
   margin-top: 3px;
 }
 .ex-sets-big {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: clamp(40px, 11vw, 56px);
   letter-spacing: 0.04em;
   line-height: 0.92;
@@ -1743,7 +1736,7 @@ body {
   color: var(--bg);
   border: none;
   padding: 18px;
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 22px;
   cursor: pointer;
   text-transform: uppercase;
@@ -1823,7 +1816,7 @@ body {
   align-items: flex-start;
 }
 .history-header h1 {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 60px;
   letter-spacing: 0.04em;
   line-height: 1;
@@ -1876,7 +1869,7 @@ body {
   border-right: none;
 }
 .pr-card .pr-val {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 32px;
   letter-spacing: 0.04em;
 }
@@ -1897,7 +1890,7 @@ body {
   opacity: 1;
 }
 .pr-add-icon {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
 }
 
 /* PR empty state */
@@ -1941,7 +1934,7 @@ body {
   overflow-y: auto;
 }
 .pr-log-title {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 40px;
   letter-spacing: 0.02em;
   padding: 24px 20px 4px;
@@ -2038,7 +2031,7 @@ body {
   background: var(--white);
   color: var(--bg);
   border: none;
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 20px;
   padding: 16px;
   cursor: pointer;
@@ -2049,7 +2042,7 @@ body {
 }
 
 .history-empty .big-num {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 140px;
   opacity: 0.05;
   line-height: 1;
@@ -2100,7 +2093,7 @@ body {
   line-height: 1.7;
 }
 .hi-big {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: clamp(52px, 15vw, 72px);
   letter-spacing: 0.04em;
   line-height: 0.92;
@@ -2239,7 +2232,7 @@ body {
   flex-shrink: 0;
 }
 .ex-current-name {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: clamp(32px, 9vw, 44px);
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -2330,7 +2323,7 @@ body {
 }
 /* Dynamic font-size based on character count — set by JS via data-len */
 .timer-number {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   letter-spacing: 0.02em;
   line-height: 0.92;
   color: var(--white);
@@ -2769,7 +2762,7 @@ body {
 
 /* Shuffle */
 .shuffle-title {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 52px;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -2814,7 +2807,7 @@ body {
   color: var(--bg);
   border: none;
   padding: 16px;
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 20px;
   text-transform: uppercase;
   letter-spacing: 0.01em;
@@ -2880,7 +2873,7 @@ body {
   margin-bottom: 14px;
 }
 .sc-wordmark {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 18px;
   letter-spacing: 0em;
   color: var(--off);
@@ -2898,7 +2891,7 @@ body {
   letter-spacing: 0.08em;
 }
 .sc-workout-name {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: clamp(36px, 12vw, 52px);
   text-transform: uppercase;
   line-height: 1;
@@ -2963,7 +2956,7 @@ body {
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 .sc-stat .val {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 26px;
   letter-spacing: 0.02em;
   line-height: 1;
@@ -2989,7 +2982,7 @@ body {
   justify-content: space-between;
   padding: 4px 0;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -3036,7 +3029,7 @@ body {
 .share-btn {
   width: 100%;
   padding: 18px;
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 22px;
   cursor: pointer;
   border: none;
@@ -3093,7 +3086,7 @@ body {
   opacity: 1;
 }
 .pr-toast-icon {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 12px;
   letter-spacing: 0.02em;
   color: var(--white);
@@ -3110,7 +3103,7 @@ body {
   color: var(--grey);
 }
 .pr-toast-text {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 18px;
   margin-top: 0;
   letter-spacing: 0em;
@@ -3231,7 +3224,7 @@ body {
   content: " →";
 }
 .ob-tier-name {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 28px;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -3287,7 +3280,7 @@ body {
   background: var(--white);
   color: var(--bg);
   border: none;
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 20px;
   letter-spacing: 0.02em;
   padding: 16px;
@@ -3424,7 +3417,7 @@ body {
   flex-shrink: 0;
 }
 .page-title {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 24px;
   letter-spacing: 0.04em;
   line-height: 1;
@@ -3447,7 +3440,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 13px 22px;
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 22px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -3550,7 +3543,7 @@ body {
   flex-shrink: 0;
 }
 .lwc-sets {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 28px;
   line-height: 1;
 }
@@ -3971,7 +3964,7 @@ body {
   margin-bottom: 4px;
 }
 .cf-round-info {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 28px;
   letter-spacing: 0.04em;
   line-height: 1;
@@ -4007,7 +4000,7 @@ body {
   flex: 1;
 }
 .cf-mov-reps {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 28px;
   letter-spacing: 0.02em;
   line-height: 1;
@@ -4073,7 +4066,7 @@ body {
   margin-bottom: 6px;
 }
 .cf-amrap-rounds-num {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 80px;
   line-height: 0.92;
   letter-spacing: 0.04em;
@@ -4088,7 +4081,7 @@ body {
   background: var(--white);
   color: var(--bg);
   border: none;
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 18px;
   padding: 12px 28px;
   cursor: pointer;
@@ -4163,7 +4156,7 @@ body {
   background: var(--white);
   color: var(--bg);
   border: none;
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 18px;
   letter-spacing: 0.01em;
   text-transform: uppercase;
@@ -4224,7 +4217,7 @@ body {
   margin-bottom: 10px;
 }
 .np-title {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: clamp(28px, 8vw, 36px);
   letter-spacing: 0.04em;
   color: var(--text);
@@ -4363,7 +4356,7 @@ body {
   margin-bottom: 16px;
 }
 .bw-title {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: clamp(36px, 10vw, 48px);
   letter-spacing: 0.04em;
   line-height: 1;
@@ -4392,7 +4385,7 @@ body {
   background: var(--white);
   color: var(--bg);
   border: none;
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 20px;
   letter-spacing: 0.02em;
   padding: 16px;
@@ -4543,7 +4536,7 @@ body {
   background: var(--white);
   color: var(--bg);
   border: none;
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 16px;
   letter-spacing: 0.02em;
   padding: 10px 20px;
@@ -4588,7 +4581,7 @@ body {
   padding: 0 24px 80px;
 }
 .ap-label {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: clamp(56px, 16vw, 76px);
   letter-spacing: 0.02em;
   line-height: 0.88;
@@ -4608,7 +4601,7 @@ body {
   background: var(--white);
   color: var(--bg);
   border: none;
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 22px;
   letter-spacing: 0.03em;
   padding: 12px 24px;
@@ -4678,7 +4671,7 @@ body {
   animation: sheetIn 0.24s cubic-bezier(0.32, 0.72, 0, 1) forwards;
 }
 .confirm-title {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 36px;
   letter-spacing: 0.04em;
   line-height: 1;
@@ -4702,7 +4695,7 @@ body {
   background: var(--white);
   color: var(--bg);
   border: none;
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 20px;
   letter-spacing: 0.03em;
   padding: 16px;
@@ -4816,7 +4809,7 @@ body {
   color: var(--bg) !important;
   border: none !important;
   padding: 14px 28px !important;
-  font-family: "Switzer", sans-serif !important;
+  font-family: "Teko", sans-serif !important;
   font-size: 18px !important;
   letter-spacing: 0.03em !important;
   text-transform: uppercase;
@@ -4856,7 +4849,7 @@ body {
   background: var(--white);
   color: var(--bg);
   border: none;
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 20px;
   letter-spacing: 0.02em;
   padding: 14px 24px;
@@ -5074,7 +5067,7 @@ body {
   margin-bottom: 6px;
 }
 .rdc-suggest-muscle {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 32px;
   letter-spacing: 0.03em;
   color: #fff;
@@ -5097,7 +5090,7 @@ body {
   background: #fff;
   color: #0d0d0d;
   border: none;
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 18px;
   letter-spacing: 0.03em;
   padding: 12px 20px;
@@ -5115,7 +5108,7 @@ body {
   padding-top: 12px;
 }
 .rdc-stat-val {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 28px;
   color: rgba(255, 255, 255, 0.55);
   line-height: 1;
@@ -5147,7 +5140,7 @@ body {
   background: rgba(255, 255, 255, 0.08);
   border: none;
   color: var(--white);
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 16px;
   letter-spacing: 0.04em;
   padding: 12px 18px;
@@ -5203,7 +5196,7 @@ body {
   margin-bottom: 12px;
 }
 .wsum-name {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: clamp(42px, 13vw, 72px);
   line-height: 1;
   letter-spacing: 0.02em;
@@ -5237,7 +5230,7 @@ body {
   align-items: center;
 }
 .ws-val {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 32px;
   line-height: 1;
   color: #fff;
@@ -5267,7 +5260,7 @@ body {
   margin-bottom: 6px;
 }
 .wsum-top-lift-val {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 52px;
   line-height: 1;
   color: #fff;
@@ -5350,7 +5343,7 @@ body {
   background: #fff;
   color: #0d0d0d;
   border: none;
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 22px;
   letter-spacing: 0.02em;
   cursor: pointer;
@@ -5368,7 +5361,7 @@ body {
   background: rgba(255, 255, 255, 0.06);
   color: rgba(255, 255, 255, 0.7);
   border: none;
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 18px;
   letter-spacing: 0.04em;
   cursor: pointer;
@@ -5442,7 +5435,7 @@ body {
   margin-bottom: 24px;
 }
 .prc-weight {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: clamp(96px, 26vw, 160px);
   line-height: 1;
   color: #fff;
@@ -5457,7 +5450,7 @@ body {
   margin-top: 8px;
 }
 .prc-ex {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 22px;
   letter-spacing: 0.04em;
   color: rgba(255, 255, 255, 0.55);
@@ -5470,7 +5463,7 @@ body {
   background: #fff;
   color: #0d0d0d;
   border: none;
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 22px;
   letter-spacing: 0.02em;
   cursor: pointer;
@@ -5504,7 +5497,7 @@ body {
   padding: 28px 24px max(28px, env(safe-area-inset-bottom));
 }
 .plate-title {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 28px;
   letter-spacing: 0.04em;
   margin-bottom: 20px;
@@ -5525,7 +5518,7 @@ body {
   font-weight: 700;
   padding: 4px 0;
   outline: none;
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   letter-spacing: 0.02em;
 }
 .plate-input:focus {
@@ -5567,7 +5560,7 @@ body {
   padding-top: 14px;
 }
 .pc-total .pc-val {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 22px;
 }
 .pc-warn {
@@ -5594,7 +5587,7 @@ body {
   color: var(--bg);
   border: none;
   cursor: pointer;
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 22px;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -5695,7 +5688,7 @@ body {
   background: none;
   border: none;
   outline: none;
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 28px;
   letter-spacing: 0.04em;
   color: var(--white);
@@ -5765,7 +5758,7 @@ body {
   background: rgba(255, 255, 255, 0.04);
 }
 .prof-eq-name {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 17px;
   letter-spacing: 0.06em;
   color: var(--white);
@@ -5819,7 +5812,7 @@ body {
   margin-bottom: 16px;
 }
 .prof-unit-label {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 18px;
   letter-spacing: 0.1em;
   color: var(--text2);
@@ -5946,7 +5939,7 @@ body {
   max-width: 320px;
 }
 #kilos-crash .kc-title {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 40px;
   letter-spacing: 0.02em;
   margin-bottom: 12px;
@@ -6010,7 +6003,7 @@ body {
   margin: 0 0 14px;
 }
 .legal-doc h2 {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 22px;
   letter-spacing: 0.02em;
   color: #fff;
@@ -6125,7 +6118,7 @@ body {
   margin-bottom: 18px;
 }
 .wsum-hero-val {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: clamp(96px, 32vw, 176px);
   line-height: 0.84;
   letter-spacing: 0.01em;
@@ -6317,7 +6310,7 @@ body {
   padding: 6px 0 18px;
 }
 .recent-empty .re-fig {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: clamp(96px, 34vw, 148px);
   line-height: 0.78;
   letter-spacing: 0.02em;
@@ -6375,14 +6368,14 @@ body {
   gap: var(--s-2);
 }
 .rhs-name {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 30px;
   line-height: 0.95;
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 .rhs-go {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 24px;
   color: var(--white);
   line-height: 1;
@@ -6674,7 +6667,7 @@ body {
   opacity: 0.35;
 }
 .rp-exname {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: clamp(36px, 11vw, 48px);
   line-height: 0.92;
   letter-spacing: 0.02em;
@@ -6712,7 +6705,7 @@ body {
 }
 /* The phase word is a mid-set state read — it must land at a glance. */
 .rp-phase {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 24px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -6722,7 +6715,7 @@ body {
   color: var(--white);
 }
 .rp-time {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: clamp(64px, 22vw, 96px);
   line-height: 0.95;
   font-variant-numeric: tabular-nums;
@@ -6781,7 +6774,7 @@ body {
   background: var(--bg3);
 }
 .rp-weight {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 56px;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -6803,7 +6796,7 @@ body {
   border-radius: var(--r-sm);
   background: var(--white);
   color: #111;
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 20px;
   letter-spacing: 0.06em;
   cursor: pointer;
@@ -6973,7 +6966,7 @@ body {
   color: var(--grey);
 }
 .wp-day-date {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 16px;
   color: var(--grey);
 }
@@ -7057,7 +7050,7 @@ body {
   border-bottom: none;
 }
 .rps-name {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 20px;
   letter-spacing: 0.02em;
   color: var(--white);
@@ -7098,7 +7091,7 @@ body {
   color: var(--grey);
 }
 .ci-num {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 34px;
   line-height: 1;
   color: var(--white);
@@ -7199,7 +7192,7 @@ body {
   padding: 0;
 }
 .sc-name {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 19px;
   letter-spacing: 0.02em;
   color: var(--grey);
@@ -7293,7 +7286,7 @@ body {
   border-bottom: none;
 }
 .rpo-item-title {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 19px;
   letter-spacing: 0.02em;
   color: var(--text);
@@ -7448,7 +7441,7 @@ body {
   color: var(--grey);
 }
 .tc-title {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 28px;
   line-height: 0.95;
   color: var(--white);
@@ -7577,7 +7570,7 @@ body {
 }
 /* Week strip dates */
 .day-date {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 14px;
   color: var(--grey);
   line-height: 1;
@@ -7694,7 +7687,7 @@ body {
   padding: 18px 0 4px;
 }
 .dh-num {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 96px;
   line-height: 0.82;
   color: var(--bg);
@@ -7772,7 +7765,7 @@ body {
   color: var(--grey);
 }
 .wb-count {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 30px;
   color: var(--white);
 }
@@ -7831,7 +7824,7 @@ body {
   margin-bottom: 4px;
 }
 .tl-text {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 52px;
   line-height: 0.95;
   color: var(--bg);
@@ -7843,7 +7836,7 @@ body {
   right: 0;
   top: 50%;
   transform: translateY(-50%);
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 40px;
   color: var(--bg);
 }
@@ -7861,12 +7854,12 @@ body {
   border-bottom: none;
 }
 #recent-list .rc-name {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 21px;
   letter-spacing: 0.02em;
 }
 #recent-list .rc-name .rc-name-text {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
 }
 #recent-list .rc-meta {
   font-family: "Space Mono", monospace;
@@ -8040,7 +8033,7 @@ body {
   color: rgba(255, 255, 255, 0.5);
 }
 .mg-tip-title {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 18px;
   line-height: 1;
   letter-spacing: 0.02em;
@@ -8122,7 +8115,7 @@ body {
   padding: 10px 0 4px;
 }
 .sp-title {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   line-height: 0.92;
   color: var(--bg);
   white-space: nowrap;
@@ -8144,7 +8137,7 @@ body {
   border-bottom: 1px solid rgba(0, 0, 0, 0.16);
 }
 .sp-row-name {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 18px;
   color: var(--bg);
 }
@@ -8434,7 +8427,7 @@ body {
 }
 .wsum-name-poster {
   display: block;
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   line-height: 0.9;
   color: #fff;
   letter-spacing: 0.01em;
@@ -8466,7 +8459,7 @@ body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 .wsum-work-name {
-  font-family: "Switzer", sans-serif;
+  font-family: "Teko", sans-serif;
   font-size: 18px;
   line-height: 1;
   color: #fff;
