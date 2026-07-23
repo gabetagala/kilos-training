@@ -632,7 +632,8 @@ function renderTrain() {
   if (resumeBtn) {
     resumeBtn.style.display = info ? '' : 'none';
     resumeBtn.classList.toggle('resume-active', !!info);
-    resumeBtn.style.order = info ? '-1' : '';
+    // Stays last in the index (#6) even mid-session — never jumps to the top.
+    resumeBtn.style.order = '';
   }
 }
 

@@ -1493,17 +1493,12 @@ body {
 #coaches {
   padding: 0 24px 100px;
 }
-/* Train's launcher is short — centre the numbered index in the space between
-   the header band and the nav so the top/bottom breathing room is equal. */
-#train {
-  display: flex;
-  flex-direction: column;
-}
-#train .quick-start {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
+/* Centre the TRAIN wordmark in its header band (matches the Home wordmark). */
+#train .build-header-row {
   justify-content: center;
+}
+#train .build-header h1 {
+  text-align: center;
 }
 /* Light identity band — the two-tone system: light hero on top, dark content
    below (matches .home-hero / .screen-hero). Shared by Build + Train. */
