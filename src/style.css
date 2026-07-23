@@ -257,7 +257,10 @@ body {
   width: 100%;
   height: 100%;
   display: block; /* no flex centering on mobile — prevents vertical offset */
-  background: var(--bg);
+  /* Dark ink, not the mid-grey --bg: in an iOS standalone PWA the fixed nav's
+     bottom and this 100dvh wrapper can disagree by the home-indicator height,
+     and this layer used to show through as a grey bottom strip. */
+  background: #0d0d0d;
 }
 #dynamic-island {
   display: none;
@@ -587,6 +590,20 @@ body {
 /* Mid-session the tab bar is hidden — the active workout owns the screen. */
 #nav.nav-hidden {
   display: none;
+}
+/* Belt to the fixed-nav/100dvh disagreement in iOS standalone: paint the nav's
+   own surface downward past its bottom edge so any sliver between the nav and
+   the true screen bottom is covered by the nav colour, not the backdrop. When
+   the nav already sits flush, this simply extends off-screen (invisible). */
+#nav::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: #161616;
+  pointer-events: none;
 }
 .nav-btn {
   flex: 1;
