@@ -1,30 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <defs>
-    <!-- Rubber stud texture — tiny dots on the white tiles -->
-    <pattern id="rubber" patternUnits="userSpaceOnUse" width="10" height="10">
-      <rect width="10" height="10" fill="#ffffff"/>
-      <circle cx="5" cy="5" r="1.0" fill="#222222" opacity="0.18"/>
-    </pattern>
-  </defs>
+  <!-- KILOS — faceted geometric K: stem + lower triangle (one shape) + upper arm -->
   <rect width="512" height="512" rx="118" ry="118" fill="#222222"/>
-  <!-- Tiled K — same language as the G: 60px tiles, 12px seams, rubber texture.
-       4×5 grid (a K needs the odd middle row for its joint):
-       X . . X / X . X . / X X . . / X . X . / X . . X -->
-  <g fill="url(#rubber)">
-    <!-- Row 0 -->
-    <rect x="118" y="82"  width="60" height="60" rx="6"/>
-    <rect x="334" y="82"  width="60" height="60" rx="6"/>
-    <!-- Row 1 -->
-    <rect x="118" y="154" width="60" height="60" rx="6"/>
-    <rect x="262" y="154" width="60" height="60" rx="6"/>
-    <!-- Row 2: the joint -->
-    <rect x="118" y="226" width="60" height="60" rx="6"/>
-    <rect x="190" y="226" width="60" height="60" rx="6"/>
-    <!-- Row 3 -->
-    <rect x="118" y="298" width="60" height="60" rx="6"/>
-    <rect x="262" y="298" width="60" height="60" rx="6"/>
-    <!-- Row 4 -->
-    <rect x="118" y="370" width="60" height="60" rx="6"/>
-    <rect x="334" y="370" width="60" height="60" rx="6"/>
+  <g fill="#ffffff" transform="translate(57.6 64) scale(3.2)">
+    <path d="M26 22 H46 V52 L98 98 H26 Z"/>
+    <path d="M44 48 L82 22 H98 L58 54 Z"/>
   </g>
 </svg>

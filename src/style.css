@@ -596,12 +596,15 @@ body {
      #app so it rides the true bottom (the 100vh standalone root fix). */
   position: absolute;
   bottom: max(12px, calc(env(safe-area-inset-bottom) - 8px));
-  left: 44px;
-  right: 44px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 100;
   display: flex;
   align-items: center;
-  justify-content: space-around; /* items spread across the bar */
+  gap: 6px;
+  /* Hug the content (narrow) so the end pills sit flush at 6px padding — the
+     active pill's rounded end is then concentric with the bar's rounded end
+     (both pill-shaped, 6px apart), so the white corner matches the black. */
   padding: 6px;
   border-radius: 999px;
   /* Deep glass — a clean, near-solid dark tint (no muddy sheen gradient) so the
@@ -871,12 +874,13 @@ body {
   margin-bottom: 0;
   display: flex;
   align-items: flex-end;
-  justify-content: space-between;
+  justify-content: center; /* centred brand lockup */
+  position: relative; /* anchor the floated streak chip */
 }
 .home-wordmark {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: center; /* KILOS over TRAINING, both centred */
   line-height: 1;
 }
 .hw-kilos {
@@ -891,21 +895,23 @@ body {
   color: var(--white);
 }
 .hw-training {
-  /* JS splits "TRAINING" into <span> letters; flex space-between fills exact KILOS width */
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  font-family: "Space Mono", monospace;
-  font-size: var(--type-caption);
+  display: block;
+  text-align: center;
+  font-family: "Bebas Neue", sans-serif; /* same face as KILOS, centred subtitle */
   text-transform: uppercase;
   color: var(--grey);
-  margin-top: 5px;
+  margin-top: 2px;
+  line-height: 1;
 }
 .home-utils {
+  /* Floated out of the flow so the wordmark stays perfectly centred; the streak
+     chip (when shown) sits at the right without shifting the lockup. */
+  position: absolute;
+  right: 0;
+  bottom: 12px;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding-bottom: 4px; /* align with wordmark baseline */
 }
 .streak-chip {
   font-family: "Space Mono", monospace;
@@ -7828,10 +7834,11 @@ body {
   gap: 9px;
 }
 .home-hero .hw-kilos {
-  font-size: 20px;
+  font-size: 24px;
 }
 .home-hero .hw-training {
-  font-size: 9px;
+  font-size: 15px;
+  letter-spacing: 0.16em;
   margin-top: 0;
 }
 .home-hero .home-header {
