@@ -6706,21 +6706,31 @@ function syncChrome() {
     'position:fixed;top:80px;left:10px;z-index:99999;background:rgba(255,0,255,0.92);color:#fff;font:11px/1.5 monospace;padding:8px 10px;white-space:pre;pointer-events:none;border-radius:6px;';
   document.body.appendChild(panel);
 
+  // Probes to resolve each viewport-height unit to real px on the device.
+  const mk = (h) => {
+    const e = document.createElement('div');
+    e.style.cssText = `position:fixed;left:-9999px;top:0;width:1px;height:${h};`;
+    document.body.appendChild(e);
+    return e;
+  };
+  const vh = mk('100vh');
+  const lvh = mk('100lvh');
+  const svh = mk('100svh');
+
   const upd = () => {
     const nav = document.getElementById('nav');
     const app = document.getElementById('app');
     const nb = nav?.getBoundingClientRect();
-    const vv = window.visualViewport;
     panel.textContent = [
       `innerHeight   ${window.innerHeight}`,
-      `visualVP.h    ${vv ? Math.round(vv.height) : '?'}`,
-      `docClient.h   ${document.documentElement.clientHeight}`,
       `screen.h      ${window.screen?.height ?? '?'}`,
+      `100vh         ${vh.offsetHeight}`,
+      `100lvh        ${lvh.offsetHeight}`,
+      `100svh        ${svh.offsetHeight}`,
       `safeBottom    ${getComputedStyle(probe).height}`,
       `nav.bottom    ${nb ? Math.round(nb.bottom) : '?'}`,
       `nav.top       ${nb ? Math.round(nb.top) : '?'}`,
       `app.bottom    ${app ? Math.round(app.getBoundingClientRect().bottom) : '?'}`,
-      `standalone    ${window.navigator.standalone ?? matchMedia('(display-mode: standalone)').matches}`,
     ].join('\n');
   };
   upd();
