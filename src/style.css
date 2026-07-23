@@ -272,7 +272,7 @@ body {
 }
 .wordmark {
   font-family: "Teko", sans-serif;
-  font-size: 26px;
+  font-size: 24px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text);
@@ -1094,7 +1094,7 @@ body {
 }
 .qb-title {
   font-family: "Teko", sans-serif;
-  font-size: 34px;
+  font-size: 32px;
   line-height: 0.92;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -1342,7 +1342,7 @@ body {
 }
 .athlete-name-big {
   font-family: var(--font-body);
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: 0.01em;
@@ -2532,7 +2532,7 @@ body {
   border-radius: var(--r-pill);
   background: none;
   color: var(--grey);
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 300;
   line-height: 1;
   display: flex;
@@ -2957,7 +2957,7 @@ body {
 }
 .sc-stat .val {
   font-family: "Teko", sans-serif;
-  font-size: 26px;
+  font-size: 24px;
   letter-spacing: 0.02em;
   line-height: 1;
 }
@@ -4672,7 +4672,7 @@ body {
 }
 .confirm-title {
   font-family: "Teko", sans-serif;
-  font-size: 36px;
+  font-size: 32px;
   letter-spacing: 0.04em;
   line-height: 1;
   margin-bottom: 8px;
@@ -5514,7 +5514,7 @@ body {
   border: none;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   color: var(--white);
-  font-size: 36px;
+  font-size: 32px;
   font-weight: 700;
   padding: 4px 0;
   outline: none;
@@ -5759,7 +5759,7 @@ body {
 }
 .prof-eq-name {
   font-family: "Teko", sans-serif;
-  font-size: 17px;
+  font-size: 16px;
   letter-spacing: 0.06em;
   color: var(--white);
 }
@@ -6369,7 +6369,7 @@ body {
 }
 .rhs-name {
   font-family: "Teko", sans-serif;
-  font-size: 30px;
+  font-size: 28px;
   line-height: 0.95;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -7092,7 +7092,7 @@ body {
 }
 .ci-num {
   font-family: "Teko", sans-serif;
-  font-size: 34px;
+  font-size: 32px;
   line-height: 1;
   color: var(--white);
 }
@@ -7193,7 +7193,7 @@ body {
 }
 .sc-name {
   font-family: "Teko", sans-serif;
-  font-size: 19px;
+  font-size: 18px;
   letter-spacing: 0.02em;
   color: var(--grey);
 }
@@ -7287,7 +7287,7 @@ body {
 }
 .rpo-item-title {
   font-family: "Teko", sans-serif;
-  font-size: 19px;
+  font-size: 18px;
   letter-spacing: 0.02em;
   color: var(--text);
 }
@@ -7714,7 +7714,7 @@ body {
 }
 .day-summary {
   font-family: var(--font-body);
-  font-size: 19px;
+  font-size: 18px;
   line-height: 1.5;
   color: rgba(0, 0, 0, 0.45);
   padding: 10px 0 18px;
@@ -7766,7 +7766,7 @@ body {
 }
 .wb-count {
   font-family: "Teko", sans-serif;
-  font-size: 30px;
+  font-size: 28px;
   color: var(--white);
 }
 .wb-count small {
@@ -7855,7 +7855,7 @@ body {
 }
 #recent-list .rc-name {
   font-family: "Teko", sans-serif;
-  font-size: 21px;
+  font-size: 20px;
   letter-spacing: 0.02em;
 }
 #recent-list .rc-name .rc-name-text {
@@ -7891,7 +7891,7 @@ body {
 .day-summary {
   padding: 10px 0 22px;
   border-bottom: none;
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.5;
 }
 
@@ -8028,7 +8028,7 @@ body {
 }
 .mg-tip-date {
   font-family: "Space Mono", monospace;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.12em;
   color: rgba(255, 255, 255, 0.5);
 }
@@ -8045,7 +8045,7 @@ body {
 }
 .mg-tip-sub {
   font-family: "Space Mono", monospace;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.06em;
   color: rgba(255, 255, 255, 0.55);
   margin-top: 4px;
