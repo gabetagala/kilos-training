@@ -1014,11 +1014,16 @@ const NAV_TABS = ['home', 'train', 'history'];
     document.getElementById('workout-summary')?.classList.contains('open');
   const clear = (n) => {
     if (!n) return;
-    n.style.transition = '';
+    // Kill transitions while we strip the inline styles, or the base .screen
+    // transition animates the outgoing screen back across the viewport (the
+    // ghosty "transition" after the swipe). Reflow, then restore.
+    n.style.transition = 'none';
     n.style.removeProperty('transform');
     n.style.removeProperty('opacity');
     n.style.removeProperty('pointer-events');
     n.style.removeProperty('z-index');
+    void n.offsetWidth;
+    n.style.transition = '';
   };
   // Continue from the dragged position to the resting position — the SAME
   // motion, no separate cross-fade — then commit the active screen.
@@ -1030,14 +1035,14 @@ const NAV_TABS = ['home', 'train', 'history'];
     if (el) el.style.transition = tr;
     if (incoming) incoming.style.transition = tr;
     if (complete && incoming) {
-      el.style.setProperty('transform', `translateX(${dir * w}px)`, 'important');
-      incoming.style.setProperty('transform', 'translateX(0)', 'important');
+      el.style.setProperty('transform', `translate3d(${dir * w}px,0,0)`, 'important');
+      incoming.style.setProperty('transform', 'translate3d(0,0,0)', 'important');
     } else {
-      if (el) el.style.setProperty('transform', 'translateX(0)', 'important');
+      if (el) el.style.setProperty('transform', 'translate3d(0,0,0)', 'important');
       if (incoming)
         incoming.style.setProperty(
           'transform',
-          `translateX(${-dir * w}px)`,
+          `translate3d(${-dir * w}px,0,0)`,
           'important',
         );
     }
@@ -1112,17 +1117,25 @@ const NAV_TABS = ['home', 'train', 'history'];
       ts.dx = dx;
       const w = ts.w;
       if (ts.incoming) {
-        // True 1:1 pager — both screens track the thumb together.
-        ts.el.style.setProperty('transform', `translateX(${dx}px)`, 'important');
+        // True 1:1 pager — both screens track the thumb together (GPU layer).
+        ts.el.style.setProperty(
+          'transform',
+          `translate3d(${dx}px,0,0)`,
+          'important',
+        );
         ts.incoming.style.setProperty(
           'transform',
-          `translateX(${-ts.dir * w + dx}px)`,
+          `translate3d(${-ts.dir * w + dx}px,0,0)`,
           'important',
         );
       } else {
         // No neighbour — rubber-band resistance, then snap back.
         const r = dx * 0.2 * (1 - Math.min(Math.abs(dx) / w, 0.6));
-        ts.el.style.setProperty('transform', `translateX(${r}px)`, 'important');
+        ts.el.style.setProperty(
+          'transform',
+          `translate3d(${r}px,0,0)`,
+          'important',
+        );
       }
     },
     { passive: false },
