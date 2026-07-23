@@ -641,9 +641,12 @@ function renderDayHero() {
   // The greeting IS the poster: two full-width lines, details drop below.
   const helloEl = document.getElementById('dg-hello');
   if (helloEl) {
+    // Reveal only on the first paint of the app, not on every re-render/return.
+    const rc = helloEl.dataset.revealed ? '' : ' dg-reveal';
+    helloEl.dataset.revealed = '1';
     helloEl.innerHTML = `
-      <span class="dg-line" id="dg-l1">${salut.toUpperCase()},</span>
-      <span class="dg-line" id="dg-l2">${name.toUpperCase()}.</span>`;
+      <span class="dg-line${rc}" id="dg-l1">${salut.toUpperCase()},</span>
+      <span class="dg-line${rc}" id="dg-l2">${name.toUpperCase()}.</span>`;
     fitLineFont(document.getElementById('dg-l1'), 78, 36);
     fitLineFont(document.getElementById('dg-l2'), 78, 36);
   }

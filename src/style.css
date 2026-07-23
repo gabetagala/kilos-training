@@ -7770,9 +7770,21 @@ body {
   text-align: left;
   cursor: pointer;
   position: relative;
+  transition:
+    transform 0.13s ease,
+    box-shadow 0.13s ease,
+    background 0.13s ease;
 }
+/* Pressed into the paper — a tight inner shadow + micro scale on touch. */
 .today-line:active {
-  background: rgba(0, 0, 0, 0.04);
+  background: rgba(0, 0, 0, 0.05);
+  transform: scale(0.992);
+  box-shadow: inset 0 3px 7px rgba(0, 0, 0, 0.09);
+}
+@media (prefers-reduced-motion: reduce) {
+  .today-line:active {
+    transform: none;
+  }
 }
 .tl-label {
   display: block;
@@ -7901,6 +7913,12 @@ body {
   margin-top: 8px;
   padding-right: 44px;
   line-height: 1.5;
+  /* One crisp line that fades on the right instead of wrapping — a clean ticker
+     feel without the dated marquee scroll. */
+  white-space: nowrap;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, #000 76%, transparent);
+  mask-image: linear-gradient(to right, #000 76%, transparent);
 }
 
 /* Calendar grid: weekday header + day numerals */
@@ -7940,9 +7958,9 @@ body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.5;
+  opacity: 0.62;
   mix-blend-mode: multiply;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.86' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 .home-hero > * {
   position: relative;
@@ -8079,6 +8097,28 @@ body {
   line-height: 0.88;
   white-space: nowrap;
   letter-spacing: 0.01em;
+}
+/* Greeting reveal — a quiet fade-rise on app open (once, staggered per line). */
+@keyframes dgReveal {
+  from {
+    opacity: 0;
+    transform: translateY(9px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.dg-line.dg-reveal {
+  animation: dgReveal 0.62s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.dg-line.dg-reveal#dg-l2 {
+  animation-delay: 0.09s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dg-line.dg-reveal {
+    animation: none;
+  }
 }
 
 /* ── Player editorial chrome — Home's language carried into the dark room.
