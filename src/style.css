@@ -100,8 +100,7 @@
 :root {
   /* ── Typography ── */
   /* Body/UI: system-native → SF Pro on iOS, Roboto on Android, Helvetica on Mac */
-  --font-body:
-    -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Space Mono", monospace;
 
   /* ── Surfaces — dark charcoal, grain shows well ── */
   --bg: #222222;
@@ -8230,7 +8229,7 @@ body {
 
 /* The greeting as the poster */
 .dg-hello {
-  padding-top: 10px;
+  padding-top: 22px;
 }
 .dg-line {
   display: block;

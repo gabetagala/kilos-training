@@ -649,8 +649,8 @@ function renderDayHero() {
     helloEl.innerHTML = `
       <span class="dg-line${rc}" id="dg-l1">${salut},</span>
       <span class="dg-line${rc}" id="dg-l2">${capName}.</span>`;
-    fitLineFont(document.getElementById('dg-l1'), 64, 38);
-    fitLineFont(document.getElementById('dg-l2'), 64, 38);
+    fitLineFont(document.getElementById('dg-l1'), 72, 42);
+    fitLineFont(document.getElementById('dg-l2'), 72, 42);
   }
   const b = (t) => `<strong>${t}</strong>`;
   const history = get('workoutHistory') || [];
