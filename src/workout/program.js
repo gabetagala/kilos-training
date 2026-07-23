@@ -344,7 +344,7 @@ export const PROGRAM_EXERCISES = {
 export const DENSITY40_SESSIONS = [
   {
     id: 'd40-a',
-    name: 'A — Pull',
+    name: 'Pull',
     freq: 'Queue · width, arms, grip',
     blurb:
       'Weighted pull-ups, then rows + laterals, arms, and suitcase carries.',
@@ -405,7 +405,7 @@ export const DENSITY40_SESSIONS = [
   },
   {
     id: 'd40-b',
-    name: 'B — Legs + Delts',
+    name: 'Legs + Delts',
     freq: 'Queue · legs, delts, forearms',
     blurb:
       'Front squat, split squats, laterals + face pulls, the Popeye block.',
@@ -462,7 +462,7 @@ export const DENSITY40_SESSIONS = [
   },
   {
     id: 'd40-c',
-    name: 'C — Push',
+    name: 'Push',
     freq: 'Queue · chest, arms, carries',
     blurb:
       'Floor press, pulldown + push-ups, flys + curls, triceps, farmer carries.',
@@ -523,14 +523,15 @@ export const getProgramSession = (id) =>
   DENSITY40_SESSIONS.find((s) => s.id === id) || null;
 
 // ── The week template (TRAINING.md "week at a glance") ───────────────────────
-// Index = JS getDay() (0=Sun … 6=Sat). 'lift' resolves to the next session in
-// the A→B→C queue at render time; 'walk'/'engine' are manual mark-done items.
+// Index = JS getDay() (0=Sun … 6=Sat). A 'lift' with a `session` is pinned to
+// that exact day (Mon=A, Wed=B, Fri=C); a bare 'lift' falls back to the A→B→C
+// queue. 'walk'/'engine' are manual mark-done items.
 export const WEEK_PLAN = [
   /* Sun */ [{ type: 'rehab' }, { type: 'walk' }],
-  /* Mon */ [{ type: 'rehab' }, { type: 'lift' }],
+  /* Mon */ [{ type: 'rehab' }, { type: 'lift', session: 'd40-a' }],
   /* Tue */ [{ type: 'rehab' }, { type: 'hinge' }],
-  /* Wed */ [{ type: 'rehab' }, { type: 'lift' }],
+  /* Wed */ [{ type: 'rehab' }, { type: 'lift', session: 'd40-b' }],
   /* Thu */ [{ type: 'rehab' }, { type: 'hinge' }],
-  /* Fri */ [{ type: 'rehab' }, { type: 'lift' }],
+  /* Fri */ [{ type: 'rehab' }, { type: 'lift', session: 'd40-c' }],
   /* Sat */ [{ type: 'rehab' }, { type: 'hinge' }, { type: 'engine' }],
 ];

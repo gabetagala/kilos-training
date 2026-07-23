@@ -2824,12 +2824,18 @@ function renderWeekPlan() {
           done = entries.some((h) => h.rehabId === 'hinge');
           action = 'session:hinge';
         } else if (item.type === 'lift') {
-          const doneEntry = entries.find((h) => h.programId);
+          const pinned = item.session ? getProgramSession(item.session) : null;
+          const doneEntry = pinned
+            ? entries.find((h) => h.programId === item.session)
+            : entries.find((h) => h.programId);
           done = !!doneEntry;
           const isPast = k < todayKey;
           let s2 = null;
           if (doneEntry) {
             s2 = getProgramSession(doneEntry.programId);
+          } else if (pinned) {
+            // fixed day → its pinned session (Mon=Pull, Wed=Legs+Delts, Fri=Push)
+            s2 = pinned;
           } else if (!isPast) {
             // future/today lift slots walk the queue forward: B, then C, then A…
             s2 =
@@ -2841,9 +2847,7 @@ function renderWeekPlan() {
             // a missed past lift = the next session the queue owes you
             s2 = DENSITY40_SESSIONS[cursor % DENSITY40_SESSIONS.length];
           }
-          label = s2
-            ? `LIFT ${s2.name.split('—')[0].trim().toUpperCase()}`
-            : 'LIFT';
+          label = s2 ? s2.name.toUpperCase() : 'LIFT';
           action = s2 ? `session:${s2.id}` : '';
         } else {
           label = item.type.toUpperCase();
@@ -2865,7 +2869,7 @@ function renderWeekPlan() {
     </div>`);
   }
   el.innerHTML = `${rows.join('')}
-    <div class="wp-legend">REHAB warm-up · HINGE hip-hinge lift · LIFT A/B/C the rotation · ENGINE conditioning</div>`;
+    <div class="wp-legend">REHAB warm-up · HINGE hip-hinge lift · PULL / LEGS / PUSH the week's lifts · ENGINE conditioning</div>`;
 
   el.querySelectorAll('.wp-chip[data-action]').forEach((chip) => {
     chip.addEventListener('click', () => {
@@ -3441,13 +3445,16 @@ function todayPlan() {
       };
     }
     if (item.type === 'lift') {
-      const doneEntry = entries.find((h) => h.programId);
+      const pinned = item.session ? getProgramSession(item.session) : null;
+      const doneEntry = pinned
+        ? entries.find((h) => h.programId === item.session)
+        : entries.find((h) => h.programId);
       const s2 = doneEntry
         ? getProgramSession(doneEntry.programId)
-        : DENSITY40_SESSIONS[cursor % DENSITY40_SESSIONS.length];
+        : pinned || DENSITY40_SESSIONS[cursor % DENSITY40_SESSIONS.length];
       return {
         type: 'lift',
-        label: s2 ? `Lift ${s2.name.split('—')[0].trim()}` : 'Lift',
+        label: s2 ? s2.name : 'Lift',
         done: !!doneEntry,
         sessionId: s2?.id,
       };
