@@ -596,12 +596,12 @@ body {
      #app so it rides the true bottom (the 100vh standalone root fix). */
   position: absolute;
   bottom: max(12px, calc(env(safe-area-inset-bottom) - 8px));
-  left: 20px;
-  right: 20px;
+  left: 44px;
+  right: 44px;
   z-index: 100;
   display: flex;
   align-items: center;
-  justify-content: space-around; /* wide bar, items spread across it */
+  justify-content: space-around; /* items spread across the bar */
   padding: 6px;
   border-radius: 999px;
   /* Deep glass — a clean, near-solid dark tint (no muddy sheen gradient) so the
@@ -660,7 +660,7 @@ body {
   padding: 0 18px;
 }
 .nav-btn.active svg {
-  stroke-width: 2.5;
+  stroke-width: 2;
 }
 .nav-btn.active span {
   max-width: 96px;
