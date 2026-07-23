@@ -900,7 +900,7 @@ body {
      hoarding vertical space below it — tighter wordmark row + smaller greeting
      gap so the top doesn't read as an oversized bar. */
   padding: max(14px, env(safe-area-inset-top)) 0 12px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: none; /* rule line removed; padding kept for spacing */
   margin-bottom: 0;
   display: flex;
   align-items: flex-end;
@@ -1062,21 +1062,38 @@ body {
 .quick-btns {
   display: flex;
   flex-direction: column;
+  counter-reset: qs;
 }
 .quick-btn {
   background: none;
   border: none;
   border-bottom: 1px solid var(--line);
-  padding: 14px 0;
+  padding: 16px 0;
   cursor: pointer;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: baseline;
+  gap: 18px;
   transition:
     transform 0.1s,
     opacity 0.1s;
   color: var(--white);
   width: 100%;
+  counter-increment: qs;
+}
+/* Editorial folio number for each way-to-train */
+.quick-btn::before {
+  content: counter(qs, decimal-leading-zero);
+  font-family: "Teko", sans-serif;
+  font-size: 26px;
+  line-height: 0.92;
+  letter-spacing: 0.02em;
+  color: var(--grey);
+  opacity: 0.5;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.qb-left {
+  flex: 1;
 }
 .quick-btn:last-child {
   border-bottom: none;
