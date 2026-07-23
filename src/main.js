@@ -6685,3 +6685,44 @@ function syncChrome() {
   }
   syncChrome();
 }
+
+// ─── TEMP BOTTOM-STRIP DIAGNOSTIC — remove after reading the numbers ──────────
+{
+  // A probe that resolves env(safe-area-inset-bottom) to a real px value.
+  const probe = document.createElement('div');
+  probe.style.cssText =
+    'position:fixed;left:-9999px;bottom:0;height:env(safe-area-inset-bottom);width:1px;';
+  document.body.appendChild(probe);
+
+  // A bright magenta bar pinned to fixed bottom:0 — shows where the browser
+  // thinks the bottom is. If there's black BELOW the magenta, that's the gap.
+  const marker = document.createElement('div');
+  marker.style.cssText =
+    'position:fixed;left:0;right:0;bottom:0;height:6px;background:#ff00ff;z-index:99998;pointer-events:none;';
+  document.body.appendChild(marker);
+
+  const panel = document.createElement('div');
+  panel.style.cssText =
+    'position:fixed;top:80px;left:10px;z-index:99999;background:rgba(255,0,255,0.92);color:#fff;font:11px/1.5 monospace;padding:8px 10px;white-space:pre;pointer-events:none;border-radius:6px;';
+  document.body.appendChild(panel);
+
+  const upd = () => {
+    const nav = document.getElementById('nav');
+    const app = document.getElementById('app');
+    const nb = nav?.getBoundingClientRect();
+    const vv = window.visualViewport;
+    panel.textContent = [
+      `innerHeight   ${window.innerHeight}`,
+      `visualVP.h    ${vv ? Math.round(vv.height) : '?'}`,
+      `docClient.h   ${document.documentElement.clientHeight}`,
+      `screen.h      ${window.screen?.height ?? '?'}`,
+      `safeBottom    ${getComputedStyle(probe).height}`,
+      `nav.bottom    ${nb ? Math.round(nb.bottom) : '?'}`,
+      `nav.top       ${nb ? Math.round(nb.top) : '?'}`,
+      `app.bottom    ${app ? Math.round(app.getBoundingClientRect().bottom) : '?'}`,
+      `standalone    ${window.navigator.standalone ?? matchMedia('(display-mode: standalone)').matches}`,
+    ].join('\n');
+  };
+  upd();
+  setInterval(upd, 400);
+}
