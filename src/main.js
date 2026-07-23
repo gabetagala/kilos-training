@@ -2155,7 +2155,7 @@ function rhStartGuide() {
   const secsPerRep = step.repTempo.reduce((sum, [, x]) => sum + x, 0);
   rhGuide = {
     tempo: { reps: step.repTarget, secsPerRep, pattern: step.repTempo },
-    startsAt: Date.now() + 3000, // 3-beep count-in
+    startsAt: Date.now() + 10000, // 10s count-in (beeps only the last 3s)
     lastCountSec: null,
     key: null,
   };
@@ -2170,7 +2170,7 @@ function rhStartGuide() {
       const sec = Math.ceil((g.startsAt - now) / 1000);
       if (sec !== g.lastCountSec) {
         g.lastCountSec = sec;
-        rhCue('count');
+        if (sec <= 3) rhCue('count'); // audible 3-2-1 only; the rest is silent
       }
       el.textContent = `READY · ${sec}`;
       return;
