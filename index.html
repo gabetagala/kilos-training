@@ -141,27 +141,8 @@
         </div>
       </div>
 
-      <!-- ATHLETE — your numbers: PRs, the full log, settings -->
+      <!-- ATHLETE — name first, then records + settings, no header band -->
       <div id="history" class="screen">
-        <div class="build-header">
-          <div class="build-header-row">
-            <h1>Athlete</h1>
-          </div>
-          <p>Your records, every session, your settings.</p>
-        </div>
-        <div class="pr-board-head">
-          <div class="section-label history-pr-label">Personal Records</div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <button class="export-btn" id="btn-export" aria-label="Export workout history as CSV" title="Export CSV">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            </button>
-            <button class="pr-chip" id="pr-count" aria-label="Open PR log">0 PRs</button>
-          </div>
-        </div>
-        <div class="pr-row" id="pr-row"></div>
-        <div class="section-label ath-log-label">The log</div>
-        <div id="history-list"></div>
-        <div class="section-label ath-log-label">Settings</div>
         <div class="ath-settings">
           <div class="prof-section">
             <div class="prof-label">YOUR NAME</div>
@@ -169,7 +150,23 @@
           </div>
           <div class="prof-section">
             <div class="prof-label">WHERE DO YOU TRAIN</div>
-            <div class="prof-eq-grid" id="prof-eq-grid"></div>
+            <div class="prof-eq-grid collapsed" id="prof-eq-grid"></div>
+          </div>
+          <div class="prof-section">
+            <div class="pr-board-head">
+              <div class="section-label history-pr-label">Personal Records</div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <button class="export-btn" id="btn-export" aria-label="Export workout history as CSV" title="Export CSV">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </button>
+                <button class="pr-chip" id="pr-count" aria-label="Open PR log">0 PRs</button>
+              </div>
+            </div>
+            <div class="pr-row" id="pr-row"></div>
+          </div>
+          <div class="prof-section">
+            <div class="prof-label">THE LOG</div>
+            <div id="history-list"></div>
           </div>
           <div class="prof-section">
             <div class="prof-label">WEIGHT UNIT</div>

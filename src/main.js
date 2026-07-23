@@ -6561,11 +6561,19 @@ function renderProfilePane() {
   const nameInput = document.getElementById('prof-name-input');
   nameInput.value = get(NAME_KEY) || '';
 
-  // Equipment grid
+  // Equipment grid — collapsed to the current pick; tap it to reveal the rest,
+  // pick one, and it collapses back to that choice.
   const eqGrid = document.getElementById('prof-eq-grid');
+  eqGrid.className = 'prof-eq-grid collapsed';
+  // ph-local is a silent default not in the list — show it as full-gym so the
+  // collapsed row always has a current pick to display.
+  const eqTierIds = EQUIPMENT_TIERS.map((t) => t.id);
+  const activeTier = eqTierIds.includes(profile.equipmentTier)
+    ? profile.equipmentTier
+    : 'full-gym';
   eqGrid.innerHTML = EQUIPMENT_TIERS.map(
     (t) => `
-    <button class="prof-eq-btn${profile.equipmentTier === t.id ? ' active' : ''}" data-tier="${t.id}">
+    <button class="prof-eq-btn${activeTier === t.id ? ' active' : ''}" data-tier="${t.id}">
       <div>
         <div class="prof-eq-name">${t.label}</div>
         <div class="prof-eq-desc">${t.description}</div>
@@ -6576,11 +6584,16 @@ function renderProfilePane() {
   ).join('');
   eqGrid.querySelectorAll('.prof-eq-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
+      if (eqGrid.classList.contains('collapsed')) {
+        eqGrid.classList.remove('collapsed'); // reveal the choices
+        return;
+      }
       eqGrid.querySelectorAll('.prof-eq-btn').forEach((b) => {
         b.classList.remove('active');
       });
       btn.classList.add('active');
       saveProfile({ equipmentTier: btn.dataset.tier });
+      eqGrid.classList.add('collapsed'); // settle back to the chosen one
     });
   });
 

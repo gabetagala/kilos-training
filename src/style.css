@@ -5755,6 +5755,22 @@ body {
   gap: 8px;
   margin-bottom: 16px;
 }
+/* Collapsed → show only the current pick with a CHANGE affordance. */
+.prof-eq-grid.collapsed .prof-eq-btn:not(.active) {
+  display: none;
+}
+.prof-eq-grid.collapsed .prof-eq-btn.active .prof-eq-check {
+  display: none;
+}
+.prof-eq-grid.collapsed .prof-eq-btn.active::after {
+  content: "CHANGE ▾";
+  font-family: "Space Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--grey);
+  align-self: center;
+  flex-shrink: 0;
+}
 .prof-eq-btn {
   background: none;
   border: 1px solid var(--border);
@@ -7614,6 +7630,10 @@ body {
 }
 
 /* Athlete settings inline + the device notice as a true footnote */
+/* No header band on Athlete now — the list carries the safe-area top inset. */
+#history .ath-settings {
+  padding-top: max(14px, env(safe-area-inset-top));
+}
 .ath-settings .prof-section {
   padding: var(--s-3) 0;
   border-bottom: 1px solid var(--line);
