@@ -1006,35 +1006,57 @@ function heroExpandPage(pageEl, originEl) {
 const NAV_TABS = ['home', 'train', 'history'];
 {
   let ts = null;
+  let paging = false; // settle in flight — ignore new gestures until it commits
   const blocked = () =>
     document.querySelector('.page-overlay.open') ||
     document.querySelector('.modal-overlay.open') ||
     document.getElementById('rehab-player')?.classList.contains('open') ||
     document.getElementById('workout-summary')?.classList.contains('open');
-  // Release the live-follow inline styles — snap back smoothly, or clear instantly
-  // so goScreen's own class-based transition can drive the hand-off.
-  const releaseFollow = (el, snapBack) => {
-    if (!el) return;
-    if (snapBack) {
-      el.style.transition =
-        'transform .26s cubic-bezier(.2,.8,.2,1), opacity .26s';
-      el.style.setProperty('transform', 'translateX(0)', 'important');
-      el.style.setProperty('opacity', '1', 'important');
-      setTimeout(() => {
-        el.style.transition = '';
-        el.style.removeProperty('transform');
-        el.style.removeProperty('opacity');
-      }, 290);
-    } else {
-      el.style.transition = '';
-      el.style.removeProperty('transform');
-      el.style.removeProperty('opacity');
-    }
+  const clear = (n) => {
+    if (!n) return;
+    n.style.transition = '';
+    n.style.removeProperty('transform');
+    n.style.removeProperty('opacity');
+    n.style.removeProperty('pointer-events');
+    n.style.removeProperty('z-index');
   };
+  // Continue from the dragged position to the resting position — the SAME
+  // motion, no separate cross-fade — then commit the active screen.
+  function settle(s, complete) {
+    const { el, incoming, dir, w } = s;
+    const dur = 300;
+    const tr = `transform ${dur}ms cubic-bezier(.25,.72,.35,1)`;
+    paging = true;
+    if (el) el.style.transition = tr;
+    if (incoming) incoming.style.transition = tr;
+    if (complete && incoming) {
+      el.style.setProperty('transform', `translateX(${dir * w}px)`, 'important');
+      incoming.style.setProperty('transform', 'translateX(0)', 'important');
+    } else {
+      if (el) el.style.setProperty('transform', 'translateX(0)', 'important');
+      if (incoming)
+        incoming.style.setProperty(
+          'transform',
+          `translateX(${-dir * w}px)`,
+          'important',
+        );
+    }
+    setTimeout(() => {
+      if (complete && incoming) {
+        el.classList.remove('active');
+        incoming.classList.add('active');
+        for (const b of document.querySelectorAll('.nav-btn'))
+          b.classList.toggle('active', b.dataset.screen === incoming.id);
+      }
+      clear(el);
+      clear(incoming);
+      paging = false;
+    }, dur + 30);
+  }
   window.addEventListener(
     'touchstart',
     (e) => {
-      if (e.touches.length !== 1 || blocked()) return;
+      if (e.touches.length !== 1 || paging || blocked()) return;
       const el = document.querySelector('.screen.active');
       if (!el || !NAV_TABS.includes(el.id)) return;
       ts = {
@@ -1044,7 +1066,11 @@ const NAV_TABS = ['home', 'train', 'history'];
         active: el.id,
         decided: false,
         horiz: false,
+        dir: 0,
+        incoming: null,
+        w: el.offsetWidth || window.innerWidth || 390,
         dx: 0,
+        t0: performance.now(),
       };
     },
     { passive: true },
@@ -1057,39 +1083,62 @@ const NAV_TABS = ['home', 'train', 'history'];
       const dx = t.clientX - ts.x0;
       const dy = t.clientY - ts.y0;
       if (!ts.decided) {
-        if (Math.abs(dx) < 12 && Math.abs(dy) < 12) return;
+        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
         ts.decided = true;
-        ts.horiz = Math.abs(dx) > Math.abs(dy) * 1.3; // sideways, not a scroll
-        if (ts.horiz) ts.el.style.transition = 'none';
+        ts.horiz = Math.abs(dx) > Math.abs(dy) * 1.2; // sideways, not a scroll
+        if (!ts.horiz) {
+          ts = null; // vertical — let the screen scroll, drop the gesture
+          return;
+        }
+        // Stage: lock the current screen and bring in the neighbour off-screen.
+        ts.dir = dx < 0 ? -1 : 1;
+        const i = NAV_TABS.indexOf(ts.active);
+        const ni = dx < 0 ? i + 1 : i - 1;
+        ts.incoming =
+          ni >= 0 && ni < NAV_TABS.length
+            ? document.getElementById(NAV_TABS[ni])
+            : null;
+        ts.el.style.transition = 'none';
+        ts.el.style.setProperty('z-index', '3');
+        if (ts.incoming) {
+          ts.incoming.style.transition = 'none';
+          ts.incoming.style.setProperty('opacity', '1', 'important');
+          ts.incoming.style.setProperty('pointer-events', 'none', 'important');
+          ts.incoming.style.setProperty('z-index', '3');
+        }
       }
       if (!ts.horiz) return;
+      e.preventDefault(); // lock the axis — purely left/right, no vertical scroll
       ts.dx = dx;
-      // Live follow — the screen tracks the thumb (dampened), with more
-      // resistance at the ends where there's no neighbouring tab.
-      const i = NAV_TABS.indexOf(ts.active);
-      const atEnd =
-        (dx < 0 && i >= NAV_TABS.length - 1) || (dx > 0 && i <= 0);
-      const follow = dx * (atEnd ? 0.12 : 0.34);
-      const w = window.innerWidth || 390;
-      const dim = 1 - Math.min(Math.abs(dx) / w, 1) * (atEnd ? 0.05 : 0.22);
-      ts.el.style.setProperty('transform', `translateX(${follow}px)`, 'important');
-      ts.el.style.setProperty('opacity', String(dim), 'important');
+      const w = ts.w;
+      if (ts.incoming) {
+        // True 1:1 pager — both screens track the thumb together.
+        ts.el.style.setProperty('transform', `translateX(${dx}px)`, 'important');
+        ts.incoming.style.setProperty(
+          'transform',
+          `translateX(${-ts.dir * w + dx}px)`,
+          'important',
+        );
+      } else {
+        // No neighbour — rubber-band resistance, then snap back.
+        const r = dx * 0.2 * (1 - Math.min(Math.abs(dx) / w, 0.6));
+        ts.el.style.setProperty('transform', `translateX(${r}px)`, 'important');
+      }
     },
-    { passive: true },
+    { passive: false },
   );
   const onEnd = () => {
     if (!ts) return;
-    const { el, active, horiz, dx } = ts;
+    const s = ts;
     ts = null;
-    if (!horiz) return;
-    const i = NAV_TABS.indexOf(active);
-    const ni = dx < 0 ? i + 1 : i - 1; // swipe left → next tab
-    if (Math.abs(dx) > 64 && ni >= 0 && ni < NAV_TABS.length) {
-      releaseFollow(el, false); // hand off to goScreen's transition
-      goScreen(NAV_TABS[ni]);
-    } else {
-      releaseFollow(el, true); // snap back
-    }
+    if (!s.horiz) return;
+    const dt = performance.now() - s.t0;
+    const v = s.dx / Math.max(dt, 1); // px/ms — a fast flick commits on less travel
+    const complete =
+      !!s.incoming &&
+      (Math.abs(s.dx) > s.w * 0.32 ||
+        (Math.abs(s.dx) > 40 && Math.abs(v) > 0.5));
+    settle(s, complete);
   };
   window.addEventListener('touchend', onEnd, { passive: true });
   window.addEventListener('touchcancel', onEnd, { passive: true });
