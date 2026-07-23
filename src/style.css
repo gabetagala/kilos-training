@@ -1493,6 +1493,18 @@ body {
 #coaches {
   padding: 0 24px 100px;
 }
+/* Train's launcher is short — centre the numbered index in the space between
+   the header band and the nav so the top/bottom breathing room is equal. */
+#train {
+  display: flex;
+  flex-direction: column;
+}
+#train .quick-start {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
 /* Light identity band — the two-tone system: light hero on top, dark content
    below (matches .home-hero / .screen-hero). Shared by Build + Train. */
 .build-header {
@@ -8424,25 +8436,24 @@ body {
   border-radius: 6px;
 }
 
-/* Coach rows — FEEL / AVOID as ruled ledger lines under the cue */
+/* Coach lines — FEEL / AVOID tucked straight under the cue, no rules. The label
+   is a quiet inline tag, the value carries it: reads as two compact lines, not
+   a ruled ledger. */
 .rp-coach {
   flex-shrink: 0;
-  margin-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  margin-top: 6px;
 }
 .rp-coach-row {
   display: flex;
   align-items: baseline;
-  gap: 12px;
-  padding: 5px 0 4px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 8px;
+  padding: 2px 0;
 }
 .rp-coach-k {
   font-family: "Space Mono", monospace;
   font-size: 10px;
   letter-spacing: 0.18em;
   color: rgba(255, 255, 255, 0.38);
-  width: 46px;
   flex-shrink: 0;
 }
 .rp-coach-v {
