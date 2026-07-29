@@ -10,7 +10,7 @@ const W = 540;
 const H = 960;
 const PAD = 40;
 
-const BEBAS = "'Bebas Neue', sans-serif";
+const BEBAS = "'Teko', sans-serif"; // display face (Teko rebrand; const name kept)
 const MONO = "'Space Mono', monospace";
 
 // ─── PLATES ──────────────────────────────────────────────────────────────────
@@ -112,9 +112,26 @@ export function buildShareData({
       else if (reps.length > 1)
         repStr = `×${Math.min(...reps)}–${Math.max(...reps)}`;
       else if (ex.reps) repStr = `×${ex.reps}`;
-      return { name: ex.name, detail: `${sets}${repStr}` };
+      const top = Math.max(
+        0,
+        ...done.map((l) => parseFloat(l.weight) || 0),
+      );
+      return {
+        name: ex.name,
+        detail: `${sets}${repStr}`,
+        weight: top > 0 ? `${top}KG` : 'BW',
+      };
     });
   }
+
+  // Every done set's reps, in session order — the honest trace.
+  const repSeq = isCF
+    ? []
+    : (workout?.exercises || []).flatMap((ex) =>
+        (ex.logs || [])
+          .filter((l) => l.done)
+          .map((l) => parseInt(l.reps, 10) || 1),
+      );
 
   const totalSets = isCF
     ? cfRoundsCompleted || 0
@@ -128,6 +145,7 @@ export function buildShareData({
     type,
     isCF,
     movements,
+    repSeq,
     totalSets,
     duration: duration || '—',
     streak,
@@ -532,6 +550,271 @@ function drawArchive(ctx, data, color) {
   }
 }
 
+
+// ─── STYLE I · MONOGRAM — scattered giant letters + the one huge number ─────
+function drawMonogram(ctx, data, color) {
+  const c = color;
+  ctx.textBaseline = 'alphabetic';
+  // three initials of the session, scattered like a city code
+  const words = data.workoutName.toUpperCase().replace(/[^A-Z0-9 ]/g, ' ').split(/\s+/).filter(Boolean);
+  const letters = (words.length >= 3 ? words.slice(0, 3) : ['K', 'L', 'S']).map((w) => w[0]);
+  ctx.fillStyle = c;
+  ctx.font = `150px ${BEBAS}`;
+  ctx.textAlign = 'right';
+  ctx.fillText(letters[1] || 'L', W - PAD, 170);
+  ctx.textAlign = 'left';
+  ctx.fillText(letters[0] || 'K', PAD, H * 0.44);
+  ctx.textAlign = 'right';
+  ctx.fillText(letters[2] || 'S', W - PAD, H * 0.44);
+  // caption block top-left — the movements, tiny
+  ctx.font = `700 10px ${MONO}`;
+  ctx.textAlign = 'left';
+  ctx.fillStyle = withAlpha(c, 0.9);
+  let y = 58;
+  ctx.fillText('KILOS — TRAINING LOG', PAD, y);
+  y += 16;
+  for (const m of data.movements.slice(0, 4)) {
+    ctx.fillText(`${m.name.toUpperCase().slice(0, 22)} ${m.detail}`.trim(), PAD, y);
+    y += 14;
+  }
+  if (data.movements.length > 4) ctx.fillText(`+ ${data.movements.length - 4} MORE`, PAD, y);
+  // the one huge number — elapsed time
+  ctx.fillStyle = c;
+  ctx.textAlign = 'left';
+  const t = data.duration;
+  const size = fitText(ctx, t, W - PAD * 2, 210, BEBAS);
+  ctx.font = `${size}px ${BEBAS}`;
+  ctx.fillText(t, PAD, H - 120);
+  ctx.font = `700 11px ${MONO}`;
+  ctx.fillText('ELAPSED', PAD, H - 84);
+  ctx.textAlign = 'right';
+  ctx.fillText('©K', W - PAD, H - 84);
+}
+
+// ─── STYLE J · CLUB — the session as a boxed schedule table ─────────────────
+function drawClub(ctx, data, color) {
+  const c = color;
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = c;
+  ctx.font = `700 20px ${MONO}`;
+  ctx.textAlign = 'left';
+  ctx.fillText('KILOS', PAD, H * 0.36);
+  ctx.textAlign = 'right';
+  const title = data.workoutName.toUpperCase().slice(0, 22);
+  fitText(ctx, title, W * 0.6, 20, `700 ${MONO}`);
+  ctx.font = `700 ${fitText(ctx, title, W * 0.6, 20, MONO)}px ${MONO}`;
+  ctx.fillText(title, W - PAD, H * 0.36);
+  // boxed rows — one per movement
+  const rows = data.movements.slice(0, 5);
+  let y = H * 0.36 + 34;
+  ctx.font = `700 12px ${MONO}`;
+  for (const m of rows) {
+    const boxW = 118;
+    ctx.strokeStyle = c;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(PAD, y - 17, boxW, 26);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.textAlign = 'center';
+    ctx.fillText(m.detail || '—', PAD + boxW / 2, y);
+    ctx.textAlign = 'left';
+    ctx.fillText(m.name.toUpperCase().slice(0, 24), PAD + boxW + 18, y);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = withAlpha('#FFFFFF', 0.85);
+    ctx.fillText(m.weight || (data.isCF ? 'RND' : ''), W - PAD, y);
+    ctx.fillStyle = '#FFFFFF';
+    y += 38;
+  }
+  if (data.movements.length > 5) {
+    ctx.textAlign = 'left';
+    ctx.fillStyle = withAlpha('#FFFFFF', 0.8);
+    ctx.fillText(`+ ${data.movements.length - 5} MORE`, PAD, y);
+    y += 30;
+  }
+  ctx.font = `700 11px ${MONO}`;
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillText('TRAIN HEAVY. FREE FOREVER.', PAD, H - 64);
+  ctx.textAlign = 'right';
+  ctx.fillText(`${data.duration} · ${data.dateStr}`, W - PAD, H - 64);
+}
+
+// ─── STYLE K · TICKET — rotated label band down the left edge ───────────────
+function drawTicket(ctx, data, color) {
+  const c = color;
+  const bandW = 96;
+  const accH = H * 0.42;
+  // accent block + light block
+  ctx.fillStyle = c === '#FFFFFF' ? '#E84A27' : c;
+  ctx.fillRect(0, H * 0.12, bandW, accH);
+  ctx.fillStyle = '#EDEAE3';
+  ctx.fillRect(0, H * 0.12 + accH, bandW, H * 0.46);
+  ctx.save();
+  ctx.translate(0, 0);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textBaseline = 'alphabetic';
+  // on the accent block (dark ink)
+  ctx.fillStyle = '#111111';
+  ctx.font = `700 30px ${BEBAS}`;
+  ctx.textAlign = 'right';
+  ctx.fillText('KILOS', -(H * 0.12) - 14, 40);
+  ctx.font = `700 10px ${MONO}`;
+  ctx.fillText(`${data.dateStr} *`, -(H * 0.12) - 16, 66);
+  ctx.fillText('TRAINING PACK', -(H * 0.12) - 16, 84);
+  // on the light block
+  const topLight = H * 0.12 + accH;
+  ctx.textAlign = 'right';
+  ctx.font = `700 16px ${MONO}`;
+  const nm = data.workoutName.toUpperCase().slice(0, 24);
+  ctx.fillText(nm, -topLight - 14, 44);
+  ctx.font = `700 10px ${MONO}`;
+  ctx.fillText(`* ${String(data.totalSets).padStart(4, '0')} / SETS *`, -topLight - 16, 66);
+  ctx.fillText(`${data.duration} ELAPSED`, -topLight - 16, 84);
+  ctx.restore();
+  // movements, small, bottom-right over the photo
+  ctx.font = `700 10px ${MONO}`;
+  ctx.textAlign = 'right';
+  ctx.fillStyle = withAlpha('#FFFFFF', 0.92);
+  let y = H - 70 - Math.min(data.movements.length, 4) * 14;
+  for (const m of data.movements.slice(0, 4)) {
+    ctx.fillText(`${m.name.toUpperCase().slice(0, 24)} ${m.detail}`.trim(), W - PAD, y);
+    y += 14;
+  }
+  if (data.movements.length > 4) ctx.fillText(`+ ${data.movements.length - 4} MORE`, W - PAD, y);
+}
+
+// ─── STYLE L · BADGE — one centered capsule mark, nothing else ──────────────
+function drawBadge(ctx, data, color) {
+  const c = color;
+  ctx.textBaseline = 'alphabetic';
+  // capsule outline
+  const bw = 250;
+  const bh = 150;
+  const r = bh / 2;
+  const cx = W / 2;
+  const cy = H / 2;
+  ctx.strokeStyle = c;
+  ctx.lineWidth = 14;
+  ctx.beginPath();
+  ctx.moveTo(cx - bw / 2 + r, cy - bh / 2);
+  ctx.arcTo(cx + bw / 2, cy - bh / 2, cx + bw / 2, cy + bh / 2, r);
+  ctx.arcTo(cx + bw / 2, cy + bh / 2, cx - bw / 2, cy + bh / 2, r);
+  ctx.arcTo(cx - bw / 2, cy + bh / 2, cx - bw / 2, cy - bh / 2, r);
+  ctx.arcTo(cx - bw / 2, cy - bh / 2, cx + bw / 2, cy - bh / 2, r);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.fillStyle = c;
+  ctx.font = `86px ${BEBAS}`;
+  ctx.textAlign = 'center';
+  ctx.fillText('KLS.', cx, cy + 30);
+  // one quiet line at the bottom
+  ctx.font = `700 10px ${MONO}`;
+  ctx.fillText(
+    `${data.workoutName.toUpperCase().slice(0, 24)} · ${data.totalSets} ${data.isCF ? 'RND' : 'SETS'} · ${data.duration}`,
+    cx,
+    H - 56,
+  );
+}
+
+// ─── STYLE M · TOUR — giant type wash, movements as tour stops ──────────────
+function drawTour(ctx, data, color) {
+  const c = color === '#FFFFFF' ? '#FFFFFF' : color;
+  // color wash over the plate (multiply keeps the photo beneath)
+  if (color !== '#FFFFFF') {
+    ctx.save();
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = withAlpha(color, 0.42);
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  }
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = c;
+  // headline: name + ©'26, two condensed lines
+  const nm = data.workoutName.toUpperCase();
+  const l1 = nm.slice(0, 14);
+  const size = fitText(ctx, l1, W - PAD * 2, 92, BEBAS);
+  ctx.font = `${size}px ${BEBAS}`;
+  ctx.textAlign = 'left';
+  ctx.fillText(l1, PAD, 60 + size * 0.8);
+  ctx.font = `${size}px ${BEBAS}`;
+  ctx.fillText(`${data.dateStr.split(',')[0]} ©'26`, PAD, 60 + size * 1.72);
+  // center mark
+  ctx.font = `700 13px ${MONO}`;
+  ctx.textAlign = 'center';
+  ctx.fillText('KILOS — TRAIN HEAVY', W / 2, H * 0.52);
+  // movements as tour stops with superscript detail
+  const rows = data.movements.slice(0, 6);
+  let y = H - 88 - (rows.length - 1) * 44;
+  for (const m of rows) {
+    const name = m.name.toUpperCase().slice(0, 16);
+    const ns = fitText(ctx, name, W - PAD * 2 - 70, 44, BEBAS);
+    ctx.font = `${ns}px ${BEBAS}`;
+    ctx.textAlign = 'left';
+    const nw = ctx.measureText(name).width; // measured in the display font
+    ctx.fillText(name, PAD, y);
+    if (m.detail) {
+      ctx.font = `700 12px ${MONO}`;
+      ctx.fillText(m.detail, PAD + nw + 10, y - ns * 0.52);
+    }
+    y += 44;
+  }
+}
+
+// ─── STYLE N · ROUTE — the session traced as a path + stat footer ───────────
+function drawRoute(ctx, data, color) {
+  const c = color === '#FFFFFF' ? '#7FD8E8' : color;
+  ctx.textBaseline = 'alphabetic';
+  // the session, plotted honestly: x = set order, y = reps in that set
+  const seq = data.repSeq?.length ? data.repSeq : [data.totalSets || 1];
+  const maxRep = Math.max(...seq, 1);
+  const pts = seq.map((reps, i) => ({
+    x: PAD + 30 + ((W - PAD * 2 - 60) * i) / Math.max(seq.length - 1, 1),
+    y: H * 0.62 - (reps / maxRep) * H * 0.3,
+  }));
+  ctx.strokeStyle = c;
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) {
+    const mx = (pts[i - 1].x + pts[i].x) / 2;
+    const my = (pts[i - 1].y + pts[i].y) / 2;
+    ctx.quadraticCurveTo(pts[i - 1].x, pts[i - 1].y, mx, my);
+  }
+  ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+  ctx.stroke();
+  ctx.fillStyle = c;
+  ctx.font = `700 11px ${MONO}`;
+  ctx.textAlign = 'left';
+  ctx.fillText('KILOS — TRAINING LOG', PAD, 58);
+  ctx.textAlign = 'center';
+  ctx.fillText('SET 1', pts[0].x, pts[0].y + 24);
+  ctx.fillText('REPS, SET BY SET', W / 2, H * 0.68);
+  // checker finish
+  const f = pts[pts.length - 1];
+  const cell = 5;
+  for (let ix = 0; ix < 4; ix++)
+    for (let iy = 0; iy < 2; iy++)
+      if ((ix + iy) % 2 === 0)
+        ctx.fillRect(f.x - 10 + ix * cell, f.y - 26 + iy * cell, cell, cell);
+  // stat footer — honest four-up
+  const stats = [
+    [data.isCF ? 'ROUNDS' : 'SETS', String(data.totalSets || '—')],
+    ['TIME', data.duration],
+    ['MOVES', String(data.movements.length)],
+    ['DAY', data.dateStr.split(',')[0]],
+  ];
+  const colW = (W - PAD * 2) / 4;
+  stats.forEach(([lbl, val], i) => {
+    const x = PAD + colW * i + colW / 2;
+    ctx.font = `700 10px ${MONO}`;
+    ctx.fillStyle = withAlpha(c, 0.8);
+    ctx.fillText(lbl, x, H - 96);
+    ctx.font = `700 15px ${MONO}`;
+    ctx.fillStyle = c;
+    ctx.fillText(val, x, H - 72);
+  });
+}
+
 // ─── MAIN RENDERER ───────────────────────────────────────────────────────────
 export async function renderShareCard(canvas, data, opts = {}) {
   const { style = 'editorial', color = '#FFFFFF', photo = null } = opts;
@@ -554,6 +837,12 @@ export async function renderShareCard(canvas, data, opts = {}) {
         grain: 0.14,
         archive: 0.12,
         headline: 0.3,
+        monogram: 0.18,
+        club: 0.34,
+        ticket: 0.2,
+        badge: 0.16,
+        tour: 0.3,
+        route: 0.24,
       };
       drawCover(ctx, plate, scrims[style] ?? 0.2);
       addGrain(ctx, 0.05);
@@ -572,6 +861,12 @@ export async function renderShareCard(canvas, data, opts = {}) {
     spec: drawSpec,
     grain: drawGrain,
     archive: drawArchive,
+    monogram: drawMonogram,
+    club: drawClub,
+    ticket: drawTicket,
+    badge: drawBadge,
+    tour: drawTour,
+    route: drawRoute,
   };
   (drawers[style] || drawEditorial)(ctx, data, color);
 
