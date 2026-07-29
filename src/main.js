@@ -3384,9 +3384,9 @@ document.getElementById('btn-startover-new').addEventListener('click', () => {
     localStorage.removeItem(REHAB_STATE_KEY);
   } catch {}
   if (pendingBegin) {
-    const { name, type, exercises } = pendingBegin;
+    const go = pendingBegin;
     pendingBegin = null;
-    beginWorkoutNow(name, type, exercises);
+    go();
   }
 });
 document.getElementById('btn-discard-yes').addEventListener('click', () => {
@@ -3882,6 +3882,11 @@ function startCoachWorkout(coachId, workoutName) {
 }
 
 function beginCFWorkout(name, cfData) {
+  // Same unfinished-session guard as strength — a coach preview / launch link
+  // must not silently discard a restored in-progress workout.
+  guardedBegin(() => beginCFWorkoutNow(name, cfData));
+}
+function beginCFWorkoutNow(name, cfData) {
   newPRsThisSession = [];
   activeWorkout = { name, type: cfData.type, cf: cfData };
   cfCurrentRound = 0;
@@ -4101,7 +4106,7 @@ document.getElementById('cf-mov-name').addEventListener('keydown', (e) => {
 
 document
   .getElementById('btn-add-exercise')
-  .addEventListener('click', openExSearch);
+  .addEventListener('click', () => openExSearch('add'));
 document
   .getElementById('btn-save-workout')
   .addEventListener('click', saveCustomWorkout);
@@ -4180,7 +4185,10 @@ function startCustomWorkout() {
 }
 
 // ─── EXERCISE SEARCH ─────────────────────────────────────────────────────────
-function openExSearch() {
+function openExSearch(mode = 'add') {
+  // Mode is set fresh on every open so a dismissed Swap can't leave the search
+  // in 'swap' and make the next "Add Exercise" overwrite the current exercise.
+  exSearchMode = mode;
   document.getElementById('ex-search-modal').classList.add('open');
   const input = document.getElementById('ex-search-input');
   input.value = '';
@@ -4351,7 +4359,10 @@ document.getElementById('btn-close-shuffle').addEventListener('click', () => {
 // ─── OVERLAY TAP TO CLOSE ────────────────────────────────────────────────────
 ['shuffle-modal', 'ex-search-modal'].forEach((id) => {
   document.getElementById(id).addEventListener('click', function (e) {
-    if (e.target === this) this.classList.remove('open');
+    if (e.target === this) {
+      this.classList.remove('open');
+      if (id === 'ex-search-modal') exSearchMode = 'add';
+    }
   });
 });
 
@@ -4581,16 +4592,23 @@ document.getElementById('np-btn-go-create').addEventListener('click', () => {
 // ─── ACTIVE WORKOUT ───────────────────────────────────────────────────────────
 let pendingBegin = null;
 let lastFinishSnapshot = null;
-function beginWorkout(name, type, exercises) {
+// Shared "you have an unfinished session" guard for every begin path (strength,
+// CrossFit, coach launch). `starter` is a thunk that actually starts the
+// workout — run now if nothing is live, or after the user confirms discarding
+// what's running. One mechanism so no entry point can clobber a live session.
+function guardedBegin(starter) {
   const info = activeSessionInfo();
   if (info) {
-    pendingBegin = { name, type, exercises };
+    pendingBegin = starter;
     document.getElementById('startover-sub').textContent =
       `${info.name} is unfinished. Starting new discards it.`;
     document.getElementById('startover-confirm').classList.add('open');
     return;
   }
-  beginWorkoutNow(name, type, exercises);
+  starter();
+}
+function beginWorkout(name, type, exercises) {
+  guardedBegin(() => beginWorkoutNow(name, type, exercises));
 }
 function beginWorkoutNow(name, type, exercises) {
   newPRsThisSession = [];
@@ -4717,6 +4735,17 @@ function renderCardioActive() {
   document.getElementById('cardio-notes-label').textContent =
     activeWorkout.notes || '';
 
+  // Distance is DOM-entered but must survive a mid-cardio refresh/crash — mirror
+  // it into the session (rides in the snapshot) and restore it on every render.
+  const distInput = document.getElementById('cardio-distance-input');
+  if (distInput) {
+    distInput.value = activeWorkout.distance || '';
+    distInput.oninput = () => {
+      if (activeWorkout) activeWorkout.distance = distInput.value;
+      saveActiveState();
+    };
+  }
+
   // RPE effort selector
   document.getElementById('rpe-selector')?.remove();
   const rpeEl = document.createElement('div');
@@ -4730,12 +4759,15 @@ function renderCardioActive() {
       <button class="rpe-btn" data-rpe="max">Max</button>
     </div>`;
   rpeEl.querySelectorAll('.rpe-btn').forEach((btn) => {
+    // Restore the chosen effort after a re-render/refresh
+    if (activeWorkout?.rpe === btn.dataset.rpe) btn.classList.add('active');
     btn.addEventListener('click', () => {
       rpeEl.querySelectorAll('.rpe-btn').forEach((b) => {
         b.classList.remove('active');
       });
       btn.classList.add('active');
       if (activeWorkout) activeWorkout.rpe = btn.dataset.rpe;
+      saveActiveState();
     });
   });
   document.getElementById('cardio-log-section').appendChild(rpeEl);
@@ -4834,6 +4866,7 @@ function renderEMOMLog(el, cf) {
     dot.addEventListener('click', () => {
       const i = parseInt(dot.dataset.round, 10);
       cfRoundLog[i] = !cfRoundLog[i];
+      saveActiveState();
       renderCFLog();
     });
   });
@@ -4866,11 +4899,13 @@ function renderAMRAPLog(el, cf) {
     cfRoundsCompleted++;
     beep(660, 0.1);
     if (navigator.vibrate) navigator.vibrate(30);
+    saveActiveState(); // AMRAP's only score — persist every round so a background reap can't lose it
     renderCFLog();
   });
   el.querySelector('#cf-minus').addEventListener('click', () => {
     if (cfRoundsCompleted > 0) {
       cfRoundsCompleted--;
+      saveActiveState();
       renderCFLog();
     }
   });
@@ -4903,6 +4938,7 @@ function renderRoundsLog(el, cf) {
       if (cfMovementsDone.has(i)) cfMovementsDone.delete(i);
       else cfMovementsDone.add(i);
       if (navigator.vibrate) navigator.vibrate(25);
+      saveActiveState();
       renderCFLog();
     });
   });
@@ -4952,6 +4988,7 @@ function renderForTimeLog(el, cf) {
       if (cfMovementsDone.has(i)) cfMovementsDone.delete(i);
       else cfMovementsDone.add(i);
       if (navigator.vibrate) navigator.vibrate(25);
+      saveActiveState();
       const nowAllDone = items.every((_, j) => cfMovementsDone.has(j));
       if (nowAllDone) {
         stopTimer();
@@ -4972,6 +5009,7 @@ function advanceCFRound() {
   if (!cf) return;
   cfCurrentRound++;
   cfMovementsDone = new Set();
+  saveActiveState(); // persist the advanced round so a refresh doesn't restore round 1
 
   if (cfCurrentRound >= (cf.rounds || 1)) {
     // All rounds done
@@ -5058,8 +5096,7 @@ function renderCurrentExercise() {
   swapBtn.className = 'swap-ex-btn';
   swapBtn.textContent = 'Swap →';
   swapBtn.addEventListener('click', () => {
-    exSearchMode = 'swap';
-    openExSearch();
+    openExSearch('swap');
   });
   metaRow.appendChild(swapBtn);
 
@@ -5797,7 +5834,9 @@ function finishWorkout() {
   if (completed.type === 'cardio') {
     entry.cardioType = completed.cardioType;
     entry.distance =
-      document.getElementById('cardio-distance-input')?.value || '';
+      completed.distance ||
+      document.getElementById('cardio-distance-input')?.value ||
+      '';
     entry.rpe = completed.rpe || null;
   }
   if (isCF) {
@@ -7018,8 +7057,11 @@ function showCrashScreen(err) {
 
 // Restore in-progress workout from localStorage (task #1). Wrapped so a boot
 // failure shows the recovery screen instead of a blank/half-rendered app.
+let bootLoadOK = false;
 try {
-  if (loadActiveState()) {
+  const restored = loadActiveState();
+  bootLoadOK = true; // loading the snapshot itself didn't throw
+  if (restored) {
     renderHome(); // update Resume button + streak
     renderActiveScreen(); // rebuild active workout UI
     restoreTimer(); // resume the rest/work countdown, fast-forwarded by elapsed time
@@ -7029,12 +7071,14 @@ try {
   renderProfileBtn();
   sessionStorage.removeItem('kilos-boot-retry'); // clean boot → arm the retry again
 } catch (err) {
-  // One shot at self-healing: quarantine the active-session snapshot (the
-  // usual culprit after a schema change) and reload once. The crash screen
-  // only shows when a CLEAN boot also fails.
+  // Self-heal, but only sacrifice the saved session when LOADING the snapshot is
+  // what failed (the usual culprit after a schema change). If it loaded fine and
+  // a later render threw, the session is valid — a mid-workout session must
+  // survive an unrelated bug, so keep it and show the recovery screen (which
+  // reloads without discarding anything).
   let retrying = false;
   try {
-    if (!sessionStorage.getItem('kilos-boot-retry')) {
+    if (!bootLoadOK && !sessionStorage.getItem('kilos-boot-retry')) {
       sessionStorage.setItem('kilos-boot-retry', '1');
       const snap = localStorage.getItem(ACTIVE_STATE_KEY);
       if (snap != null) {
@@ -7048,6 +7092,18 @@ try {
   if (!retrying) showCrashScreen(err);
   throw err; // still surface it to monitoring / console
 }
+
+// Belt-and-suspenders session flush: the instant the page is hidden or torn
+// down, snapshot the live session. iOS can reclaim a backgrounded tab with no
+// further JS, so this is the last safe moment. saveActiveState() is a synchronous
+// localStorage write (never a network call), so it's safe here and can't lose a
+// mutation that some handler forgot to persist.
+window.addEventListener('pagehide', () => {
+  if (activeWorkout) saveActiveState();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && activeWorkout) saveActiveState();
+});
 
 // Active placeholder → go home
 document
