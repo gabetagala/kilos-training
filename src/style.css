@@ -5029,17 +5029,19 @@ body {
 }
 .share-canvas-frame {
   flex: 1;
+  min-height: 0; /* let the frame shrink — otherwise the canvas crops its top */
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   overflow: hidden;
-  padding: 16px 20px 0;
+  padding: 12px 20px 0;
 }
 .share-canvas-frame canvas {
-  width: 100%;
+  width: auto;
   height: auto;
-  max-height: calc(100dvh - 190px);
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
   border-radius: 4px;
 }

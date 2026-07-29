@@ -13,23 +13,6 @@ const PAD = 40;
 const BEBAS = "'Teko', sans-serif"; // display face (Teko rebrand; const name kept)
 const MONO = "'Space Mono', monospace";
 
-// ─── PLATES ──────────────────────────────────────────────────────────────────
-const plateCache = new Map(); // style → Promise<Image|null>
-function loadPlate(style) {
-  if (!plateCache.has(style)) {
-    plateCache.set(
-      style,
-      new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = () => resolve(null);
-        img.src = `/share/share-${style}.webp`;
-      }),
-    );
-  }
-  return plateCache.get(style);
-}
-
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function addGrain(ctx, opacity = 0.1) {
   const off = document.createElement('canvas');
@@ -823,34 +806,15 @@ export async function renderShareCard(canvas, data, opts = {}) {
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // Background: the user's photo beats the style plate; flat dark last.
+  // Background: black until the athlete adds their own photo — the type is
+  // the card; no stock plates pretending to be your gym.
   if (photo) {
     drawCover(ctx, photo, 0.45);
     addGrain(ctx, 0.08);
   } else {
-    const plate = await loadPlate(style);
-    if (plate) {
-      const scrims = {
-        minimal: 0.1,
-        dots: 0.22,
-        spec: 0.16,
-        grain: 0.14,
-        archive: 0.12,
-        headline: 0.3,
-        monogram: 0.18,
-        club: 0.34,
-        ticket: 0.2,
-        badge: 0.16,
-        tour: 0.3,
-        route: 0.24,
-      };
-      drawCover(ctx, plate, scrims[style] ?? 0.2);
-      addGrain(ctx, 0.05);
-    } else {
-      ctx.fillStyle = '#141414';
-      ctx.fillRect(0, 0, W, H);
-      addGrain(ctx, 0.15);
-    }
+    ctx.fillStyle = '#0E0E0E';
+    ctx.fillRect(0, 0, W, H);
+    addGrain(ctx, 0.12);
   }
 
   const drawers = {
