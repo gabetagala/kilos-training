@@ -38,6 +38,7 @@ export const MUSCLE_ALIASES = {
   // rehab.js
   'Romanian Deadlift': 'Legs',
   'Glute Bridge': 'Legs',
+  'Glute Kickback': 'Legs',
   'Single-Leg Bridge': 'Legs',
   'Dead Hang': 'Back',
   'McGill Curl-Up': 'Core',

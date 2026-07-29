@@ -34,7 +34,7 @@ describe('rehab program data', () => {
       'mcgill-curlup',
       'side-plank',
       'bird-dog',
-      'glute-bridge',
+      'glute-kickback',
     ]);
     const hinge = getRehabSession('hinge');
     expect(hinge.blocks[0].ex).toBe('rdl');
@@ -54,12 +54,13 @@ describe('rehab program data', () => {
     }
   });
 
-  it('makes the glute bridge continuous tempo, not hold-and-reset', () => {
-    const bridge = getRehabSession('daily').blocks.find(
-      (b) => b.ex === 'glute-bridge',
+  it('makes the glute kickback continuous tempo, per side', () => {
+    const kb = getRehabSession('daily').blocks.find(
+      (b) => b.ex === 'glute-kickback',
     );
-    expect(bridge.mode).toBe('tempo');
-    expect(bridge.tempo.map(([l]) => l)).toEqual(['LIFT', 'SQUEEZE', 'LOWER']);
+    expect(kb.mode).toBe('tempo');
+    expect(kb.perSide).toBe(true);
+    expect(kb.tempo.map(([l]) => l)).toEqual(['LIFT', 'SQUEEZE', 'LOWER']);
   });
 
   it('accumulates 60–90s of daily dead-hang time (protocol)', () => {
@@ -124,12 +125,12 @@ describe('buildStepQueue', () => {
     ]);
   });
 
-  it('builds the bridge as one continuous tempo step per set', () => {
-    const bridges = daily.filter(
-      (s) => s.exId === 'glute-bridge' && s.kind === 'work',
+  it('builds the kickback as continuous tempo steps, left then right', () => {
+    const kicks = daily.filter(
+      (s) => s.exId === 'glute-kickback' && s.kind === 'work',
     );
-    expect(bridges).toHaveLength(2);
-    for (const b of bridges) {
+    expect(kicks.map((s) => s.side)).toEqual(['LEFT', 'RIGHT', 'LEFT', 'RIGHT']);
+    for (const b of kicks) {
       expect(b.secs).toBe(50); // 10 reps × 5s tempo (2s eccentric)
       expect(b.tempo.reps).toBe(10);
       expect(b.tempo.secsPerRep).toBe(5);
@@ -148,8 +149,8 @@ describe('buildStepQueue', () => {
   });
 
   it('counts logical sets per side', () => {
-    // hang 3 + curl 3 + plank 3×2 + bird 3×2 + bridge 2 = 20
-    expect(sessionSetTotal(getRehabSession('daily'))).toBe(20);
+    // hang 3 + curl 3 + plank 3×2 + bird 3×2 + kickback 2×2 = 22
+    expect(sessionSetTotal(getRehabSession('daily'))).toBe(22);
     // rdl 3 + single-leg bridge 2×2 + hamstring 2×2 + hip flexor 2×2 = 15
     expect(sessionSetTotal(getRehabSession('hinge'))).toBe(15);
   });
