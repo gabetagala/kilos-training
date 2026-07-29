@@ -8606,3 +8606,19 @@ body {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+/* Share a finished session straight from the log */
+.hi-share {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px 0;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 5px;
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--text);
+  cursor: pointer;
+}

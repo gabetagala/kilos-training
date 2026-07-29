@@ -2716,11 +2716,33 @@ function rhFinish() {
       if (!byEx.has(l.exId)) byEx.set(l.exId, []);
       byEx.get(l.exId).push({ weight: l.weight, reps: l.reps, done: true });
     }
-    const exercises = [...byEx.entries()].map(([exId, logs]) => ({
-      name: GUIDED_EXERCISES[exId]?.name || exId,
-      sets: logs.length,
-      logs,
-    }));
+    // Timed work (carries) and ramp-only movements never log a weight — count
+    // their completed sets from the step queue so the entry tells the truth.
+    const countedByEx = {};
+    for (const i of rhCounted) {
+      const st = rhQueue[i];
+      if (st?.exId) countedByEx[st.exId] = (countedByEx[st.exId] || 0) + 1;
+    }
+    const order = [];
+    for (const b of session.blocks || []) {
+      for (const ex of b.members ? b.members.map((m) => m.ex) : [b.ex]) {
+        if (ex && !order.includes(ex)) order.push(ex);
+      }
+    }
+    for (const exId of byEx.keys()) {
+      if (!order.includes(exId)) order.push(exId); // swapped-in safety
+    }
+    const exercises = [];
+    for (const exId of order) {
+      const logs = byEx.get(exId) || [];
+      const sets = logs.length || countedByEx[exId] || 0;
+      if (!sets) continue; // untouched movement — it didn't happen
+      exercises.push({
+        name: GUIDED_EXERCISES[exId]?.name || exId,
+        sets,
+        logs,
+      });
+    }
     completed = {
       name: `Density 40 · ${session.name}`,
       type: 'strength',
@@ -3391,6 +3413,7 @@ document.getElementById('btn-discard-no').addEventListener('click', () => {
   }
 })();
 
+let rhLastFgPull = 0;
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     if (rhSession) rhPersist();
@@ -3412,6 +3435,19 @@ document.addEventListener('visibilitychange', () => {
       once: true,
       passive: true,
     });
+    // Fresh eyes on foreground: pull another device's sessions in the
+    // background — never blocks, at most once a minute.
+    if (currentUser && Date.now() - rhLastFgPull > 60000) {
+      rhLastFgPull = Date.now();
+      pullAndMerge()
+        .then(() => {
+          renderDayHero();
+          renderTodayCard();
+          renderMonthGrid();
+          renderHistory();
+        })
+        .catch(() => {});
+    }
     if (rhSession && rhRunning) {
       rhAcquireWakeLock();
       rhTick(); // catch up instantly after a backgrounded stretch
@@ -6272,6 +6308,9 @@ function renderHistory() {
               .join('')}</div>`
           : '';
 
+      const shareRow = isExpanded
+        ? `<button class="hi-share" data-share="${realIdx}">SHARE THIS SESSION →</button>`
+        : '';
       return `<div class="history-item${isExpanded ? ' expanded' : ''}" data-ridx="${realIdx}">
       <div class="hi-main">
         <div class="hi-left">
@@ -6285,6 +6324,7 @@ function renderHistory() {
         </div>
       </div>
       ${detailHtml}
+      ${shareRow}
     </div>`;
     })
     .join('');
@@ -6295,6 +6335,19 @@ function renderHistory() {
       if (expandedHistory.has(idx)) expandedHistory.delete(idx);
       else expandedHistory.add(idx);
       renderHistory();
+    });
+  });
+  // Any finished session shares like it just happened — full library + photo.
+  listEl.querySelectorAll('[data-share]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const h = history[parseInt(btn.dataset.share, 10)];
+      if (!h) return;
+      showShareCard(
+        { name: h.name, type: h.type, exercises: h.exercises || [], cf: h.cf },
+        h.duration || '—',
+        h,
+      );
     });
   });
 }

@@ -83,6 +83,14 @@ export const REHAB_EXERCISES = {
     why: 'Retrains the hip hinge so the hips lift, not the spine.',
     yt: 'romanian deadlift form',
   },
+  'glute-kickback': {
+    name: 'Glute Kickback',
+    feel: 'The working-side glute doing the lift',
+    avoid: 'Low back arching as the leg lifts',
+    cue: 'On all fours, spine quiet. Drive the heel back and up — squeeze at the top, lower slow.',
+    why: 'One glute at a time — activation you can actually feel.',
+    yt: 'quadruped glute kickback form',
+  },
   'single-leg-bridge': {
     name: 'Single-Leg Bridge',
     feel: 'The down-leg glute working alone',
@@ -156,13 +164,16 @@ export const REHAB_SESSIONS = [
         switchSecs: 10,
         restSecs: 25,
       },
-      // PROTOCOL: continuous tempo reps — 1s up, 2s squeeze, 1s down × 10.
+      // PROTOCOL: continuous tempo reps — 1s up, 2s squeeze, 2s down, per
+      // side. Kickbacks replaced bridges 2026-07: best activation for him.
       {
-        ex: 'glute-bridge',
+        ex: 'glute-kickback',
         mode: 'tempo',
         sets: 2,
         reps: 10,
         tempo: BRIDGE_TEMPO,
+        perSide: true,
+        switchSecs: 10,
         restSecs: 30,
       },
     ],

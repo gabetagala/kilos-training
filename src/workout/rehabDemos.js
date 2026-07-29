@@ -218,6 +218,30 @@ export const REHAB_DEMOS = {
       action(tick(101, 73, 102, 62) + tick(109, 71, 111, 61, 2.6)),
   ),
 
+  'glute-kickback': svg(
+    GROUND +
+      shadow(98, 54) +
+      figure({
+        root: { x: 121, y: 71, rot: 0 },
+        torso: 92,
+        head: -12,
+        armF: { at: SH, sh: -90, el: 2 },
+        armN: { at: SH, sh: -86, el: 2 },
+        legF: { hip: 8, knee: -8, ankle: 78, far: true },
+        legN: {
+          hip: -97,
+          knee: -4,
+          ankle: 12,
+          anim: { a: -20, b: -97 },
+          kneeAnim: { a: 66, b: -4 },
+        },
+      }) +
+      action(
+        swoosh('M 170 58 Q 180 56 188 58') +
+          swoosh('M 168 66 Q 177 65 184 66', 2.6),
+      ),
+  ),
+
   'bird-dog': svg(
     GROUND +
       shadow(98, 54) +
