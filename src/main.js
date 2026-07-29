@@ -2545,18 +2545,37 @@ function rhTick() {
 function rhComplete(overflowMs = 0) {
   const step = rhStep();
   if (step?.kind === 'work' && step.countsAsSet) rhCounted.add(rhIdx);
-  let carry = overflowMs;
+
+  // A large overflow means the tab was backgrounded/asleep past the step's end
+  // (normal tick drift is < 250ms). Don't blow through every remaining step and
+  // auto-log a finished session the user never did — advance exactly one step
+  // and pause, so they resume deliberately.
+  const backgrounded = overflowMs > 2000;
+
+  let carry = backgrounded ? 0 : overflowMs;
   let idx = rhIdx + 1;
-  while (idx < rhQueue.length) {
-    const next = rhQueue[idx];
-    if (next.manual) break; // self-paced — wait for the athlete
-    const dur = next.secs * 1000;
-    if (carry < dur) break;
-    carry -= dur;
-    if (next.kind === 'work' && next.countsAsSet) rhCounted.add(idx);
-    idx++;
+  if (!backgrounded) {
+    while (idx < rhQueue.length) {
+      const next = rhQueue[idx];
+      if (next.manual) break; // self-paced — wait for the athlete
+      const dur = next.secs * 1000;
+      if (carry < dur) break;
+      carry -= dur;
+      if (next.kind === 'work' && next.countsAsSet) rhCounted.add(idx);
+      idx++;
+    }
   }
   if (idx >= rhQueue.length) {
+    if (backgrounded) {
+      // Ran past the end via a background gap — hold on the last step, paused.
+      // Never auto-finish/log from a catch-up; finishing is an explicit action.
+      rhIdx = rhQueue.length - 1;
+      rhRemainMs = 0;
+      rhStop();
+      rhRenderStep();
+      rhPersist();
+      return;
+    }
     rhFinish();
     return;
   }
@@ -2567,8 +2586,8 @@ function rhComplete(overflowMs = 0) {
   rhTempoMem.key = null;
   rhStepEnteredAt = Date.now();
   rhAnnounceStep(next);
-  if (next.manual) {
-    rhStop();
+  if (backgrounded || next.manual) {
+    rhStop(); // land paused after a background gap (or on a self-paced step)
   } else if (rhRunning) {
     rhEndsAt = Date.now() + rhRemainMs;
   }
@@ -4776,7 +4795,13 @@ function renderCardioActive() {
   });
   document.getElementById('cardio-log-section').appendChild(rpeEl);
 
-  startTimer(0, 'cardio');
+  // Only kick off the clock on a genuine fresh start. On a re-render (already
+  // running), a paused session, or a boot restore (restoreTimer owns the
+  // snapshot), don't reset elapsed back to 0 / un-pause.
+  if (!activeWorkout.cardioStarted && !timerRunning && !_pendingTimer) {
+    activeWorkout.cardioStarted = true;
+    startTimer(0, 'cardio');
+  }
 }
 
 // ─── CROSSFIT ACTIVE ──────────────────────────────────────────────────────────
@@ -5451,10 +5476,64 @@ function fmtTimeBig(s) {
 
 let cardioElapsed = 0;
 
+// Keep the screen awake while any workout timer runs (the browser drops the
+// lock when the tab hides, so the visibility handler re-requests on return).
+let workoutWakeLock = null;
+async function acquireWorkoutWakeLock() {
+  if (workoutWakeLock) return;
+  try {
+    workoutWakeLock = (await navigator.wakeLock?.request('screen')) || null;
+  } catch {
+    /* unsupported / denied — fine */
+  }
+}
+function releaseWorkoutWakeLock() {
+  try {
+    workoutWakeLock?.release();
+  } catch {}
+  workoutWakeLock = null;
+}
+
+// Single source of truth for "a countdown hit zero" — used by the live tick, the
+// visibility-return catch-up, and boot restore, so every path advances EMOM /
+// shows AMRAP time-up / ends rest identically. They used to diverge, which
+// stalled EMOM cadence at "DONE" when a minute lapsed in the background.
+function onCountdownExpire() {
+  stopTimer();
+  beep(880, 0.3);
+
+  if (timerPhase === 'emom') {
+    advanceCFRound(); // starts the next minute, or finishes on the last round
+    return;
+  }
+  if (timerPhase === 'amrap') {
+    setTimeout(() => beep(660, 0.15), 300); // after the 880 — a rising two-note
+    setTimerText('DONE', 'TIME UP');
+    const el = document.getElementById('ring-time');
+    el.classList.remove('tick');
+    el.classList.add('go-text');
+    setTimerStyle('work');
+    setTimerBar(0, false);
+    return;
+  }
+  // Standard rest / work — second note delayed so it reads as a rising "da-DUM".
+  setTimeout(() => beep(660, 0.15), 300);
+  setTimerText(
+    timerPhase === 'rest' ? 'GO' : 'DONE',
+    timerPhase === 'rest' ? 'REST OVER' : 'SET DONE',
+  );
+  const el = document.getElementById('ring-time');
+  el.classList.remove('tick');
+  el.classList.add('go-text');
+  setTimerStyle('work');
+  setTimerBar(1, false);
+}
+
 function startTimer(seconds, phase) {
   stopTimer();
   timerPhase = phase;
   timerRunning = true;
+  acquireWorkoutWakeLock();
   const numEl = document.getElementById('ring-time');
   numEl.classList.remove('go-text', 'tick');
   setTimerStyle(phase);
@@ -5506,40 +5585,7 @@ function startTimer(seconds, phase) {
     );
     flashTick();
     if (timerSeconds <= 3 && timerSeconds > 0) beep(440, 0.1);
-    if (timerSeconds <= 0) {
-      stopTimer();
-      beep(880, 0.3);
-
-      // EMOM: auto-advance to next round
-      if (timerPhase === 'emom') {
-        advanceCFRound();
-        return;
-      }
-
-      // AMRAP: time's up
-      if (timerPhase === 'amrap') {
-        setTimeout(() => beep(660, 0.15), 300); // after the 880 lands — a two-note, not a clash
-        setTimerText('DONE', 'TIME UP');
-        const el = document.getElementById('ring-time');
-        el.classList.remove('tick');
-        el.classList.add('go-text');
-        setTimerStyle('work');
-        setTimerBar(0, false);
-        return;
-      }
-
-      // Standard rest/work — second note delayed so it reads as a rising
-      // "da-DUM", not two tones stacked at the same instant.
-      setTimeout(() => beep(660, 0.15), 300);
-      const doneWord = timerPhase === 'rest' ? 'GO' : 'DONE';
-      const doneLbl = timerPhase === 'rest' ? 'REST OVER' : 'SET DONE';
-      setTimerText(doneWord, doneLbl);
-      const el = document.getElementById('ring-time');
-      el.classList.remove('tick');
-      el.classList.add('go-text');
-      setTimerStyle('work');
-      setTimerBar(1, false);
-    }
+    if (timerSeconds <= 0) onCountdownExpire();
   }, 1000);
   saveActiveState();
 }
@@ -5547,6 +5593,7 @@ function startTimer(seconds, phase) {
 function stopTimer() {
   clearInterval(timerInterval);
   timerRunning = false;
+  releaseWorkoutWakeLock();
   showPlayBtn();
   // Persist the frozen state so a refresh-while-paused restores the remaining
   // time exactly (no fast-forward), not a stale running snapshot.
@@ -5585,17 +5632,10 @@ function restoreTimer() {
   timerSeconds = remaining;
 
   if (remaining <= 0) {
-    // Expired while away (or finished): show the completed state.
-    stopTimer();
-    setTimerText(
-      t.phase === 'rest' ? 'GO' : 'DONE',
-      t.phase === 'rest' ? 'REST OVER' : 'SET DONE',
-    );
-    const el = document.getElementById('ring-time');
-    el.classList.remove('tick');
-    el.classList.add('go-text');
-    setTimerStyle('work');
-    setTimerBar(1, false);
+    // Expired while the app was closed — run the same per-phase completion as a
+    // live expiry (advance EMOM, show AMRAP time-up, or end rest/work) so an
+    // EMOM's cadence survives a reload instead of dying at "DONE".
+    onCountdownExpire();
   } else if (t.running) {
     // Resume the live countdown from where it really is, but keep the original
     // total so the progress ring fills correctly (startTimer resets total).
@@ -5739,30 +5779,37 @@ document.getElementById('play-pause-btn').addEventListener('click', () => {
 const COUNTUP_PHASES = new Set(['cardio', 'stopwatch']);
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
-    if (timerRunning && !COUNTUP_PHASES.has(timerPhase))
-      timerHiddenAt = Date.now();
-  } else if (timerHiddenAt !== null) {
     if (timerRunning && !COUNTUP_PHASES.has(timerPhase)) {
-      const elapsed = Math.round((Date.now() - timerHiddenAt) / 1000);
-      timerSeconds = Math.max(0, timerSeconds - elapsed);
-      setTimerText(fmtTimeBig(timerSeconds), timerPhase.toUpperCase());
-      setTimerBar(
-        timerTotal > 0 ? timerSeconds / timerTotal : 0,
-        timerPhase === 'rest',
-      );
-      setTimerStyle(timerPhase);
-      if (timerSeconds <= 0) {
-        stopTimer();
-        beep(880, 0.3);
-        setTimerText(
-          timerPhase === 'rest' ? 'GO' : 'DONE',
-          timerPhase === 'rest' ? 'REST OVER' : 'SET DONE',
-        );
-        setTimerStyle('work');
-        setTimerBar(1, false);
-      }
+      timerHiddenAt = Date.now();
+      // Stop the interval while away so a throttled background tick (Android /
+      // desktop keep setInterval alive) can't decrement on TOP of the
+      // fast-forward we apply on return — that was the double-decrement bug.
+      clearInterval(timerInterval);
     }
-    timerHiddenAt = null;
+  } else {
+    // The browser releases the screen wake lock when hidden — re-take it.
+    if (timerRunning) acquireWorkoutWakeLock();
+    if (timerHiddenAt !== null) {
+      if (timerRunning && !COUNTUP_PHASES.has(timerPhase)) {
+        const elapsed = Math.round((Date.now() - timerHiddenAt) / 1000);
+        timerSeconds = Math.max(0, timerSeconds - elapsed);
+        if (timerSeconds > 0) {
+          // Resume ticking from the corrected remaining, keeping the ring total.
+          const total = timerTotal;
+          startTimer(timerSeconds, timerPhase);
+          timerTotal = total;
+          setTimerBar(
+            total > 0 ? timerSeconds / total : 0,
+            timerPhase === 'rest',
+          );
+        } else {
+          // Expired while away — advance EMOM / show AMRAP time-up / end rest,
+          // instead of freezing at DONE regardless of format.
+          onCountdownExpire();
+        }
+      }
+      timerHiddenAt = null;
+    }
   }
 });
 
