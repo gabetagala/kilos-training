@@ -4564,10 +4564,14 @@ document.getElementById('np-btn-signin').addEventListener('click', async () => {
 
   const displayName = data?.user?.user_metadata?.display_name || nameInput;
   saveUserName(displayName);
-  // Returning user — never show onboarding, they've been through setup already
+  // Returning user — never show onboarding, they've been through setup already.
+  // Tag this as the sign-in seed so the deferred pullAndMerge knows it may be
+  // replaced by the cloud profile (equipment tier, injuries) rather than
+  // treated as a real local edit that would block the restore.
   saveProfile({
     setupComplete: true,
     equipmentTier: getProfile().equipmentTier || 'full-gym',
+    _signinSeed: true,
   });
   closeNamePrompt();
   if (_npCallback) {
@@ -7149,7 +7153,11 @@ setTimeout(() => {
 // Also retry once on startup in case the last session ended offline.
 async function retrySyncIfNeeded() {
   if (hasPendingSync()) {
-    await pushData();
+    // Retry as a PULL+merge, never a blind push: pullAndMerge reads the cloud,
+    // folds it into local (union — no loss), restores the profile if this was a
+    // failed sign-in pull, then pushes the merged result. A bare pushData here
+    // would overwrite the cloud backup after a failed pull (the old blocker).
+    await pullAndMerge();
     renderDataNotice(); // refresh sync status label
   }
 }

@@ -149,78 +149,10 @@ export function hasPendingSync() {
   return localStorage.getItem(PENDING_SYNC_KEY) === '1';
 }
 
-// Push all local data to Supabase (called after every meaningful action).
-// If offline or Supabase unreachable, marks a pending flag and returns silently.
-// The pending flag is cleared only after a confirmed successful push.
-export async function pushData() {
-  if (!supabase) return;
-  const session = await getSession();
-  if (!session) return;
-
-  // Mark pending before attempting — so if we crash mid-push we retry next time
-  markPendingSync();
-
-  const data = {};
-  SYNC_KEYS.forEach((k) => {
-    data[k] = _get(k);
-  });
-  // Belt for the overwrite class of bugs: an entirely empty payload can never
-  // improve the cloud copy — refuse to upsert nothing over something.
-  const allEmpty = SYNC_KEYS.every((k) => {
-    const v = data[k];
-    return (
-      v == null || (Array.isArray(v) && v.length === 0) ||
-      (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0)
-    );
-  });
-  if (allEmpty) {
-    clearPendingSync();
-    return;
-  }
-  const { error } = await supabase.from('user_data').upsert({
-    user_id: session.user.id,
-    data,
-    synced_at: new Date().toISOString(),
-  });
-
-  if (!error) clearPendingSync();
-}
-
-// Pull remote data and merge with local on sign-in.
-// Merge rules:
-//   workoutHistory — union (dedupe by date + name, keep all unique sessions)
-//   prMap          — take max weight per exercise
-//   volPRMap       — take max volume per exercise
-//   customWorkouts — union (dedupe by name, local wins on conflict)
-//   userProfile    — local wins (most recent device interaction)
-//   kilos-checkins — union (dedupe by date, local wins on same-date conflict)
-export async function pullAndMerge() {
-  if (!supabase) return;
-  const session = await getSession();
-  if (!session) return;
-
-  const { data: row, error } = await supabase
-    .from('user_data')
-    .select('data')
-    .eq('user_id', session.user.id)
-    .maybeSingle();
-
-  // A transient failure (timeout, 5xx, rate limit) must NEVER be mistaken for
-  // "first ever sign-in" — pushing here would overwrite the user's cloud
-  // backup with this device's (possibly empty) state. Leave the pending flag
-  // so the next open retries the PULL, not the push.
-  if (error) {
-    markPendingSync();
-    return;
-  }
-  // True first sign-in — genuinely no remote row yet, seed it from local
-  if (!row?.data) {
-    await pushData();
-    return;
-  }
-
-  const remote = row.data;
-
+// Loss-free merge of a remote row's RECORDS into local: union workout history &
+// check-ins & custom workouts, max PRs. Deliberately does NOT touch userProfile —
+// the profile has caller-specific rules (see pullAndMerge). Writes to localStorage.
+function mergeRecords(remote) {
   // Workout history — union, dedupe by date+name, sort chronologically
   const localHistory = _get('workoutHistory') || [];
   const remoteHistory = remote.workoutHistory || [];
@@ -263,12 +195,6 @@ export async function pullAndMerge() {
   ];
   _set('customWorkouts', mergedCW);
 
-  // Profile — keep local unless there's nothing local
-  const localProfile = _get('userProfile');
-  if (!localProfile && remote.userProfile) {
-    _set('userProfile', remote.userProfile);
-  }
-
   // Check-ins — union by date, local wins on a same-date conflict
   const localCI = _get('kilos-checkins') || [];
   const remoteCI = remote['kilos-checkins'] || [];
@@ -278,6 +204,109 @@ export async function pullAndMerge() {
     ...remoteCI.filter((e) => !localDates.has(e.date)),
   ].sort((a, b) => (a.date < b.date ? -1 : 1));
   _set('kilos-checkins', mergedCI);
+}
+
+// Push all local data to Supabase (called after every meaningful action).
+// MERGE-BEFORE-PUSH: read the current cloud row and fold it into local FIRST, so
+// an upsert can never wipe records this device never saw (two-device sync) or
+// overwrite the cloud backup with near-empty local state after an earlier failed
+// pull. If offline / unreachable, the pending flag is left set to retry later.
+export async function pushData() {
+  if (!supabase) return;
+  const session = await getSession();
+  if (!session) return;
+
+  // Mark pending before attempting — so if we crash mid-push we retry next time
+  markPendingSync();
+
+  // Read the current cloud row and merge it into local before writing back.
+  // A failed READ must NEVER be followed by a write — that is the overwrite bug.
+  const { data: row, error: readErr } = await supabase
+    .from('user_data')
+    .select('data')
+    .eq('user_id', session.user.id)
+    .maybeSingle();
+  if (readErr) return; // leave pending; retry later — do not overwrite the cloud
+  if (row?.data) mergeRecords(row.data); // union/max remote records into local
+
+  const data = {};
+  SYNC_KEYS.forEach((k) => {
+    data[k] = _get(k);
+  });
+  // Internal-only marker never belongs in the cloud copy.
+  if (data.userProfile?._signinSeed) {
+    data.userProfile = { ...data.userProfile };
+    delete data.userProfile._signinSeed;
+  }
+  // Belt for the overwrite class of bugs: an entirely empty payload can never
+  // improve the cloud copy — refuse to upsert nothing over something.
+  const allEmpty = SYNC_KEYS.every((k) => {
+    const v = data[k];
+    return (
+      v == null || (Array.isArray(v) && v.length === 0) ||
+      (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0)
+    );
+  });
+  if (allEmpty) {
+    clearPendingSync();
+    return;
+  }
+  const { error } = await supabase.from('user_data').upsert({
+    user_id: session.user.id,
+    data,
+    synced_at: new Date().toISOString(),
+  });
+
+  if (!error) clearPendingSync();
+}
+
+// Pull remote data and merge with local on sign-in.
+// Merge rules:
+//   workoutHistory — union (dedupe by date + name, keep all unique sessions)
+//   prMap / volPRMap — take max per exercise
+//   customWorkouts — union (dedupe by name, local wins on conflict)
+//   kilos-checkins — union (dedupe by date, local wins on same-date conflict)
+//   userProfile    — cloud is authoritative on sign-in (adopt remote when local
+//                    is absent or is just the sign-in seed); a genuine local edit
+//                    is preserved and pushed up instead.
+export async function pullAndMerge() {
+  if (!supabase) return;
+  const session = await getSession();
+  if (!session) return;
+
+  const { data: row, error } = await supabase
+    .from('user_data')
+    .select('data')
+    .eq('user_id', session.user.id)
+    .maybeSingle();
+
+  // A transient failure (timeout, 5xx, rate limit) must NEVER be mistaken for
+  // "first ever sign-in" — pushing here would overwrite the user's cloud
+  // backup with this device's (possibly empty) state. Leave the pending flag
+  // so the next retry pulls again (retrySyncIfNeeded routes through pullAndMerge).
+  if (error) {
+    markPendingSync();
+    return;
+  }
+  // True first sign-in — genuinely no remote row yet, seed it from local
+  if (!row?.data) {
+    await pushData();
+    return;
+  }
+
+  const remote = row.data;
+  mergeRecords(remote);
+
+  // Profile — on sign-in the cloud profile is authoritative for the user's real
+  // settings (equipment tier, injuries). Adopt it when the local profile is
+  // absent or is just the sign-in seed; keep setupComplete so a returning user
+  // never re-enters onboarding. A genuine local profile (offline edit) is kept.
+  const localProfile = _get('userProfile');
+  if (remote.userProfile && (!localProfile || localProfile._signinSeed)) {
+    const merged = { ...remote.userProfile, setupComplete: true };
+    delete merged._signinSeed;
+    _set('userProfile', merged);
+  }
 
   // Push the merged result back so both ends stay in sync
   await pushData();
