@@ -3,33 +3,53 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#000000" />
+  <meta name="theme-color" content="#F2EEE7" />
   <title>Bantay</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #F2EEE7; --card: #FFFFFF; --ink: #201D19; --soft: #8D8781;
+      --line: #E8E3DA; --shadow: 0 12px 32px rgba(46, 41, 34, 0.10);
+    }
     body {
-      background: #000; color: #eee; min-height: 100dvh;
-      font-family: -apple-system, system-ui, sans-serif;
-      display: flex; flex-direction: column; align-items: center;
-      justify-content: center; gap: 16px; padding: 24px;
+      background: var(--bg); color: var(--ink); min-height: 100dvh;
+      font-family: ui-rounded, -apple-system, 'SF Pro Rounded', 'Segoe UI', sans-serif;
+      display: flex; flex-direction: column; gap: 16px; justify-content: center;
+      padding: max(20px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+      max-width: 480px; margin: 0 auto;
     }
-    h1 { font-size: 28px; letter-spacing: 0.02em; }
-    p { color: #888; font-size: 14px; text-align: center; max-width: 320px; }
-    a {
-      display: block; width: 100%; max-width: 320px; padding: 20px;
-      border-radius: 14px; text-align: center; text-decoration: none;
-      font-size: 20px; font-weight: 700;
+    h1 { font-size: 30px; font-weight: 800; }
+    .tag { color: var(--soft); font-size: 15px; margin-top: -8px; }
+    a.role {
+      display: block; background: var(--card); border-radius: 24px; overflow: hidden;
+      text-decoration: none; color: var(--ink); box-shadow: var(--shadow);
     }
-    .cam { background: #1a1a1a; color: #eee; border: 1px solid #333; }
-    .view { background: #eee; color: #111; }
-    small { color: #555; font-size: 12px; }
+    .art { height: 120px; position: relative; }
+    .art.baby { background: linear-gradient(135deg, #EADFD0, #DCCBB8); }
+    .art.me { background: linear-gradient(135deg, #DFE5DC, #C9D6CB); }
+    .art span {
+      position: absolute; left: 12px; bottom: 12px;
+      background: rgba(255, 255, 255, 0.6); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      padding: 8px 14px; border-radius: 999px; font-size: 14px; font-weight: 700;
+    }
+    .role p { padding: 14px 16px 16px; color: var(--soft); font-size: 14px; line-height: 1.45; }
+    .foot { text-align: center; color: var(--soft); font-size: 12.5px; }
   </style>
 </head>
 <body>
   <h1>Bantay</h1>
-  <p>Never wonder if the silence is normal.</p>
-  <a class="cam" href="/bantay/cam.html">This phone is the CAM<br /><small>stays in the nursery, screen on</small></a>
-  <a class="view" href="/bantay/view.html">This phone is the VIEWER<br /><small>stays with you</small></a>
-  <small>M0 spike — hardcoded pairing, same Wi-Fi only</small>
+  <p class="tag">Never wonder if the silence is normal.</p>
+
+  <a class="role" href="/bantay/cam.html">
+    <div class="art baby"><span>Baby's room</span></div>
+    <p>This phone stays with baby — camera and mic on, plugged in, screen stays on.</p>
+  </a>
+
+  <a class="role" href="/bantay/view.html">
+    <div class="art me"><span>With me</span></div>
+    <p>Watch and listen on this phone. It will warn you if the stream stops.</p>
+  </a>
+
+  <p class="foot">Video stays on your home Wi-Fi — nothing is uploaded or recorded.</p>
 </body>
 </html>

@@ -3,66 +3,170 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#000000" />
-  <title>Bantay · Viewer</title>
+  <meta name="theme-color" content="#F2EEE7" />
+  <title>Bantay · With me</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #F2EEE7; --card: #FFFFFF; --ink: #201D19; --soft: #8D8781;
+      --line: #E8E3DA; --ok: #5A8A6E; --bad: #CE5B41; --live: #4CAF7D;
+      --shadow: 0 12px 32px rgba(46, 41, 34, 0.10);
+    }
     body {
-      background: #000; color: #eee; min-height: 100dvh;
-      font-family: -apple-system, system-ui, sans-serif;
-      display: flex; flex-direction: column; gap: 12px;
-      padding: max(12px, env(safe-area-inset-top)) 12px 12px;
+      background: var(--bg); color: var(--ink); min-height: 100dvh;
+      font-family: ui-rounded, -apple-system, 'SF Pro Rounded', 'Segoe UI', sans-serif;
+      display: flex; flex-direction: column; gap: 14px;
+      padding: max(14px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+      max-width: 480px; margin: 0 auto;
     }
-    h1 { font-size: 13px; color: #666; font-weight: 600; letter-spacing: 0.1em; }
-    #stage { position: relative; }
-    #remote {
-      width: 100%; aspect-ratio: 4 / 3; border-radius: 12px;
-      background: #0a0a0a; object-fit: contain;
+    header { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px; }
+    .brand { font-weight: 800; font-size: 17px; letter-spacing: 0.01em; }
+    .pillbtn {
+      font: inherit; font-size: 14px; font-weight: 600; color: var(--ink);
+      background: var(--card); border: 1px solid var(--line); border-radius: 999px;
+      padding: 10px 16px; min-height: 44px;
     }
-    #stage button {
-      position: absolute; inset: 0; margin: auto;
-      width: min(80%, 280px); height: 64px;
-      font-size: 19px; font-weight: 800; border: 0; border-radius: 16px;
-      background: #eee; color: #111;
+    .pillbtn:disabled { color: var(--soft); }
+
+    /* status line */
+    .statusline { display: flex; gap: 12px; align-items: center; padding: 2px 4px; }
+    .dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+    .dot.idle { background: #C9C4BB; }
+    .dot.well { background: var(--live); box-shadow: 0 0 12px rgba(76, 175, 125, 0.55); }
+    .dot.warn { background: var(--bad); box-shadow: 0 0 12px rgba(206, 91, 65, 0.5); }
+    @media (prefers-reduced-motion: no-preference) {
+      .dot.well { animation: breathe 3.2s ease-in-out infinite; }
+      @keyframes breathe { 50% { box-shadow: 0 0 20px rgba(76, 175, 125, 0.8); } }
     }
-    #meterbar {
-      height: 10px; background: #111; border-radius: 5px; overflow: hidden;
+    h1 { font-size: 21px; font-weight: 800; }
+    .statusline p { color: var(--soft); font-size: 14px; margin-top: 1px; }
+
+    /* video stage */
+    #stage { position: relative; border-radius: 24px; overflow: hidden; box-shadow: var(--shadow); }
+    #remote { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #191713; }
+    .chip {
+      position: absolute; display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border-radius: 999px; font-size: 13px; font-weight: 600;
+      -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
     }
-    #meterfill {
-      display: block; height: 100%; width: 0%;
-      background: #3a6; transition: width 100ms linear;
+    .chip.tl { top: 12px; left: 12px; background: rgba(255, 255, 255, 0.6); color: var(--ink); }
+    .chip.tr { top: 12px; right: 12px; background: rgba(28, 26, 23, 0.5); color: #fff; }
+    .chip.tr .livedot { width: 8px; height: 8px; border-radius: 50%; background: #8B857C; }
+    .chip.tr.on .livedot { background: var(--live); }
+    #chipbar { width: 44px; height: 6px; border-radius: 3px; background: rgba(32, 29, 25, 0.15); overflow: hidden; }
+    #chipfill { display: block; height: 100%; width: 0%; background: var(--ink); transition: width 120ms linear; }
+
+    .ctrlbar {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      bottom: 14px; display: flex; gap: 10px; padding: 8px;
+      background: rgba(28, 26, 23, 0.55); border-radius: 999px;
+      -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
     }
-    dl div { display: flex; gap: 8px; font-size: 14px; padding: 3px 0; }
-    dt { color: #555; width: 96px; flex-shrink: 0; }
-    dd { color: #aaa; }
-    dd.ok { color: #3a6; }
-    dd.bad { color: #f66; font-weight: 700; }
-    #recall {
-      min-height: 52px; font-size: 16px; font-weight: 700;
-      background: #1a1a1a; color: #eee; border: 1px solid #333;
-      border-radius: 14px;
+    .cbtn {
+      width: 48px; height: 48px; border-radius: 50%; border: 0;
+      background: rgba(255, 255, 255, 0.14); color: #fff;
+      display: grid; place-items: center;
     }
-    #cfg { color: #f66; font-size: 13px; }
+    .cbtn.on { background: #fff; color: var(--ink); }
+    .cbtn svg { width: 22px; height: 22px; }
+
+    .primary {
+      position: absolute; inset: 0; margin: auto; width: min(78%, 280px); height: 60px;
+      font: inherit; font-size: 18px; font-weight: 800;
+      background: var(--ink); color: #fff; border: 0; border-radius: 999px;
+      box-shadow: var(--shadow);
+    }
+
+    /* cards */
+    .card { background: var(--card); border-radius: 20px; padding: 16px; box-shadow: var(--shadow); }
+    .rowlbl { font-size: 13px; font-weight: 700; color: var(--soft); margin-bottom: 10px; }
+    #meterbar { height: 12px; border-radius: 6px; background: var(--bg); overflow: hidden; }
+    #meterfill { display: block; height: 100%; width: 0%; background: var(--ok); transition: width 120ms linear; }
+    .details .row { display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+    .details .row:last-child { border-bottom: 0; }
+    .details dt { color: var(--soft); flex-shrink: 0; }
+    .details dd { text-align: right; font-weight: 600; }
+    .details dd.ok { color: var(--ok); }
+    .details dd.bad { color: var(--bad); }
+
+    /* gate */
+    #gate { background: var(--card); border-radius: 24px; padding: 26px 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px; }
+    #gate h1 { font-size: 22px; }
+    #gate p { color: var(--soft); font-size: 15px; }
+    #codein {
+      font: inherit; font-size: 24px; font-weight: 700; letter-spacing: 0.18em; text-align: center;
+      text-transform: uppercase; color: var(--ink); background: var(--bg);
+      border: 1px solid var(--line); border-radius: 16px; padding: 16px; width: 100%;
+    }
+    #codego { position: static; width: 100%; }
+    #gatehint { color: var(--bad); font-size: 13px; min-height: 1em; }
+
+    #app { display: flex; flex-direction: column; gap: 14px; }
+    #app[hidden] { display: none; }
+    .meta { text-align: center; color: var(--soft); font-size: 12.5px; line-height: 1.9; }
+    .linkbtn { font: inherit; font-size: 12.5px; color: var(--ink); background: none; border: 0; text-decoration: underline; padding: 8px; }
+    #cfg { color: var(--bad); font-size: 13px; text-align: center; }
   </style>
 </head>
 <body>
-  <h1>BANTAY · VIEWER</h1>
-  <div id="stage">
-    <video id="remote" autoplay playsinline muted></video>
-    <button id="startBtn">START MONITORING</button>
-    <button id="unmute" hidden>TAP FOR SOUND</button>
-  </div>
-  <div id="meterbar"><i id="meterfill"></i></div>
-  <dl id="status">
-    <div><dt>Signal</dt><dd id="s-sig">—</dd></div>
-    <div><dt>Peer</dt><dd id="s-peer">—</dd></div>
-    <div><dt>Stream</dt><dd id="s-stream">—</dd></div>
-    <div><dt>Beacon</dt><dd id="s-beacon">—</dd></div>
-    <div><dt>Cam phone</dt><dd id="s-camstate">—</dd></div>
-    <div><dt>Wake lock</dt><dd id="s-wake">—</dd></div>
-  </dl>
-  <button id="recall" hidden>RECONNECT</button>
-  <p id="cfg" hidden>Supabase env vars missing — signaling disabled.</p>
+  <header>
+    <span class="brand">Bantay</span>
+    <button id="update" class="pillbtn">Update</button>
+  </header>
+  <p id="cfg" hidden>App config missing — this build can't connect. Tap Update, or check the deploy.</p>
+
+  <section id="gate" hidden>
+    <h1>Connect to your baby phone</h1>
+    <p>Type the code shown on the phone in the nursery.</p>
+    <input id="codein" placeholder="XXXX-XXXX" autocapitalize="characters" autocomplete="off" spellcheck="false" />
+    <p id="gatehint"></p>
+    <button id="codego" class="primary">Connect</button>
+  </section>
+
+  <main id="app" hidden>
+    <section class="statusline">
+      <span id="dot" class="dot idle"></span>
+      <div>
+        <h1 id="headline">Ready when you are</h1>
+        <p id="subline">Tap start to see and hear the nursery.</p>
+      </div>
+    </section>
+
+    <div id="stage">
+      <video id="remote" autoplay playsinline muted></video>
+      <div class="chip tl"><span>Sound</span><span id="chipbar"><i id="chipfill"></i></span></div>
+      <div class="chip tr" id="livechip"><span class="livedot"></span><span>LIVE</span><span id="livetime">—</span></div>
+      <div id="controls" class="ctrlbar" hidden>
+        <button id="soundbtn" class="cbtn" aria-label="Sound on or off">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18 6a8.5 8.5 0 0 1 0 12"/></svg>
+        </button>
+        <button id="recallbtn" class="cbtn" aria-label="Reconnect">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+        </button>
+      </div>
+      <button id="startBtn" class="primary">Start watching</button>
+      <button id="unmute" class="primary" hidden>Tap for sound</button>
+    </div>
+
+    <section class="card">
+      <div class="rowlbl">Sound in the room</div>
+      <div id="meterbar"><i id="meterfill"></i></div>
+    </section>
+
+    <section class="card details">
+      <div class="row"><dt>Connection</dt><dd id="s-peer">—</dd></div>
+      <div class="row"><dt>Video</dt><dd id="s-stream">—</dd></div>
+      <div class="row"><dt>Heartbeat</dt><dd id="s-beacon">—</dd></div>
+      <div class="row"><dt>Baby's phone</dt><dd id="s-camstate">—</dd></div>
+      <div class="row"><dt>This screen</dt><dd id="s-wake">—</dd></div>
+      <div class="row"><dt>Link</dt><dd id="s-sig">—</dd></div>
+    </section>
+
+    <p class="meta">
+      Paired <span id="pairedas">—</span> · <button id="changecode" class="linkbtn">change code</button><br />
+      <span id="version"></span> · video stays on your home Wi-Fi
+    </p>
+  </main>
   <script type="module" src="./src/view.js"></script>
 </body>
 </html>

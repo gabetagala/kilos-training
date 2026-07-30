@@ -1,9 +1,11 @@
-// Bantay CAM (baby unit) — M0 spike.
-// Crash-only shape from day one: load → capture → wait for 'call' → offer.
-// Every 'call' tears down the old peer and builds a fresh one, so a viewer
-// reload recovers by simply calling again (SCOPE §4.3).
-import { startMeter } from './meter.js';
+// Bantay CAM (baby unit).
+// Crash-only shape: load → capture → wait for 'call' → offer. Every 'call'
+// tears down the old peer and builds a fresh one, so a viewer reload
+// recovers by simply calling again (SCOPE §4.3).
+import { buildAudio } from './audio.js';
+import { formatCode, genCode } from './crypto.js';
 import { isConfigured, openSignal } from './signal.js';
+import { initUpdate } from './update.js';
 import { keepAwake } from './wake.js';
 
 const VIDEO = {
@@ -28,7 +30,7 @@ function set(id, text, tone = '') {
 }
 
 let stream = null;
-let meter = null;
+let audioChain = null;
 let pc = null;
 let dc = null;
 let signal = null;
@@ -43,9 +45,20 @@ const bootedAt = Date.now();
 init();
 
 async function init() {
+  // Pairing code: shown here, typed once on the viewer.
+  const code = localStorage.getItem('bantay-pair') || genCode();
+  localStorage.setItem('bantay-pair', code);
+  $('code').textContent = formatCode(code);
+  $('newcode').onclick = () => {
+    localStorage.setItem('bantay-pair', genCode());
+    location.reload();
+  };
+
+  initUpdate($('update'), $('version'));
+
   keepAwake((held, why) => {
     wakeHeld = held;
-    set('s-wake', held ? 'held' : `LOST (${why})`, held ? 'ok' : 'bad');
+    set('s-wake', held ? 'will stay on' : `AT RISK (${why})`, held ? 'ok' : 'bad');
   });
 
   setInterval(() => {
@@ -55,12 +68,14 @@ async function init() {
 
   if (!isConfigured) {
     $('cfg').hidden = false;
-    set('s-sig', 'env vars missing', 'bad');
+    set('s-sig', 'app config missing', 'bad');
   } else {
-    signal = openSignal(onSignal, (status) =>
-      set('s-sig', status.toLowerCase(), status === 'SUBSCRIBED' ? 'ok' : ''),
+    signal = await openSignal(code, onSignal, (status) =>
+      set('s-sig', status === 'SUBSCRIBED' ? 'ready' : status.toLowerCase(), status === 'SUBSCRIBED' ? 'ok' : ''),
     );
   }
+
+  initBoost();
 
   // M0 learning goal: does capture start with ZERO taps on this iOS version?
   // (Per-site Camera/Mic = Allow should make this succeed — SCOPE §7.)
@@ -74,8 +89,21 @@ async function init() {
   }
 }
 
+function initBoost() {
+  const saved = localStorage.getItem('bantay-boost') || '2.5';
+  for (const btn of document.querySelectorAll('#boostseg button')) {
+    if (btn.dataset.g === saved) btn.classList.add('on');
+    btn.onclick = () => {
+      for (const b of document.querySelectorAll('#boostseg button')) b.classList.remove('on');
+      btn.classList.add('on');
+      localStorage.setItem('bantay-boost', btn.dataset.g);
+      audioChain?.setGain(Number(btn.dataset.g));
+    };
+  }
+}
+
 async function startCapture(how) {
-  if (stream) return true; // double-tap guard — one capture, one meter
+  if (stream) return true; // double-tap guard — one capture, one chain
   try {
     stream = await navigator.mediaDevices.getUserMedia({ video: VIDEO, audio: AUDIO });
   } catch (err) {
@@ -83,16 +111,17 @@ async function startCapture(how) {
     return false;
   }
   $('preview').srcObject = stream;
-  meter = startMeter(stream, (level) => {
+  audioChain = buildAudio(stream, (level) => {
     $('meterfill').style.width = `${Math.min(100, level * 300)}%`;
   });
-  set('s-cam', `capturing (${how})`, 'ok');
+  audioChain.setGain(Number(localStorage.getItem('bantay-boost') || '2.5'));
+  set('s-cam', `watching (${how})`, 'ok');
   for (const track of stream.getTracks()) {
     // iOS mutes/ends tracks with no unmute API (calls, Siri, route changes).
     // M0 shows the truth; M1 adds silent re-acquisition (SCOPE §4.3.1).
     track.addEventListener('ended', () => set('s-cam', `${track.kind} ENDED`, 'bad'));
     track.addEventListener('mute', () => set('s-cam', `${track.kind} muted by iOS`, 'bad'));
-    track.addEventListener('unmute', () => set('s-cam', `capturing (${how})`, 'ok'));
+    track.addEventListener('unmute', () => set('s-cam', `watching (${how})`, 'ok'));
   }
   if (pendingCall) {
     // A viewer called while capture was still starting — offer now.
@@ -127,13 +156,18 @@ async function onSignal(event, payload) {
 async function startPeer() {
   if (!stream) {
     pendingCall = true; // offer as soon as capture lands (startCapture drains this)
-    set('s-peer', 'no camera yet — will offer when ready', 'bad');
+    set('s-peer', 'camera not ready yet', 'bad');
     return;
   }
   const g = ++gen;
   stopPeer();
   pc = new RTCPeerConnection({ iceServers: [] }); // host-only: LAN or nothing (D4)
-  for (const track of stream.getTracks()) pc.addTrack(track, stream);
+
+  // Boosted audio when the audio engine is awake; raw mic otherwise.
+  const useBoost = audioChain?.running();
+  pc.addTrack(stream.getVideoTracks()[0], stream);
+  pc.addTrack(useBoost ? audioChain.boostedTrack() : stream.getAudioTracks()[0], stream);
+  set('s-boost', useBoost ? 'on' : 'off — tap this screen, then Reconnect on your phone', useBoost ? 'ok' : 'bad');
   preferH264(pc);
 
   dc = pc.createDataChannel('beacon');
@@ -173,7 +207,7 @@ async function addIce(candidate) {
   try {
     await pc.addIceCandidate(candidate);
   } catch {
-    // Stale candidate from a torn-down generation — harmless in M0.
+    // Stale candidate from a torn-down generation — harmless.
   }
 }
 
@@ -214,13 +248,13 @@ function startBeacon() {
     dc.send(
       JSON.stringify({
         ts: Date.now(),
-        level: meter?.level ?? 0,
+        level: audioChain?.level ?? 0,
         wake: wakeHeld,
         visible: document.visibilityState === 'visible',
       }),
     );
   }, 1000);
-  set('s-beacon', 'sending 1 Hz', 'ok');
+  set('s-beacon', 'sending', 'ok');
 }
 
 function stopBeacon() {

@@ -3,57 +3,115 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#000000" />
-  <title>Bantay · Cam</title>
+  <meta name="theme-color" content="#121110" />
+  <title>Bantay · Baby's room</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    /* Baby unit: near-black on purpose — this screen glows in the nursery all
-       night (SCOPE §3.9). Dim gray text, no bright surfaces. */
+    /* Baby unit: stays dim on purpose — this screen glows in the nursery
+       all night (SCOPE §3.9). Same warm family as the viewer, turned down. */
+    :root {
+      --bg: #121110; --card: #1B1917; --ink: #B5AEA4; --soft: #6E6962;
+      --line: #262421; --ok: #6E9A80; --bad: #D2705B;
+    }
     body {
-      background: #000; color: #555; min-height: 100dvh;
-      font-family: -apple-system, system-ui, sans-serif;
-      display: flex; flex-direction: column; gap: 14px;
-      padding: max(16px, env(safe-area-inset-top)) 16px 16px;
+      background: var(--bg); color: var(--ink); min-height: 100dvh;
+      font-family: ui-rounded, -apple-system, 'SF Pro Rounded', 'Segoe UI', sans-serif;
+      display: flex; flex-direction: column; gap: 12px;
+      padding: max(14px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+      max-width: 480px; margin: 0 auto;
     }
-    h1 { font-size: 13px; color: #444; font-weight: 600; letter-spacing: 0.1em; }
-    #preview {
-      width: 128px; border-radius: 8px; background: #0a0a0a;
-      opacity: 0.5; align-self: flex-start;
+    header { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px; }
+    .brand { font-weight: 800; font-size: 16px; color: var(--soft); }
+    .pillbtn {
+      font: inherit; font-size: 13px; font-weight: 600; color: var(--ink);
+      background: var(--card); border: 1px solid var(--line); border-radius: 999px;
+      padding: 9px 15px; min-height: 44px;
     }
-    #meterbar {
-      height: 6px; background: #111; border-radius: 3px; overflow: hidden;
+    h1 { font-size: 19px; font-weight: 800; color: var(--ink); padding: 0 4px; }
+    .sub { color: var(--soft); font-size: 13.5px; padding: 0 4px; }
+
+    .card { background: var(--card); border-radius: 20px; padding: 14px 16px; }
+    .rowlbl { font-size: 12.5px; font-weight: 700; color: var(--soft); margin-bottom: 8px; }
+
+    .codebox { display: flex; flex-direction: column; gap: 8px; align-items: center; padding: 18px 16px; }
+    .code { font-size: 34px; font-weight: 800; letter-spacing: 0.22em; color: #E9E4DB; }
+    .ghost { font: inherit; font-size: 13px; color: var(--soft); background: none; border: 0; text-decoration: underline; padding: 8px; }
+
+    .mediarow { display: flex; gap: 12px; align-items: center; }
+    #preview { width: 116px; border-radius: 12px; background: #0C0B0A; opacity: 0.55; }
+    .mediarow > div { flex: 1; }
+    #meterbar { height: 8px; border-radius: 4px; background: #0C0B0A; overflow: hidden; }
+    #meterfill { display: block; height: 100%; width: 0%; background: var(--ok); transition: width 120ms linear; }
+
+    .seg { display: flex; background: #0C0B0A; border-radius: 999px; padding: 4px; gap: 4px; }
+    .seg button {
+      flex: 1; font: inherit; font-size: 14px; font-weight: 700; color: var(--soft);
+      background: none; border: 0; border-radius: 999px; min-height: 44px;
     }
-    #meterfill {
-      display: block; height: 100%; width: 0%;
-      background: #3a6; transition: width 100ms linear;
+    .seg button.on { background: var(--card); color: #E9E4DB; }
+
+    .details .row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+    .details .row:last-child { border-bottom: 0; }
+    .details dt { color: var(--soft); flex-shrink: 0; }
+    .details dd { text-align: right; font-weight: 600; }
+    .details dd.ok { color: var(--ok); }
+    .details dd.bad { color: var(--bad); }
+
+    .primary {
+      font: inherit; font-size: 17px; font-weight: 800; min-height: 58px;
+      background: #E9E4DB; color: #201D19; border: 0; border-radius: 999px;
     }
-    dl div { display: flex; gap: 8px; font-size: 13px; padding: 3px 0; }
-    dt { color: #333; width: 84px; flex-shrink: 0; }
-    dd { color: #666; }
-    dd.ok { color: #3a6; }
-    dd.bad { color: #d55; font-weight: 700; }
-    button {
-      min-height: 56px; font-size: 18px; font-weight: 700;
-      background: #1a1a1a; color: #eee; border: 1px solid #333;
-      border-radius: 14px; margin-top: 8px;
-    }
-    #cfg { color: #d55; font-size: 13px; }
+    .meta { text-align: center; color: var(--soft); font-size: 12px; line-height: 1.8; }
+    #cfg { color: var(--bad); font-size: 13px; text-align: center; }
   </style>
 </head>
 <body>
-  <h1>BANTAY · CAM</h1>
-  <video id="preview" autoplay playsinline muted></video>
-  <div id="meterbar"><i id="meterfill"></i></div>
-  <dl id="status">
-    <div><dt>Camera</dt><dd id="s-cam">starting…</dd></div>
-    <div><dt>Signal</dt><dd id="s-sig">—</dd></div>
-    <div><dt>Peer</dt><dd id="s-peer">waiting for viewer</dd></div>
-    <div><dt>Beacon</dt><dd id="s-beacon">—</dd></div>
-    <div><dt>Wake lock</dt><dd id="s-wake">—</dd></div>
-    <div><dt>Uptime</dt><dd id="s-up">0:00</dd></div>
-  </dl>
-  <button id="start" hidden>START CAMERA</button>
-  <p id="cfg" hidden>Supabase env vars missing — signaling disabled.</p>
+  <header>
+    <span class="brand">Bantay</span>
+    <button id="update" class="pillbtn">Update</button>
+  </header>
+
+  <h1>Watching over the crib</h1>
+  <p class="sub">Keep this phone plugged in, screen on, in the nursery.</p>
+
+  <section class="card codebox">
+    <span class="rowlbl">Connect code — enter this on your phone</span>
+    <span id="code" class="code">····-····</span>
+    <button id="newcode" class="ghost">New code</button>
+  </section>
+
+  <section class="card">
+    <div class="mediarow">
+      <video id="preview" autoplay playsinline muted></video>
+      <div>
+        <div class="rowlbl">Sound in the room</div>
+        <div id="meterbar"><i id="meterfill"></i></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="rowlbl">Mic boost</div>
+    <div class="seg" id="boostseg">
+      <button data-g="1">Off</button>
+      <button data-g="2.5">Medium</button>
+      <button data-g="5">High</button>
+    </div>
+  </section>
+
+  <section class="card details">
+    <div class="row"><dt>Camera</dt><dd id="s-cam">starting…</dd></div>
+    <div class="row"><dt>Link</dt><dd id="s-sig">—</dd></div>
+    <div class="row"><dt>Viewer</dt><dd id="s-peer">waiting</dd></div>
+    <div class="row"><dt>Heartbeat</dt><dd id="s-beacon">—</dd></div>
+    <div class="row"><dt>Mic boost</dt><dd id="s-boost">—</dd></div>
+    <div class="row"><dt>Screen</dt><dd id="s-wake">—</dd></div>
+    <div class="row"><dt>Awake for</dt><dd id="s-up">0:00</dd></div>
+  </section>
+
+  <button id="start" class="primary" hidden>Start camera</button>
+  <p class="meta"><span id="version"></span> · video stays on your home Wi-Fi</p>
+  <p id="cfg" hidden>App config missing — this build can't connect. Tap Update, or check the deploy.</p>
   <script type="module" src="./src/cam.js"></script>
 </body>
 </html>
