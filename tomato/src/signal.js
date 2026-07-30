@@ -9,7 +9,7 @@ import { deriveKeys, seal, unseal } from './crypto.js';
 export const isConfigured =
   SUPABASE_URL.startsWith('https://') && !SUPABASE_ANON_KEY.startsWith('YOUR_');
 
-const EVENTS = ['call', 'offer', 'answer', 'ice', 'beacon'];
+const EVENTS = ['call', 'offer', 'answer', 'ice', 'beacon', 'bye', 'hello'];
 
 // Signaling-only client. No session persistence so these pages never touch
 // the Kilos auth storage key (the shared session comes into play at M1).

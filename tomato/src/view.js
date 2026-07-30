@@ -37,6 +37,7 @@ let prev = { frames: 0, bytes: 0 };
 let connectedAt = 0;
 let everConnected = false;
 let monitoring = true;
+let camEnded = false;
 let zenTimer = null;
 let wd = null;
 let wdState = 'ok';
@@ -315,6 +316,21 @@ async function onSignal(event, payload) {
       else iceQueue.push(payload.candidate);
     } else if (event === 'beacon') {
       lastCloudBeacon = Date.now(); // cam is alive, whatever the P2P path says
+    } else if (event === 'bye') {
+      // Deliberate End session on the cam — pause WITHOUT alarming.
+      camEnded = true;
+      stopPeer();
+      health.peer = false;
+      health.frames = false;
+      health.beacon = false;
+      $('remote').srcObject = null; // black, not a misleading frozen frame
+      set('s-peer', 'ended by the cam');
+      if (monitoring) toggleMonitoring();
+      headline();
+    } else if (event === 'hello') {
+      // Cam is streaming again — wake up and reconnect.
+      camEnded = false;
+      if (!monitoring) toggleMonitoring();
     }
   } catch (err) {
     set('s-peer', `signal err: ${err.message}`, 'bad');
@@ -588,7 +604,9 @@ function headline() {
   if (!armed) {
     put('idle', 'Connecting…', 'Opening a line to the nursery.');
   } else if (!monitoring) {
-    put('idle', 'Monitoring paused', 'Tap Resume monitoring when the cam is back.');
+    if (camEnded)
+      put('idle', 'Baby phone ended the session', 'It reconnects by itself when the cam starts again.');
+    else put('idle', 'Monitoring paused', 'Tap Resume monitoring when the cam is back.');
   } else if (wdState === 'snoozed') {
     const left = Math.max(0, Math.ceil((wdSnoozeUntil - Date.now()) / 1000));
     put('warn', 'Alarm silenced', `Re-alerts in ${left}s if still down.`);

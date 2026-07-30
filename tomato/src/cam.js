@@ -42,6 +42,8 @@ let iceQueue = [];
 let pendingCall = false;
 let lastCallAt = 0;
 let recovering = false;
+let stopped = false; // deliberate End session — no auto-restart, no recover
+let stopArmedAt = 0;
 let gen = 0; // peer generation — guards awaits against a superseding 'call'
 const bootedAt = Date.now();
 // NOTE: this page must NEVER emit sound — Gabe's rule: nothing may wake
@@ -99,9 +101,27 @@ async function init() {
   const auto = await startCapture('zero-tap');
   const btn = $('start');
   btn.onclick = async () => {
-    if (await startCapture('tapped')) btn.hidden = true;
+    stopped = false;
+    if (await startCapture('tapped')) {
+      btn.hidden = true;
+      $('stopbtn').hidden = false;
+    }
   };
   if (!auto) btn.hidden = false;
+
+  // End session: two taps (a stray touch must never kill the stream).
+  // Tells the viewer 'bye' so it pauses WITHOUT alarming.
+  $('stopbtn').onclick = () => {
+    if (Date.now() - stopArmedAt > 3000) {
+      stopArmedAt = Date.now();
+      $('stopbtn').textContent = 'Tap again to end';
+      setTimeout(() => {
+        if (!stopped) $('stopbtn').textContent = 'End session';
+      }, 3200);
+      return;
+    }
+    endSession();
+  };
 
   // If the boost engine stays suspended while streaming, swap the sender
   // to the raw mic so audio keeps flowing (silent-boost failure net).
@@ -178,6 +198,8 @@ async function startCapture(how) {
       if (current()) set('s-cam', `watching (${how})`, 'ok');
     });
   }
+  $('stopbtn').hidden = false;
+  signal?.send('hello', {}); // wakes a paused viewer — it auto-resumes
   if (pendingCall) {
     // A viewer called while capture was still starting — offer now.
     pendingCall = false;
@@ -186,9 +208,32 @@ async function startCapture(how) {
   return true;
 }
 
+function endSession() {
+  stopped = true;
+  stopArmedAt = 0;
+  try {
+    if (dc?.readyState === 'open') dc.send(JSON.stringify({ bye: true }));
+  } catch {
+    /* the sealed broadcast below is the reliable path */
+  }
+  signal?.send('bye', {});
+  stopPeer();
+  const old = stream;
+  stream = null; // null first so track handlers see themselves as replaced
+  audioChain?.dispose();
+  audioChain = null;
+  for (const t of old?.getTracks() ?? []) t.stop();
+  $('preview').srcObject = null;
+  set('s-cam', 'ended — tap Start camera to stream again', 'bad');
+  set('s-peer', 'ended');
+  $('stopbtn').hidden = true;
+  $('stopbtn').textContent = 'End session';
+  $('start').hidden = false;
+}
+
 // Crash-only self-heal: drop everything media, re-acquire, re-offer.
 async function recover(why) {
-  if (recovering) return;
+  if (recovering || stopped) return;
   recovering = true;
   set('s-cam', `restarting camera (${why})…`, 'bad');
   try {
@@ -215,6 +260,10 @@ async function recover(why) {
 async function onSignal(event, payload) {
   try {
     if (event === 'call') {
+      if (stopped) {
+        signal?.send('bye', {}); // still off — remind the viewer not to alarm
+        return;
+      }
       if (Date.now() - lastCallAt < 1000) return; // viewer double-tap debounce
       lastCallAt = Date.now();
       await startPeer();

@@ -86,6 +86,11 @@
       font: inherit; font-size: 17px; font-weight: 800; min-height: 58px;
       background: #EFEAE1; color: #201D19; border: 0; border-radius: 999px;
     }
+    .endbtn {
+      font: inherit; font-size: 15px; font-weight: 700; min-height: 52px;
+      background: none; color: #D2705B; border: 1px solid #3A2420;
+      border-radius: 999px;
+    }
     .meta { text-align: center; color: var(--soft); font-size: 12px; line-height: 1.8; }
     #cfg { color: var(--bad); font-size: 13px; text-align: center; }
 
@@ -139,6 +144,7 @@
   </section>
 
   <button id="start" class="primary" hidden>Start camera</button>
+  <button id="stopbtn" class="endbtn">End session</button>
   <p class="meta"><span id="version"></span> · video stays on your home Wi-Fi</p>
   <p id="cfg" hidden>App config missing — this build can't connect. Tap Update, or check the deploy.</p>
 
