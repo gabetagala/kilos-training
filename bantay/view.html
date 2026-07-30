@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" />
+  <title>Bantay · Viewer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #000; color: #eee; min-height: 100dvh;
+      font-family: -apple-system, system-ui, sans-serif;
+      display: flex; flex-direction: column; gap: 12px;
+      padding: max(12px, env(safe-area-inset-top)) 12px 12px;
+    }
+    h1 { font-size: 13px; color: #666; font-weight: 600; letter-spacing: 0.1em; }
+    #stage { position: relative; }
+    #remote {
+      width: 100%; aspect-ratio: 4 / 3; border-radius: 12px;
+      background: #0a0a0a; object-fit: contain;
+    }
+    #stage button {
+      position: absolute; inset: 0; margin: auto;
+      width: min(80%, 280px); height: 64px;
+      font-size: 19px; font-weight: 800; border: 0; border-radius: 16px;
+      background: #eee; color: #111;
+    }
+    #meterbar {
+      height: 10px; background: #111; border-radius: 5px; overflow: hidden;
+    }
+    #meterfill {
+      display: block; height: 100%; width: 0%;
+      background: #3a6; transition: width 100ms linear;
+    }
+    dl div { display: flex; gap: 8px; font-size: 14px; padding: 3px 0; }
+    dt { color: #555; width: 96px; flex-shrink: 0; }
+    dd { color: #aaa; }
+    dd.ok { color: #3a6; }
+    dd.bad { color: #f66; font-weight: 700; }
+    #recall {
+      min-height: 52px; font-size: 16px; font-weight: 700;
+      background: #1a1a1a; color: #eee; border: 1px solid #333;
+      border-radius: 14px;
+    }
+    #cfg { color: #f66; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>BANTAY · VIEWER</h1>
+  <div id="stage">
+    <video id="remote" autoplay playsinline muted></video>
+    <button id="startBtn">START MONITORING</button>
+    <button id="unmute" hidden>TAP FOR SOUND</button>
+  </div>
+  <div id="meterbar"><i id="meterfill"></i></div>
+  <dl id="status">
+    <div><dt>Signal</dt><dd id="s-sig">—</dd></div>
+    <div><dt>Peer</dt><dd id="s-peer">—</dd></div>
+    <div><dt>Stream</dt><dd id="s-stream">—</dd></div>
+    <div><dt>Beacon</dt><dd id="s-beacon">—</dd></div>
+    <div><dt>Cam phone</dt><dd id="s-camstate">—</dd></div>
+    <div><dt>Wake lock</dt><dd id="s-wake">—</dd></div>
+  </dl>
+  <button id="recall" hidden>RECONNECT</button>
+  <p id="cfg" hidden>Supabase env vars missing — signaling disabled.</p>
+  <script type="module" src="./src/view.js"></script>
+</body>
+</html>

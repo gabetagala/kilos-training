@@ -1,6 +1,9 @@
 import { execSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
+
+const page = (p) => fileURLToPath(new URL(p, import.meta.url))
 
 const commit =
   process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ||
@@ -24,6 +27,17 @@ export default defineConfig({
     port: 2100,
     open: true,
   },
+  build: {
+    rollupOptions: {
+      // Multi-page: Kilos SPA + the Bantay baby-monitor sub-app (bantay/SCOPE.md §2)
+      input: {
+        main: page('index.html'),
+        'bantay-home': page('bantay/index.html'),
+        'bantay-cam': page('bantay/cam.html'),
+        'bantay-view': page('bantay/view.html'),
+      },
+    },
+  },
   plugins: [
     VitePWA({
       // Auto-activates new SW immediately — users always get the latest on next open
@@ -38,9 +52,9 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2,m4a,mp3}'],
 
         // SPA fallback — all navigation goes to index.html
-        // Exclude standalone pages (coach previews etc.) from SW interception
+        // Exclude standalone pages (coach previews, Bantay) from SW interception
         navigateFallback: 'index.html',
-        navigateFallbackDenylist: [/^\/coach-/],
+        navigateFallbackDenylist: [/^\/coach-/, /^\/bantay/],
 
         // Nuke old caches when a new SW activates
         cleanupOutdatedCaches: true,

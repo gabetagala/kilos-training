@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" />
+  <title>Bantay · Cam</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    /* Baby unit: near-black on purpose — this screen glows in the nursery all
+       night (SCOPE §3.9). Dim gray text, no bright surfaces. */
+    body {
+      background: #000; color: #555; min-height: 100dvh;
+      font-family: -apple-system, system-ui, sans-serif;
+      display: flex; flex-direction: column; gap: 14px;
+      padding: max(16px, env(safe-area-inset-top)) 16px 16px;
+    }
+    h1 { font-size: 13px; color: #444; font-weight: 600; letter-spacing: 0.1em; }
+    #preview {
+      width: 128px; border-radius: 8px; background: #0a0a0a;
+      opacity: 0.5; align-self: flex-start;
+    }
+    #meterbar {
+      height: 6px; background: #111; border-radius: 3px; overflow: hidden;
+    }
+    #meterfill {
+      display: block; height: 100%; width: 0%;
+      background: #3a6; transition: width 100ms linear;
+    }
+    dl div { display: flex; gap: 8px; font-size: 13px; padding: 3px 0; }
+    dt { color: #333; width: 84px; flex-shrink: 0; }
+    dd { color: #666; }
+    dd.ok { color: #3a6; }
+    dd.bad { color: #d55; font-weight: 700; }
+    button {
+      min-height: 56px; font-size: 18px; font-weight: 700;
+      background: #1a1a1a; color: #eee; border: 1px solid #333;
+      border-radius: 14px; margin-top: 8px;
+    }
+    #cfg { color: #d55; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>BANTAY · CAM</h1>
+  <video id="preview" autoplay playsinline muted></video>
+  <div id="meterbar"><i id="meterfill"></i></div>
+  <dl id="status">
+    <div><dt>Camera</dt><dd id="s-cam">starting…</dd></div>
+    <div><dt>Signal</dt><dd id="s-sig">—</dd></div>
+    <div><dt>Peer</dt><dd id="s-peer">waiting for viewer</dd></div>
+    <div><dt>Beacon</dt><dd id="s-beacon">—</dd></div>
+    <div><dt>Wake lock</dt><dd id="s-wake">—</dd></div>
+    <div><dt>Uptime</dt><dd id="s-up">0:00</dd></div>
+  </dl>
+  <button id="start" hidden>START CAMERA</button>
+  <p id="cfg" hidden>Supabase env vars missing — signaling disabled.</p>
+  <script type="module" src="./src/cam.js"></script>
+</body>
+</html>
