@@ -612,17 +612,22 @@ function goScreen(id) {
   // set-log controls (done / ± steppers) and isn't needed mid-set.
 
   // 6. Render content
-  if (id === 'home') {
-    renderHome();
-  }
-  if (id === 'train') renderTrain();
-  if (id === 'history') {
+  renderScreen(id);
+}
+
+// Per-screen content render. The ONE place tab content is (re)built, so tap-nav
+// (goScreen) and swipe-nav (the pager's settle) can never diverge — swiping to a
+// tab used to commit .active without rendering, leaving stale content (e.g. a
+// Resume button that didn't reflect a live session).
+function renderScreen(id) {
+  if (id === 'home') renderHome();
+  else if (id === 'train') renderTrain();
+  else if (id === 'history') {
     renderHistory();
     renderProfilePane();
-  }
-  if (id === 'coaches') renderCoaches(); // was 'legends'
-  if (id === 'build') renderBuild();
-  if (id === 'active') renderActiveScreen();
+  } else if (id === 'coaches') renderCoaches();
+  else if (id === 'build') renderBuild();
+  else if (id === 'active') renderActiveScreen();
 }
 document.querySelectorAll('.nav-btn').forEach((btn) => {
   btn.addEventListener('click', () => goScreen(btn.dataset.screen));
@@ -1113,6 +1118,10 @@ const NAV_TABS = ['home', 'train', 'history'];
     const dur = 300;
     const tr = `transform ${dur}ms cubic-bezier(.25,.72,.35,1)`;
     paging = true;
+    // Refresh the incoming tab's content before it slides in — swiping commits
+    // .active without going through goScreen, so without this it would show
+    // stale content (same render dispatch tap-nav uses).
+    if (complete && incoming) renderScreen(incoming.id);
     if (el) el.style.transition = tr;
     if (incoming) incoming.style.transition = tr;
     if (complete && incoming) {
@@ -4300,6 +4309,7 @@ function addExercise(name) {
       })),
     };
     closeExSearch();
+    saveActiveState(); // persist the swap so a refresh before the next set keeps it
     renderCurrentExercise();
     renderExNav();
     return;
@@ -6667,8 +6677,10 @@ async function renderDataNotice() {
   if (!notice) return;
   if (currentUser) {
     const rawEmail = currentUser.email || '';
-    const displayId = rawEmail.endsWith('@kilostraining.app')
-      ? rawEmail.replace('@kilostraining.app', '')
+    // Show only the username — never expose the internally-minted email domain
+    // (@kilostraining.app, or @grittraining.app for grandfathered accounts).
+    const displayId = rawEmail.includes('@')
+      ? rawEmail.split('@')[0]
       : rawEmail;
     const pending = hasPendingSync();
     notice.innerHTML = `<div class="dn-foot">${
