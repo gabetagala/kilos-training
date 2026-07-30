@@ -4,12 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#F2EEE7" />
-  <title>Bantay · With me</title>
+  <title>Tomato Cam · With me</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
       --bg: #F2EEE7; --card: #FFFFFF; --ink: #201D19; --soft: #8D8781;
-      --line: #E8E3DA; --ok: #5A8A6E; --bad: #CE5B41; --live: #4CAF7D;
+      --line: #E8E3DA; --tomato: #E23A1E; --leaf: #3A7D44;
+      --ok: #3A7D44; --bad: #A8290F; --live: #4CAF7D;
       --shadow: 0 12px 32px rgba(46, 41, 34, 0.10);
     }
     body {
@@ -20,7 +21,19 @@
       max-width: 480px; margin: 0 auto;
     }
     header { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
-    .brand { font-weight: 800; font-size: 17px; }
+    .brand {
+      display: flex; align-items: center; gap: 9px;
+      font-family: ui-serif, Georgia, 'Times New Roman', serif;
+      font-weight: 700; font-size: 20px; letter-spacing: 0.005em;
+    }
+    .tomatomark {
+      width: 22px; height: 22px; border-radius: 50%; position: relative; flex-shrink: 0;
+      background: radial-gradient(circle at 35% 32%, #F0603F, var(--tomato) 72%);
+    }
+    .tomatomark::before {
+      content: ''; position: absolute; top: -5px; left: 55%; width: 11px; height: 9px;
+      background: var(--leaf); border-radius: 0 9px 0 9px; transform: rotate(-24deg);
+    }
     .pillbtn {
       font: inherit; font-size: 14px; font-weight: 600; color: var(--ink);
       background: var(--card); border: 1px solid var(--line); border-radius: 999px;
@@ -121,13 +134,76 @@
       font-size: 26px; font-weight: 800; display: grid; place-items: center;
       transition: border-color 0.15s, background 0.15s;
     }
-    #codeboxes span.filled { border-color: var(--ink); background: #fff; }
+    #codeboxes span.filled { border-color: var(--tomato); background: #fff; }
     #codein {
       position: absolute; inset: 0; width: 100%; opacity: 0.01;
       font-size: 16px; /* ≥16px stops iOS from zooming the page on focus */
       border: 0; background: none; color: transparent; caret-color: transparent;
     }
     #gatehint { color: var(--bad); font-size: 13px; min-height: 1em; text-align: center; }
+
+    .alertrow { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .hint { color: var(--soft); font-size: 12.5px; margin-top: 6px; }
+    #alertscard.armed .rowlbl:first-child { color: var(--ok); }
+    #alertscard.unarmed { border: 1.5px solid #E5B84C; }
+    .seg { display: flex; background: var(--bg); border-radius: 999px; padding: 4px; gap: 4px; }
+    .seg button {
+      flex: 1; font: inherit; font-size: 14px; font-weight: 700; color: var(--soft);
+      background: none; border: 0; border-radius: 999px; min-height: 44px;
+    }
+    .seg button.on { background: var(--card); color: var(--ink); box-shadow: 0 2px 8px rgba(46, 41, 34, 0.12); }
+    #history { display: block; width: 100%; margin-top: 12px; }
+
+    /* night-stand mode: OLED black, dim amber, giant clock */
+    #nightstand {
+      position: fixed; inset: 0; z-index: 60; background: #000;
+      display: none; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+      color: #8A6E3F; text-align: center;
+    }
+    #nightstand.on { display: flex; }
+    #nsclock { font-size: 88px; font-weight: 800; letter-spacing: 0.02em; color: #A8874E; }
+    #nsstatusrow { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 600; }
+    #nsmeter { width: min(70vw, 300px); height: 10px; border-radius: 5px; background: #14100A; overflow: hidden; }
+    #nsmeterfill { display: block; height: 100%; width: 0%; background: #8A6E3F; transition: width 120ms linear; }
+    #nightstand .hint { color: #4A3D26; }
+
+    /* alarm popup: calm by default (gentle style) — warm dark card, soft
+       amber pulse, no strobing. Loud style keeps the flashing red. */
+    #alarmov {
+      position: fixed; inset: 0; z-index: 70; display: none;
+      flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+      text-align: center; padding: 32px;
+      color: #F0E7D8; background: rgba(24, 20, 15, 0.97);
+    }
+    #alarmov.on { display: flex; }
+    #alarmtitle { font-size: 32px; font-weight: 800; color: #E5B84C; }
+    #alarmwhy { font-size: 17px; opacity: 0.95; }
+    #alarmov .hint { color: rgba(240, 231, 216, 0.7); font-size: 15px; }
+    @media (prefers-reduced-motion: no-preference) {
+      #alarmov.on #alarmtitle { animation: calmpulse 2.4s ease-in-out infinite; }
+      @keyframes calmpulse { 50% { opacity: 0.55; } }
+      #alarmov.on.loud { animation: alarmflash 1s steps(2) infinite; }
+      @keyframes alarmflash { 50% { background: #7C2415; } }
+    }
+    #alarmov.loud { background: #A93A26; color: #fff; }
+    #alarmov.loud #alarmtitle { color: #fff; animation: none; }
+    #alarmstop {
+      font: inherit; font-size: 14px; font-weight: 700; margin-top: 18px;
+      background: rgba(255, 255, 255, 0.14); color: inherit;
+      border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 999px;
+      padding: 14px 22px; min-height: 48px;
+    }
+
+    /* arm overlay: the un-missable "alerts are off" state after an
+       unattended reload — one tap is the blessing gesture (SCOPE §4.3.5) */
+    #armov {
+      position: fixed; inset: 0; z-index: 65; display: none;
+      flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+      text-align: center; padding: 32px; background: var(--tomato); color: #fff;
+    }
+    #armov.on { display: flex; }
+    #armov strong { font-size: 30px; font-weight: 800; }
+    #armov p { font-size: 16px; opacity: 0.95; max-width: 300px; }
 
     .meta { text-align: center; color: var(--soft); font-size: 12.5px; line-height: 1.9; }
     .linkbtn { font: inherit; font-size: 12.5px; color: var(--ink); background: none; border: 0; text-decoration: underline; padding: 8px; }
@@ -136,7 +212,7 @@
 </head>
 <body>
   <header>
-    <span class="brand">Bantay</span>
+    <span class="brand"><i class="tomatomark"></i>tomato cam</span>
     <button id="update" class="pillbtn">Update</button>
   </header>
   <p id="cfg" hidden>App config missing — this build can't connect. Tap Update, or check the deploy.</p>
@@ -168,6 +244,9 @@
         <button id="fitbtn" class="cbtn" aria-label="Fill or fit the video">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
         </button>
+        <button id="nsbtn" class="cbtn" aria-label="Night-stand mode">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+        </button>
         <button id="pipbtn" class="cbtn" aria-label="Float the video like FaceTime" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><rect x="12" y="12" width="7" height="5" rx="1.5" fill="currentColor" stroke="none"/></svg>
         </button>
@@ -177,9 +256,37 @@
       </div>
     </div>
 
+    <section class="card" id="alertscard">
+      <div class="alertrow">
+        <div>
+          <div class="rowlbl" id="armlbl">Alerts are off</div>
+          <p class="hint" id="armhint">Tap anywhere once to arm them.</p>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button id="testbtn" class="pillbtn" hidden>Test alarm</button>
+          <button id="pausebtn" class="pillbtn">Pause monitoring</button>
+        </div>
+      </div>
+      <div class="rowlbl" style="margin-top: 14px;">Alarm style</div>
+      <div class="seg" id="styleseg">
+        <button data-s="gentle">Gentle</button>
+        <button data-s="loud">Loud</button>
+      </div>
+      <p class="hint">Gentle is a soft repeating bell with a quiet popup. Test it from the bedroom — if it wouldn't wake you, switch to Loud for the night.</p>
+      <div class="rowlbl" style="margin-top: 14px;">Cry alert</div>
+      <div class="seg" id="noiseseg">
+        <button data-n="off">Off</button>
+        <button data-n="low">Low</button>
+        <button data-n="med">Medium</button>
+        <button data-n="high">High</button>
+      </div>
+    </section>
+
     <section class="card">
       <div class="rowlbl">Sound in the room</div>
       <div id="meterbar"><i id="meterfill"></i></div>
+      <canvas id="history" height="64" aria-label="Sound over the last 30 minutes"></canvas>
+      <p class="hint">Last 30 minutes</p>
     </section>
 
     <section class="card details">
@@ -196,6 +303,26 @@
       <span id="version"></span> · video stays on your home Wi-Fi
     </p>
   </main>
+
+  <div id="nightstand">
+    <div id="nsclock">--:--</div>
+    <div id="nsstatusrow"><span id="nsdot" class="dot idle"></span><span id="nsstatus">Connecting…</span></div>
+    <div id="nsmeter"><i id="nsmeterfill"></i></div>
+    <p class="hint" id="nshint">Sound stays on · alarm armed · tap to exit</p>
+  </div>
+
+  <div id="alarmov">
+    <div id="alarmtitle">Check the monitor</div>
+    <div id="alarmwhy">The stream stopped.</div>
+    <p class="hint">Tap anywhere to silence for 2 minutes</p>
+    <button id="alarmstop">Cam is off on purpose — stop monitoring</button>
+  </div>
+
+  <div id="armov">
+    <strong>Tap once to arm alerts</strong>
+    <p>The page reloaded, so iOS turned sound alerts off. One tap turns them back on.</p>
+  </div>
+
   <script type="module" src="./src/view.js"></script>
 </body>
 </html>

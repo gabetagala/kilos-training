@@ -8,9 +8,11 @@ import { isConfigured, openSignal } from './signal.js';
 import { initUpdate } from './update.js';
 import { keepAwake } from './wake.js';
 
+// 16:9 so the picture fills both phone screens; 540p@15 keeps the encode
+// cool enough for all-night duty (SCOPE D3 — updated from 480p 4:3).
 const VIDEO = {
-  width: { ideal: 640 },
-  height: { ideal: 480 },
+  width: { ideal: 960 },
+  height: { ideal: 540 },
   frameRate: { ideal: 15, max: 15 },
   facingMode: { ideal: 'environment' },
 };
@@ -39,8 +41,11 @@ let wakeHeld = false;
 let iceQueue = [];
 let pendingCall = false;
 let lastCallAt = 0;
+let recovering = false;
 let gen = 0; // peer generation — guards awaits against a superseding 'call'
 const bootedAt = Date.now();
+// NOTE: this page must NEVER emit sound — Gabe's rule: nothing may wake
+// the baby. No Audio(), no oscillators, no alert tones. Ever.
 
 init();
 
@@ -83,16 +88,45 @@ async function init() {
 
   initBoost();
 
+  // Cloud dead-man beacon: lets the viewer tell "baby phone died" apart
+  // from "home Wi-Fi broke" (SCOPE §4.2). Sealed like everything else.
+  setInterval(() => {
+    signal?.send('beacon', { ts: Date.now(), up: Date.now() - bootedAt });
+  }, 15000);
+
   // M0 learning goal: does capture start with ZERO taps on this iOS version?
   // (Per-site Camera/Mic = Allow should make this succeed — SCOPE §7.)
   const auto = await startCapture('zero-tap');
-  if (!auto) {
-    const btn = $('start');
-    btn.hidden = false;
-    btn.onclick = async () => {
-      if (await startCapture('tapped')) btn.hidden = true;
-    };
-  }
+  const btn = $('start');
+  btn.onclick = async () => {
+    if (await startCapture('tapped')) btn.hidden = true;
+  };
+  if (!auto) btn.hidden = false;
+
+  // If the boost engine stays suspended while streaming, swap the sender
+  // to the raw mic so audio keeps flowing (silent-boost failure net).
+  let suspendedSince = 0;
+  setInterval(() => {
+    if (!pc || !audioChain) return;
+    if (audioChain.running()) {
+      suspendedSince = 0;
+      return;
+    }
+    if (!suspendedSince) suspendedSince = Date.now();
+    if (Date.now() - suspendedSince > 10000) {
+      suspendedSince = 0;
+      try {
+        const sender = pc.getSenders().find((s) => s.track?.kind === 'audio');
+        const raw = stream?.getAudioTracks()[0];
+        if (sender && raw && sender.track !== raw) {
+          sender.replaceTrack(raw);
+          set('s-boost', 'engine asleep — sent raw mic instead', 'bad');
+        }
+      } catch {
+        /* next interval retries */
+      }
+    }
+  }, 2000);
 }
 
 function initBoost() {
@@ -123,11 +157,26 @@ async function startCapture(how) {
   audioChain.setGain(Number(localStorage.getItem('bantay-boost') || '2.5'));
   set('s-cam', `watching (${how})`, 'ok');
   for (const track of stream.getTracks()) {
-    // iOS mutes/ends tracks with no unmute API (calls, Siri, route changes).
-    // M0 shows the truth; M1 adds silent re-acquisition (SCOPE §4.3.1).
-    track.addEventListener('ended', () => set('s-cam', `${track.kind} ENDED`, 'bad'));
-    track.addEventListener('mute', () => set('s-cam', `${track.kind} muted by iOS`, 'bad'));
-    track.addEventListener('unmute', () => set('s-cam', `watching (${how})`, 'ok'));
+    // iOS mutes/ends tracks with no unmute API (calls, Siri, route
+    // changes). Zero-tap recovery: re-acquire while the per-site grant is
+    // warm, then re-offer so the viewer picks up the new tracks (§4.3.1).
+    // Every handler bails if the track was replaced by a newer capture —
+    // stale timers must never tear down a healthy stream.
+    const current = () => stream?.getTracks().includes(track);
+    track.addEventListener('ended', () => {
+      if (current()) recover(`${track.kind} ended`);
+    });
+    track.addEventListener('mute', () => {
+      if (!current()) return;
+      set('s-cam', `${track.kind} muted by iOS`, 'bad');
+      setTimeout(() => {
+        if (current() && track.muted && track.readyState === 'live')
+          recover(`${track.kind} stayed muted`);
+      }, 5000);
+    });
+    track.addEventListener('unmute', () => {
+      if (current()) set('s-cam', `watching (${how})`, 'ok');
+    });
   }
   if (pendingCall) {
     // A viewer called while capture was still starting — offer now.
@@ -135,6 +184,32 @@ async function startCapture(how) {
     startPeer();
   }
   return true;
+}
+
+// Crash-only self-heal: drop everything media, re-acquire, re-offer.
+async function recover(why) {
+  if (recovering) return;
+  recovering = true;
+  set('s-cam', `restarting camera (${why})…`, 'bad');
+  try {
+    for (const t of stream?.getTracks() ?? []) t.stop();
+  } catch {
+    /* already dead */
+  }
+  audioChain?.dispose();
+  audioChain = null;
+  stream = null;
+  const ok = await startCapture('auto-recover');
+  recovering = false;
+  if (ok) {
+    startPeer(); // fresh offer; the viewer answers automatically
+  } else {
+    // Never one-shot: iOS often refuses getUserMedia right after a capture
+    // failure (camera still held). Keep retrying; offer the button too.
+    set('s-cam', 'camera unavailable — retrying in 5s', 'bad');
+    $('start').hidden = false;
+    setTimeout(() => recover('retry'), 5000);
+  }
 }
 
 async function onSignal(event, payload) {
@@ -239,7 +314,7 @@ function capBitrate() {
     const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
     const params = sender.getParameters();
     if (!params.encodings?.length) params.encodings = [{}];
-    params.encodings[0].maxBitrate = 400_000;
+    params.encodings[0].maxBitrate = 600_000;
     params.degradationPreference = 'maintain-framerate';
     sender.setParameters(params).catch(() => {});
   } catch {
@@ -255,6 +330,8 @@ function startBeacon() {
       JSON.stringify({
         ts: Date.now(),
         level: audioChain?.level ?? 0,
+        raw: audioChain?.rawLevel ?? 0,
+        boost: audioChain?.running() ?? false,
         wake: wakeHeld,
         visible: document.visibilityState === 'visible',
       }),

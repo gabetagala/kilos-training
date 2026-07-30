@@ -4,12 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#F2EEE7" />
-  <title>Bantay</title>
+  <title>Tomato Cam</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
       --bg: #F2EEE7; --card: #FFFFFF; --ink: #201D19; --soft: #8D8781;
-      --line: #E8E3DA; --shadow: 0 12px 32px rgba(46, 41, 34, 0.10);
+      --tomato: #E23A1E; --leaf: #3A7D44;
+      --shadow: 0 12px 32px rgba(46, 41, 34, 0.10);
     }
     body {
       background: var(--bg); color: var(--ink); min-height: 100dvh;
@@ -18,18 +19,30 @@
       padding: max(20px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
       max-width: 480px; margin: 0 auto;
     }
-    h1 { font-size: 30px; font-weight: 800; }
+    h1 {
+      display: flex; align-items: center; gap: 12px;
+      font-family: ui-serif, Georgia, 'Times New Roman', serif;
+      font-size: 34px; font-weight: 700;
+    }
+    .tomatomark {
+      width: 34px; height: 34px; border-radius: 50%; position: relative; flex-shrink: 0;
+      background: radial-gradient(circle at 35% 32%, #F0603F, var(--tomato) 72%);
+    }
+    .tomatomark::before {
+      content: ''; position: absolute; top: -7px; left: 55%; width: 16px; height: 13px;
+      background: var(--leaf); border-radius: 0 13px 0 13px; transform: rotate(-24deg);
+    }
     .tag { color: var(--soft); font-size: 15px; margin-top: -8px; }
     a.role {
       display: block; background: var(--card); border-radius: 24px; overflow: hidden;
       text-decoration: none; color: var(--ink); box-shadow: var(--shadow);
     }
     .art { height: 120px; position: relative; }
-    .art.baby { background: linear-gradient(135deg, #EADFD0, #DCCBB8); }
-    .art.me { background: linear-gradient(135deg, #DFE5DC, #C9D6CB); }
+    .art.baby { background: linear-gradient(135deg, #F4C0AC, #EC9C7F); }
+    .art.me { background: linear-gradient(135deg, #D9E6D4, #BCD3B9); }
     .art span {
       position: absolute; left: 12px; bottom: 12px;
-      background: rgba(255, 255, 255, 0.6); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      background: rgba(255, 255, 255, 0.65); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
       padding: 8px 14px; border-radius: 999px; font-size: 14px; font-weight: 700;
     }
     .role p { padding: 14px 16px 16px; color: var(--soft); font-size: 14px; line-height: 1.45; }
@@ -37,15 +50,15 @@
   </style>
 </head>
 <body>
-  <h1>Bantay</h1>
+  <h1><i class="tomatomark"></i>tomato cam</h1>
   <p class="tag">Never wonder if the silence is normal.</p>
 
-  <a class="role" href="/bantay/cam.html">
+  <a class="role" href="/tomato/cam.html">
     <div class="art baby"><span>Baby's room</span></div>
     <p>This phone stays with baby — camera and mic on, plugged in, screen stays on.</p>
   </a>
 
-  <a class="role" href="/bantay/view.html">
+  <a class="role" href="/tomato/view.html">
     <div class="art me"><span>With me</span></div>
     <p>Watch and listen on this phone. It will warn you if the stream stops.</p>
   </a>

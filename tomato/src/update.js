@@ -1,6 +1,6 @@
 // Version display + one-tap update. Named releases so "am I on the new
 // one?" is answerable at a glance; the commit sha pins it exactly.
-export const BANTAY_VERSION = 'v0.4 — Duyan';
+export const BANTAY_VERSION = 'v0.5 — Gising';
 
 export function initUpdate(btn, verEl) {
   verEl.textContent = `${BANTAY_VERSION} (${import.meta.env.KILOS_COMMIT})`;

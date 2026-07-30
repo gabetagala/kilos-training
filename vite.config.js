@@ -29,12 +29,12 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      // Multi-page: Kilos SPA + the Bantay baby-monitor sub-app (bantay/SCOPE.md §2)
+      // Multi-page: Kilos SPA + the Tomato Cam baby-monitor sub-app (tomato/SCOPE.md §2)
       input: {
         main: page('index.html'),
-        'bantay-home': page('bantay/index.html'),
-        'bantay-cam': page('bantay/cam.html'),
-        'bantay-view': page('bantay/view.html'),
+        'tomato-home': page('tomato/index.html'),
+        'tomato-cam': page('tomato/cam.html'),
+        'tomato-view': page('tomato/view.html'),
       },
     },
   },
@@ -54,7 +54,7 @@ export default defineConfig({
         // SPA fallback — all navigation goes to index.html
         // Exclude standalone pages (coach previews, Bantay) from SW interception
         navigateFallback: 'index.html',
-        navigateFallbackDenylist: [/^\/coach-/, /^\/bantay/],
+        navigateFallbackDenylist: [/^\/coach-/, /^\/bantay/, /^\/tomato/],
 
         // Nuke old caches when a new SW activates
         cleanupOutdatedCaches: true,

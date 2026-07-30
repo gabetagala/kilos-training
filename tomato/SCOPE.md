@@ -1,7 +1,10 @@
-# Bantay — Baby Monitor Scope
+# Tomato Cam — Baby Monitor Scope
 
-> **Working title:** *Bantay* (Tagalog: to watch over / stand guard). Rename = rename
-> one folder + two config regexes. **Status:** scoped, red-teamed, not started.
+> **Renamed 2026-07-30 (v0.5):** the product is now **Tomato Cam**, served at
+> `/tomato` (old `/bantay` URLs 301-redirect). "Bantay" below is historical;
+> internal storage keys keep the `bantay-` prefix so pairing survives.
+>
+> **Original working title:** *Bantay* (Tagalog: to watch over / stand guard).
 >
 > **One-line spec:** *"Never wonder if the silence is normal."* The product is not
 > the video stream — it's the guarantee that if the stream dies, you are woken up.
@@ -58,6 +61,12 @@ keep-alive + watchdog + recovery — WebRTC connection setup is the easy 20%.
 | D10 | **Audio is the primary channel at night; video is supplementary** | iPhone has no IR illuminator — a dark nursery is near-black. Always-visible noise meter + history is the proof-of-life UI. Recommend a dim warm nightlight. |
 | D11 | **Bantay pages are fully self-contained (inline JS/CSS), no framework, no TS, no state lib** | Same vanilla rules as Kilos, plus: a stale service-worker-cached page must still be a *complete working* page, immune to deploy version-skew (see §2). The cam page must be memory-flat and boring. |
 | D12 | **Alarm latency spec (canonical):** first audible signal ≤5s after stream death; full loud must-dismiss alarm ≤15s | One number set, used identically in features, drills, and milestone exit criteria. |
+
+> **Decision update (2026-07-30, v0.5):** Gabe permanently cut **talk-back
+> and ALL cam-phone audio** — nothing may ever make a sound in the nursery.
+> D8 (pre-negotiated talk-back m-line) and the §4.2 cam-side last-resort
+> beeper no longer apply; M3's talk-back/white-noise items are dead. Viewer
+> death is covered by §7 hardening + §4.3.5 auto-rejoin only.
 
 ---
 
@@ -414,7 +423,7 @@ owner — on both phones).
 - [ ] Plugged in — **slow 5W wired charger, not MagSafe**; case off; hard
       surface; away from bedding (overheat-while-charging is a real, recalled
       hazard class in this product category).
-- [ ] Brightness to minimum; open `/bantay/cam.html`; start Guided Access
+- [ ] Brightness to minimum; open `/tomato/cam.html`; start Guided Access
       (triple-click).
 
 **View phone (iPhone 17 Pro) — every night (red-team addition: the device

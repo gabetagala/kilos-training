@@ -1,9 +1,14 @@
 {
+  "redirects": [
+    { "source": "/bantay", "destination": "/tomato", "permanent": true },
+    { "source": "/bantay/", "destination": "/tomato/", "permanent": true },
+    { "source": "/bantay/:file", "destination": "/tomato/:file", "permanent": true }
+  ],
   "rewrites": [
     { "source": "/coach-cilyn", "destination": "/coach-cilyn/index.html" },
     { "source": "/coach-cilyn/", "destination": "/coach-cilyn/index.html" },
-    { "source": "/bantay", "destination": "/bantay/index.html" },
-    { "source": "/bantay/", "destination": "/bantay/index.html" },
-    { "source": "/((?!coach-cilyn|bantay).*)", "destination": "/index.html" }
+    { "source": "/tomato", "destination": "/tomato/index.html" },
+    { "source": "/tomato/", "destination": "/tomato/index.html" },
+    { "source": "/((?!coach-cilyn|tomato|bantay).*)", "destination": "/index.html" }
   ]
 }

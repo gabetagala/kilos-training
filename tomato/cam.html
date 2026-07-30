@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#121110" />
-  <title>Bantay · Baby's room</title>
+  <title>Tomato Cam · Baby's room</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     /* Baby unit: dark family of the viewer's ivory. Big bright-enough
@@ -22,16 +22,31 @@
       max-width: 480px; margin: 0 auto;
     }
     header { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
-    .brand { font-weight: 800; font-size: 16px; color: var(--soft); }
+    .brand {
+      display: flex; align-items: center; gap: 8px; color: var(--ink);
+      font-family: ui-serif, Georgia, 'Times New Roman', serif;
+      font-weight: 700; font-size: 17px;
+    }
+    .tomatomark {
+      width: 18px; height: 18px; border-radius: 50%; position: relative; flex-shrink: 0;
+      background: radial-gradient(circle at 35% 32%, #C24F33, #9E2E17 72%);
+    }
+    .tomatomark::before {
+      content: ''; position: absolute; top: -4px; left: 55%; width: 9px; height: 7px;
+      background: #3E5A44; border-radius: 0 8px 0 8px; transform: rotate(-24deg);
+    }
     .pillbtn {
       font: inherit; font-size: 13px; font-weight: 600; color: var(--ink);
       background: var(--card); border: 1px solid var(--line); border-radius: 999px;
       padding: 9px 15px; min-height: 44px;
     }
 
-    /* big positioning preview with overlay chips, mirrors the viewer */
-    #stage { position: relative; border-radius: 20px; overflow: hidden; background: #0C0B0A; }
-    #preview { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+    /* full-fold positioning preview with overlay chips, mirrors the viewer */
+    #stage {
+      position: relative; border-radius: 20px; overflow: hidden; background: #0C0B0A;
+      height: calc(100dvh - 116px); min-height: 300px; flex-shrink: 0;
+    }
+    #preview { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
     .chip {
       position: absolute; top: 10px; left: 10px; display: flex; align-items: center; gap: 8px;
       background: rgba(18, 17, 16, 0.55); color: var(--ink);
@@ -85,7 +100,7 @@
 </head>
 <body>
   <header>
-    <span class="brand">Bantay · Baby's room</span>
+    <span class="brand"><i class="tomatomark"></i>tomato cam</span>
     <button id="update" class="pillbtn">Update</button>
   </header>
 
