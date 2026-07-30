@@ -1,6 +1,7 @@
 // Bantay VIEW (parent unit).
-// No alarm yet: this renders the truth the M2 watchdog will alarm on —
-// framesDecoded deltas, beacon age, connection state (SCOPE §4.2).
+// Opens straight into the muted live picture (muted autoplay needs no
+// gesture); the one tap that matters is "Tap for sound". No alarm yet:
+// this renders the truth the M2 watchdog will alarm on (SCOPE §4.2).
 import { formatCode, normalizeCode } from './crypto.js';
 import { isConfigured, openSignal } from './signal.js';
 import { initUpdate } from './update.js';
@@ -16,12 +17,15 @@ function set(id, text, tone = '') {
 let pc = null;
 let signal = null;
 let armed = false;
+let armAt = 0;
+let sigReady = false;
 let unmuted = false;
 let iceQueue = [];
 let lastBeaconRx = 0;
 let gen = 0; // peer generation — guards awaits against a superseding offer
 let prev = { frames: 0, bytes: 0 };
 let connectedAt = 0;
+let zenTimer = null;
 const health = { peer: false, frames: false, beacon: false };
 
 boot();
@@ -34,32 +38,38 @@ function boot() {
     return;
   }
 
-  const stored = localStorage.getItem('bantay-pair');
-  if (stored) start(stored);
-  else showGate();
-
-  $('codego').onclick = () => {
-    const code = normalizeCode($('codein').value);
-    if (code.length < 8) {
-      $('gatehint').textContent = 'The code is 8 letters and numbers — check the baby phone.';
-      return;
-    }
-    localStorage.setItem('bantay-pair', code);
-    start(code);
-  };
+  wireGate();
   $('changecode').onclick = () => {
-    localStorage.removeItem('bantay-pair');
+    localStorage.removeItem('bantay-pair2');
     location.reload();
   };
+
+  const stored = localStorage.getItem('bantay-pair2');
+  if (stored?.length === 6) start(stored);
+  else $('gate').hidden = false;
 }
 
-function showGate() {
-  $('gate').hidden = false;
-  $('app').hidden = true;
+function wireGate() {
+  const boxes = [...document.querySelectorAll('#codeboxes span')];
+  const input = $('codein');
+  input.addEventListener('input', () => {
+    const v = normalizeCode(input.value).slice(0, 6);
+    input.value = v;
+    boxes.forEach((b, i) => {
+      b.textContent = v[i] ?? '';
+      b.classList.toggle('filled', i < v.length);
+    });
+    if (v.length === 6) {
+      localStorage.setItem('bantay-pair2', v);
+      $('gate').hidden = true;
+      input.blur();
+      start(v);
+    }
+  });
+  $('codeboxes').addEventListener('click', () => input.focus());
 }
 
 async function start(code) {
-  $('gate').hidden = true;
   $('app').hidden = false;
   $('pairedas').textContent = formatCode(code);
 
@@ -67,29 +77,92 @@ async function start(code) {
     set('s-wake', held ? 'will stay on' : `AT RISK (${why})`, held ? 'ok' : 'bad'),
   );
 
-  signal = await openSignal(code, onSignal, (status) =>
-    set('s-sig', status === 'SUBSCRIBED' ? 'ready' : status.toLowerCase(), status === 'SUBSCRIBED' ? 'ok' : ''),
-  );
+  signal = await openSignal(code, onSignal, (status) => {
+    sigReady = status === 'SUBSCRIBED';
+    set('s-sig', sigReady ? 'ready' : status.toLowerCase(), sigReady ? 'ok' : '');
+    if (sigReady && !health.peer) call(); // dial the moment the line is open
+  });
 
-  $('startBtn').onclick = arm;
+  armed = true;
+  armAt = Date.now();
+
   $('unmute').onclick = unmute;
   $('soundbtn').onclick = () => (unmuted ? mute() : unmute());
   $('recallbtn').onclick = call;
+  wireFit();
+  wirePip();
+  wireZen();
 
   setInterval(renderBeaconAge, 500);
   setInterval(pollStats, 2000);
   setInterval(renderUptime, 1000);
+  // Self-healing by default: keep dialing while there's no live peer.
+  setInterval(() => {
+    if (armed && !health.peer && sigReady) call();
+  }, 8000);
+  headline();
 }
 
-function arm() {
-  armed = true;
-  // Bless the media element + audio pipeline inside the one real gesture —
-  // everything after this must survive without a fresh tap (SCOPE §4.2).
-  $('remote').play().catch(() => {});
-  $('startBtn').hidden = true;
-  $('controls').hidden = false;
-  call();
-  headline();
+function wireFit() {
+  let cover = true;
+  $('fitbtn').onclick = () => {
+    cover = !cover;
+    $('remote').style.objectFit = cover ? 'cover' : 'contain';
+    $('fitbtn').classList.toggle('on', !cover);
+  };
+}
+
+// Picture-in-Picture — FaceTime-style floating video while using other
+// apps. Best-effort: if iOS later reclaims the backgrounded tab, PiP dies
+// with it, so the overnight setup still assumes a dedicated screen.
+function wirePip() {
+  const v = $('remote');
+  const btn = $('pipbtn');
+  const webkitPiP = typeof v.webkitSetPresentationMode === 'function';
+  if (!webkitPiP && !document.pictureInPictureEnabled) return; // stays hidden
+  btn.hidden = false;
+  try {
+    v.autoPictureInPicture = true; // float automatically on app switch, like FaceTime
+  } catch {
+    /* hint only */
+  }
+  btn.onclick = async () => {
+    try {
+      if (webkitPiP) {
+        const inPiP = v.webkitPresentationMode === 'picture-in-picture';
+        v.webkitSetPresentationMode(inPiP ? 'inline' : 'picture-in-picture');
+      } else if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else {
+        await v.requestPictureInPicture();
+      }
+    } catch {
+      set('s-stream', 'floating video not available yet — try once video is playing', 'bad');
+    }
+  };
+}
+
+// Chrome fades off the video after a calm 6s; any tap brings it back.
+// Trouble always forces it visible (headline()).
+function wireZen() {
+  $('stage').addEventListener('click', (e) => {
+    if (e.target.closest('button')) return;
+    if ($('stage').classList.contains('zen')) showChrome();
+    else $('stage').classList.add('zen');
+  });
+  scheduleZen();
+}
+
+function showChrome() {
+  $('stage').classList.remove('zen');
+  scheduleZen();
+}
+
+function scheduleZen() {
+  clearTimeout(zenTimer);
+  zenTimer = setTimeout(() => {
+    if (health.peer && health.frames && health.beacon) $('stage').classList.add('zen');
+  }, 6000);
 }
 
 function call() {
@@ -260,7 +333,7 @@ async function pollStats() {
     const db = bytes - prev.bytes;
     prev = { frames, bytes };
     health.frames = df > 0;
-    if (df > 0) set('s-stream', `flowing · +${df} frames / 2s · ${Math.round(db / 1024)} kB`, 'ok');
+    if (df > 0) set('s-stream', `flowing · ${Math.round(db / 1024 / 2)} kB/s`, 'ok');
     else if (db > 0) set('s-stream', 'FROZEN — data arrives, no new frames', 'bad');
     else set('s-stream', 'NO DATA', 'bad');
     headline();
@@ -273,25 +346,18 @@ function headline() {
   const h = $('headline');
   const sub = $('subline');
   const dot = $('dot');
-  if (!armed) {
-    h.textContent = 'Ready when you are';
-    sub.textContent = 'Tap start to see and hear the nursery.';
-    dot.className = 'dot idle';
-  } else if (!health.peer) {
-    h.textContent = 'Connecting to the nursery…';
-    sub.textContent = 'Make sure the baby phone is on and awake.';
-    dot.className = 'dot idle';
-  } else if (health.frames && health.beacon) {
-    h.textContent = 'All is well';
-    sub.textContent = 'Video and sound are flowing.';
-    dot.className = 'dot well';
-  } else if (!health.frames) {
-    h.textContent = 'Video has stalled';
-    sub.textContent = 'Tap Reconnect, or check the baby phone.';
-    dot.className = 'dot warn';
-  } else {
-    h.textContent = 'Lost touch with the baby phone';
-    sub.textContent = 'Tap Reconnect, or check the baby phone.';
-    dot.className = 'dot warn';
-  }
+  const put = (dotCls, title, detail) => {
+    dot.className = `dot ${dotCls}`;
+    h.textContent = title;
+    sub.textContent = detail;
+    sub.hidden = !detail;
+    if (dotCls !== 'well') showChrome(); // trouble is never hidden
+  };
+  if (!armed) put('idle', 'Connecting…', 'Opening a line to the nursery.');
+  else if (!health.peer && Date.now() - armAt > 8000 && sigReady)
+    put('warn', 'Baby phone not answering', 'Open Bantay on the phone in the nursery.');
+  else if (!health.peer) put('idle', 'Connecting…', 'Opening a line to the nursery.');
+  else if (health.frames && health.beacon) put('well', 'All is well', '');
+  else if (!health.frames) put('warn', 'Video has stalled', 'Reconnecting — check the baby phone if this stays red.');
+  else put('warn', 'Lost touch with the baby phone', 'Reconnecting — check the baby phone if this stays red.');
 }

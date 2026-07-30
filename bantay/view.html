@@ -16,11 +16,11 @@
       background: var(--bg); color: var(--ink); min-height: 100dvh;
       font-family: ui-rounded, -apple-system, 'SF Pro Rounded', 'Segoe UI', sans-serif;
       display: flex; flex-direction: column; gap: 14px;
-      padding: max(14px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+      padding: max(12px, env(safe-area-inset-top)) 14px max(20px, env(safe-area-inset-bottom));
       max-width: 480px; margin: 0 auto;
     }
-    header { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px; }
-    .brand { font-weight: 800; font-size: 17px; letter-spacing: 0.01em; }
+    header { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
+    .brand { font-weight: 800; font-size: 17px; }
     .pillbtn {
       font: inherit; font-size: 14px; font-weight: 600; color: var(--ink);
       background: var(--card); border: 1px solid var(--line); border-radius: 999px;
@@ -28,26 +28,21 @@
     }
     .pillbtn:disabled { color: var(--soft); }
 
-    /* status line */
-    .statusline { display: flex; gap: 12px; align-items: center; padding: 2px 4px; }
-    .dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
-    .dot.idle { background: #C9C4BB; }
-    .dot.well { background: var(--live); box-shadow: 0 0 12px rgba(76, 175, 125, 0.55); }
-    .dot.warn { background: var(--bad); box-shadow: 0 0 12px rgba(206, 91, 65, 0.5); }
-    @media (prefers-reduced-motion: no-preference) {
-      .dot.well { animation: breathe 3.2s ease-in-out infinite; }
-      @keyframes breathe { 50% { box-shadow: 0 0 20px rgba(76, 175, 125, 0.8); } }
+    /* full-fold video stage */
+    #app { display: flex; flex-direction: column; gap: 14px; }
+    #app[hidden] { display: none; }
+    #stage {
+      position: relative; border-radius: 24px; overflow: hidden;
+      height: calc(100dvh - 118px); min-height: 340px;
+      background: #191713; box-shadow: var(--shadow);
     }
-    h1 { font-size: 21px; font-weight: 800; }
-    .statusline p { color: var(--soft); font-size: 14px; margin-top: 1px; }
+    #remote { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 
-    /* video stage */
-    #stage { position: relative; border-radius: 24px; overflow: hidden; box-shadow: var(--shadow); }
-    #remote { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #191713; }
     .chip {
       position: absolute; display: flex; align-items: center; gap: 8px;
       padding: 8px 12px; border-radius: 999px; font-size: 13px; font-weight: 600;
       -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+      transition: opacity 0.4s;
     }
     .chip.tl { top: 12px; left: 12px; background: rgba(255, 255, 255, 0.6); color: var(--ink); }
     .chip.tr { top: 12px; right: 12px; background: rgba(28, 26, 23, 0.5); color: #fff; }
@@ -56,11 +51,33 @@
     #chipbar { width: 44px; height: 6px; border-radius: 3px; background: rgba(32, 29, 25, 0.15); overflow: hidden; }
     #chipfill { display: block; height: 100%; width: 0%; background: var(--ink); transition: width 120ms linear; }
 
+    /* headline lives ON the video */
+    #headchip {
+      position: absolute; left: 50%; transform: translateX(-50%); bottom: 84px;
+      max-width: 92%; display: flex; align-items: center; gap: 10px;
+      background: rgba(255, 255, 255, 0.72); color: var(--ink);
+      -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+      padding: 10px 16px; border-radius: 18px; transition: opacity 0.4s;
+    }
+    #headchip strong { font-size: 15px; font-weight: 800; white-space: nowrap; }
+    #headchip small { display: block; font-size: 12px; color: #57534C; font-weight: 500; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .dot.idle { background: #A9A399; }
+    .dot.well { background: var(--live); box-shadow: 0 0 10px rgba(76, 175, 125, 0.6); }
+    .dot.warn { background: var(--bad); box-shadow: 0 0 10px rgba(206, 91, 65, 0.55); }
+    @media (prefers-reduced-motion: no-preference) {
+      .dot.idle { animation: pulse 1.6s ease-in-out infinite; }
+      @keyframes pulse { 50% { opacity: 0.35; } }
+      .dot.well { animation: breathe 3.2s ease-in-out infinite; }
+      @keyframes breathe { 50% { box-shadow: 0 0 18px rgba(76, 175, 125, 0.85); } }
+    }
+
     .ctrlbar {
-      position: absolute; left: 50%; transform: translateX(-50%);
-      bottom: 14px; display: flex; gap: 10px; padding: 8px;
+      position: absolute; left: 50%; transform: translateX(-50%); bottom: 14px;
+      display: flex; gap: 10px; padding: 8px;
       background: rgba(28, 26, 23, 0.55); border-radius: 999px;
       -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+      transition: opacity 0.4s;
     }
     .cbtn {
       width: 48px; height: 48px; border-radius: 50%; border: 0;
@@ -70,14 +87,18 @@
     .cbtn.on { background: #fff; color: var(--ink); }
     .cbtn svg { width: 22px; height: 22px; }
 
-    .primary {
-      position: absolute; inset: 0; margin: auto; width: min(78%, 280px); height: 60px;
-      font: inherit; font-size: 18px; font-weight: 800;
-      background: var(--ink); color: #fff; border: 0; border-radius: 999px;
-      box-shadow: var(--shadow);
+    /* idle: chrome fades off the video; tap to bring back */
+    #stage.zen .chip, #stage.zen .ctrlbar, #stage.zen #headchip { opacity: 0; pointer-events: none; }
+
+    #unmute {
+      position: absolute; left: 50%; transform: translateX(-50%); bottom: 84px;
+      font: inherit; font-size: 16px; font-weight: 800; color: #fff;
+      background: rgba(28, 26, 23, 0.65); border: 0; border-radius: 999px;
+      padding: 16px 26px; min-height: 52px;
+      -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
     }
 
-    /* cards */
+    /* cards below the fold */
     .card { background: var(--card); border-radius: 20px; padding: 16px; box-shadow: var(--shadow); }
     .rowlbl { font-size: 13px; font-weight: 700; color: var(--soft); margin-bottom: 10px; }
     #meterbar { height: 12px; border-radius: 6px; background: var(--bg); overflow: hidden; }
@@ -89,20 +110,25 @@
     .details dd.ok { color: var(--ok); }
     .details dd.bad { color: var(--bad); }
 
-    /* gate */
-    #gate { background: var(--card); border-radius: 24px; padding: 26px 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px; }
-    #gate h1 { font-size: 22px; }
-    #gate p { color: var(--soft); font-size: 15px; }
-    #codein {
-      font: inherit; font-size: 24px; font-weight: 700; letter-spacing: 0.18em; text-align: center;
-      text-transform: uppercase; color: var(--ink); background: var(--bg);
-      border: 1px solid var(--line); border-radius: 16px; padding: 16px; width: 100%;
+    /* code gate */
+    #gate { background: var(--card); border-radius: 24px; padding: 28px 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 14px; }
+    #gate h1 { font-size: 22px; font-weight: 800; }
+    #gate > p { color: var(--soft); font-size: 15px; }
+    #codeboxes { position: relative; display: flex; gap: 8px; justify-content: center; padding: 4px 0; }
+    #codeboxes span {
+      width: 48px; height: 58px; border-radius: 14px;
+      background: var(--bg); border: 1.5px solid var(--line);
+      font-size: 26px; font-weight: 800; display: grid; place-items: center;
+      transition: border-color 0.15s, background 0.15s;
     }
-    #codego { position: static; width: 100%; }
-    #gatehint { color: var(--bad); font-size: 13px; min-height: 1em; }
+    #codeboxes span.filled { border-color: var(--ink); background: #fff; }
+    #codein {
+      position: absolute; inset: 0; width: 100%; opacity: 0.01;
+      font-size: 16px; /* ≥16px stops iOS from zooming the page on focus */
+      border: 0; background: none; color: transparent; caret-color: transparent;
+    }
+    #gatehint { color: var(--bad); font-size: 13px; min-height: 1em; text-align: center; }
 
-    #app { display: flex; flex-direction: column; gap: 14px; }
-    #app[hidden] { display: none; }
     .meta { text-align: center; color: var(--soft); font-size: 12.5px; line-height: 1.9; }
     .linkbtn { font: inherit; font-size: 12.5px; color: var(--ink); background: none; border: 0; text-decoration: underline; padding: 8px; }
     #cfg { color: var(--bad); font-size: 13px; text-align: center; }
@@ -117,35 +143,38 @@
 
   <section id="gate" hidden>
     <h1>Connect to your baby phone</h1>
-    <p>Type the code shown on the phone in the nursery.</p>
-    <input id="codein" placeholder="XXXX-XXXX" autocapitalize="characters" autocomplete="off" spellcheck="false" />
+    <p>Type the 6-digit code shown on the phone in the nursery.</p>
+    <div id="codeboxes">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+      <input id="codein" inputmode="numeric" pattern="[0-9]*" autocomplete="off" spellcheck="false" aria-label="6-digit connect code" />
+    </div>
     <p id="gatehint"></p>
-    <button id="codego" class="primary">Connect</button>
   </section>
 
   <main id="app" hidden>
-    <section class="statusline">
-      <span id="dot" class="dot idle"></span>
-      <div>
-        <h1 id="headline">Ready when you are</h1>
-        <p id="subline">Tap start to see and hear the nursery.</p>
-      </div>
-    </section>
-
     <div id="stage">
       <video id="remote" autoplay playsinline muted></video>
       <div class="chip tl"><span>Sound</span><span id="chipbar"><i id="chipfill"></i></span></div>
       <div class="chip tr" id="livechip"><span class="livedot"></span><span>LIVE</span><span id="livetime">—</span></div>
-      <div id="controls" class="ctrlbar" hidden>
+      <div id="headchip">
+        <span id="dot" class="dot idle"></span>
+        <div><strong id="headline">Connecting…</strong><small id="subline">Opening a line to the nursery.</small></div>
+      </div>
+      <button id="unmute" hidden>Tap for sound</button>
+      <div class="ctrlbar">
         <button id="soundbtn" class="cbtn" aria-label="Sound on or off">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18 6a8.5 8.5 0 0 1 0 12"/></svg>
+        </button>
+        <button id="fitbtn" class="cbtn" aria-label="Fill or fit the video">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
+        </button>
+        <button id="pipbtn" class="cbtn" aria-label="Float the video like FaceTime" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><rect x="12" y="12" width="7" height="5" rx="1.5" fill="currentColor" stroke="none"/></svg>
         </button>
         <button id="recallbtn" class="cbtn" aria-label="Reconnect">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
         </button>
       </div>
-      <button id="startBtn" class="primary">Start watching</button>
-      <button id="unmute" class="primary" hidden>Tap for sound</button>
     </div>
 
     <section class="card">

@@ -3,7 +3,7 @@
 // tears down the old peer and builds a fresh one, so a viewer reload
 // recovers by simply calling again (SCOPE §4.3).
 import { buildAudio } from './audio.js';
-import { formatCode, genCode } from './crypto.js';
+import { genCode } from './crypto.js';
 import { isConfigured, openSignal } from './signal.js';
 import { initUpdate } from './update.js';
 import { keepAwake } from './wake.js';
@@ -46,13 +46,19 @@ init();
 
 async function init() {
   // Pairing code: shown here, typed once on the viewer.
-  const code = localStorage.getItem('bantay-pair') || genCode();
-  localStorage.setItem('bantay-pair', code);
-  $('code').textContent = formatCode(code);
+  const code = localStorage.getItem('bantay-pair2') || genCode();
+  localStorage.setItem('bantay-pair2', code);
+  [...document.querySelectorAll('#codebits span')].forEach((b, i) => {
+    b.textContent = code[i];
+  });
   $('newcode').onclick = () => {
-    localStorage.setItem('bantay-pair', genCode());
+    localStorage.setItem('bantay-pair2', genCode());
     location.reload();
   };
+
+  // Night mode: near-black overlay, capture keeps running underneath.
+  $('nightbtn').onclick = () => $('night').classList.add('on');
+  $('night').onclick = () => $('night').classList.remove('on');
 
   initUpdate($('update'), $('version'));
 

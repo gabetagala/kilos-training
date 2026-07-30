@@ -7,48 +7,58 @@
   <title>Bantay · Baby's room</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    /* Baby unit: stays dim on purpose — this screen glows in the nursery
-       all night (SCOPE §3.9). Same warm family as the viewer, turned down. */
+    /* Baby unit: dark family of the viewer's ivory. Big bright-enough
+       preview for positioning; "Dim for the night" hides everything under
+       a near-black overlay so the screen doesn't glow (SCOPE §3.9). */
     :root {
-      --bg: #121110; --card: #1B1917; --ink: #B5AEA4; --soft: #6E6962;
+      --bg: #121110; --card: #1B1917; --ink: #C7C0B6; --soft: #6E6962;
       --line: #262421; --ok: #6E9A80; --bad: #D2705B;
     }
     body {
       background: var(--bg); color: var(--ink); min-height: 100dvh;
       font-family: ui-rounded, -apple-system, 'SF Pro Rounded', 'Segoe UI', sans-serif;
       display: flex; flex-direction: column; gap: 12px;
-      padding: max(14px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+      padding: max(12px, env(safe-area-inset-top)) 14px max(20px, env(safe-area-inset-bottom));
       max-width: 480px; margin: 0 auto;
     }
-    header { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px; }
+    header { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
     .brand { font-weight: 800; font-size: 16px; color: var(--soft); }
     .pillbtn {
       font: inherit; font-size: 13px; font-weight: 600; color: var(--ink);
       background: var(--card); border: 1px solid var(--line); border-radius: 999px;
       padding: 9px 15px; min-height: 44px;
     }
-    h1 { font-size: 19px; font-weight: 800; color: var(--ink); padding: 0 4px; }
-    .sub { color: var(--soft); font-size: 13.5px; padding: 0 4px; }
 
-    .card { background: var(--card); border-radius: 20px; padding: 14px 16px; }
+    /* big positioning preview with overlay chips, mirrors the viewer */
+    #stage { position: relative; border-radius: 20px; overflow: hidden; background: #0C0B0A; }
+    #preview { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+    .chip {
+      position: absolute; top: 10px; left: 10px; display: flex; align-items: center; gap: 8px;
+      background: rgba(18, 17, 16, 0.55); color: var(--ink);
+      -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      padding: 7px 11px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+    }
+    #chipbar { width: 40px; height: 5px; border-radius: 3px; background: rgba(199, 192, 182, 0.2); overflow: hidden; }
+    #meterfill { display: block; height: 100%; width: 0%; background: var(--ok); transition: width 120ms linear; }
+
+    .card { background: var(--card); border-radius: 18px; padding: 14px 16px; }
     .rowlbl { font-size: 12.5px; font-weight: 700; color: var(--soft); margin-bottom: 8px; }
 
-    .codebox { display: flex; flex-direction: column; gap: 8px; align-items: center; padding: 18px 16px; }
-    .code { font-size: 34px; font-weight: 800; letter-spacing: 0.22em; color: #E9E4DB; }
-    .ghost { font: inherit; font-size: 13px; color: var(--soft); background: none; border: 0; text-decoration: underline; padding: 8px; }
-
-    .mediarow { display: flex; gap: 12px; align-items: center; }
-    #preview { width: 116px; border-radius: 12px; background: #0C0B0A; opacity: 0.55; }
-    .mediarow > div { flex: 1; }
-    #meterbar { height: 8px; border-radius: 4px; background: #0C0B0A; overflow: hidden; }
-    #meterfill { display: block; height: 100%; width: 0%; background: var(--ok); transition: width 120ms linear; }
+    .codebox { display: flex; flex-direction: column; gap: 10px; align-items: center; padding: 16px; }
+    .codebits { display: flex; gap: 6px; }
+    .codebits span {
+      width: 44px; height: 54px; border-radius: 12px; background: #0C0B0A;
+      color: #EFEAE1; font-size: 24px; font-weight: 800;
+      display: grid; place-items: center;
+    }
+    .ghost { font: inherit; font-size: 13px; color: var(--soft); background: none; border: 0; text-decoration: underline; padding: 8px; min-height: 44px; }
 
     .seg { display: flex; background: #0C0B0A; border-radius: 999px; padding: 4px; gap: 4px; }
     .seg button {
       flex: 1; font: inherit; font-size: 14px; font-weight: 700; color: var(--soft);
       background: none; border: 0; border-radius: 999px; min-height: 44px;
     }
-    .seg button.on { background: var(--card); color: #E9E4DB; }
+    .seg button.on { background: var(--card); color: #EFEAE1; }
 
     .details .row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
     .details .row:last-child { border-bottom: 0; }
@@ -59,36 +69,40 @@
 
     .primary {
       font: inherit; font-size: 17px; font-weight: 800; min-height: 58px;
-      background: #E9E4DB; color: #201D19; border: 0; border-radius: 999px;
+      background: #EFEAE1; color: #201D19; border: 0; border-radius: 999px;
     }
     .meta { text-align: center; color: var(--soft); font-size: 12px; line-height: 1.8; }
     #cfg { color: var(--bad); font-size: 13px; text-align: center; }
+
+    /* night mode: the whole page goes near-black; capture keeps running */
+    #night {
+      position: fixed; inset: 0; z-index: 50; background: #000;
+      display: none; place-items: center; text-align: center;
+    }
+    #night.on { display: grid; }
+    #night p { color: #2E2B27; font-size: 13px; line-height: 2; }
   </style>
 </head>
 <body>
   <header>
-    <span class="brand">Bantay</span>
+    <span class="brand">Bantay · Baby's room</span>
     <button id="update" class="pillbtn">Update</button>
   </header>
 
-  <h1>Watching over the crib</h1>
-  <p class="sub">Keep this phone plugged in, screen on, in the nursery.</p>
+  <div id="stage">
+    <video id="preview" autoplay playsinline muted></video>
+    <div class="chip"><span>Sound</span><span id="chipbar"><i id="meterfill"></i></span></div>
+  </div>
 
   <section class="card codebox">
     <span class="rowlbl">Connect code — enter this on your phone</span>
-    <span id="code" class="code">····-····</span>
+    <div class="codebits" id="codebits">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
     <button id="newcode" class="ghost">New code</button>
   </section>
 
-  <section class="card">
-    <div class="mediarow">
-      <video id="preview" autoplay playsinline muted></video>
-      <div>
-        <div class="rowlbl">Sound in the room</div>
-        <div id="meterbar"><i id="meterfill"></i></div>
-      </div>
-    </div>
-  </section>
+  <button id="nightbtn" class="primary">Dim for the night</button>
 
   <section class="card">
     <div class="rowlbl">Mic boost</div>
@@ -112,6 +126,11 @@
   <button id="start" class="primary" hidden>Start camera</button>
   <p class="meta"><span id="version"></span> · video stays on your home Wi-Fi</p>
   <p id="cfg" hidden>App config missing — this build can't connect. Tap Update, or check the deploy.</p>
+
+  <div id="night" aria-label="Night mode — tap to show controls">
+    <p>Bantay is watching<br />tap anywhere to check</p>
+  </div>
+
   <script type="module" src="./src/cam.js"></script>
 </body>
 </html>

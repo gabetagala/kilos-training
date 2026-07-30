@@ -7,18 +7,17 @@
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
-// No 0/O/1/I/L — the code gets read off one phone and typed into another.
-const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-
+// 6 digits — numpad-fast to type. The entropy tradeoff is deliberate:
+// joining still needs the project URL + anon key, join attempts are
+// rate-limited, media needs to be ON the home LAN (host-only ICE), and M1
+// private channels + RLS make the code a convenience, not the wall.
 export function genCode() {
-  const bytes = crypto.getRandomValues(new Uint8Array(8));
-  let s = '';
-  for (const b of bytes) s += ALPHABET[b % ALPHABET.length];
-  return s;
+  const n = crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000;
+  return String(n).padStart(6, '0');
 }
 
-export const normalizeCode = (s) => s.toUpperCase().replace(/[^A-Z0-9]/g, '');
-export const formatCode = (s) => `${s.slice(0, 4)}-${s.slice(4)}`;
+export const normalizeCode = (s) => s.replace(/\D/g, '');
+export const formatCode = (s) => `${s.slice(0, 3)} ${s.slice(3)}`;
 
 export async function deriveKeys(code) {
   const topicHash = await crypto.subtle.digest('SHA-256', enc.encode(`bantay-topic-v1:${code}`));

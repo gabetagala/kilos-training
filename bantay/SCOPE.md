@@ -476,7 +476,7 @@ counter on the view phone; morning review of the `bantay-log` ring buffer.
 | R9 | iOS update regresses web media | MED | Auto-update off on cam; post-update smoke test; Safari-tab mode already dodges the standalone-only regression class. |
 | R10 | Safari re-prompts for camera despite Allow (known 2025 bug) | MED | Can't fully fix; single simple page minimizes triggers; view alarm is the backstop. |
 | R11 | Router pathologies: client isolation, mesh mDNS filtering, band steering | MED | Same non-guest SSID; cam's gUM-first real-IP candidates; STUN config flag; M0 tests the actual router. Client isolation = showstopper → fix router, not app. |
-| R12 | Stranger with anon key joins the signaling channel; or owner auth dies mid-night | LOW | Private channel + RLS pinned to owner `auth.uid()` (not just `authenticated` — Kilos has open sign-ups); 128-bit topic; host-only ICE makes a hijacked handshake useless off-LAN. Kilos `signOut scope:'local'` fix + signed-in pre-flight + distinct auth-failure alarm copy (§2.4). |
+| R12 | Stranger with anon key joins the signaling channel; or owner auth dies mid-night | LOW | Private channel + RLS pinned to owner `auth.uid()` (not just `authenticated` — Kilos has open sign-ups); topic is a hash of the pairing code and payloads are AES-GCM sealed with a code-derived key (shipped v0.3; code simplified to 6 digits in v0.4 for numpad speed — acceptable because M1's RLS gates joining and host-only ICE keeps media LAN-only); Kilos `signOut scope:'local'` fix + signed-in pre-flight + distinct auth-failure alarm copy (§2.4). |
 
 ---
 
