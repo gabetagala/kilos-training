@@ -352,6 +352,41 @@ function checkAndUpdateVolPR(exerciseName, weight, reps) {
   return false;
 }
 
+// Rebuild the all-time weight PR and volume PR for one exercise from committed
+// history plus this session's still-done sets. Called when a logged set is
+// undone, so a mis-tap can't leave a phantom PR in prMap/volPRMap (which sync to
+// the cloud) that poisons every future PR check.
+function recomputePRsForExercise(exerciseName) {
+  let bestW = 0;
+  let bestVol = 0;
+  const consider = (l) => {
+    const w = parseFloat(l.weight) || 0;
+    const r = parseInt(l.reps, 10) || 0;
+    if (w > bestW) bestW = w;
+    if (w > 0 && r > 0 && w * r > bestVol) bestVol = w * r;
+  };
+  // Committed history — persisted logs are what actually happened.
+  for (const h of get('workoutHistory') || []) {
+    for (const e of h.exercises || []) {
+      if (e.name === exerciseName) (e.logs || []).forEach(consider);
+    }
+  }
+  // Current session — only sets still marked done.
+  for (const e of activeWorkout?.exercises || []) {
+    if (e.name === exerciseName) {
+      for (const l of e.logs || []) if (l.done) consider(l);
+    }
+  }
+  const prMap = getPRMap();
+  if (bestW > 0) prMap[exerciseName] = bestW;
+  else delete prMap[exerciseName];
+  set('prMap', prMap);
+  const volMap = get('volPRMap') || {};
+  if (bestVol > 0) volMap[exerciseName] = bestVol;
+  else delete volMap[exerciseName];
+  set('volPRMap', volMap);
+}
+
 // ─── COUNT-UP ─────────────────────────────────────────────────────────────────
 // Animates a number from 0 → target with an ease-out so hero stats "snap into
 // place" — the premium reveal. Snaps instantly under prefers-reduced-motion.
@@ -432,7 +467,8 @@ document.getElementById('prc-share').addEventListener('click', () => {
     const dur = `${Math.floor(elapsed / 60)}:${(elapsed % 60).toString().padStart(2, '0')}`;
     currentShareData = buildShareData({
       workout: activeWorkout,
-      cfRoundsCompleted,
+      cfRoundsCompleted:
+        activeWorkout.type === 'amrap' ? cfRoundsCompleted : cfCurrentRound,
       duration: dur,
       streak: currentStreak(get('workoutHistory') || []),
     });
@@ -5240,7 +5276,13 @@ function renderSetLog() {
         // (toggleSetDone) — never written to data until then, so unperformed
         // sets stay out of history.
         const wValue = dispLogW || (suggestion ? dispSugg : '');
-        const rValue = log.reps || (suggestion ? suggReps : '');
+        // Prefill reps with what you ACTUALLY did last time for this set (a real,
+        // grounded default), not the program's aspirational target — and never
+        // seed a range string ("8–12"), which would corrupt est. 1RM / double
+        // progression. Falls back to the top of the range as a clean integer.
+        const rValue =
+          log.reps ||
+          (suggestion ? String(prev?.reps ?? repTargetTop(ex.reps) ?? '') : '');
         const prefilled = !log.weight && suggestion ? ' prefilled' : '';
         const isCurrent = i === nextSetIdx;
         return `<div class="log-row${log.done ? ' done' : ''}${isCurrent ? ' current' : ''}">
@@ -5362,6 +5404,14 @@ function toggleSetDone(setIdx) {
     const w = parseFloat(log.weight) || 0;
     const r = parseInt(log.reps, 10) || parseInt(ex.reps, 10) || 0;
     totalWeightMoved = Math.max(0, totalWeightMoved - w * r);
+    // Roll back any PR this set set: recompute the records from committed
+    // history + remaining done sets (so no phantom PR lingers), and drop this
+    // set's badge from the session so the summary can't show a PR that's gone.
+    recomputePRsForExercise(ex.name);
+    const i = newPRsThisSession.findIndex(
+      (p) => p.name === ex.name && p.weight === w && p.reps === r,
+    );
+    if (i !== -1) newPRsThisSession.splice(i, 1);
     saveActiveState();
   }
 
@@ -5841,10 +5891,19 @@ document.getElementById('btn-finish-no').addEventListener('click', () => {
 
 function finishWorkout() {
   if (!activeWorkout) return;
+  // Capture the stopwatch BEFORE stopTimer(), though stopTimer only freezes it.
+  // For the stopwatch formats (For Time / Rounds) the SCORE is the stopwatch
+  // time at the last rep (in cardioElapsed), not wall-clock at the finish tap —
+  // which would inflate the time by however long it took to hit the button.
+  const stopwatchScore =
+    (activeWorkout.type === 'fortime' || activeWorkout.type === 'rounds') &&
+    cardioElapsed > 0;
   stopTimer();
-  const elapsed = workoutStartTime
-    ? Math.floor((Date.now() - workoutStartTime) / 1000)
-    : 0;
+  const elapsed = stopwatchScore
+    ? cardioElapsed
+    : workoutStartTime
+      ? Math.floor((Date.now() - workoutStartTime) / 1000)
+      : 0;
   const durationStr = `${Math.floor(elapsed / 60)}:${(elapsed % 60).toString().padStart(2, '0')}`;
   const completed = { ...activeWorkout };
 
@@ -6139,11 +6198,19 @@ document.getElementById('wsum-close').addEventListener('click', () => {
   document.getElementById('workout-summary').classList.remove('open');
 });
 
-function showShareCard(workout, duration, _entry) {
+function showShareCard(workout, duration, entry) {
+  // Rounds for CF: prefer the saved entry's value (correct when sharing from
+  // history); otherwise derive from the live globals the SAME way the entry does
+  // — AMRAP scores cfRoundsCompleted, every other format scores cfCurrentRound.
+  // (Passing the raw cfRoundsCompleted global showed ROUNDS 0 for For Time / RFT
+  // / EMOM, whose count lives in cfCurrentRound.)
+  const cfRounds =
+    entry?.cfRoundsCompleted ??
+    (workout?.type === 'amrap' ? cfRoundsCompleted : cfCurrentRound);
   // Build the data model for the canvas renderer
   currentShareData = buildShareData({
     workout,
-    cfRoundsCompleted,
+    cfRoundsCompleted: cfRounds,
     duration,
     streak: currentStreak(get('workoutHistory') || []),
   });
