@@ -100,9 +100,10 @@ function wireGate() {
     });
     if (v.length === 6) {
       localStorage.setItem('bantay-pair2', v);
+      input.blur(); // dismiss the numpad before the view appears
       $('gate').hidden = true;
-      input.blur();
-      start(v);
+      window.scrollTo({ top: 0 });
+      start(v); // straight into the full-screen view, already dialing
     }
   });
   $('codeboxes').addEventListener('click', () => input.focus());

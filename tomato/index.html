@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#F2EEE7" />
+  <meta name="theme-color" content="#E9EFE6" />
   <title>Tomato Cam</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --bg: #F2EEE7; --card: #FFFFFF; --ink: #201D19; --soft: #8D8781;
-      --tomato: #E23A1E; --leaf: #3A7D44;
-      --shadow: 0 12px 32px rgba(46, 41, 34, 0.10);
+      --bg: #E9EFE6; --card: #FFFFFF; --ink: #201D19; --soft: #7C8078;
+      --tomato: #E23A1E; --leaf: #3A7D44; --cream: #F6F1E7;
+      --shadow: 0 12px 32px rgba(41, 46, 38, 0.12);
     }
     body {
       background: var(--bg); color: var(--ink); min-height: 100dvh;
@@ -19,47 +19,84 @@
       padding: max(20px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
       max-width: 480px; margin: 0 auto;
     }
-    h1 {
-      display: flex; align-items: center; gap: 12px;
+
+    /* poster hero: cropped giant tomato + chunky serif, like the refs */
+    .hero {
+      position: relative; overflow: hidden; border-radius: 28px;
+      background: var(--bg); min-height: 190px; padding: 26px 22px 22px;
+      display: flex; flex-direction: column; justify-content: flex-end; gap: 6px;
+    }
+    .hero .t.big {
+      position: absolute; top: -68px; right: -52px; width: 250px; height: 250px;
+      transform: rotate(8deg);
+    }
+    .hero h1 {
       font-family: ui-serif, Georgia, 'Times New Roman', serif;
-      font-size: 34px; font-weight: 700;
+      font-size: 52px; font-weight: 700; line-height: 0.95; letter-spacing: -0.01em;
+      position: relative;
     }
-    .tomatomark {
-      width: 34px; height: 34px; border-radius: 50%; position: relative; flex-shrink: 0;
-      background: radial-gradient(circle at 35% 32%, #F0603F, var(--tomato) 72%);
+    .hero .tag { color: var(--soft); font-size: 15px; position: relative; }
+    .grain::after {
+      content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.08;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
     }
-    .tomatomark::before {
-      content: ''; position: absolute; top: -7px; left: 55%; width: 16px; height: 13px;
-      background: var(--leaf); border-radius: 0 13px 0 13px; transform: rotate(-24deg);
-    }
-    .tag { color: var(--soft); font-size: 15px; margin-top: -8px; }
+
     a.role {
       display: block; background: var(--card); border-radius: 24px; overflow: hidden;
       text-decoration: none; color: var(--ink); box-shadow: var(--shadow);
     }
-    .art { height: 120px; position: relative; }
-    .art.baby { background: linear-gradient(135deg, #F4C0AC, #EC9C7F); }
-    .art.me { background: linear-gradient(135deg, #D9E6D4, #BCD3B9); }
+    .art { height: 118px; position: relative; overflow: hidden; }
+    .art.baby { background: var(--cream); }
+    .art.me { background: #DFE9DA; }
+    .art .t { position: absolute; }
     .art span {
-      position: absolute; left: 12px; bottom: 12px;
-      background: rgba(255, 255, 255, 0.65); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      position: absolute; left: 12px; bottom: 12px; z-index: 2;
+      background: rgba(255, 255, 255, 0.72); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
       padding: 8px 14px; border-radius: 999px; font-size: 14px; font-weight: 700;
     }
     .role p { padding: 14px 16px 16px; color: var(--soft); font-size: 14px; line-height: 1.45; }
     .foot { text-align: center; color: var(--soft); font-size: 12.5px; }
+    .t { display: block; }
   </style>
 </head>
 <body>
-  <h1><i class="tomatomark"></i>tomato cam</h1>
-  <p class="tag">Never wonder if the silence is normal.</p>
+  <svg width="0" height="0" aria-hidden="true" style="position: absolute;">
+    <defs>
+      <g id="tom">
+        <g fill="#3A7D44">
+          <path d="M50 42 C46 26 46 12 50 2 C54 12 54 26 50 42Z" transform="rotate(-52 50 42)" />
+          <path d="M50 42 C46 26 46 12 50 2 C54 12 54 26 50 42Z" transform="rotate(-26 50 42)" />
+          <path d="M50 42 C46 26 46 12 50 2 C54 12 54 26 50 42Z" />
+          <path d="M50 42 C46 26 46 12 50 2 C54 12 54 26 50 42Z" transform="rotate(26 50 42)" />
+          <path d="M50 42 C46 26 46 12 50 2 C54 12 54 26 50 42Z" transform="rotate(52 50 42)" />
+        </g>
+        <ellipse cx="50" cy="61" rx="42" ry="37" fill="#E23A1E" />
+      </g>
+    </defs>
+  </svg>
+
+  <section class="hero grain">
+    <svg class="t big" viewBox="0 0 100 100"><use href="#tom" /></svg>
+    <h1>tomato<br />cam</h1>
+    <p class="tag">Never wonder if the silence is normal.</p>
+  </section>
 
   <a class="role" href="/tomato/cam.html">
-    <div class="art baby"><span>Baby's room</span></div>
+    <div class="art baby grain">
+      <svg class="t" viewBox="0 0 100 100" style="width: 92px; top: 8px; left: 34%; transform: rotate(-10deg);"><use href="#tom" /></svg>
+      <svg class="t" viewBox="0 0 100 100" style="width: 64px; top: 44px; right: 14%; transform: rotate(14deg);"><use href="#tom" /></svg>
+      <svg class="t" viewBox="0 0 100 100" style="width: 46px; top: -10px; right: 32%; transform: rotate(-24deg);"><use href="#tom" /></svg>
+      <span>Baby's room</span>
+    </div>
     <p>This phone stays with baby — camera and mic on, plugged in, screen stays on.</p>
   </a>
 
   <a class="role" href="/tomato/view.html">
-    <div class="art me"><span>With me</span></div>
+    <div class="art me grain">
+      <svg class="t" viewBox="0 0 100 100" style="width: 110px; top: 14px; right: 8%; transform: rotate(6deg);"><use href="#tom" /></svg>
+      <svg class="t" viewBox="0 0 100 100" style="width: 52px; top: 52px; left: 30%; transform: rotate(-16deg);"><use href="#tom" /></svg>
+      <span>With me</span>
+    </div>
     <p>Watch and listen on this phone. It will warn you if the stream stops.</p>
   </a>
 
