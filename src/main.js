@@ -98,6 +98,21 @@ const set = (k, v) => {
   } catch {}
 };
 
+// Escape user-entered text before it goes into innerHTML — custom workout / WOD
+// names can contain <, >, & and would otherwise break layout or inject markup.
+const escapeHtml = (t) =>
+  String(t ?? '').replace(
+    /[&<>"']/g,
+    (c) =>
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      })[c],
+  );
+
 // ─── PERSISTENCE KEYS ────────────────────────────────────────────────────────
 const ACTIVE_STATE_KEY = 'kilos-active-state';
 
@@ -770,7 +785,12 @@ function renderMonthGrid() {
     .toLocaleDateString('en-US', { month: 'long' })
     .toUpperCase();
   const jan1 = new Date(year, 0, 1);
-  const week = Math.ceil(((now - jan1) / 864e5 + ((jan1.getDay() + 6) % 7) + 1) / 7);
+  // Whole days from Jan 1, date-only — including the time-of-day in (now - jan1)
+  // made Math.ceil round the week number up by one every Sunday afternoon.
+  const dayIdx = Math.round(
+    (new Date(year, now.getMonth(), now.getDate()) - jan1) / 864e5,
+  );
+  const week = Math.ceil((dayIdx + ((jan1.getDay() + 6) % 7) + 1) / 7);
   el.innerHTML = `
     <div class="mg-caption"><span>${monName} — W${week}</span><span>${trained} TRAINED</span></div>
     <div class="mg-grid">${cells.join('')}</div>`;
@@ -813,8 +833,8 @@ function mgShowTip(cell) {
   }
   tip.innerHTML =
     `<div class="mg-tip-date">${wd} ${d}</div>` +
-    `<div class="mg-tip-title">${title}</div>` +
-    (sub ? `<div class="mg-tip-sub">${sub}</div>` : '');
+    `<div class="mg-tip-title">${escapeHtml(title)}</div>` +
+    (sub ? `<div class="mg-tip-sub">${escapeHtml(sub)}</div>` : '');
   const hr = hero.getBoundingClientRect();
   const cr = cell.getBoundingClientRect();
   tip.style.left = `${cr.left - hr.left + cr.width / 2}px`;
@@ -952,7 +972,7 @@ function renderRecent() {
             : `${ds} · ${h.sets || 0} sets · ${h.duration || '0:00'}`;
       return `<div class="recent-card" data-ridx="${history.indexOf(h)}">
       <div class="rc-left">
-        <div class="rc-name"><span class="rc-type">${typeTag}</span><span class="rc-name-text">${h.name}</span></div>
+        <div class="rc-name"><span class="rc-type">${typeTag}</span><span class="rc-name-text">${escapeHtml(h.name)}</span></div>
         <div class="rc-meta">${meta}</div>
       </div>
       <div>
@@ -6481,7 +6501,7 @@ function renderHistory() {
       return `<div class="history-item${isExpanded ? ' expanded' : ''}" data-ridx="${realIdx}">
       <div class="hi-main">
         <div class="hi-left">
-          <div class="hi-name"><span class="rc-type">${typeTag}</span><span class="rc-name-text">${h.name}</span></div>
+          <div class="hi-name"><span class="rc-type">${typeTag}</span><span class="rc-name-text">${escapeHtml(h.name)}</span></div>
           <div class="hi-meta">${meta}</div>
           ${prLine}
         </div>
