@@ -37,6 +37,7 @@ export const MUSCLE_ALIASES = {
   'Farmer Carry': 'Core',
   // rehab.js
   'Cat-Camel': 'Core',
+  'T-Spine Reach': 'Back',
   'Romanian Deadlift': 'Legs',
   'Glute Bridge': 'Legs',
   'Glute Kickback': 'Legs',

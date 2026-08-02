@@ -59,6 +59,14 @@ export const REHAB_EXERCISES = {
     why: 'McGill’s warm-up: gentle unloaded motion that greases the spine before bracing it.',
     yt: 'cat camel exercise mcgill',
   },
+  't-spine-reach': {
+    name: 'T-Spine Reach',
+    feel: 'The mid-back opening as the chest turns',
+    avoid: 'Twisting from the low back — hips stay square',
+    cue: 'On all fours. Sweep one arm up to the ceiling, eyes following the hand. Slow — turn from the mid-back.',
+    why: 'Restores the mid-back rotation the baby-carry posture steals — stiff there, and the low back and shoulders pay.',
+    yt: 'quadruped thoracic rotation',
+  },
   'mcgill-curlup': {
     name: 'McGill Curl-Up',
     feel: 'Front abs bracing — neck stays easy',
@@ -152,6 +160,12 @@ const CATCAMEL_TEMPO = [
   ['ARCH', 3],
 ];
 
+// T-spine reach: slow sweep up, controlled return — rotation, not a fling.
+const TSPINE_TEMPO = [
+  ['REACH', 3],
+  ['RETURN', 2],
+];
+
 export const REHAB_SESSIONS = [
   {
     id: 'daily',
@@ -162,6 +176,20 @@ export const REHAB_SESSIONS = [
     blocks: [
       // Opener — McGill's warm-up. Slow breath-paced cycles, nothing forced.
       { ex: 'cat-camel', mode: 'tempo', sets: 1, reps: 6, tempo: CATCAMEL_TEMPO },
+      // Mid-back mobility (added 2026-08-02): carrying the baby locks the
+      // t-spine into flexion and his mid-back aches — restore rotation daily,
+      // in the same all-fours position, before the bracing starts. The
+      // postural-endurance side is covered 3×/wk by D40 (face pulls,
+      // pull-aparts, rows, carries).
+      {
+        ex: 't-spine-reach',
+        mode: 'tempo',
+        sets: 1,
+        reps: 4,
+        tempo: TSPINE_TEMPO,
+        perSide: true,
+        switchSecs: 8,
+      },
       // PROTOCOL: straight sets of 10s holds, 3s re-brace, rest at the
       // bottom of McGill's 20–30s band. Flattened from descending pyramids
       // 2026-08-02 (ladders bored him; the medicine is short crisp holds,

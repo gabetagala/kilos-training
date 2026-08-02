@@ -19,7 +19,7 @@ test('one session, day A: opens on cat-camel, barbell-free, no separate hinge', 
   await expect(page.locator('#rehab-session-list .rhs-card')).toHaveCount(1);
   const card = page.locator('#rehab-session-list [data-rehab="daily"]');
   await expect(card.locator('.rhs-meta')).toContainText('DAY A');
-  await expect(card.locator('.rhs-meta')).toContainText('7 MOVES');
+  await expect(card.locator('.rhs-meta')).toContainText('8 MOVES');
   await card.click();
   await expect(page.locator('#rehab-player')).toHaveClass(/open/);
   await expect(page.locator('#rp-exname')).toHaveText('Cat-Camel');
@@ -57,7 +57,7 @@ test('a completed run flips the next one to day B — the RDL hinge', async ({
   await openRehabPage(page);
   const card = page.locator('#rehab-session-list [data-rehab="daily"]');
   await expect(card.locator('.rhs-meta')).toContainText('DAY B');
-  await expect(card.locator('.rhs-meta')).toContainText('8 MOVES');
+  await expect(card.locator('.rhs-meta')).toContainText('9 MOVES');
   await card.click();
   await page.locator('#rp-overview-btn').click();
   await expect(page.locator('#rpo-title')).toContainText('DAY B');
