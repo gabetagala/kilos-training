@@ -38,6 +38,9 @@ export const MUSCLE_ALIASES = {
   // rehab.js
   'Cat-Camel': 'Core',
   'T-Spine Reach': 'Back',
+  'Pogo Hop': 'Legs',
+  'Broad Jump': 'Legs',
+  'Explosive Push-Up': 'Chest',
   'Romanian Deadlift': 'Legs',
   'Glute Bridge': 'Legs',
   'Glute Kickback': 'Legs',

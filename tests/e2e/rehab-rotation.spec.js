@@ -16,7 +16,8 @@ test('one session, day A: opens on cat-camel, barbell-free, no separate hinge', 
   await page.goto('/');
   await dismissOnboarding(page);
   await openRehabPage(page);
-  await expect(page.locator('#rehab-session-list .rhs-card')).toHaveCount(1);
+  // daily protocol + power primer — the hinge still lives inside daily
+  await expect(page.locator('#rehab-session-list .rhs-card')).toHaveCount(2);
   const card = page.locator('#rehab-session-list [data-rehab="daily"]');
   await expect(card.locator('.rhs-meta')).toContainText('DAY A');
   await expect(card.locator('.rhs-meta')).toContainText('8 MOVES');

@@ -3,6 +3,17 @@
 > Designed 2026-07-20 by a 17-agent research → draft → audit → synthesis run.
 > Pairs with the in-app Rehab (daily 15-min block + 3x/wk Hinge Day) — never duplicates it.
 
+> **2026-08 update (goals now: athletic · powerful · pain-free · visibly
+> jacked):** the rehab side was restructured in-app — ONE unified daily
+> session (cat-camel + t-spine reach openers replaced the dead hang; Big 3
+> as flat straight sets; single-leg bridges; the old Hinge Day's RDL now
+> rotates INSIDE the daily, every other completed run as its "B day") plus
+> a 2×/wk **Power Primer** (pogo hops, broad jumps, explosive push-ups —
+> ~8 min, quiet-back days only) before Sessions A and C. Where this doc
+> says "Hinge Day", read: the daily session's B run. Power upgrade path
+> when gear arrives: med-ball rotational throws → primer; KB swings →
+> the hinge slot, each only after a quiet month.
+
 ## Week at a glance
 
 | Day | Rehab (15 min, daily — his app) | Hinge Day (his app, 3×/wk) | This program |

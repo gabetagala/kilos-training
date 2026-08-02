@@ -28,15 +28,18 @@ describe('rehab program data', () => {
       for (const block of session.blocks) {
         // a null rotation spec = the block sits out that variant
         for (const spec of (block.rotate || [block]).filter(Boolean)) {
-          expect(exercises[spec.ex], `exercise ${spec.ex}`).toBeTruthy();
-          expect(demos[spec.ex], `demo ${spec.ex}`).toBeTruthy();
+          const ids = spec.members ? spec.members.map((m) => m.ex) : [spec.ex];
+          for (const id of ids) {
+            expect(exercises[id], `exercise ${id}`).toBeTruthy();
+            expect(demos[id], `demo ${id}`).toBeTruthy();
+          }
         }
       }
     }
   });
 
   it('is ONE session covering the full protocol: opener, Big 3, glutes, hinge slot, stretches', () => {
-    expect(REHAB_SESSIONS.map((s) => s.id)).toEqual(['daily']);
+    expect(REHAB_SESSIONS.map((s) => s.id)).toEqual(['daily', 'power']);
     const daily = getRehabSession('daily');
     // A day: barbell-free — the hinge slot sits out, straight to stretches
     expect(sessionBlocks(daily, 0).map((b) => b.ex)).toEqual([
@@ -228,6 +231,36 @@ describe('player helpers', () => {
     expect(a).toBeLessThanOrEqual(20); // barbell-free day stays snappy
     expect(b).toBeGreaterThanOrEqual(18);
     expect(b).toBeLessThanOrEqual(26);
+  });
+});
+
+describe('power primer', () => {
+  const power = getRehabSession('power');
+  const q = buildStepQueue(power);
+
+  it('is a fixed session — no rotation, no day label', () => {
+    expect(sessionVariantCount(power)).toBe(1);
+    expect(variantLabel(power, 3)).toBeNull();
+    expect(buildStepQueue(power, {}, 5)).toEqual(q);
+  });
+
+  it('bounces, then jumps, then explosive push-ups — ballistic, never tempo-paced', () => {
+    const workIds = [
+      ...new Set(q.filter((s) => s.kind === 'work').map((s) => s.exId)),
+    ];
+    expect(workIds).toEqual(['pogo-hop', 'broad-jump', 'power-pushup']);
+    for (const s of q.filter((s) => s.manual)) {
+      expect(s.repTempo).toBeUndefined(); // speed work is never slow-paced
+      expect(s.logWeight).toBe(false); // bodyweight — nothing to log
+    }
+    const pogo = q.filter((s) => s.exId === 'pogo-hop' && s.kind === 'work');
+    expect(pogo).toHaveLength(2);
+    expect(pogo.every((s) => s.phase === 'BOUNCE' && s.secs === 15)).toBe(true);
+  });
+
+  it('stays a primer: tiny contact counts, well under lifting length', () => {
+    expect(sessionSetTotal(power)).toBe(8); // 2 pogo + 3 jumps + 3 push-ups
+    expect(estimateSessionMins(power)).toBeLessThanOrEqual(12);
   });
 });
 

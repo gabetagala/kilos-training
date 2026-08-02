@@ -702,6 +702,62 @@ PROGRAM_DEMOS['band-lateral-raise'] = svg(
       }),
     ),
 );
+// Power Primer figures — standing rig lives below REHAB_DEMOS, so these
+// attach here. Ballistic moves: motion comes from root bounce + action marks.
+REHAB_DEMOS['pogo-hop'] = svg(
+  GROUND +
+    shadow(100, 34) +
+    figure({
+      ...standing({
+        head: 4,
+        armF: { at: [-2.5, 27], sh: 165, el: -30 },
+        armN: { at: [2.5, 27], sh: -165, el: 30 },
+        legF: { hip: 3, knee: 3, ankle: 62, far: true },
+        legN: { hip: -3, knee: -3, ankle: -62 },
+      }),
+      rootAnim: { a: '0 0', b: '0 -9', dur: '0.9s', kt: '0;.35;.5;.85;1' },
+    }) +
+    action(
+      tick(78, 100, 84, 96, 2.6) +
+        tick(122, 100, 116, 96, 2.6) +
+        swoosh('M 70 84 Q 66 74 70 64', 2.6) +
+        swoosh('M 130 84 Q 134 74 130 64', 2.6),
+    ),
+);
+REHAB_DEMOS['broad-jump'] = svg(
+  GROUND +
+    shadow(96, 44) +
+    figure(
+      standing({
+        root: { x: 106, y: 74 },
+        torso: 160,
+        head: -2,
+        armF: { at: [-2.5, 27], sh: 205, el: -12 },
+        armN: { at: [2.5, 27], sh: -150, el: 12 },
+        legF: { hip: -32, knee: 48, ankle: 72, far: true },
+        legN: { hip: -38, knee: 52, ankle: -78 },
+      }),
+    ) +
+    action(swoosh('M 78 58 Q 48 32 26 42') + tick(32, 36, 26, 42)),
+);
+REHAB_DEMOS['power-pushup'] = svg(
+  GROUND +
+    shadow(104, 56) +
+    figure({
+      root: { x: 130, y: 82 },
+      torso: 92,
+      head: -10,
+      armF: { at: SH, sh: -90, el: 2 },
+      armN: { at: SH, sh: -86, el: 2 },
+      legF: { hip: -93, knee: -2, ankle: 96, far: true },
+      legN: { hip: -97, knee: -4, ankle: 92 },
+      rootAnim: { a: '0 0', b: '0 -7', dur: '1.1s', kt: '0;.3;.5;.85;1' },
+    }) +
+    action(
+      swoosh('M 88 66 Q 84 54 88 44', 2.6) + swoosh('M 104 64 Q 100 52 104 42', 2.6),
+    ),
+);
+
 PROGRAM_DEMOS['supinated-curl'] = PROGRAM_DEMOS['hammer-curl'];
 PROGRAM_DEMOS['reverse-wrist-curl'] = PROGRAM_DEMOS['wrist-curl'];
 // Sanctioned-alternate demos alias their base movement's figure until each

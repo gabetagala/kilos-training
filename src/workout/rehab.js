@@ -129,6 +129,30 @@ export const REHAB_EXERCISES = {
     why: 'Each hip works alone — the strong side can’t cover for the weak one.',
     yt: 'single leg glute bridge form',
   },
+  'pogo-hop': {
+    name: 'Pogo Hop',
+    feel: 'Ankles like springs — bounce, don’t squat',
+    avoid: 'Heels slamming down, knees folding',
+    cue: 'Tall and braced. Quick low bounces off the balls of the feet — short ground contact, like the floor is hot.',
+    why: 'Rebuilds elastic spring — the first athletic quality to fade and the safest to bring back.',
+    yt: 'pogo hops plyometric',
+  },
+  'broad-jump': {
+    name: 'Broad Jump',
+    feel: 'Hips launching, landing soft and stuck',
+    avoid: 'Loud landings, knees caving, rushed reps',
+    cue: 'Swing the arms, jump FAR, land in a quiet half-squat and stick it. Full reset between jumps.',
+    why: 'Hip power with a controlled landing — catch-a-toddler strength.',
+    yt: 'standing broad jump technique',
+  },
+  'power-pushup': {
+    name: 'Explosive Push-Up',
+    feel: 'Hands throwing the floor away',
+    avoid: 'Sagging hips, grinding slow reps',
+    cue: 'Braced plank, lower under control, then EXPLODE — hands leave the floor if they can. Stop when the pop fades.',
+    why: 'Upper-body speed to match the pressing strength.',
+    yt: 'explosive push up plyometric',
+  },
   'hamstring-stretch': {
     name: 'Hamstring Stretch',
     feel: 'A soft pull down the back of the thigh',
@@ -275,6 +299,46 @@ export const REHAB_SESSIONS = [
         perSide: true,
         switchSecs: 8,
         restSecs: 10,
+      },
+    ],
+  },
+  {
+    id: 'power',
+    name: 'Power Primer',
+    freq: '2× a week',
+    blurb:
+      'The fast stuff, fresh: bounce, leap, throw the floor away. Quiet-back days only — every rep crisp, stop while springy.',
+    // POWER REINTRODUCTION (2026-08-03): the athletic layer his goals were
+    // missing — power fades ~2× faster than strength with age, and none of
+    // it lives in D40 or the rehab. Doses are deliberately tiny (quality
+    // over quantity; ballistic work is never tempo-guided and never taken
+    // near fatigue). DDD gate: symptom-free days only, after the daily
+    // rehab, never before Session B (front squats). Upgrade path when gear
+    // arrives: med-ball rotational throws → this session; KB swings → the
+    // hinge slot, both only after a quiet month.
+    blocks: [
+      // Elasticity first — short ground contact, spine tall.
+      {
+        ex: 'pogo-hop',
+        mode: 'hold',
+        phase: 'BOUNCE',
+        sets: 2,
+        holdSecs: 15,
+        restSecs: 40,
+      },
+      // Hip power — jump far, land stuck and silent.
+      {
+        mode: 'circuit',
+        rounds: 3,
+        restSecs: 60,
+        members: [{ ex: 'broad-jump', reps: '3', logWeight: false }],
+      },
+      // Upper-body speed — the set ends when the pop fades.
+      {
+        mode: 'circuit',
+        rounds: 3,
+        restSecs: 60,
+        members: [{ ex: 'power-pushup', reps: '3–5', logWeight: false }],
       },
     ],
   },
