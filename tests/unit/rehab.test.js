@@ -41,6 +41,7 @@ describe('rehab program data', () => {
     // A day: barbell-free — the hinge slot sits out, straight to stretches
     expect(sessionBlocks(daily, 0).map((b) => b.ex)).toEqual([
       'cat-camel',
+      't-spine-reach',
       'mcgill-curlup',
       'side-plank',
       'bird-dog',
@@ -49,7 +50,7 @@ describe('rehab program data', () => {
       'hip-flexor-stretch',
     ]);
     // B day: the old Hinge Day folded in — RDLs, nothing to choose
-    expect(sessionBlocks(daily, 1).map((b) => b.ex)[5]).toBe('rdl');
+    expect(sessionBlocks(daily, 1).map((b) => b.ex)[6]).toBe('rdl');
     expect(getRehabSession('hinge')).toBeNull();
   });
 
@@ -177,10 +178,10 @@ describe('buildStepQueue', () => {
   });
 
   it('counts logical sets per side', () => {
-    // catcamel 1 + curl 2 + (plank, bird, bridge, ham, hip) à 2 sets × 2 sides = 23
-    expect(sessionSetTotal(getRehabSession('daily'))).toBe(23);
-    // B day adds 3 RDL sets = 26
-    expect(sessionSetTotal(getRehabSession('daily'), 1)).toBe(26);
+    // catcamel 1 + tspine 1×2 + curl 2 + (plank, bird, bridge, ham, hip) à 2×2 = 25
+    expect(sessionSetTotal(getRehabSession('daily'))).toBe(25);
+    // B day adds 3 RDL sets = 28
+    expect(sessionSetTotal(getRehabSession('daily'), 1)).toBe(28);
   });
 
   it('every timed step has positive seconds', () => {
@@ -198,7 +199,7 @@ describe('player helpers', () => {
     expect(nextWorkLabel(daily, -1)).toBe('Cat-Camel');
     expect(nextWorkLabel(daily, daily.length - 1)).toBe('FINISH');
     const switchIdx = daily.findIndex((s) => s.phase === 'SWITCH SIDES');
-    expect(nextWorkLabel(daily, switchIdx)).toBe('Side Plank · RIGHT');
+    expect(nextWorkLabel(daily, switchIdx)).toBe('T-Spine Reach · RIGHT');
   });
 
   it('tempoStateAt tracks rep count and sub-phase through a bridge set', () => {
@@ -278,12 +279,12 @@ describe('rotation (A/B day flavors)', () => {
   it('sessionOverview reflects the rotation', () => {
     const rowsA = sessionOverview(daily, {}, 0);
     const rowsB = sessionOverview(daily, {}, 1);
-    expect(rowsA).toHaveLength(7); // the skipped slot leaves no empty row
+    expect(rowsA).toHaveLength(8); // the skipped slot leaves no empty row
     expect(rowsA.some((r) => r.title === 'Romanian Deadlift')).toBe(false);
-    expect(rowsB).toHaveLength(8);
-    expect(rowsB[5].title).toBe('Romanian Deadlift');
-    expect(rowsB[5].detail).toBe('3 × 8');
-    expect(rowsB[5].note).toMatch(/quiet/i);
+    expect(rowsB).toHaveLength(9);
+    expect(rowsB[6].title).toBe('Romanian Deadlift');
+    expect(rowsB[6].detail).toBe('3 × 8');
+    expect(rowsB[6].note).toMatch(/quiet/i);
   });
 });
 

@@ -206,6 +206,28 @@ export const REHAB_DEMOS = {
       ),
   ),
 
+  't-spine-reach': svg(
+    GROUND +
+      shadow(98, 54) +
+      figure({
+        root: { x: 121, y: 71, rot: 0 },
+        torso: 90,
+        head: -6,
+        armF: { at: SH, sh: -90, el: 2 },
+        // near arm sweeps from planted to the ceiling — the reach; the rig
+        // can't turn the chest, so the arm arc + gaze line carry the motion
+        armN: {
+          at: SH,
+          sh: 100,
+          el: 2,
+          anim: { a: -86, b: 100, dur: '5s', kt: '0;.4;.6;.9;1' },
+        },
+        legF: { hip: 8, knee: -8, ankle: 78, far: true },
+        legN: { hip: -4, knee: -2, ankle: 82 },
+      }) +
+      action(swoosh('M 58 68 Q 44 28 88 14') + tick(80, 14, 88, 14)),
+  ),
+
   'mcgill-curlup': svg(
     GROUND +
       shadow(104, 55) +
