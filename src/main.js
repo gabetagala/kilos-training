@@ -3138,7 +3138,7 @@ function openSessionPreview(session, after = null, originEl = null) {
   const spLabel = variantLabel(session, spVariant);
   document.getElementById('sp-title').textContent = session.name.toUpperCase();
   document.getElementById('sp-meta').textContent =
-    `~${estimateSessionMins(session, spVariant)} MIN · ${session.blocks.length} BLOCKS${spLabel ? ` · DAY ${spLabel}` : ''} · ${(session.blurb || session.freq || '').toUpperCase().replace(/\.$/, '')}`;
+    `~${estimateSessionMins(session, spVariant)} MIN · ${sessionBlocks(session, spVariant).length} BLOCKS${spLabel ? ` · DAY ${spLabel}` : ''} · ${(session.blurb || session.freq || '').toUpperCase().replace(/\.$/, '')}`;
   const rows = sessionOverview(session, getSwaps(), spVariant);
   const prettyDetail = (d) =>
     d
@@ -3272,7 +3272,7 @@ function renderRehabPage() {
       return `
     <button class="rhs-card" data-rehab="${s.id}">
       <div class="rhs-top"><div class="rhs-name">${s.name}</div><div class="rhs-go">→</div></div>
-      <div class="rhs-meta">~${estimateSessionMins(s, v)} MIN · ${s.freq.toUpperCase()} · ${s.blocks.length} MOVES${vl ? ` · DAY ${vl}` : ''}</div>
+      <div class="rhs-meta">~${estimateSessionMins(s, v)} MIN · ${s.freq.toUpperCase()} · ${sessionBlocks(s, v).length} MOVES${vl ? ` · DAY ${vl}` : ''}</div>
       <div class="rhs-blurb">${s.blurb}</div>
     </button>`;
     },
@@ -3327,7 +3327,9 @@ function renderRehabPage() {
   const libIds = [
     ...new Set(
       REHAB_SESSIONS.flatMap((s) =>
-        s.blocks.flatMap((b) => (b.rotate || [b]).map((r) => r.ex)),
+        s.blocks.flatMap((b) =>
+          (b.rotate || [b]).filter(Boolean).map((r) => r.ex),
+        ),
       ),
     ),
   ];

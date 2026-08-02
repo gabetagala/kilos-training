@@ -10,7 +10,7 @@ async function openRehabPage(page) {
   await page.locator('#btn-rehab-open').click();
 }
 
-test('one session, day A: opens on cat-camel and carries, no separate hinge', async ({
+test('one session, day A: opens on cat-camel, barbell-free, no separate hinge', async ({
   page,
 }) => {
   await page.goto('/');
@@ -19,12 +19,13 @@ test('one session, day A: opens on cat-camel and carries, no separate hinge', as
   await expect(page.locator('#rehab-session-list .rhs-card')).toHaveCount(1);
   const card = page.locator('#rehab-session-list [data-rehab="daily"]');
   await expect(card.locator('.rhs-meta')).toContainText('DAY A');
+  await expect(card.locator('.rhs-meta')).toContainText('7 MOVES');
   await card.click();
   await expect(page.locator('#rehab-player')).toHaveClass(/open/);
   await expect(page.locator('#rp-exname')).toHaveText('Cat-Camel');
   await page.locator('#rp-overview-btn').click();
   await expect(page.locator('#rpo-title')).toContainText('DAY A');
-  await expect(page.locator('#rpo-list')).toContainText('Suitcase Carry');
+  await expect(page.locator('#rpo-list')).toContainText('Hamstring Stretch');
   await expect(page.locator('#rpo-list')).not.toContainText(
     'Romanian Deadlift',
   );
@@ -56,11 +57,11 @@ test('a completed run flips the next one to day B — the RDL hinge', async ({
   await openRehabPage(page);
   const card = page.locator('#rehab-session-list [data-rehab="daily"]');
   await expect(card.locator('.rhs-meta')).toContainText('DAY B');
+  await expect(card.locator('.rhs-meta')).toContainText('8 MOVES');
   await card.click();
   await page.locator('#rp-overview-btn').click();
   await expect(page.locator('#rpo-title')).toContainText('DAY B');
   await expect(page.locator('#rpo-list')).toContainText('Romanian Deadlift');
-  await expect(page.locator('#rpo-list')).not.toContainText('Suitcase Carry');
 });
 
 test('a mid-session refresh reopens the same run by itself', async ({

@@ -26,7 +26,8 @@ describe('rehab program data', () => {
     const demos = { ...REHAB_DEMOS, ...PROGRAM_DEMOS };
     for (const session of REHAB_SESSIONS) {
       for (const block of session.blocks) {
-        for (const spec of block.rotate || [block]) {
+        // a null rotation spec = the block sits out that variant
+        for (const spec of (block.rotate || [block]).filter(Boolean)) {
           expect(exercises[spec.ex], `exercise ${spec.ex}`).toBeTruthy();
           expect(demos[spec.ex], `demo ${spec.ex}`).toBeTruthy();
         }
@@ -37,32 +38,35 @@ describe('rehab program data', () => {
   it('is ONE session covering the full protocol: opener, Big 3, glutes, hinge slot, stretches', () => {
     expect(REHAB_SESSIONS.map((s) => s.id)).toEqual(['daily']);
     const daily = getRehabSession('daily');
+    // A day: barbell-free — the hinge slot sits out, straight to stretches
     expect(sessionBlocks(daily, 0).map((b) => b.ex)).toEqual([
       'cat-camel',
       'mcgill-curlup',
       'side-plank',
       'bird-dog',
       'single-leg-bridge',
-      'suitcase-carry',
       'hamstring-stretch',
       'hip-flexor-stretch',
     ]);
-    // the old Hinge Day is folded in: B runs load the hinge itself
+    // B day: the old Hinge Day folded in — RDLs, nothing to choose
     expect(sessionBlocks(daily, 1).map((b) => b.ex)[5]).toBe('rdl');
     expect(getRehabSession('hinge')).toBeNull();
   });
 
-  it('doses the McGill Big 3 as descending-pyramid 10s holds (protocol)', () => {
+  it('doses the McGill Big 3 as straight sets of short 10s holds', () => {
     const daily = getRehabSession('daily');
     const curl = daily.blocks.find((b) => b.ex === 'mcgill-curlup');
-    expect(curl.repScheme[0]).toBeGreaterThan(curl.repScheme.at(-1));
+    // flattened 2026-08: even sets, short holds — never longer holds
+    expect(new Set(curl.repScheme).size).toBe(1);
     expect(curl.holdSecs).toBeGreaterThanOrEqual(8);
     expect(curl.holdSecs).toBeLessThanOrEqual(10);
+    expect(curl.restSecs).toBeGreaterThanOrEqual(20); // McGill's 20–30s band
     for (const ex of ['side-plank', 'bird-dog']) {
       const b = daily.blocks.find((x) => x.ex === ex);
       expect(b.mode).toBe('reps');
       expect(b.perSide).toBe(true);
-      expect(b.repScheme[0]).toBeGreaterThan(b.repScheme.at(-1));
+      expect(new Set(b.repScheme).size).toBe(1);
+      expect(b.holdSecs).toBeLessThanOrEqual(10);
     }
   });
 
@@ -117,28 +121,26 @@ describe('buildStepQueue', () => {
     }
   });
 
-  it('expands the curl-up pyramid into 5-3-1 timed holds with re-braces', () => {
+  it('expands the curl-up into 4-4 timed holds with re-braces', () => {
     const curls = daily.filter((s) => s.exId === 'mcgill-curlup');
     const work = curls.filter((s) => s.kind === 'work');
-    expect(work).toHaveLength(9); // 5 + 3 + 1
+    expect(work).toHaveLength(8); // 4 + 4
     expect(work.every((s) => s.secs === 10)).toBe(true);
-    expect(work.filter((s) => s.countsAsSet)).toHaveLength(3);
-    expect(work.map((s) => s.rep)).toEqual([1, 2, 3, 4, 5, 1, 2, 3, 1]);
-    // re-braces only within a set: 4 + 2 + 0
+    expect(work.filter((s) => s.countsAsSet)).toHaveLength(2);
+    expect(work.map((s) => s.rep)).toEqual([1, 2, 3, 4, 1, 2, 3, 4]);
+    // re-braces only within a set: 3 + 3
     expect(curls.filter((s) => s.phase === 'BREATHE')).toHaveLength(6);
   });
 
-  it('runs each pyramid set on the left then the right', () => {
+  it('runs each plank set on the left then the right', () => {
     const planks = daily.filter(
       (s) => s.exId === 'side-plank' && s.kind === 'work',
     );
     expect(planks.map((s) => s.side)).toEqual([
       ...Array(3).fill('LEFT'),
       ...Array(3).fill('RIGHT'),
-      ...Array(2).fill('LEFT'),
-      ...Array(2).fill('RIGHT'),
-      'LEFT',
-      'RIGHT',
+      ...Array(3).fill('LEFT'),
+      ...Array(3).fill('RIGHT'),
     ]);
   });
 
@@ -165,29 +167,20 @@ describe('buildStepQueue', () => {
     }
   });
 
-  it('builds A-day carries as timed per-side sets that say CARRY', () => {
-    const carries = daily.filter(
-      (s) => s.exId === 'suitcase-carry' && s.kind === 'work',
+  it('A days skip the hinge slot entirely — no barbell, no filler', () => {
+    expect(daily.some((s) => s.exId === 'rdl')).toBe(false);
+    // bridges flow straight into the stretches
+    const exOrder = [...new Set(daily.map((s) => s.exId))];
+    expect(exOrder.indexOf('hamstring-stretch')).toBe(
+      exOrder.indexOf('single-leg-bridge') + 1,
     );
-    expect(carries.map((s) => s.side)).toEqual([
-      'LEFT',
-      'RIGHT',
-      'LEFT',
-      'RIGHT',
-    ]);
-    for (const c of carries) {
-      expect(c.secs).toBe(40);
-      expect(c.phase).toBe('CARRY');
-      expect(c.countsAsSet).toBe(true);
-    }
   });
 
   it('counts logical sets per side', () => {
-    // catcamel 1 + curl 3 + plank 3×2 + bird 3×2 + bridge 2×2 + carry 2×2
-    // + ham 2×2 + hip 2×2 = 32
-    expect(sessionSetTotal(getRehabSession('daily'))).toBe(32);
-    // B day: the carry's 4 per-side sets become 3 RDL sets = 31
-    expect(sessionSetTotal(getRehabSession('daily'), 1)).toBe(31);
+    // catcamel 1 + curl 2 + (plank, bird, bridge, ham, hip) à 2 sets × 2 sides = 23
+    expect(sessionSetTotal(getRehabSession('daily'))).toBe(23);
+    // B day adds 3 RDL sets = 26
+    expect(sessionSetTotal(getRehabSession('daily'), 1)).toBe(26);
   });
 
   it('every timed step has positive seconds', () => {
@@ -228,11 +221,12 @@ describe('player helpers', () => {
   });
 
   it('both day-flavors land in a believable duration band', () => {
-    for (const v of [0, 1]) {
-      const mins = estimateSessionMins(getRehabSession('daily'), v);
-      expect(mins).toBeGreaterThanOrEqual(20);
-      expect(mins).toBeLessThanOrEqual(28);
-    }
+    const a = estimateSessionMins(getRehabSession('daily'), 0);
+    const b = estimateSessionMins(getRehabSession('daily'), 1);
+    expect(a).toBeGreaterThanOrEqual(14);
+    expect(a).toBeLessThanOrEqual(20); // barbell-free day stays snappy
+    expect(b).toBeGreaterThanOrEqual(18);
+    expect(b).toBeLessThanOrEqual(26);
   });
 });
 
@@ -256,15 +250,13 @@ describe('rotation (A/B day flavors)', () => {
     expect(buildStepQueue(d40a, {}, 3)).toEqual(buildStepQueue(d40a));
   });
 
-  it('A carries, B hinges — and the cycle wraps around', () => {
+  it('A rests the hinge, B loads it — and the cycle wraps around', () => {
     const ids = (v) =>
       buildStepQueue(daily, {}, v)
         .filter((s) => s.kind === 'work')
         .map((s) => s.exId);
-    expect(ids(0)).toContain('suitcase-carry');
     expect(ids(0)).not.toContain('rdl');
     expect(ids(1)).toContain('rdl');
-    expect(ids(1)).not.toContain('suitcase-carry');
     expect(ids(2)).toEqual(ids(0));
     expect(ids(3)).toEqual(ids(1));
   });
@@ -284,13 +276,14 @@ describe('rotation (A/B day flavors)', () => {
   });
 
   it('sessionOverview reflects the rotation', () => {
-    const rowA = sessionOverview(daily, {}, 0)[5];
-    const rowB = sessionOverview(daily, {}, 1)[5];
-    expect(rowA.title).toBe('Suitcase Carry');
-    expect(rowA.detail).toBe('2 × 40s / side');
-    expect(rowB.title).toBe('Romanian Deadlift');
-    expect(rowB.detail).toBe('3 × 8');
-    expect(rowB.note).toMatch(/quiet/i);
+    const rowsA = sessionOverview(daily, {}, 0);
+    const rowsB = sessionOverview(daily, {}, 1);
+    expect(rowsA).toHaveLength(7); // the skipped slot leaves no empty row
+    expect(rowsA.some((r) => r.title === 'Romanian Deadlift')).toBe(false);
+    expect(rowsB).toHaveLength(8);
+    expect(rowsB[5].title).toBe('Romanian Deadlift');
+    expect(rowsB[5].detail).toBe('3 × 8');
+    expect(rowsB[5].note).toMatch(/quiet/i);
   });
 });
 

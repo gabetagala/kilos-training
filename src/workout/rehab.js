@@ -8,10 +8,13 @@
 // - Cat-camel: 6 slow unloaded cycles as the opener — McGill's own warm-up.
 //   (Dead hangs opened the session until 2026-08 — hanging never clicked for
 //   him. The def and demo stay only so an old paused session still restores.)
-// - McGill Big 3: 8–10s isometric holds in a DESCENDING PYRAMID (5-3-1 to
-//   start; progress by adding reps, never hold length), ~3s re-brace between
-//   holds, 20–30s rest between sets, pyramid per side for side plank/bird dog.
-//   (Squat University's McGill write-up; backfitpro.)
+// - McGill Big 3: 8–10s isometric holds, ~3s re-brace between holds, 20–30s
+//   rest between sets, per side for side plank/bird dog. FLATTENED 2026-08-02
+//   from McGill's descending pyramids (5-3-1 etc.) to straight sets — the
+//   ladders bored him and ate time, and the medicine is the short holds and
+//   never grinding to fatigue, not the ladder shape. Progress by adding a
+//   rep per set, never hold length. (Squat University's McGill write-up;
+//   backfitpro.)
 // - Glute work: CONTINUOUS tempo reps — lift 1s, squeeze 2s at top, lower
 //   2s. Single-leg bridges, one side at a time (kickbacks tried 2026-07,
 //   dropped 2026-08: same-position single-leg bridges activate better for
@@ -21,9 +24,9 @@
 //
 // VARIETY: a block may be a rotation wrapper { rotate: [specA, specB, …] } —
 // the app advances the active spec once per completed run of the session
-// (A/B days), so back-to-back runs differ without touching the medicine:
-// the McGill Big 3 stay fixed on purpose (the repetition IS the protocol —
-// grooving the same motor pattern daily), the hinge slot rotates.
+// (A/B days). A spec may be null: that variant simply skips the block. The
+// McGill Big 3 stay fixed on purpose (the repetition IS the protocol —
+// grooving the same motor pattern daily); only the hinge slot rotates.
 //
 // A session is a list of BLOCKS; buildStepQueue() expands blocks into a flat
 // queue of STEPS the player walks through one at a time:
@@ -32,7 +35,7 @@
 // Block modes:
 //   hold  — one timed hold per set (hang, side plank, stretches)
 //   reps  — one timed hold PER REP with a short re-brace between (McGill),
-//           reps per set via repScheme (descending pyramid), per side optional
+//           reps per set via repScheme, per side optional
 //   tempo — one continuous timed set; the player derives the live rep count
 //           and sub-phase (LIFT/SQUEEZE/LOWER) from step.tempo
 //   lift  — self-paced barbell set, athlete taps done, logs weight
@@ -155,40 +158,42 @@ export const REHAB_SESSIONS = [
     name: 'Daily Reset',
     freq: 'Every day',
     blurb:
-      'The whole protocol in one: wake the spine, brace it, load it, open it.',
+      'Wake the spine, brace it, open it. The barbell joins every other run.',
     blocks: [
       // Opener — McGill's warm-up. Slow breath-paced cycles, nothing forced.
       { ex: 'cat-camel', mode: 'tempo', sets: 1, reps: 6, tempo: CATCAMEL_TEMPO },
-      // PROTOCOL: McGill descending pyramid 5-3-1, 10s holds, 3s re-brace,
-      // 25s between sets. Progress by ADDING REPS (6-4-2, 8-6-4), not longer holds.
+      // PROTOCOL: straight sets of 10s holds, 3s re-brace, rest at the
+      // bottom of McGill's 20–30s band. Flattened from descending pyramids
+      // 2026-08-02 (ladders bored him; the medicine is short crisp holds,
+      // not the ladder shape). Progress by adding a rep per set (4-4 → 5-5),
+      // never longer holds.
       {
         ex: 'mcgill-curlup',
         mode: 'reps',
-        repScheme: [5, 3, 1],
+        repScheme: [4, 4],
         holdSecs: 10,
         resetSecs: 3,
-        restSecs: 25,
+        restSecs: 20,
       },
-      // PROTOCOL: pyramid per side, 10s holds. 3-2-1 to start; build toward 5-3-1.
       {
         ex: 'side-plank',
         mode: 'reps',
-        repScheme: [3, 2, 1],
+        repScheme: [3, 3],
         holdSecs: 10,
         resetSecs: 3,
         perSide: true,
-        switchSecs: 10,
-        restSecs: 25,
+        switchSecs: 8,
+        restSecs: 20,
       },
       {
         ex: 'bird-dog',
         mode: 'reps',
-        repScheme: [3, 2, 1],
+        repScheme: [3, 3],
         holdSecs: 10,
         resetSecs: 3,
         perSide: true,
-        switchSecs: 10,
-        restSecs: 25,
+        switchSecs: 8,
+        restSecs: 20,
       },
       // PROTOCOL: continuous tempo reps — 1s up, 2s squeeze, 2s down, one
       // side at a time. Single-leg bridges replaced kickbacks 2026-08: same
@@ -202,27 +207,18 @@ export const REHAB_SESSIONS = [
         reps: 8,
         tempo: BRIDGE_TEMPO,
         perSide: true,
-        switchSecs: 10,
-        restSecs: 30,
+        switchSecs: 8,
+        restSecs: 25,
       },
       // THE HINGE SLOT — the old Hinge Day, folded in 2026-08 so there is
-      // exactly one thing to do. Rotates per completed run:
-      //   A — suitcase carries: load a tall spine without bending it
-      //       (McGill's loaded-carry pick, and a different feel every other day).
-      //   B — RDLs: load the hinge itself. Every other run at a near-daily
-      //       cadence ≈ 3×/week — the evidence dose for a loaded hinge.
+      // exactly one thing to do. When it's on, it's RDLs — his call
+      // (suitcase carries tried 2026-08, cut the same week). It sits out
+      // every other run: daily loaded hinging gives the back no recovery
+      // day, and every other run at near-daily cadence ≈ 3×/week — the
+      // evidence dose. A days go straight from bridges to the stretches.
       {
         rotate: [
-          {
-            ex: 'suitcase-carry',
-            mode: 'hold',
-            phase: 'CARRY',
-            sets: 2,
-            holdSecs: 40,
-            perSide: true,
-            switchSecs: 15,
-            restSecs: 45,
-          },
+          null, // A — recovery run, barbell-free
           {
             ex: 'rdl',
             mode: 'lift',
@@ -240,8 +236,8 @@ export const REHAB_SESSIONS = [
         sets: 2,
         holdSecs: 30,
         perSide: true,
-        switchSecs: 10,
-        restSecs: 15,
+        switchSecs: 8,
+        restSecs: 10,
       },
       {
         ex: 'hip-flexor-stretch',
@@ -249,8 +245,8 @@ export const REHAB_SESSIONS = [
         sets: 2,
         holdSecs: 30,
         perSide: true,
-        switchSecs: 10,
-        restSecs: 15,
+        switchSecs: 8,
+        restSecs: 10,
       },
     ],
   },
@@ -267,9 +263,10 @@ export const getRehabSession = (id) =>
 const rotateSpec = (block, variant) =>
   block.rotate ? block.rotate[variant % block.rotate.length] : block;
 
-// The session's concrete blocks for a given variant.
+// The session's concrete blocks for a given variant. A null spec in a
+// rotation pool means the block sits out that variant entirely.
 export const sessionBlocks = (session, variant = 0) =>
-  session.blocks.map((b) => rotateSpec(b, variant));
+  session.blocks.map((b) => rotateSpec(b, variant)).filter(Boolean);
 
 // How many day-flavors the session cycles through (1 = fixed session).
 export const sessionVariantCount = (session) =>
