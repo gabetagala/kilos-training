@@ -6,9 +6,12 @@ import {
   nextWorkLabel,
   REHAB_EXERCISES,
   REHAB_SESSIONS,
+  sessionBlocks,
   sessionOverview,
   sessionSetTotal,
+  sessionVariantCount,
   tempoStateAt,
+  variantLabel,
 } from '../../src/workout/rehab.js';
 import {
   DENSITY40_SESSIONS,
@@ -18,26 +21,35 @@ import {
 import { PROGRAM_DEMOS, REHAB_DEMOS } from '../../src/workout/rehabDemos.js';
 
 describe('rehab program data', () => {
-  it('every block references a known exercise, and every exercise has a demo', () => {
+  it('every block (all rotations) references a known exercise with a demo', () => {
+    const exercises = { ...REHAB_EXERCISES, ...PROGRAM_EXERCISES };
+    const demos = { ...REHAB_DEMOS, ...PROGRAM_DEMOS };
     for (const session of REHAB_SESSIONS) {
       for (const block of session.blocks) {
-        expect(REHAB_EXERCISES[block.ex], `exercise ${block.ex}`).toBeTruthy();
-        expect(REHAB_DEMOS[block.ex], `demo ${block.ex}`).toBeTruthy();
+        for (const spec of block.rotate || [block]) {
+          expect(exercises[spec.ex], `exercise ${spec.ex}`).toBeTruthy();
+          expect(demos[spec.ex], `demo ${spec.ex}`).toBeTruthy();
+        }
       }
     }
   });
 
-  it('covers the full protocol: decompression, McGill Big 3, glutes, hinge, mobility', () => {
+  it('is ONE session covering the full protocol: opener, Big 3, glutes, hinge slot, stretches', () => {
+    expect(REHAB_SESSIONS.map((s) => s.id)).toEqual(['daily']);
     const daily = getRehabSession('daily');
-    expect(daily.blocks.map((b) => b.ex)).toEqual([
-      'dead-hang',
+    expect(sessionBlocks(daily, 0).map((b) => b.ex)).toEqual([
+      'cat-camel',
       'mcgill-curlup',
       'side-plank',
       'bird-dog',
-      'glute-kickback',
+      'single-leg-bridge',
+      'suitcase-carry',
+      'hamstring-stretch',
+      'hip-flexor-stretch',
     ]);
-    const hinge = getRehabSession('hinge');
-    expect(hinge.blocks[0].ex).toBe('rdl');
+    // the old Hinge Day is folded in: B runs load the hinge itself
+    expect(sessionBlocks(daily, 1).map((b) => b.ex)[5]).toBe('rdl');
+    expect(getRehabSession('hinge')).toBeNull();
   });
 
   it('doses the McGill Big 3 as descending-pyramid 10s holds (protocol)', () => {
@@ -54,31 +66,36 @@ describe('rehab program data', () => {
     }
   });
 
-  it('makes the glute kickback continuous tempo, per side', () => {
-    const kb = getRehabSession('daily').blocks.find(
-      (b) => b.ex === 'glute-kickback',
+  it('makes the single-leg bridge continuous tempo, one side at a time', () => {
+    const slb = getRehabSession('daily').blocks.find(
+      (b) => b.ex === 'single-leg-bridge',
     );
-    expect(kb.mode).toBe('tempo');
-    expect(kb.perSide).toBe(true);
-    expect(kb.tempo.map(([l]) => l)).toEqual(['LIFT', 'SQUEEZE', 'LOWER']);
+    expect(slb.mode).toBe('tempo');
+    expect(slb.perSide).toBe(true);
+    expect(slb.reps).toBe(8); // one leg carries double — not the two-leg 10
+    expect(slb.tempo.map(([l]) => l)).toEqual(['LIFT', 'SQUEEZE', 'LOWER']);
   });
 
-  it('accumulates 60–90s of daily dead-hang time (protocol)', () => {
-    const hang = getRehabSession('daily').blocks.find(
-      (b) => b.ex === 'dead-hang',
-    );
-    const total = hang.sets * hang.holdSecs;
-    expect(total).toBeGreaterThanOrEqual(60);
-    expect(total).toBeLessThanOrEqual(90);
+  it('opens with breath-paced cat-camel cycles, not a hang', () => {
+    const opener = sessionBlocks(getRehabSession('daily'), 0)[0];
+    expect(opener.ex).toBe('cat-camel');
+    expect(opener.mode).toBe('tempo');
+    expect(opener.reps).toBeGreaterThanOrEqual(5); // McGill: 5–8 easy cycles
+    expect(opener.reps).toBeLessThanOrEqual(8);
+    expect(opener.tempo.map(([l]) => l)).toEqual(['ROUND', 'ARCH']);
+    // retired moves keep defs + demos so old paused sessions still restore
+    expect(REHAB_EXERCISES['dead-hang']).toBeTruthy();
+    expect(REHAB_DEMOS['dead-hang']).toBeTruthy();
+    expect(REHAB_EXERCISES['glute-kickback']).toBeTruthy();
   });
 });
 
 describe('buildStepQueue', () => {
-  const daily = buildStepQueue(getRehabSession('daily'));
-  const hinge = buildStepQueue(getRehabSession('hinge'));
+  const daily = buildStepQueue(getRehabSession('daily')); // variant 0 = A day
+  const dailyB = buildStepQueue(getRehabSession('daily'), {}, 1); // B = hinge day
 
   it('starts every exercise with a prep step', () => {
-    for (const q of [daily, hinge]) {
+    for (const q of [daily, dailyB]) {
       let ex = null;
       for (const step of q) {
         if (step.exId !== ex) {
@@ -91,7 +108,7 @@ describe('buildStepQueue', () => {
   });
 
   it('never ends a session (or an exercise) on a rest step', () => {
-    for (const q of [daily, hinge]) {
+    for (const q of [daily, dailyB]) {
       expect(q[q.length - 1].kind).toBe('work');
       q.forEach((step, i) => {
         const next = q[i + 1];
@@ -125,20 +142,20 @@ describe('buildStepQueue', () => {
     ]);
   });
 
-  it('builds the kickback as continuous tempo steps, left then right', () => {
-    const kicks = daily.filter(
-      (s) => s.exId === 'glute-kickback' && s.kind === 'work',
+  it('builds the single-leg bridge as continuous tempo steps, left then right', () => {
+    const slb = daily.filter(
+      (s) => s.exId === 'single-leg-bridge' && s.kind === 'work',
     );
-    expect(kicks.map((s) => s.side)).toEqual(['LEFT', 'RIGHT', 'LEFT', 'RIGHT']);
-    for (const b of kicks) {
-      expect(b.secs).toBe(50); // 10 reps × 5s tempo (2s eccentric)
-      expect(b.tempo.reps).toBe(10);
+    expect(slb.map((s) => s.side)).toEqual(['LEFT', 'RIGHT', 'LEFT', 'RIGHT']);
+    for (const b of slb) {
+      expect(b.secs).toBe(40); // 8 reps × 5s tempo (2s eccentric)
+      expect(b.tempo.reps).toBe(8);
       expect(b.tempo.secsPerRep).toBe(5);
     }
   });
 
-  it('makes lift sets manual with weight logging', () => {
-    const rdls = hinge.filter((s) => s.exId === 'rdl' && s.kind === 'work');
+  it('makes B-day RDL sets manual with weight logging', () => {
+    const rdls = dailyB.filter((s) => s.exId === 'rdl' && s.kind === 'work');
     expect(rdls).toHaveLength(3);
     for (const s of rdls) {
       expect(s.manual).toBe(true);
@@ -148,26 +165,33 @@ describe('buildStepQueue', () => {
     }
   });
 
-  it('counts logical sets per side', () => {
-    // hang 3 + curl 3 + plank 3×2 + bird 3×2 + kickback 2×2 = 22
-    expect(sessionSetTotal(getRehabSession('daily'))).toBe(22);
-    // rdl 3 + single-leg bridge 2×2 + hamstring 2×2 + hip flexor 2×2 = 15
-    expect(sessionSetTotal(getRehabSession('hinge'))).toBe(15);
-  });
-
-  it('loads the single-leg bridge per side as continuous tempo sets', () => {
-    const slb = hinge.filter(
-      (s) => s.exId === 'single-leg-bridge' && s.kind === 'work',
+  it('builds A-day carries as timed per-side sets that say CARRY', () => {
+    const carries = daily.filter(
+      (s) => s.exId === 'suitcase-carry' && s.kind === 'work',
     );
-    expect(slb.map((s) => s.side)).toEqual(['LEFT', 'RIGHT', 'LEFT', 'RIGHT']);
-    for (const s of slb) {
-      expect(s.secs).toBe(30); // 6 reps × 5s tempo (2s eccentric)
-      expect(s.tempo.reps).toBe(6);
+    expect(carries.map((s) => s.side)).toEqual([
+      'LEFT',
+      'RIGHT',
+      'LEFT',
+      'RIGHT',
+    ]);
+    for (const c of carries) {
+      expect(c.secs).toBe(40);
+      expect(c.phase).toBe('CARRY');
+      expect(c.countsAsSet).toBe(true);
     }
   });
 
+  it('counts logical sets per side', () => {
+    // catcamel 1 + curl 3 + plank 3×2 + bird 3×2 + bridge 2×2 + carry 2×2
+    // + ham 2×2 + hip 2×2 = 32
+    expect(sessionSetTotal(getRehabSession('daily'))).toBe(32);
+    // B day: the carry's 4 per-side sets become 3 RDL sets = 31
+    expect(sessionSetTotal(getRehabSession('daily'), 1)).toBe(31);
+  });
+
   it('every timed step has positive seconds', () => {
-    for (const q of [daily, hinge]) {
+    for (const q of [daily, dailyB]) {
       for (const s of q) {
         if (!s.manual) expect(s.secs).toBeGreaterThan(0);
       }
@@ -178,7 +202,7 @@ describe('buildStepQueue', () => {
 describe('player helpers', () => {
   it('nextWorkLabel points rests at the next thing to do', () => {
     const daily = buildStepQueue(getRehabSession('daily'));
-    expect(nextWorkLabel(daily, -1)).toBe('Dead Hang');
+    expect(nextWorkLabel(daily, -1)).toBe('Cat-Camel');
     expect(nextWorkLabel(daily, daily.length - 1)).toBe('FINISH');
     const switchIdx = daily.findIndex((s) => s.phase === 'SWITCH SIDES');
     expect(nextWorkLabel(daily, switchIdx)).toBe('Side Plank · RIGHT');
@@ -203,11 +227,70 @@ describe('player helpers', () => {
     expect(tempoStateAt(tempo, 999999).rep).toBe(10);
   });
 
-  it('sessions land in a believable duration band', () => {
-    expect(estimateSessionMins(getRehabSession('daily'))).toBeGreaterThanOrEqual(12);
-    expect(estimateSessionMins(getRehabSession('daily'))).toBeLessThanOrEqual(18);
-    expect(estimateSessionMins(getRehabSession('hinge'))).toBeGreaterThanOrEqual(8);
-    expect(estimateSessionMins(getRehabSession('hinge'))).toBeLessThanOrEqual(14);
+  it('both day-flavors land in a believable duration band', () => {
+    for (const v of [0, 1]) {
+      const mins = estimateSessionMins(getRehabSession('daily'), v);
+      expect(mins).toBeGreaterThanOrEqual(20);
+      expect(mins).toBeLessThanOrEqual(28);
+    }
+  });
+});
+
+describe('rotation (A/B day flavors)', () => {
+  const daily = getRehabSession('daily');
+
+  it('cycles two flavors, labeled A and B, and repeats', () => {
+    expect(sessionVariantCount(daily)).toBe(2);
+    expect(['A', 'B', 'A', 'B'].map((_, i) => variantLabel(daily, i))).toEqual([
+      'A',
+      'B',
+      'A',
+      'B',
+    ]);
+  });
+
+  it('fixed sessions rotate nothing and get no label', () => {
+    const d40a = getProgramSession('d40-a');
+    expect(sessionVariantCount(d40a)).toBe(1);
+    expect(variantLabel(d40a, 0)).toBeNull();
+    expect(buildStepQueue(d40a, {}, 3)).toEqual(buildStepQueue(d40a));
+  });
+
+  it('A carries, B hinges — and the cycle wraps around', () => {
+    const ids = (v) =>
+      buildStepQueue(daily, {}, v)
+        .filter((s) => s.kind === 'work')
+        .map((s) => s.exId);
+    expect(ids(0)).toContain('suitcase-carry');
+    expect(ids(0)).not.toContain('rdl');
+    expect(ids(1)).toContain('rdl');
+    expect(ids(1)).not.toContain('suitcase-carry');
+    expect(ids(2)).toEqual(ids(0));
+    expect(ids(3)).toEqual(ids(1));
+  });
+
+  it('default variant is 0 — old callers keep the canonical A day', () => {
+    expect(buildStepQueue(daily)).toEqual(buildStepQueue(daily, {}, 0));
+  });
+
+  it('the fixed medicine never rotates: Big 3 identical on both days', () => {
+    const fixed = (v) =>
+      buildStepQueue(daily, {}, v).filter((s) =>
+        ['cat-camel', 'mcgill-curlup', 'side-plank', 'bird-dog'].includes(
+          s.exId,
+        ),
+      );
+    expect(fixed(0)).toEqual(fixed(1));
+  });
+
+  it('sessionOverview reflects the rotation', () => {
+    const rowA = sessionOverview(daily, {}, 0)[5];
+    const rowB = sessionOverview(daily, {}, 1)[5];
+    expect(rowA.title).toBe('Suitcase Carry');
+    expect(rowA.detail).toBe('2 × 40s / side');
+    expect(rowB.title).toBe('Romanian Deadlift');
+    expect(rowB.detail).toBe('3 × 8');
+    expect(rowB.note).toMatch(/quiet/i);
   });
 });
 

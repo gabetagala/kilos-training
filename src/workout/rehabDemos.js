@@ -183,6 +183,29 @@ export const REHAB_DEMOS = {
       ),
   ),
 
+  'cat-camel': svg(
+    GROUND +
+      shadow(98, 54) +
+      figure({
+        root: { x: 121, y: 71, rot: 0 },
+        // Rigid-capsule rig can't literally bend the spine — the round/arch
+        // reads from the torso rocking around the hips (static = rounded,
+        // the exhale end of the cycle) plus the tucked head. 6s = one breath.
+        torso: 87,
+        torsoAnim: { a: 92, b: 87, kt: '0;.42;.5;.92;1', dur: '6s' },
+        head: -26,
+        armF: { at: SH, sh: -90, el: 2 },
+        armN: { at: SH, sh: -86, el: 2 },
+        legF: { hip: 8, knee: -8, ankle: 78, far: true },
+        legN: { hip: -4, knee: -2, ankle: 82 },
+      }) +
+      action(
+        swoosh('M 96 42 Q 101 33 96 25') +
+          tick(91, 30, 96, 25) +
+          tick(102, 31, 96, 25),
+      ),
+  ),
+
   'mcgill-curlup': svg(
     GROUND +
       shadow(104, 55) +

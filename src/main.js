@@ -28,8 +28,10 @@ import {
   nextWorkLabel,
   REHAB_EXERCISES,
   REHAB_SESSIONS,
+  sessionBlocks,
   sessionOverview,
   tempoStateAt,
+  variantLabel,
 } from './workout/rehab.js';
 import {
   DENSITY40_SESSIONS,
@@ -734,7 +736,7 @@ function renderDayHero() {
     const plan = todayPlan().filter((i) => i.sessionId);
     const mins = plan.reduce((sum, i) => {
       const sess = getGuidedSession(i.sessionId);
-      return sum + (sess ? estimateSessionMins(sess) : 0);
+      return sum + (sess ? estimateSessionMins(sess, rehabVariantIdx(sess.id)) : 0);
     }, 0);
     const labels = plan.map((i) => b(i.label)).join(' + ');
     line = plan.length
@@ -1516,6 +1518,17 @@ const GUIDED_WEIGHTS_KEY = 'kilos-guided-weights';
 const GUIDED_EXERCISES = { ...REHAB_EXERCISES, ...PROGRAM_EXERCISES };
 const GUIDED_DEMOS = { ...REHAB_DEMOS, ...PROGRAM_DEMOS };
 const getGuidedSession = (id) => getRehabSession(id) || getProgramSession(id);
+
+// Which rotation of a session runs next: one step per completed run, so A/B
+// days alternate by sessions DONE, not by calendar — a missed day never
+// swallows a variant. ('hinge' counts as legacy runs of the old split session
+// so the cadence carries over.) Non-rehab sessions resolve to 0 = fixed.
+const rehabVariantIdx = (sessionId) =>
+  (get('workoutHistory') || []).filter(
+    (h) =>
+      h.rehabId === sessionId ||
+      (sessionId === 'daily' && h.rehabId === 'hinge'),
+  ).length;
 const isProgramSession = (session) => !!session && session.id.startsWith('d40');
 
 const GUIDED_DEFAULT_KG = {
@@ -1554,6 +1567,7 @@ function saveGuidedWeight(exId, kg) {
 
 let rhSession = null;
 let rhQueue = [];
+let rhVariant = 0; // which rotation built rhQueue — persisted, so rebuilds match
 let rhIdx = 0;
 let rhRemainMs = 0;
 let rhEndsAt = 0;
@@ -1923,6 +1937,7 @@ function rhPersist() {
   }
   set(REHAB_STATE_KEY, {
     sessionId: rhSession.id,
+    variant: rhVariant,
     idx: rhIdx,
     remainMs: rhRunning ? Math.max(0, rhEndsAt - Date.now()) : rhRemainMs,
     running: rhRunning,
@@ -2260,15 +2275,16 @@ function rhStartGuide() {
 function rhRenderOverview() {
   const overlay = document.getElementById('rp-overview');
   if (!overlay.classList.contains('open') || !rhSession) return;
+  const vl = variantLabel(rhSession, rhVariant);
   document.getElementById('rpo-title').textContent =
-    `${rhSession.name} · FULL SESSION`.toUpperCase();
+    `${rhSession.name}${vl ? ` · DAY ${vl}` : ''} · FULL SESSION`.toUpperCase();
   const currentBi = rhStep()?.bi ?? 0;
   // a block is done when every one of its steps is behind us
   const lastIdxByBi = {};
   rhQueue.forEach((st, i) => {
     lastIdxByBi[st.bi] = i;
   });
-  document.getElementById('rpo-list').innerHTML = sessionOverview(rhSession, getSwaps())
+  document.getElementById('rpo-list').innerHTML = sessionOverview(rhSession, getSwaps(), rhVariant)
     .map((row, bi2) => {
       const state =
         lastIdxByBi[bi2] < rhIdx ? 'done' : bi2 === currentBi ? 'current' : '';
@@ -2342,7 +2358,7 @@ function rhApplySwap(chosenId) {
   if (chosenId === step.baseEx) delete swaps[step.baseEx];
   else swaps[step.baseEx] = chosenId;
   set(SWAPS_KEY, swaps);
-  const rebuilt = buildStepQueue(rhSession, swaps);
+  const rebuilt = buildStepQueue(rhSession, swaps, rhVariant);
   if (rebuilt.length === rhQueue.length) {
     rhQueue = rebuilt;
   } else {
@@ -2683,7 +2699,10 @@ function rhJump(dir) {
 
 function openRehabPlayer(session, saved = null) {
   rhSession = session;
-  rhQueue = buildStepQueue(session, getSwaps());
+  // A saved run keeps the variant it was built with (its step index maps
+  // onto THAT queue); a fresh run picks up wherever the rotation is.
+  rhVariant = saved?.variant ?? rehabVariantIdx(session.id);
+  rhQueue = buildStepQueue(session, getSwaps(), rhVariant);
   rhIdx = Math.min(saved?.idx ?? 0, rhQueue.length - 1);
   rhCounted = new Set(saved?.counted || []);
   rhLiftSets = saved?.liftSets || [];
@@ -2849,7 +2868,7 @@ function rhFinish() {
       set('kilos-d40-cursor', (idx + 1) % DENSITY40_SESSIONS.length);
   } else {
     newPRsThisSession = [];
-    const exercises = session.blocks
+    const exercises = sessionBlocks(session, rhVariant)
       .filter((b) => b.ex)
       .map((b) => ({
         name: GUIDED_EXERCISES[b.ex].name,
@@ -2931,12 +2950,11 @@ function renderWeekPlan() {
         let action = '';
         if (item.type === 'rehab') {
           label = 'REHAB';
-          done = entries.some((h) => h.rehabId === 'daily');
+          // 'hinge' = legacy entries from when the hinge was a separate session
+          done = entries.some(
+            (h) => h.rehabId === 'daily' || h.rehabId === 'hinge',
+          );
           action = 'session:daily';
-        } else if (item.type === 'hinge') {
-          label = 'HINGE';
-          done = entries.some((h) => h.rehabId === 'hinge');
-          action = 'session:hinge';
         } else if (item.type === 'lift') {
           const pinned = item.session ? getProgramSession(item.session) : null;
           const doneEntry = pinned
@@ -2983,7 +3001,7 @@ function renderWeekPlan() {
     </div>`);
   }
   el.innerHTML = `${rows.join('')}
-    <div class="wp-legend">REHAB warm-up · HINGE hip-hinge lift · PULL / LEGS / PUSH the week's lifts · ENGINE conditioning</div>`;
+    <div class="wp-legend">REHAB the daily back protocol (hinge rotates in) · PULL / LEGS / PUSH the week's lifts · ENGINE conditioning</div>`;
 
   el.querySelectorAll('.wp-chip[data-action]').forEach((chip) => {
     chip.addEventListener('click', () => {
@@ -3116,10 +3134,12 @@ let _spAfter = null;
 function openSessionPreview(session, after = null, originEl = null) {
   _spSession = session;
   _spAfter = after;
+  const spVariant = rehabVariantIdx(session.id);
+  const spLabel = variantLabel(session, spVariant);
   document.getElementById('sp-title').textContent = session.name.toUpperCase();
   document.getElementById('sp-meta').textContent =
-    `~${estimateSessionMins(session)} MIN · ${session.blocks.length} BLOCKS · ${(session.blurb || session.freq || '').toUpperCase().replace(/\.$/, '')}`;
-  const rows = sessionOverview(session, getSwaps());
+    `~${estimateSessionMins(session, spVariant)} MIN · ${session.blocks.length} BLOCKS${spLabel ? ` · DAY ${spLabel}` : ''} · ${(session.blurb || session.freq || '').toUpperCase().replace(/\.$/, '')}`;
+  const rows = sessionOverview(session, getSwaps(), spVariant);
   const prettyDetail = (d) =>
     d
       .replace(/^(\d+) × (.+)$/, '$1 SETS × $2 REPS')
@@ -3203,7 +3223,7 @@ function renderRehabToday() {
   slot.innerHTML = `
     <button class="rhs-card rh-today" id="rh-today-btn">
       <div class="rhs-top"><div class="rhs-name">Today · ${next.label}</div><div class="rhs-go">→</div></div>
-      <div class="rhs-meta">${doneStr}~${estimateSessionMins(session)} MIN · START NOW</div>
+      <div class="rhs-meta">${doneStr}~${estimateSessionMins(session, rehabVariantIdx(session.id))} MIN · START NOW</div>
     </button>`;
   document.getElementById('rh-today-btn').addEventListener('click', () => {
     try {
@@ -3220,7 +3240,11 @@ function renderRehabPage() {
   const savedSession = saved ? getGuidedSession(saved.sessionId) : null;
   const resumeSlot = document.getElementById('rehab-resume-slot');
   if (savedSession) {
-    const queueLen = buildStepQueue(savedSession, getSwaps()).length;
+    const queueLen = buildStepQueue(
+      savedSession,
+      getSwaps(),
+      saved.variant ?? rehabVariantIdx(savedSession.id),
+    ).length;
     resumeSlot.innerHTML = `
       <button class="rhs-card rh-resume" id="rh-resume-btn">
         <div class="rhs-top"><div class="rhs-name">Resume · ${savedSession.name}</div><div class="rhs-go">→</div></div>
@@ -3242,12 +3266,16 @@ function renderRehabPage() {
   }
 
   document.getElementById('rehab-session-list').innerHTML = REHAB_SESSIONS.map(
-    (s) => `
+    (s) => {
+      const v = rehabVariantIdx(s.id);
+      const vl = variantLabel(s, v);
+      return `
     <button class="rhs-card" data-rehab="${s.id}">
       <div class="rhs-top"><div class="rhs-name">${s.name}</div><div class="rhs-go">→</div></div>
-      <div class="rhs-meta">~${estimateSessionMins(s)} MIN · ${s.freq.toUpperCase()} · ${s.blocks.length} MOVES</div>
+      <div class="rhs-meta">~${estimateSessionMins(s, v)} MIN · ${s.freq.toUpperCase()} · ${s.blocks.length} MOVES${vl ? ` · DAY ${vl}` : ''}</div>
       <div class="rhs-blurb">${s.blurb}</div>
-    </button>`,
+    </button>`;
+    },
   ).join('');
   document
     .querySelectorAll('#rehab-session-list [data-rehab]')
@@ -3293,9 +3321,19 @@ function renderRehabPage() {
     });
   });
 
-  document.getElementById('rehab-ex-list').innerHTML = Object.values(
-    REHAB_EXERCISES,
-  )
+  // Every movement the program can serve (all rotations), in program order —
+  // not the whole REHAB_EXERCISES dict, which keeps retired moves around so
+  // old paused sessions still restore.
+  const libIds = [
+    ...new Set(
+      REHAB_SESSIONS.flatMap((s) =>
+        s.blocks.flatMap((b) => (b.rotate || [b]).map((r) => r.ex)),
+      ),
+    ),
+  ];
+  document.getElementById('rehab-ex-list').innerHTML = libIds
+    .map((id) => GUIDED_EXERCISES[id])
+    .filter(Boolean)
     .map(
       (ex) => `
     <div class="rh-ex">
@@ -3573,16 +3611,11 @@ function todayPlan() {
       return {
         type: 'rehab',
         label: 'Rehab',
-        done: entries.some((h) => h.rehabId === 'daily'),
+        // 'hinge' = legacy entries from the old split session
+        done: entries.some(
+          (h) => h.rehabId === 'daily' || h.rehabId === 'hinge',
+        ),
         sessionId: 'daily',
-      };
-    }
-    if (item.type === 'hinge') {
-      return {
-        type: 'hinge',
-        label: 'Hinge',
-        done: entries.some((h) => h.rehabId === 'hinge'),
-        sessionId: 'hinge',
       };
     }
     if (item.type === 'lift') {
@@ -3665,13 +3698,16 @@ function renderTodayCard() {
   }
   const first = undone.find((i) => i.sessionId) || undone[0];
   const session = first.sessionId ? getGuidedSession(first.sessionId) : null;
-  const mins = session ? ` · ~${estimateSessionMins(session)} MIN` : '';
+  const variant = session ? rehabVariantIdx(session.id) : 0;
+  const mins = session
+    ? ` · ~${estimateSessionMins(session, variant)} MIN`
+    : '';
   card.style.display = '';
   // One compact line: the session's movements by name, then the time.
   let moveLine = '';
   if (session) {
     const ids = [];
-    for (const bl of session.blocks || []) {
+    for (const bl of session.blocks ? sessionBlocks(session, variant) : []) {
       for (const ex of bl.members ? bl.members.map((m) => m.ex) : [bl.ex]) {
         if (ex && !ids.includes(ex)) ids.push(ex);
       }

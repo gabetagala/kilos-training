@@ -2,17 +2,28 @@
 // Unit-tested in tests/unit/rehab.test.js.
 //
 // The program is Gabe's DDD back protocol, dosed per the published protocols
-// (researched 2026-07 — see PROTOCOL notes on each block):
+// (researched 2026-07 — see PROTOCOL notes on each block). ONE session now:
+// the old separate Hinge Day folded into the daily 2026-08 — one thing to
+// do, the loaded hinge rotates in every other run.
+// - Cat-camel: 6 slow unloaded cycles as the opener — McGill's own warm-up.
+//   (Dead hangs opened the session until 2026-08 — hanging never clicked for
+//   him. The def and demo stay only so an old paused session still restores.)
 // - McGill Big 3: 8–10s isometric holds in a DESCENDING PYRAMID (5-3-1 to
 //   start; progress by adding reps, never hold length), ~3s re-brace between
 //   holds, 20–30s rest between sets, pyramid per side for side plank/bird dog.
 //   (Squat University's McGill write-up; backfitpro.)
-// - Dead hang: 15–30s hangs × 3–4 sets, accumulate 60–90s/day, real rest
-//   between hangs.
-// - Glute bridge: CONTINUOUS tempo reps — lift 1s, squeeze 2s at top, lower
-//   1s; 10 reps × 2 sets. Not hold-and-reset.
+// - Glute work: CONTINUOUS tempo reps — lift 1s, squeeze 2s at top, lower
+//   2s. Single-leg bridges, one side at a time (kickbacks tried 2026-07,
+//   dropped 2026-08: same-position single-leg bridges activate better for
+//   him, and each hip works alone so the strong side can't cover).
 // - RDL: self-paced light sets, slow eccentric, hinge quality over load.
 // - Static stretches: 30s holds × 2/side (evidence sweet spot; more adds little).
+//
+// VARIETY: a block may be a rotation wrapper { rotate: [specA, specB, …] } —
+// the app advances the active spec once per completed run of the session
+// (A/B days), so back-to-back runs differ without touching the medicine:
+// the McGill Big 3 stay fixed on purpose (the repetition IS the protocol —
+// grooving the same motor pattern daily), the hinge slot rotates.
 //
 // A session is a list of BLOCKS; buildStepQueue() expands blocks into a flat
 // queue of STEPS the player walks through one at a time:
@@ -36,6 +47,14 @@ export const REHAB_EXERCISES = {
     cue: 'Grip the bar, feet off the floor, let everything go loose. Slow breaths.',
     why: 'Decompression — the "opened up" feeling in the lower back.',
     yt: 'dead hang lower back decompression',
+  },
+  'cat-camel': {
+    name: 'Cat-Camel',
+    feel: 'The spine moving through easy range, segment by segment',
+    avoid: 'Pushing either end — this is motion, not a stretch',
+    cue: 'On all fours. Exhale, round the back up to the ceiling; inhale, let it dip. Slow and easy — no forcing.',
+    why: 'McGill’s warm-up: gentle unloaded motion that greases the spine before bracing it.',
+    yt: 'cat camel exercise mcgill',
   },
   'mcgill-curlup': {
     name: 'McGill Curl-Up',
@@ -124,15 +143,22 @@ const BRIDGE_TEMPO = [
   ['LOWER', 2], // the eccentric is the point — 1s read as a drop, not a lower
 ];
 
+// Cat-camel cycle: exhale into the round, inhale into the arch — breath-paced.
+const CATCAMEL_TEMPO = [
+  ['ROUND', 3],
+  ['ARCH', 3],
+];
+
 export const REHAB_SESSIONS = [
   {
     id: 'daily',
     name: 'Daily Reset',
     freq: 'Every day',
-    blurb: 'Decompress, then the McGill Big 3 and glutes. The non-negotiable.',
+    blurb:
+      'The whole protocol in one: wake the spine, brace it, load it, open it.',
     blocks: [
-      // PROTOCOL: 3 hangs of 25s = 75s total (60–90s band), real rest between.
-      { ex: 'dead-hang', mode: 'hold', sets: 3, holdSecs: 25, restSecs: 45 },
+      // Opener — McGill's warm-up. Slow breath-paced cycles, nothing forced.
+      { ex: 'cat-camel', mode: 'tempo', sets: 1, reps: 6, tempo: CATCAMEL_TEMPO },
       // PROTOCOL: McGill descending pyramid 5-3-1, 10s holds, 3s re-brace,
       // 25s between sets. Progress by ADDING REPS (6-4-2, 8-6-4), not longer holds.
       {
@@ -164,40 +190,50 @@ export const REHAB_SESSIONS = [
         switchSecs: 10,
         restSecs: 25,
       },
-      // PROTOCOL: continuous tempo reps — 1s up, 2s squeeze, 2s down, per
-      // side. Kickbacks replaced bridges 2026-07: best activation for him.
-      {
-        ex: 'glute-kickback',
-        mode: 'tempo',
-        sets: 2,
-        reps: 10,
-        tempo: BRIDGE_TEMPO,
-        perSide: true,
-        switchSecs: 10,
-        restSecs: 30,
-      },
-    ],
-  },
-  {
-    id: 'hinge',
-    name: 'Hinge Day',
-    freq: '3× a week',
-    blurb:
-      'Load the hinge, then open the tight bits. Add weight only if the back stayed quiet.',
-    blocks: [
-      { ex: 'rdl', mode: 'lift', sets: 3, reps: 8, restSecs: 90 },
-      // PROTOCOL: per-side tempo bridges for the leg-length asymmetry — each
-      // hip loads alone so the left can't compensate for the smaller right.
+      // PROTOCOL: continuous tempo reps — 1s up, 2s squeeze, 2s down, one
+      // side at a time. Single-leg bridges replaced kickbacks 2026-08: same
+      // position as a bridge, but each hip lifts alone — the activation he
+      // actually feels, and the strong side can't cover for the weak one.
+      // 8/side (not the two-leg 10): one leg carries double the load.
       {
         ex: 'single-leg-bridge',
         mode: 'tempo',
         sets: 2,
-        reps: 6,
+        reps: 8,
         tempo: BRIDGE_TEMPO,
         perSide: true,
         switchSecs: 10,
         restSecs: 30,
       },
+      // THE HINGE SLOT — the old Hinge Day, folded in 2026-08 so there is
+      // exactly one thing to do. Rotates per completed run:
+      //   A — suitcase carries: load a tall spine without bending it
+      //       (McGill's loaded-carry pick, and a different feel every other day).
+      //   B — RDLs: load the hinge itself. Every other run at a near-daily
+      //       cadence ≈ 3×/week — the evidence dose for a loaded hinge.
+      {
+        rotate: [
+          {
+            ex: 'suitcase-carry',
+            mode: 'hold',
+            phase: 'CARRY',
+            sets: 2,
+            holdSecs: 40,
+            perSide: true,
+            switchSecs: 15,
+            restSecs: 45,
+          },
+          {
+            ex: 'rdl',
+            mode: 'lift',
+            sets: 3,
+            reps: 8,
+            restSecs: 90,
+            note: 'Add load only if the last hinge day stayed quiet.',
+          },
+        ],
+      },
+      // The close he'd do extra of — both stretches, every run.
       {
         ex: 'hamstring-stretch',
         mode: 'hold',
@@ -222,6 +258,28 @@ export const REHAB_SESSIONS = [
 
 export const getRehabSession = (id) =>
   REHAB_SESSIONS.find((s) => s.id === id) || null;
+
+// ── Rotation: which flavor of a session runs this time ──────────────────────
+// `variant` is a monotonically increasing count (the app passes how many
+// times the session has been completed), so consecutive runs alternate but
+// any single run is deterministic — a mid-session refresh rebuilds the same
+// queue. Variant 0 always resolves to the first spec: the canonical A day.
+const rotateSpec = (block, variant) =>
+  block.rotate ? block.rotate[variant % block.rotate.length] : block;
+
+// The session's concrete blocks for a given variant.
+export const sessionBlocks = (session, variant = 0) =>
+  session.blocks.map((b) => rotateSpec(b, variant));
+
+// How many day-flavors the session cycles through (1 = fixed session).
+export const sessionVariantCount = (session) =>
+  session.blocks.reduce((n, b) => Math.max(n, b.rotate?.length || 1), 1);
+
+// 'A' / 'B' / … for rotating sessions, null for fixed ones.
+export const variantLabel = (session, variant) => {
+  const n = sessionVariantCount(session);
+  return n > 1 ? String.fromCharCode(65 + (variant % n)) : null;
+};
 
 const PREP_SECS = 10;
 const SIDES = ['LEFT', 'RIGHT'];
@@ -307,7 +365,7 @@ function pushSetWork(steps, block, setIdx, totalSets, side) {
     kind: 'work',
     exId: block.ex,
     secs: block.holdSecs,
-    phase: 'HOLD',
+    phase: block.phase || 'HOLD', // carries say CARRY, not HOLD
     meta: setMeta,
     side,
     countsAsSet: true,
@@ -342,14 +400,14 @@ function swapMeta(orig) {
 const exDef = (exId) => REHAB_EXERCISES[exId] || PROGRAM_EXERCISES[exId];
 const repLogged = (exId) => (exDef(exId)?.logReps ? { logReps: true } : {});
 
-export function buildStepQueue(session, swaps = {}) {
+export function buildStepQueue(session, swaps = {}, variant = 0) {
   const steps = [];
   const lastExId = () => steps[steps.length - 1]?.exId;
   const prepIfNew = (exId) => {
     if (exId !== lastExId()) steps.push(prepStep(exId));
   };
 
-  for (const [blockIdx, block] of session.blocks.entries()) {
+  for (const [blockIdx, block] of sessionBlocks(session, variant).entries()) {
     const blockStart = steps.length;
     const tagBlock = () => {
       for (let i = blockStart; i < steps.length; i++) steps[i].bi = blockIdx;
@@ -490,10 +548,10 @@ export function buildStepQueue(session, swaps = {}) {
 }
 
 // Human overview of a session, one row per block — for the in-player peek.
-export function sessionOverview(session, swaps = {}) {
+export function sessionOverview(session, swaps = {}, variant = 0) {
   const name = (exId) =>
     (REHAB_EXERCISES[exId] || PROGRAM_EXERCISES[exId])?.name || exId;
-  return session.blocks.map((block) => {
+  return sessionBlocks(session, variant).map((block) => {
     if (block.mode === 'ramp') {
       return {
         title: `${name(resolveSwap(block, swaps).ex)} — warm-up ramp`,
@@ -589,17 +647,18 @@ export function tempoStateAt(tempo, elapsedMs) {
   };
 }
 
-export function sessionSetTotal(session) {
-  return buildStepQueue(session).filter((s) => s.countsAsSet).length;
+export function sessionSetTotal(session, variant = 0) {
+  return buildStepQueue(session, {}, variant).filter((s) => s.countsAsSet)
+    .length;
 }
 
-export function estimateSessionSecs(session) {
-  return buildStepQueue(session).reduce(
+export function estimateSessionSecs(session, variant = 0) {
+  return buildStepQueue(session, {}, variant).reduce(
     (sum, s) => sum + (s.secs ?? MANUAL_SET_EST_SECS),
     0,
   );
 }
 
-export function estimateSessionMins(session) {
-  return Math.max(1, Math.round(estimateSessionSecs(session) / 60));
+export function estimateSessionMins(session, variant = 0) {
+  return Math.max(1, Math.round(estimateSessionSecs(session, variant) / 60));
 }
