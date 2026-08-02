@@ -1888,7 +1888,9 @@ function rhAnnounceStep(step) {
   if (step.kind === 'prep') {
     rhCueSay(['get-set', `name-${step.exId}`], `Get set — ${ex.name}`);
   } else if (step.kind === 'work') {
-    if (step.manual && step.logWeight === false) {
+    if (step.manual && step.phase === 'RAMP') {
+      // Only the ramp is a warm-up — unlogged band/bodyweight WORKING sets
+      // (logWeight:false) used to get announced as "warm up" too.
       rhCueSay(['warm-up'], 'Warm up — your pace');
     } else if (step.manual) {
       rhCueSay(['your-pace'], `Set — ${speakReps(step.reps)} reps, your pace`);

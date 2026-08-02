@@ -346,6 +346,27 @@ describe('Density 40 program', () => {
     for (const c of carries) expect(c.secs).toBe(40);
   });
 
+  it('every self-paced working set carries the tempo guide (the rep counter)', () => {
+    for (const session of DENSITY40_SESSIONS) {
+      const manual = buildStepQueue(session).filter(
+        (s) => s.kind === 'work' && s.manual,
+      );
+      for (const s of manual) {
+        if (s.phase === 'RAMP') continue; // the warm-up stays unpaced
+        expect(s.repTempo, `${s.exId} repTempo`).toBeTruthy();
+        expect(s.repTarget, `${s.exId} repTarget`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('exactly one RAMP step per session — working sets are never warm-ups', () => {
+    for (const session of DENSITY40_SESSIONS) {
+      const ramps = buildStepQueue(session).filter((s) => s.phase === 'RAMP');
+      expect(ramps).toHaveLength(1);
+      expect(ramps[0].logWeight).toBe(false);
+    }
+  });
+
   it('sessions land inside the 40-minute promise', () => {
     for (const session of DENSITY40_SESSIONS) {
       const mins = estimateSessionMins(session);

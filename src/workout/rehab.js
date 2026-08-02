@@ -463,6 +463,9 @@ export function buildStepQueue(session, swaps = {}, variant = 0) {
               cueNote:
                 round === block.rounds ? m.lastRoundNote || m.note : m.note,
               countsAsSet: m.countsAsSet !== false,
+              // circuit members get the same tempo guide + live rep counter
+              // as main lifts — supersets are where counting is hardest
+              ...guideFor(r.ex, r.reps),
               ...swapMeta(m),
               ...repLogged(r.ex),
             });
