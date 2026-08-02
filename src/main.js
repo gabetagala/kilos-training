@@ -28,8 +28,10 @@ import {
   nextWorkLabel,
   REHAB_EXERCISES,
   REHAB_SESSIONS,
+  sessionBlocks,
   sessionOverview,
   tempoStateAt,
+  variantLabel,
 } from './workout/rehab.js';
 import {
   DENSITY40_SESSIONS,
@@ -97,6 +99,21 @@ const set = (k, v) => {
     localStorage.setItem(k, JSON.stringify(v));
   } catch {}
 };
+
+// Escape user-entered text before it goes into innerHTML — custom workout / WOD
+// names can contain <, >, & and would otherwise break layout or inject markup.
+const escapeHtml = (t) =>
+  String(t ?? '').replace(
+    /[&<>"']/g,
+    (c) =>
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      })[c],
+  );
 
 // ─── PERSISTENCE KEYS ────────────────────────────────────────────────────────
 const ACTIVE_STATE_KEY = 'kilos-active-state';
@@ -352,6 +369,41 @@ function checkAndUpdateVolPR(exerciseName, weight, reps) {
   return false;
 }
 
+// Rebuild the all-time weight PR and volume PR for one exercise from committed
+// history plus this session's still-done sets. Called when a logged set is
+// undone, so a mis-tap can't leave a phantom PR in prMap/volPRMap (which sync to
+// the cloud) that poisons every future PR check.
+function recomputePRsForExercise(exerciseName) {
+  let bestW = 0;
+  let bestVol = 0;
+  const consider = (l) => {
+    const w = parseFloat(l.weight) || 0;
+    const r = parseInt(l.reps, 10) || 0;
+    if (w > bestW) bestW = w;
+    if (w > 0 && r > 0 && w * r > bestVol) bestVol = w * r;
+  };
+  // Committed history — persisted logs are what actually happened.
+  for (const h of get('workoutHistory') || []) {
+    for (const e of h.exercises || []) {
+      if (e.name === exerciseName) (e.logs || []).forEach(consider);
+    }
+  }
+  // Current session — only sets still marked done.
+  for (const e of activeWorkout?.exercises || []) {
+    if (e.name === exerciseName) {
+      for (const l of e.logs || []) if (l.done) consider(l);
+    }
+  }
+  const prMap = getPRMap();
+  if (bestW > 0) prMap[exerciseName] = bestW;
+  else delete prMap[exerciseName];
+  set('prMap', prMap);
+  const volMap = get('volPRMap') || {};
+  if (bestVol > 0) volMap[exerciseName] = bestVol;
+  else delete volMap[exerciseName];
+  set('volPRMap', volMap);
+}
+
 // ─── COUNT-UP ─────────────────────────────────────────────────────────────────
 // Animates a number from 0 → target with an ease-out so hero stats "snap into
 // place" — the premium reveal. Snaps instantly under prefers-reduced-motion.
@@ -432,7 +484,8 @@ document.getElementById('prc-share').addEventListener('click', () => {
     const dur = `${Math.floor(elapsed / 60)}:${(elapsed % 60).toString().padStart(2, '0')}`;
     currentShareData = buildShareData({
       workout: activeWorkout,
-      cfRoundsCompleted,
+      cfRoundsCompleted:
+        activeWorkout.type === 'amrap' ? cfRoundsCompleted : cfCurrentRound,
       duration: dur,
       streak: currentStreak(get('workoutHistory') || []),
     });
@@ -576,17 +629,22 @@ function goScreen(id) {
   // set-log controls (done / ± steppers) and isn't needed mid-set.
 
   // 6. Render content
-  if (id === 'home') {
-    renderHome();
-  }
-  if (id === 'train') renderTrain();
-  if (id === 'history') {
+  renderScreen(id);
+}
+
+// Per-screen content render. The ONE place tab content is (re)built, so tap-nav
+// (goScreen) and swipe-nav (the pager's settle) can never diverge — swiping to a
+// tab used to commit .active without rendering, leaving stale content (e.g. a
+// Resume button that didn't reflect a live session).
+function renderScreen(id) {
+  if (id === 'home') renderHome();
+  else if (id === 'train') renderTrain();
+  else if (id === 'history') {
     renderHistory();
     renderProfilePane();
-  }
-  if (id === 'coaches') renderCoaches(); // was 'legends'
-  if (id === 'build') renderBuild();
-  if (id === 'active') renderActiveScreen();
+  } else if (id === 'coaches') renderCoaches();
+  else if (id === 'build') renderBuild();
+  else if (id === 'active') renderActiveScreen();
 }
 document.querySelectorAll('.nav-btn').forEach((btn) => {
   btn.addEventListener('click', () => goScreen(btn.dataset.screen));
@@ -678,7 +736,7 @@ function renderDayHero() {
     const plan = todayPlan().filter((i) => i.sessionId);
     const mins = plan.reduce((sum, i) => {
       const sess = getGuidedSession(i.sessionId);
-      return sum + (sess ? estimateSessionMins(sess) : 0);
+      return sum + (sess ? estimateSessionMins(sess, rehabVariantIdx(sess.id)) : 0);
     }, 0);
     const labels = plan.map((i) => b(i.label)).join(' + ');
     line = plan.length
@@ -729,7 +787,12 @@ function renderMonthGrid() {
     .toLocaleDateString('en-US', { month: 'long' })
     .toUpperCase();
   const jan1 = new Date(year, 0, 1);
-  const week = Math.ceil(((now - jan1) / 864e5 + ((jan1.getDay() + 6) % 7) + 1) / 7);
+  // Whole days from Jan 1, date-only — including the time-of-day in (now - jan1)
+  // made Math.ceil round the week number up by one every Sunday afternoon.
+  const dayIdx = Math.round(
+    (new Date(year, now.getMonth(), now.getDate()) - jan1) / 864e5,
+  );
+  const week = Math.ceil((dayIdx + ((jan1.getDay() + 6) % 7) + 1) / 7);
   el.innerHTML = `
     <div class="mg-caption"><span>${monName} — W${week}</span><span>${trained} TRAINED</span></div>
     <div class="mg-grid">${cells.join('')}</div>`;
@@ -772,8 +835,8 @@ function mgShowTip(cell) {
   }
   tip.innerHTML =
     `<div class="mg-tip-date">${wd} ${d}</div>` +
-    `<div class="mg-tip-title">${title}</div>` +
-    (sub ? `<div class="mg-tip-sub">${sub}</div>` : '');
+    `<div class="mg-tip-title">${escapeHtml(title)}</div>` +
+    (sub ? `<div class="mg-tip-sub">${escapeHtml(sub)}</div>` : '');
   const hr = hero.getBoundingClientRect();
   const cr = cell.getBoundingClientRect();
   tip.style.left = `${cr.left - hr.left + cr.width / 2}px`;
@@ -911,7 +974,7 @@ function renderRecent() {
             : `${ds} · ${h.sets || 0} sets · ${h.duration || '0:00'}`;
       return `<div class="recent-card" data-ridx="${history.indexOf(h)}">
       <div class="rc-left">
-        <div class="rc-name"><span class="rc-type">${typeTag}</span><span class="rc-name-text">${h.name}</span></div>
+        <div class="rc-name"><span class="rc-type">${typeTag}</span><span class="rc-name-text">${escapeHtml(h.name)}</span></div>
         <div class="rc-meta">${meta}</div>
       </div>
       <div>
@@ -1077,6 +1140,10 @@ const NAV_TABS = ['home', 'train', 'history'];
     const dur = 300;
     const tr = `transform ${dur}ms cubic-bezier(.25,.72,.35,1)`;
     paging = true;
+    // Refresh the incoming tab's content before it slides in — swiping commits
+    // .active without going through goScreen, so without this it would show
+    // stale content (same render dispatch tap-nav uses).
+    if (complete && incoming) renderScreen(incoming.id);
     if (el) el.style.transition = tr;
     if (incoming) incoming.style.transition = tr;
     if (complete && incoming) {
@@ -1451,6 +1518,17 @@ const GUIDED_WEIGHTS_KEY = 'kilos-guided-weights';
 const GUIDED_EXERCISES = { ...REHAB_EXERCISES, ...PROGRAM_EXERCISES };
 const GUIDED_DEMOS = { ...REHAB_DEMOS, ...PROGRAM_DEMOS };
 const getGuidedSession = (id) => getRehabSession(id) || getProgramSession(id);
+
+// Which rotation of a session runs next: one step per completed run, so A/B
+// days alternate by sessions DONE, not by calendar — a missed day never
+// swallows a variant. ('hinge' counts as legacy runs of the old split session
+// so the cadence carries over.) Non-rehab sessions resolve to 0 = fixed.
+const rehabVariantIdx = (sessionId) =>
+  (get('workoutHistory') || []).filter(
+    (h) =>
+      h.rehabId === sessionId ||
+      (sessionId === 'daily' && h.rehabId === 'hinge'),
+  ).length;
 const isProgramSession = (session) => !!session && session.id.startsWith('d40');
 
 const GUIDED_DEFAULT_KG = {
@@ -1489,6 +1567,7 @@ function saveGuidedWeight(exId, kg) {
 
 let rhSession = null;
 let rhQueue = [];
+let rhVariant = 0; // which rotation built rhQueue — persisted, so rebuilds match
 let rhIdx = 0;
 let rhRemainMs = 0;
 let rhEndsAt = 0;
@@ -1809,7 +1888,9 @@ function rhAnnounceStep(step) {
   if (step.kind === 'prep') {
     rhCueSay(['get-set', `name-${step.exId}`], `Get set — ${ex.name}`);
   } else if (step.kind === 'work') {
-    if (step.manual && step.logWeight === false) {
+    if (step.manual && step.phase === 'RAMP') {
+      // Only the ramp is a warm-up — unlogged band/bodyweight WORKING sets
+      // (logWeight:false) used to get announced as "warm up" too.
       rhCueSay(['warm-up'], 'Warm up — your pace');
     } else if (step.manual) {
       rhCueSay(['your-pace'], `Set — ${speakReps(step.reps)} reps, your pace`);
@@ -1858,6 +1939,7 @@ function rhPersist() {
   }
   set(REHAB_STATE_KEY, {
     sessionId: rhSession.id,
+    variant: rhVariant,
     idx: rhIdx,
     remainMs: rhRunning ? Math.max(0, rhEndsAt - Date.now()) : rhRemainMs,
     running: rhRunning,
@@ -2195,15 +2277,16 @@ function rhStartGuide() {
 function rhRenderOverview() {
   const overlay = document.getElementById('rp-overview');
   if (!overlay.classList.contains('open') || !rhSession) return;
+  const vl = variantLabel(rhSession, rhVariant);
   document.getElementById('rpo-title').textContent =
-    `${rhSession.name} · FULL SESSION`.toUpperCase();
+    `${rhSession.name}${vl ? ` · DAY ${vl}` : ''} · FULL SESSION`.toUpperCase();
   const currentBi = rhStep()?.bi ?? 0;
   // a block is done when every one of its steps is behind us
   const lastIdxByBi = {};
   rhQueue.forEach((st, i) => {
     lastIdxByBi[st.bi] = i;
   });
-  document.getElementById('rpo-list').innerHTML = sessionOverview(rhSession, getSwaps())
+  document.getElementById('rpo-list').innerHTML = sessionOverview(rhSession, getSwaps(), rhVariant)
     .map((row, bi2) => {
       const state =
         lastIdxByBi[bi2] < rhIdx ? 'done' : bi2 === currentBi ? 'current' : '';
@@ -2277,7 +2360,7 @@ function rhApplySwap(chosenId) {
   if (chosenId === step.baseEx) delete swaps[step.baseEx];
   else swaps[step.baseEx] = chosenId;
   set(SWAPS_KEY, swaps);
-  const rebuilt = buildStepQueue(rhSession, swaps);
+  const rebuilt = buildStepQueue(rhSession, swaps, rhVariant);
   if (rebuilt.length === rhQueue.length) {
     rhQueue = rebuilt;
   } else {
@@ -2545,18 +2628,37 @@ function rhTick() {
 function rhComplete(overflowMs = 0) {
   const step = rhStep();
   if (step?.kind === 'work' && step.countsAsSet) rhCounted.add(rhIdx);
-  let carry = overflowMs;
+
+  // A large overflow means the tab was backgrounded/asleep past the step's end
+  // (normal tick drift is < 250ms). Don't blow through every remaining step and
+  // auto-log a finished session the user never did — advance exactly one step
+  // and pause, so they resume deliberately.
+  const backgrounded = overflowMs > 2000;
+
+  let carry = backgrounded ? 0 : overflowMs;
   let idx = rhIdx + 1;
-  while (idx < rhQueue.length) {
-    const next = rhQueue[idx];
-    if (next.manual) break; // self-paced — wait for the athlete
-    const dur = next.secs * 1000;
-    if (carry < dur) break;
-    carry -= dur;
-    if (next.kind === 'work' && next.countsAsSet) rhCounted.add(idx);
-    idx++;
+  if (!backgrounded) {
+    while (idx < rhQueue.length) {
+      const next = rhQueue[idx];
+      if (next.manual) break; // self-paced — wait for the athlete
+      const dur = next.secs * 1000;
+      if (carry < dur) break;
+      carry -= dur;
+      if (next.kind === 'work' && next.countsAsSet) rhCounted.add(idx);
+      idx++;
+    }
   }
   if (idx >= rhQueue.length) {
+    if (backgrounded) {
+      // Ran past the end via a background gap — hold on the last step, paused.
+      // Never auto-finish/log from a catch-up; finishing is an explicit action.
+      rhIdx = rhQueue.length - 1;
+      rhRemainMs = 0;
+      rhStop();
+      rhRenderStep();
+      rhPersist();
+      return;
+    }
     rhFinish();
     return;
   }
@@ -2567,8 +2669,8 @@ function rhComplete(overflowMs = 0) {
   rhTempoMem.key = null;
   rhStepEnteredAt = Date.now();
   rhAnnounceStep(next);
-  if (next.manual) {
-    rhStop();
+  if (backgrounded || next.manual) {
+    rhStop(); // land paused after a background gap (or on a self-paced step)
   } else if (rhRunning) {
     rhEndsAt = Date.now() + rhRemainMs;
   }
@@ -2599,7 +2701,10 @@ function rhJump(dir) {
 
 function openRehabPlayer(session, saved = null) {
   rhSession = session;
-  rhQueue = buildStepQueue(session, getSwaps());
+  // A saved run keeps the variant it was built with (its step index maps
+  // onto THAT queue); a fresh run picks up wherever the rotation is.
+  rhVariant = saved?.variant ?? rehabVariantIdx(session.id);
+  rhQueue = buildStepQueue(session, getSwaps(), rhVariant);
   rhIdx = Math.min(saved?.idx ?? 0, rhQueue.length - 1);
   rhCounted = new Set(saved?.counted || []);
   rhLiftSets = saved?.liftSets || [];
@@ -2765,7 +2870,7 @@ function rhFinish() {
       set('kilos-d40-cursor', (idx + 1) % DENSITY40_SESSIONS.length);
   } else {
     newPRsThisSession = [];
-    const exercises = session.blocks
+    const exercises = sessionBlocks(session, rhVariant)
       .filter((b) => b.ex)
       .map((b) => ({
         name: GUIDED_EXERCISES[b.ex].name,
@@ -2847,12 +2952,11 @@ function renderWeekPlan() {
         let action = '';
         if (item.type === 'rehab') {
           label = 'REHAB';
-          done = entries.some((h) => h.rehabId === 'daily');
+          // 'hinge' = legacy entries from when the hinge was a separate session
+          done = entries.some(
+            (h) => h.rehabId === 'daily' || h.rehabId === 'hinge',
+          );
           action = 'session:daily';
-        } else if (item.type === 'hinge') {
-          label = 'HINGE';
-          done = entries.some((h) => h.rehabId === 'hinge');
-          action = 'session:hinge';
         } else if (item.type === 'lift') {
           const pinned = item.session ? getProgramSession(item.session) : null;
           const doneEntry = pinned
@@ -2899,7 +3003,7 @@ function renderWeekPlan() {
     </div>`);
   }
   el.innerHTML = `${rows.join('')}
-    <div class="wp-legend">REHAB warm-up · HINGE hip-hinge lift · PULL / LEGS / PUSH the week's lifts · ENGINE conditioning</div>`;
+    <div class="wp-legend">REHAB the daily back protocol (hinge rotates in) · PULL / LEGS / PUSH the week's lifts · ENGINE conditioning</div>`;
 
   el.querySelectorAll('.wp-chip[data-action]').forEach((chip) => {
     chip.addEventListener('click', () => {
@@ -3032,10 +3136,12 @@ let _spAfter = null;
 function openSessionPreview(session, after = null, originEl = null) {
   _spSession = session;
   _spAfter = after;
+  const spVariant = rehabVariantIdx(session.id);
+  const spLabel = variantLabel(session, spVariant);
   document.getElementById('sp-title').textContent = session.name.toUpperCase();
   document.getElementById('sp-meta').textContent =
-    `~${estimateSessionMins(session)} MIN · ${session.blocks.length} BLOCKS · ${(session.blurb || session.freq || '').toUpperCase().replace(/\.$/, '')}`;
-  const rows = sessionOverview(session, getSwaps());
+    `~${estimateSessionMins(session, spVariant)} MIN · ${sessionBlocks(session, spVariant).length} BLOCKS${spLabel ? ` · DAY ${spLabel}` : ''} · ${(session.blurb || session.freq || '').toUpperCase().replace(/\.$/, '')}`;
+  const rows = sessionOverview(session, getSwaps(), spVariant);
   const prettyDetail = (d) =>
     d
       .replace(/^(\d+) × (.+)$/, '$1 SETS × $2 REPS')
@@ -3119,7 +3225,7 @@ function renderRehabToday() {
   slot.innerHTML = `
     <button class="rhs-card rh-today" id="rh-today-btn">
       <div class="rhs-top"><div class="rhs-name">Today · ${next.label}</div><div class="rhs-go">→</div></div>
-      <div class="rhs-meta">${doneStr}~${estimateSessionMins(session)} MIN · START NOW</div>
+      <div class="rhs-meta">${doneStr}~${estimateSessionMins(session, rehabVariantIdx(session.id))} MIN · START NOW</div>
     </button>`;
   document.getElementById('rh-today-btn').addEventListener('click', () => {
     try {
@@ -3136,7 +3242,11 @@ function renderRehabPage() {
   const savedSession = saved ? getGuidedSession(saved.sessionId) : null;
   const resumeSlot = document.getElementById('rehab-resume-slot');
   if (savedSession) {
-    const queueLen = buildStepQueue(savedSession, getSwaps()).length;
+    const queueLen = buildStepQueue(
+      savedSession,
+      getSwaps(),
+      saved.variant ?? rehabVariantIdx(savedSession.id),
+    ).length;
     resumeSlot.innerHTML = `
       <button class="rhs-card rh-resume" id="rh-resume-btn">
         <div class="rhs-top"><div class="rhs-name">Resume · ${savedSession.name}</div><div class="rhs-go">→</div></div>
@@ -3158,12 +3268,16 @@ function renderRehabPage() {
   }
 
   document.getElementById('rehab-session-list').innerHTML = REHAB_SESSIONS.map(
-    (s) => `
+    (s) => {
+      const v = rehabVariantIdx(s.id);
+      const vl = variantLabel(s, v);
+      return `
     <button class="rhs-card" data-rehab="${s.id}">
       <div class="rhs-top"><div class="rhs-name">${s.name}</div><div class="rhs-go">→</div></div>
-      <div class="rhs-meta">~${estimateSessionMins(s)} MIN · ${s.freq.toUpperCase()} · ${s.blocks.length} MOVES</div>
+      <div class="rhs-meta">~${estimateSessionMins(s, v)} MIN · ${s.freq.toUpperCase()} · ${sessionBlocks(s, v).length} MOVES${vl ? ` · DAY ${vl}` : ''}</div>
       <div class="rhs-blurb">${s.blurb}</div>
-    </button>`,
+    </button>`;
+    },
   ).join('');
   document
     .querySelectorAll('#rehab-session-list [data-rehab]')
@@ -3209,9 +3323,21 @@ function renderRehabPage() {
     });
   });
 
-  document.getElementById('rehab-ex-list').innerHTML = Object.values(
-    REHAB_EXERCISES,
-  )
+  // Every movement the program can serve (all rotations), in program order —
+  // not the whole REHAB_EXERCISES dict, which keeps retired moves around so
+  // old paused sessions still restore.
+  const libIds = [
+    ...new Set(
+      REHAB_SESSIONS.flatMap((s) =>
+        s.blocks.flatMap((b) =>
+          (b.rotate || [b]).filter(Boolean).map((r) => r.ex),
+        ),
+      ),
+    ),
+  ];
+  document.getElementById('rehab-ex-list').innerHTML = libIds
+    .map((id) => GUIDED_EXERCISES[id])
+    .filter(Boolean)
     .map(
       (ex) => `
     <div class="rh-ex">
@@ -3384,9 +3510,9 @@ document.getElementById('btn-startover-new').addEventListener('click', () => {
     localStorage.removeItem(REHAB_STATE_KEY);
   } catch {}
   if (pendingBegin) {
-    const { name, type, exercises } = pendingBegin;
+    const go = pendingBegin;
     pendingBegin = null;
-    beginWorkoutNow(name, type, exercises);
+    go();
   }
 });
 document.getElementById('btn-discard-yes').addEventListener('click', () => {
@@ -3489,16 +3615,11 @@ function todayPlan() {
       return {
         type: 'rehab',
         label: 'Rehab',
-        done: entries.some((h) => h.rehabId === 'daily'),
+        // 'hinge' = legacy entries from the old split session
+        done: entries.some(
+          (h) => h.rehabId === 'daily' || h.rehabId === 'hinge',
+        ),
         sessionId: 'daily',
-      };
-    }
-    if (item.type === 'hinge') {
-      return {
-        type: 'hinge',
-        label: 'Hinge',
-        done: entries.some((h) => h.rehabId === 'hinge'),
-        sessionId: 'hinge',
       };
     }
     if (item.type === 'lift') {
@@ -3581,13 +3702,16 @@ function renderTodayCard() {
   }
   const first = undone.find((i) => i.sessionId) || undone[0];
   const session = first.sessionId ? getGuidedSession(first.sessionId) : null;
-  const mins = session ? ` · ~${estimateSessionMins(session)} MIN` : '';
+  const variant = session ? rehabVariantIdx(session.id) : 0;
+  const mins = session
+    ? ` · ~${estimateSessionMins(session, variant)} MIN`
+    : '';
   card.style.display = '';
   // One compact line: the session's movements by name, then the time.
   let moveLine = '';
   if (session) {
     const ids = [];
-    for (const bl of session.blocks || []) {
+    for (const bl of session.blocks ? sessionBlocks(session, variant) : []) {
       for (const ex of bl.members ? bl.members.map((m) => m.ex) : [bl.ex]) {
         if (ex && !ids.includes(ex)) ids.push(ex);
       }
@@ -3882,6 +4006,11 @@ function startCoachWorkout(coachId, workoutName) {
 }
 
 function beginCFWorkout(name, cfData) {
+  // Same unfinished-session guard as strength — a coach preview / launch link
+  // must not silently discard a restored in-progress workout.
+  guardedBegin(() => beginCFWorkoutNow(name, cfData));
+}
+function beginCFWorkoutNow(name, cfData) {
   newPRsThisSession = [];
   activeWorkout = { name, type: cfData.type, cf: cfData };
   cfCurrentRound = 0;
@@ -4101,7 +4230,7 @@ document.getElementById('cf-mov-name').addEventListener('keydown', (e) => {
 
 document
   .getElementById('btn-add-exercise')
-  .addEventListener('click', openExSearch);
+  .addEventListener('click', () => openExSearch('add'));
 document
   .getElementById('btn-save-workout')
   .addEventListener('click', saveCustomWorkout);
@@ -4180,7 +4309,10 @@ function startCustomWorkout() {
 }
 
 // ─── EXERCISE SEARCH ─────────────────────────────────────────────────────────
-function openExSearch() {
+function openExSearch(mode = 'add') {
+  // Mode is set fresh on every open so a dismissed Swap can't leave the search
+  // in 'swap' and make the next "Add Exercise" overwrite the current exercise.
+  exSearchMode = mode;
   document.getElementById('ex-search-modal').classList.add('open');
   const input = document.getElementById('ex-search-input');
   input.value = '';
@@ -4237,6 +4369,7 @@ function addExercise(name) {
       })),
     };
     closeExSearch();
+    saveActiveState(); // persist the swap so a refresh before the next set keeps it
     renderCurrentExercise();
     renderExNav();
     return;
@@ -4351,7 +4484,10 @@ document.getElementById('btn-close-shuffle').addEventListener('click', () => {
 // ─── OVERLAY TAP TO CLOSE ────────────────────────────────────────────────────
 ['shuffle-modal', 'ex-search-modal'].forEach((id) => {
   document.getElementById(id).addEventListener('click', function (e) {
-    if (e.target === this) this.classList.remove('open');
+    if (e.target === this) {
+      this.classList.remove('open');
+      if (id === 'ex-search-modal') exSearchMode = 'add';
+    }
   });
 });
 
@@ -4553,10 +4689,14 @@ document.getElementById('np-btn-signin').addEventListener('click', async () => {
 
   const displayName = data?.user?.user_metadata?.display_name || nameInput;
   saveUserName(displayName);
-  // Returning user — never show onboarding, they've been through setup already
+  // Returning user — never show onboarding, they've been through setup already.
+  // Tag this as the sign-in seed so the deferred pullAndMerge knows it may be
+  // replaced by the cloud profile (equipment tier, injuries) rather than
+  // treated as a real local edit that would block the restore.
   saveProfile({
     setupComplete: true,
     equipmentTier: getProfile().equipmentTier || 'full-gym',
+    _signinSeed: true,
   });
   closeNamePrompt();
   if (_npCallback) {
@@ -4581,16 +4721,23 @@ document.getElementById('np-btn-go-create').addEventListener('click', () => {
 // ─── ACTIVE WORKOUT ───────────────────────────────────────────────────────────
 let pendingBegin = null;
 let lastFinishSnapshot = null;
-function beginWorkout(name, type, exercises) {
+// Shared "you have an unfinished session" guard for every begin path (strength,
+// CrossFit, coach launch). `starter` is a thunk that actually starts the
+// workout — run now if nothing is live, or after the user confirms discarding
+// what's running. One mechanism so no entry point can clobber a live session.
+function guardedBegin(starter) {
   const info = activeSessionInfo();
   if (info) {
-    pendingBegin = { name, type, exercises };
+    pendingBegin = starter;
     document.getElementById('startover-sub').textContent =
       `${info.name} is unfinished. Starting new discards it.`;
     document.getElementById('startover-confirm').classList.add('open');
     return;
   }
-  beginWorkoutNow(name, type, exercises);
+  starter();
+}
+function beginWorkout(name, type, exercises) {
+  guardedBegin(() => beginWorkoutNow(name, type, exercises));
 }
 function beginWorkoutNow(name, type, exercises) {
   newPRsThisSession = [];
@@ -4717,6 +4864,17 @@ function renderCardioActive() {
   document.getElementById('cardio-notes-label').textContent =
     activeWorkout.notes || '';
 
+  // Distance is DOM-entered but must survive a mid-cardio refresh/crash — mirror
+  // it into the session (rides in the snapshot) and restore it on every render.
+  const distInput = document.getElementById('cardio-distance-input');
+  if (distInput) {
+    distInput.value = activeWorkout.distance || '';
+    distInput.oninput = () => {
+      if (activeWorkout) activeWorkout.distance = distInput.value;
+      saveActiveState();
+    };
+  }
+
   // RPE effort selector
   document.getElementById('rpe-selector')?.remove();
   const rpeEl = document.createElement('div');
@@ -4730,17 +4888,26 @@ function renderCardioActive() {
       <button class="rpe-btn" data-rpe="max">Max</button>
     </div>`;
   rpeEl.querySelectorAll('.rpe-btn').forEach((btn) => {
+    // Restore the chosen effort after a re-render/refresh
+    if (activeWorkout?.rpe === btn.dataset.rpe) btn.classList.add('active');
     btn.addEventListener('click', () => {
       rpeEl.querySelectorAll('.rpe-btn').forEach((b) => {
         b.classList.remove('active');
       });
       btn.classList.add('active');
       if (activeWorkout) activeWorkout.rpe = btn.dataset.rpe;
+      saveActiveState();
     });
   });
   document.getElementById('cardio-log-section').appendChild(rpeEl);
 
-  startTimer(0, 'cardio');
+  // Only kick off the clock on a genuine fresh start. On a re-render (already
+  // running), a paused session, or a boot restore (restoreTimer owns the
+  // snapshot), don't reset elapsed back to 0 / un-pause.
+  if (!activeWorkout.cardioStarted && !timerRunning && !_pendingTimer) {
+    activeWorkout.cardioStarted = true;
+    startTimer(0, 'cardio');
+  }
 }
 
 // ─── CROSSFIT ACTIVE ──────────────────────────────────────────────────────────
@@ -4834,6 +5001,7 @@ function renderEMOMLog(el, cf) {
     dot.addEventListener('click', () => {
       const i = parseInt(dot.dataset.round, 10);
       cfRoundLog[i] = !cfRoundLog[i];
+      saveActiveState();
       renderCFLog();
     });
   });
@@ -4866,11 +5034,13 @@ function renderAMRAPLog(el, cf) {
     cfRoundsCompleted++;
     beep(660, 0.1);
     if (navigator.vibrate) navigator.vibrate(30);
+    saveActiveState(); // AMRAP's only score — persist every round so a background reap can't lose it
     renderCFLog();
   });
   el.querySelector('#cf-minus').addEventListener('click', () => {
     if (cfRoundsCompleted > 0) {
       cfRoundsCompleted--;
+      saveActiveState();
       renderCFLog();
     }
   });
@@ -4903,6 +5073,7 @@ function renderRoundsLog(el, cf) {
       if (cfMovementsDone.has(i)) cfMovementsDone.delete(i);
       else cfMovementsDone.add(i);
       if (navigator.vibrate) navigator.vibrate(25);
+      saveActiveState();
       renderCFLog();
     });
   });
@@ -4952,6 +5123,7 @@ function renderForTimeLog(el, cf) {
       if (cfMovementsDone.has(i)) cfMovementsDone.delete(i);
       else cfMovementsDone.add(i);
       if (navigator.vibrate) navigator.vibrate(25);
+      saveActiveState();
       const nowAllDone = items.every((_, j) => cfMovementsDone.has(j));
       if (nowAllDone) {
         stopTimer();
@@ -4972,6 +5144,7 @@ function advanceCFRound() {
   if (!cf) return;
   cfCurrentRound++;
   cfMovementsDone = new Set();
+  saveActiveState(); // persist the advanced round so a refresh doesn't restore round 1
 
   if (cfCurrentRound >= (cf.rounds || 1)) {
     // All rounds done
@@ -5058,8 +5231,7 @@ function renderCurrentExercise() {
   swapBtn.className = 'swap-ex-btn';
   swapBtn.textContent = 'Swap →';
   swapBtn.addEventListener('click', () => {
-    exSearchMode = 'swap';
-    openExSearch();
+    openExSearch('swap');
   });
   metaRow.appendChild(swapBtn);
 
@@ -5174,7 +5346,13 @@ function renderSetLog() {
         // (toggleSetDone) — never written to data until then, so unperformed
         // sets stay out of history.
         const wValue = dispLogW || (suggestion ? dispSugg : '');
-        const rValue = log.reps || (suggestion ? suggReps : '');
+        // Prefill reps with what you ACTUALLY did last time for this set (a real,
+        // grounded default), not the program's aspirational target — and never
+        // seed a range string ("8–12"), which would corrupt est. 1RM / double
+        // progression. Falls back to the top of the range as a clean integer.
+        const rValue =
+          log.reps ||
+          (suggestion ? String(prev?.reps ?? repTargetTop(ex.reps) ?? '') : '');
         const prefilled = !log.weight && suggestion ? ' prefilled' : '';
         const isCurrent = i === nextSetIdx;
         return `<div class="log-row${log.done ? ' done' : ''}${isCurrent ? ' current' : ''}">
@@ -5296,6 +5474,14 @@ function toggleSetDone(setIdx) {
     const w = parseFloat(log.weight) || 0;
     const r = parseInt(log.reps, 10) || parseInt(ex.reps, 10) || 0;
     totalWeightMoved = Math.max(0, totalWeightMoved - w * r);
+    // Roll back any PR this set set: recompute the records from committed
+    // history + remaining done sets (so no phantom PR lingers), and drop this
+    // set's badge from the session so the summary can't show a PR that's gone.
+    recomputePRsForExercise(ex.name);
+    const i = newPRsThisSession.findIndex(
+      (p) => p.name === ex.name && p.weight === w && p.reps === r,
+    );
+    if (i !== -1) newPRsThisSession.splice(i, 1);
     saveActiveState();
   }
 
@@ -5410,10 +5596,64 @@ function fmtTimeBig(s) {
 
 let cardioElapsed = 0;
 
+// Keep the screen awake while any workout timer runs (the browser drops the
+// lock when the tab hides, so the visibility handler re-requests on return).
+let workoutWakeLock = null;
+async function acquireWorkoutWakeLock() {
+  if (workoutWakeLock) return;
+  try {
+    workoutWakeLock = (await navigator.wakeLock?.request('screen')) || null;
+  } catch {
+    /* unsupported / denied — fine */
+  }
+}
+function releaseWorkoutWakeLock() {
+  try {
+    workoutWakeLock?.release();
+  } catch {}
+  workoutWakeLock = null;
+}
+
+// Single source of truth for "a countdown hit zero" — used by the live tick, the
+// visibility-return catch-up, and boot restore, so every path advances EMOM /
+// shows AMRAP time-up / ends rest identically. They used to diverge, which
+// stalled EMOM cadence at "DONE" when a minute lapsed in the background.
+function onCountdownExpire() {
+  stopTimer();
+  beep(880, 0.3);
+
+  if (timerPhase === 'emom') {
+    advanceCFRound(); // starts the next minute, or finishes on the last round
+    return;
+  }
+  if (timerPhase === 'amrap') {
+    setTimeout(() => beep(660, 0.15), 300); // after the 880 — a rising two-note
+    setTimerText('DONE', 'TIME UP');
+    const el = document.getElementById('ring-time');
+    el.classList.remove('tick');
+    el.classList.add('go-text');
+    setTimerStyle('work');
+    setTimerBar(0, false);
+    return;
+  }
+  // Standard rest / work — second note delayed so it reads as a rising "da-DUM".
+  setTimeout(() => beep(660, 0.15), 300);
+  setTimerText(
+    timerPhase === 'rest' ? 'GO' : 'DONE',
+    timerPhase === 'rest' ? 'REST OVER' : 'SET DONE',
+  );
+  const el = document.getElementById('ring-time');
+  el.classList.remove('tick');
+  el.classList.add('go-text');
+  setTimerStyle('work');
+  setTimerBar(1, false);
+}
+
 function startTimer(seconds, phase) {
   stopTimer();
   timerPhase = phase;
   timerRunning = true;
+  acquireWorkoutWakeLock();
   const numEl = document.getElementById('ring-time');
   numEl.classList.remove('go-text', 'tick');
   setTimerStyle(phase);
@@ -5465,40 +5705,7 @@ function startTimer(seconds, phase) {
     );
     flashTick();
     if (timerSeconds <= 3 && timerSeconds > 0) beep(440, 0.1);
-    if (timerSeconds <= 0) {
-      stopTimer();
-      beep(880, 0.3);
-
-      // EMOM: auto-advance to next round
-      if (timerPhase === 'emom') {
-        advanceCFRound();
-        return;
-      }
-
-      // AMRAP: time's up
-      if (timerPhase === 'amrap') {
-        setTimeout(() => beep(660, 0.15), 300); // after the 880 lands — a two-note, not a clash
-        setTimerText('DONE', 'TIME UP');
-        const el = document.getElementById('ring-time');
-        el.classList.remove('tick');
-        el.classList.add('go-text');
-        setTimerStyle('work');
-        setTimerBar(0, false);
-        return;
-      }
-
-      // Standard rest/work — second note delayed so it reads as a rising
-      // "da-DUM", not two tones stacked at the same instant.
-      setTimeout(() => beep(660, 0.15), 300);
-      const doneWord = timerPhase === 'rest' ? 'GO' : 'DONE';
-      const doneLbl = timerPhase === 'rest' ? 'REST OVER' : 'SET DONE';
-      setTimerText(doneWord, doneLbl);
-      const el = document.getElementById('ring-time');
-      el.classList.remove('tick');
-      el.classList.add('go-text');
-      setTimerStyle('work');
-      setTimerBar(1, false);
-    }
+    if (timerSeconds <= 0) onCountdownExpire();
   }, 1000);
   saveActiveState();
 }
@@ -5506,6 +5713,7 @@ function startTimer(seconds, phase) {
 function stopTimer() {
   clearInterval(timerInterval);
   timerRunning = false;
+  releaseWorkoutWakeLock();
   showPlayBtn();
   // Persist the frozen state so a refresh-while-paused restores the remaining
   // time exactly (no fast-forward), not a stale running snapshot.
@@ -5544,17 +5752,10 @@ function restoreTimer() {
   timerSeconds = remaining;
 
   if (remaining <= 0) {
-    // Expired while away (or finished): show the completed state.
-    stopTimer();
-    setTimerText(
-      t.phase === 'rest' ? 'GO' : 'DONE',
-      t.phase === 'rest' ? 'REST OVER' : 'SET DONE',
-    );
-    const el = document.getElementById('ring-time');
-    el.classList.remove('tick');
-    el.classList.add('go-text');
-    setTimerStyle('work');
-    setTimerBar(1, false);
+    // Expired while the app was closed — run the same per-phase completion as a
+    // live expiry (advance EMOM, show AMRAP time-up, or end rest/work) so an
+    // EMOM's cadence survives a reload instead of dying at "DONE".
+    onCountdownExpire();
   } else if (t.running) {
     // Resume the live countdown from where it really is, but keep the original
     // total so the progress ring fills correctly (startTimer resets total).
@@ -5698,30 +5899,37 @@ document.getElementById('play-pause-btn').addEventListener('click', () => {
 const COUNTUP_PHASES = new Set(['cardio', 'stopwatch']);
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
-    if (timerRunning && !COUNTUP_PHASES.has(timerPhase))
-      timerHiddenAt = Date.now();
-  } else if (timerHiddenAt !== null) {
     if (timerRunning && !COUNTUP_PHASES.has(timerPhase)) {
-      const elapsed = Math.round((Date.now() - timerHiddenAt) / 1000);
-      timerSeconds = Math.max(0, timerSeconds - elapsed);
-      setTimerText(fmtTimeBig(timerSeconds), timerPhase.toUpperCase());
-      setTimerBar(
-        timerTotal > 0 ? timerSeconds / timerTotal : 0,
-        timerPhase === 'rest',
-      );
-      setTimerStyle(timerPhase);
-      if (timerSeconds <= 0) {
-        stopTimer();
-        beep(880, 0.3);
-        setTimerText(
-          timerPhase === 'rest' ? 'GO' : 'DONE',
-          timerPhase === 'rest' ? 'REST OVER' : 'SET DONE',
-        );
-        setTimerStyle('work');
-        setTimerBar(1, false);
-      }
+      timerHiddenAt = Date.now();
+      // Stop the interval while away so a throttled background tick (Android /
+      // desktop keep setInterval alive) can't decrement on TOP of the
+      // fast-forward we apply on return — that was the double-decrement bug.
+      clearInterval(timerInterval);
     }
-    timerHiddenAt = null;
+  } else {
+    // The browser releases the screen wake lock when hidden — re-take it.
+    if (timerRunning) acquireWorkoutWakeLock();
+    if (timerHiddenAt !== null) {
+      if (timerRunning && !COUNTUP_PHASES.has(timerPhase)) {
+        const elapsed = Math.round((Date.now() - timerHiddenAt) / 1000);
+        timerSeconds = Math.max(0, timerSeconds - elapsed);
+        if (timerSeconds > 0) {
+          // Resume ticking from the corrected remaining, keeping the ring total.
+          const total = timerTotal;
+          startTimer(timerSeconds, timerPhase);
+          timerTotal = total;
+          setTimerBar(
+            total > 0 ? timerSeconds / total : 0,
+            timerPhase === 'rest',
+          );
+        } else {
+          // Expired while away — advance EMOM / show AMRAP time-up / end rest,
+          // instead of freezing at DONE regardless of format.
+          onCountdownExpire();
+        }
+      }
+      timerHiddenAt = null;
+    }
   }
 });
 
@@ -5753,10 +5961,19 @@ document.getElementById('btn-finish-no').addEventListener('click', () => {
 
 function finishWorkout() {
   if (!activeWorkout) return;
+  // Capture the stopwatch BEFORE stopTimer(), though stopTimer only freezes it.
+  // For the stopwatch formats (For Time / Rounds) the SCORE is the stopwatch
+  // time at the last rep (in cardioElapsed), not wall-clock at the finish tap —
+  // which would inflate the time by however long it took to hit the button.
+  const stopwatchScore =
+    (activeWorkout.type === 'fortime' || activeWorkout.type === 'rounds') &&
+    cardioElapsed > 0;
   stopTimer();
-  const elapsed = workoutStartTime
-    ? Math.floor((Date.now() - workoutStartTime) / 1000)
-    : 0;
+  const elapsed = stopwatchScore
+    ? cardioElapsed
+    : workoutStartTime
+      ? Math.floor((Date.now() - workoutStartTime) / 1000)
+      : 0;
   const durationStr = `${Math.floor(elapsed / 60)}:${(elapsed % 60).toString().padStart(2, '0')}`;
   const completed = { ...activeWorkout };
 
@@ -5797,7 +6014,9 @@ function finishWorkout() {
   if (completed.type === 'cardio') {
     entry.cardioType = completed.cardioType;
     entry.distance =
-      document.getElementById('cardio-distance-input')?.value || '';
+      completed.distance ||
+      document.getElementById('cardio-distance-input')?.value ||
+      '';
     entry.rpe = completed.rpe || null;
   }
   if (isCF) {
@@ -6049,11 +6268,19 @@ document.getElementById('wsum-close').addEventListener('click', () => {
   document.getElementById('workout-summary').classList.remove('open');
 });
 
-function showShareCard(workout, duration, _entry) {
+function showShareCard(workout, duration, entry) {
+  // Rounds for CF: prefer the saved entry's value (correct when sharing from
+  // history); otherwise derive from the live globals the SAME way the entry does
+  // — AMRAP scores cfRoundsCompleted, every other format scores cfCurrentRound.
+  // (Passing the raw cfRoundsCompleted global showed ROUNDS 0 for For Time / RFT
+  // / EMOM, whose count lives in cfCurrentRound.)
+  const cfRounds =
+    entry?.cfRoundsCompleted ??
+    (workout?.type === 'amrap' ? cfRoundsCompleted : cfCurrentRound);
   // Build the data model for the canvas renderer
   currentShareData = buildShareData({
     workout,
-    cfRoundsCompleted,
+    cfRoundsCompleted: cfRounds,
     duration,
     streak: currentStreak(get('workoutHistory') || []),
   });
@@ -6314,7 +6541,7 @@ function renderHistory() {
       return `<div class="history-item${isExpanded ? ' expanded' : ''}" data-ridx="${realIdx}">
       <div class="hi-main">
         <div class="hi-left">
-          <div class="hi-name"><span class="rc-type">${typeTag}</span><span class="rc-name-text">${h.name}</span></div>
+          <div class="hi-name"><span class="rc-type">${typeTag}</span><span class="rc-name-text">${escapeHtml(h.name)}</span></div>
           <div class="hi-meta">${meta}</div>
           ${prLine}
         </div>
@@ -6510,8 +6737,10 @@ async function renderDataNotice() {
   if (!notice) return;
   if (currentUser) {
     const rawEmail = currentUser.email || '';
-    const displayId = rawEmail.endsWith('@kilostraining.app')
-      ? rawEmail.replace('@kilostraining.app', '')
+    // Show only the username — never expose the internally-minted email domain
+    // (@kilostraining.app, or @grittraining.app for grandfathered accounts).
+    const displayId = rawEmail.includes('@')
+      ? rawEmail.split('@')[0]
       : rawEmail;
     const pending = hasPendingSync();
     notice.innerHTML = `<div class="dn-foot">${
@@ -7018,8 +7247,11 @@ function showCrashScreen(err) {
 
 // Restore in-progress workout from localStorage (task #1). Wrapped so a boot
 // failure shows the recovery screen instead of a blank/half-rendered app.
+let bootLoadOK = false;
 try {
-  if (loadActiveState()) {
+  const restored = loadActiveState();
+  bootLoadOK = true; // loading the snapshot itself didn't throw
+  if (restored) {
     renderHome(); // update Resume button + streak
     renderActiveScreen(); // rebuild active workout UI
     restoreTimer(); // resume the rest/work countdown, fast-forwarded by elapsed time
@@ -7029,12 +7261,14 @@ try {
   renderProfileBtn();
   sessionStorage.removeItem('kilos-boot-retry'); // clean boot → arm the retry again
 } catch (err) {
-  // One shot at self-healing: quarantine the active-session snapshot (the
-  // usual culprit after a schema change) and reload once. The crash screen
-  // only shows when a CLEAN boot also fails.
+  // Self-heal, but only sacrifice the saved session when LOADING the snapshot is
+  // what failed (the usual culprit after a schema change). If it loaded fine and
+  // a later render threw, the session is valid — a mid-workout session must
+  // survive an unrelated bug, so keep it and show the recovery screen (which
+  // reloads without discarding anything).
   let retrying = false;
   try {
-    if (!sessionStorage.getItem('kilos-boot-retry')) {
+    if (!bootLoadOK && !sessionStorage.getItem('kilos-boot-retry')) {
       sessionStorage.setItem('kilos-boot-retry', '1');
       const snap = localStorage.getItem(ACTIVE_STATE_KEY);
       if (snap != null) {
@@ -7048,6 +7282,18 @@ try {
   if (!retrying) showCrashScreen(err);
   throw err; // still surface it to monitoring / console
 }
+
+// Belt-and-suspenders session flush: the instant the page is hidden or torn
+// down, snapshot the live session. iOS can reclaim a backgrounded tab with no
+// further JS, so this is the last safe moment. saveActiveState() is a synchronous
+// localStorage write (never a network call), so it's safe here and can't lose a
+// mutation that some handler forgot to persist.
+window.addEventListener('pagehide', () => {
+  if (activeWorkout) saveActiveState();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && activeWorkout) saveActiveState();
+});
 
 // Active placeholder → go home
 document
@@ -7093,7 +7339,11 @@ setTimeout(() => {
 // Also retry once on startup in case the last session ended offline.
 async function retrySyncIfNeeded() {
   if (hasPendingSync()) {
-    await pushData();
+    // Retry as a PULL+merge, never a blind push: pullAndMerge reads the cloud,
+    // folds it into local (union — no loss), restores the profile if this was a
+    // failed sign-in pull, then pushes the merged result. A bare pushData here
+    // would overwrite the cloud backup after a failed pull (the old blocker).
+    await pullAndMerge();
     renderDataNotice(); // refresh sync status label
   }
 }

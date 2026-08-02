@@ -526,12 +526,14 @@ export const getProgramSession = (id) =>
 // Index = JS getDay() (0=Sun … 6=Sat). A 'lift' with a `session` is pinned to
 // that exact day (Mon=A, Wed=B, Fri=C); a bare 'lift' falls back to the A→B→C
 // queue. 'walk'/'engine' are manual mark-done items.
+// The hinge is no longer its own slot — it lives inside the daily rehab
+// session, rotating in every other completed run (see rehab.js).
 export const WEEK_PLAN = [
   /* Sun */ [{ type: 'rehab' }, { type: 'walk' }],
   /* Mon */ [{ type: 'rehab' }, { type: 'lift', session: 'd40-a' }],
-  /* Tue */ [{ type: 'rehab' }, { type: 'hinge' }],
+  /* Tue */ [{ type: 'rehab' }],
   /* Wed */ [{ type: 'rehab' }, { type: 'lift', session: 'd40-b' }],
-  /* Thu */ [{ type: 'rehab' }, { type: 'hinge' }],
+  /* Thu */ [{ type: 'rehab' }],
   /* Fri */ [{ type: 'rehab' }, { type: 'lift', session: 'd40-c' }],
-  /* Sat */ [{ type: 'rehab' }, { type: 'hinge' }, { type: 'engine' }],
+  /* Sat */ [{ type: 'rehab' }, { type: 'engine' }],
 ];

@@ -807,7 +807,10 @@ export function getActiveProfile() {
 export function resolveExercise(exerciseName, profile) {
   const { equipmentTier, injuries } = profile;
 
-  // Injury override takes priority
+  // Injury override takes priority — and wins ABSOLUTELY: an injury sub is
+  // chosen to be safe for that injury, so we deliberately do NOT re-resolve it
+  // through the equipment tier (which could swap in an injury-unsafe movement).
+  // See tests/unit/resolveExercise.test.js "injury win over equipment (priority)".
   for (const injuryId of injuries || []) {
     const sub = INJURY_SUBSTITUTIONS[injuryId]?.substitute?.[exerciseName];
     if (sub)

@@ -1859,6 +1859,11 @@ body {
   color: var(--grey);
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  /* It's a tappable chip — give it a real hit area (was ~16px tall). */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
 }
 .export-btn {
   background: none;
@@ -2257,12 +2262,12 @@ body {
   flex-shrink: 0;
 }
 .active-exit {
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-left: -7px; /* optically align the chevron to the 24px gutter */
+  margin-left: -10px; /* optically align the chevron to the 24px gutter */
   color: var(--grey);
   background: none;
   border: none;
@@ -2531,7 +2536,7 @@ body {
   width: 100%;
   margin-bottom: 8px;
   padding: 4px 0;
-  min-height: 32px;
+  min-height: 44px; /* core-loop tap target (tap to undo a set) — was 32px */
   background: none;
   border: none;
   cursor: pointer;
@@ -3104,7 +3109,9 @@ body {
 }
 .share-btn.secondary {
   background: transparent;
-  color: rgba(255, 255, 255, 0.28);
+  /* Was rgba(255,255,255,.28) ≈ 2.3:1 — below AA, and this is the only way out
+     of the share sheet. Lift to --grey (≈4.6:1 on the dark surface). */
+  color: var(--grey);
   font-family: "Space Mono", monospace;
   font-size: 10px;
   padding: 12px;
@@ -4069,12 +4076,12 @@ body {
 .cf-round-dots {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px; /* was 6px — meet the ≥8px spacing floor between mid-metcon taps */
   padding: 6px 0 16px;
 }
 .cf-round-dot {
-  width: 28px;
-  height: 28px;
+  width: 40px; /* was 28px — larger tap target for a sweaty mid-WOD control */
+  height: 40px;
   border-radius: 50%;
   border: 1.5px solid var(--border);
   cursor: pointer;
@@ -5245,7 +5252,8 @@ body {
   font-size: var(--type-caption);
   text-transform: uppercase;
   letter-spacing: 0.18em;
-  color: rgba(255, 255, 255, 0.35);
+  /* Was .35 white ≈ 3.2:1 — lift to clear AA (4.5:1) in bright gym light. */
+  color: rgba(255, 255, 255, 0.6);
   margin-bottom: 12px;
 }
 .wsum-name {
