@@ -62,7 +62,11 @@ const ONLY = opt('only', '')
   .filter(Boolean);
 const FORCE = flag('force');
 const DRY = flag('dry-run');
-const MODEL = opt('model', 'gemini-2.5-flash-image');
+// Nano Banana Pro: ~3× the price of gemini-2.5-flash-image but decisively
+// better at equipment (cable machines, benches, boxes) and pose instructions
+// — flash failed ~half the catalog, pro passed the hardest cases first try.
+// If this preview id is ever retired, fall back with --model.
+const MODEL = opt('model', 'gemini-3-pro-image-preview');
 const REF_PATH = resolve(ROOT, opt('ref', 'public/rehab/rdl-a.webp'));
 
 // ── API key: env first, .env.local second (gitignored) ───────────────────────
@@ -285,6 +289,15 @@ function splitPair({ data, info }, stack = false) {
   }
   // ground shadows may just touch across the midline — allow a whisker
   if (bestVal > laneSpan * 0.04) return null;
+  // both halves must actually contain a figure — a cut above/below both
+  // figures produces one blank half and one double half
+  let firstOpaque = 0;
+  let total = 0;
+  for (let i = 0; i < lanes; i++) {
+    total += opaque[i];
+    if (i < best) firstOpaque += opaque[i];
+  }
+  if (firstOpaque < total * 0.2 || firstOpaque > total * 0.8) return null;
   if (stack) {
     const sliceRows = (y0, y1) => ({
       data: data.subarray(y0 * w * 4, y1 * w * 4),

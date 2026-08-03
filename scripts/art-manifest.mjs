@@ -159,7 +159,7 @@ export const ART_MANIFEST = {
     a: 'working arm fully extended toward the low pulley holding the D-handle, the cable drawn taut from handle to pulley, lat stretched, torso still',
     b: 'the D-handle pulled to his hip, the cable still clearly connecting it to the low pulley, elbow driven behind him, shoulder blade squeezed, torso unchanged',
     important:
-      'he holds a CABLE HANDLE connected by a visible cable to the machine in BOTH poses — there are NO dumbbells in this exercise; only the arm moves',
+      'he holds a CABLE HANDLE connected by a visible cable to the machine in BOTH figures — no dumbbells; only the arm moves; ONE single unbroken cable line visibly connects the pulley to the handle in his hands — no other lines, poles, stubs or floating fragments anywhere in the image',
   },
   'chest-supported-row': {
     scene:
@@ -182,7 +182,7 @@ export const ART_MANIFEST = {
     a: 'the working arm down across his body toward the low pulley, cable slack ready',
     b: 'the working arm raised straight OUT TO HIS SIDE in the frontal plane of his shoulders — a lateral raise, not forward — hand exactly at shoulder height, cable taut in a diagonal line down to the pulley',
     important:
-      'the arm travels sideways in line with his shoulders, NEVER forward like a front raise; it stops exactly at shoulder height',
+      'the arm travels sideways in line with his shoulders, NEVER forward like a front raise; it stops exactly at shoulder height; ONE single unbroken cable line visibly connects the pulley to the handle in his hands — no other lines, poles, stubs or floating fragments anywhere in the image',
   },
   'band-lateral-raise': {
     scene:
@@ -197,7 +197,7 @@ export const ART_MANIFEST = {
     a: 'gripping the two rope ends at chest height, forearms up, the cable running from the rope straight up to the high pulley',
     b: 'arms fully extended straight down, the two rope ends split apart beside his thighs, the cable still running up to the high pulley, elbows still pinned, shoulders down',
     important:
-      'the cable machine with its high pulley is VISIBLE in both poses and the rope is connected to it by a taut cable — the rope is never floating free; the elbows never leave his sides',
+      'the cable machine with its high pulley is VISIBLE in both figures and the rope hangs FROM the pulley by one taut cable — never floating free; the elbows never leave his sides; ONE single unbroken cable line visibly connects the pulley to the handle in his hands — no other lines, poles, stubs or floating fragments anywhere in the image',
   },
   'overhead-triceps': {
     scene:
@@ -241,7 +241,7 @@ export const ART_MANIFEST = {
     a: 'forearms flat on the thighs, wrists relaxed so the knuckles droop below knee level, dumbbells hanging low',
     b: 'forearms still flat on the thighs, only the hands raised — knuckles lifted as high as the wrists allow, dumbbells tilted up',
     important:
-      'this is a tiny wrist movement: the forearms stay GLUED to the thighs in both poses, elbows bent, hands past the knees — the arms are NEVER raised, extended or pressed anywhere',
+      'this is a tiny wrist movement: the forearms stay GLUED to the thighs in both poses and the dumbbells NEVER rise above knee height — if a dumbbell is higher than his knees the image is wrong',
   },
   'wrist-curl': {
     scene:
@@ -249,7 +249,7 @@ export const ART_MANIFEST = {
     a: 'forearms flat on the thighs, wrists rolled open so the dumbbells sit low in his fingers below knee level',
     b: 'forearms still flat on the thighs, only the hands curled — wrists rolled fully up toward the forearms, dumbbells lifted',
     important:
-      'this is a tiny wrist movement: the forearms stay GLUED to the thighs in both poses, elbows bent, hands past the knees — the arms are NEVER raised or curled to the shoulder',
+      'this is a tiny wrist movement: the forearms stay GLUED to the thighs in both poses and the dumbbells NEVER rise above knee height — if a dumbbell is higher than his knees the image is wrong',
   },
   'front-squat': {
     scene:
@@ -257,7 +257,7 @@ export const ART_MANIFEST = {
     a: 'standing fully upright, chest proud, upper arms horizontal with elbows high in front of the bar',
     b: 'squatted down until his thighs are just above the safety pins, torso remarkably upright, upper arms still horizontal with elbows high, heels flat, knees tracking over his toes',
     important:
-      'the bar sits ON his front shoulders touching his collarbones, and his upper arms are near HORIZONTAL with elbows lifted high in BOTH poses',
+      'in BOTH poses his upper arms are HORIZONTAL with the elbows lifted to shoulder height pointing straight forward — the elbows NEVER drop, especially in the deep squat',
   },
   'rfe-split-squat': {
     scene:
@@ -281,7 +281,7 @@ export const ART_MANIFEST = {
     a: 'arms extended forward holding the rope ends, the cable taut back to the pulley, shoulder blades reaching',
     b: 'rope pulled to his eyebrows, the cable still clearly connected to the pulley, elbows high and wide, hands split apart with thumbs pointing behind him, chest tall',
     important:
-      'the rope is connected to the machine by a visible taut cable in BOTH poses; the pull lands at eyebrow height with elbows HIGH',
+      'the rope is connected to the machine by a visible taut cable in BOTH figures; the pull lands at eyebrow height with elbows HIGH; ONE single unbroken cable line visibly connects the pulley to the handle in his hands — no other lines, poles, stubs or floating fragments anywhere in the image',
   },
   'band-pull-apart': {
     scene:
@@ -305,7 +305,7 @@ export const ART_MANIFEST = {
     a: 'arms fully extended, body one rigid straight line sloping down from the feet on the box to his hands on the floor, ribs down',
     b: 'chest lowered to just above the floor, elbows bent at 45 degrees, feet STILL up on the box, the body line still perfectly rigid and sloping downhill',
     important:
-      'his FEET are on the box and his HANDS are on the floor in BOTH poses — never the other way around; the head end is the LOW end; no hip sag; the two poses must clearly differ in elbow bend and chest height',
+      'his FEET are on the box and his HANDS are on the floor in BOTH poses; his head is the LOWEST point of the body, clearly below the level of the box — the body slopes DOWN from feet to head; no hip sag; the two poses must clearly differ in elbow bend and chest height',
   },
   'band-fly': {
     scene:
