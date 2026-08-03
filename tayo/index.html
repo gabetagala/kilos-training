@@ -359,14 +359,10 @@
     function nextUpcoming() {
       const { day } = log();
       const mins = minOfDay();
-      // The headline countdown tracks the REAL breaks only — EYES stays an
-      // ambient banner (and the menu bar only knows MOVE/STAND, so counting
-      // eyes here made the two surfaces disagree).
-      return (
-        slots().find(
-          (s) => s.type !== 'eyes' && !day.slots[s.id] && s.min > mins,
-        ) || null
-      );
+      // All break types count down here — EYES included (his call) — but
+      // eyes never take the stage; when due they run as the banner and the
+      // headline rolls to the next slot. TayoBar mirrors this exactly.
+      return slots().find((s) => !day.slots[s.id] && s.min > mins) || null;
     }
 
     function render() {

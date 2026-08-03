@@ -35,6 +35,7 @@ func daySlots() -> [Slot] {
         let mm = m % 60
         if mm == 0 && m > START { out.append(Slot(m: m, type: "MOVE")) }
         if mm == 30 { out.append(Slot(m: m, type: "STAND")) }
+        if mm == 20 || mm == 40 { out.append(Slot(m: m, type: "EYES")) }
         m += 1
     }
     return out
@@ -42,6 +43,7 @@ func daySlots() -> [Slot] {
 
 func prescription(for slot: Slot) -> [String] {
     if slot.type == "STAND" { return STAND_RX }
+    if slot.type == "EYES" { return ["20 seconds on something 20 feet away."] }
     return (slot.m / 60) % 2 == 0 ? MOVE_A : MOVE_B
 }
 
@@ -114,8 +116,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let secsIntoMin = cal.component(.second, from: now)
         let slots = daySlots()
 
-        // A slot in its NOW window takes over the bar.
-        if let cur = slots.last(where: { $0.m <= mins && mins < $0.m + DUE_WINDOW }) {
+        // A slot in its NOW window takes over the bar — except EYES, which
+        // (like the web page) never takes the stage; it counts down, then
+        // the bar rolls straight to the next slot.
+        if let cur = slots.last(where: { $0.type != "EYES" && $0.m <= mins && mins < $0.m + DUE_WINDOW }) {
             item.button?.title = "\(cur.type) NOW"
             setMenu(
                 headerText: String(format: "TAYO NA — %@ (%02d:%02d)", cur.type, cur.m / 60, cur.m % 60),
