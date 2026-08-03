@@ -1,5 +1,13 @@
 # Rehab demo art — Gemini (Nano Banana) prompt kit
 
+> **This is now automated.** `npm run art:generate` (needs `GEMINI_API_KEY`
+> in the shell or `.env.local`) generates every missing exercise via the
+> Gemini API — poses chained on a reference image, cropped-free, written
+> straight to `public/rehab/` as webp, with an `art-review.html` contact
+> sheet for the form check. The prompt blocks live in
+> `scripts/art-manifest.mjs`; this doc stays as the style source-of-truth
+> and for one-off manual runs in the Gemini app.
+
 Goal: 8 flat-vector exercise illustrations (Hevy-style) for the guided rehab
 player. The app is already wired: drop finished files in `public/rehab/` and
 they replace the built-in figure automatically.
