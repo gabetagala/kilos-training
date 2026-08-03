@@ -182,7 +182,7 @@
   </div>
 
   <div class="today">
-    <div class="label">Today’s snacks</div>
+    <div class="label">Today’s moves</div>
     <div class="dots" id="dots"></div>
   </div>
 
@@ -191,13 +191,13 @@
     <div class="cfg">
       <label>Desk window <span>
         <input type="time" id="cfg-start" /> – <input type="time" id="cfg-end" /></span></label>
-      <label>Hourly snack (:00) <input type="checkbox" id="cfg-snack" /></label>
+      <label>Hourly move (:00) <input type="checkbox" id="cfg-snack" /></label>
       <label>Half-hour stand (:30) <input type="checkbox" id="cfg-stand" /></label>
       <label>Eye breaks (:20 / :40, silent) <input type="checkbox" id="cfg-eyes" /></label>
       <label>Sound <input type="checkbox" id="cfg-sound" /></label>
       <label>Notifications <button id="notif-btn" style="padding:8px 12px;min-height:0">Enable</button></label>
-      <label>Snack A <input type="text" id="cfg-snack-a" /></label>
-      <label>Snack B <input type="text" id="cfg-snack-b" /></label>
+      <label>Move A <input type="text" id="cfg-snack-a" /></label>
+      <label>Move B <input type="text" id="cfg-snack-b" /></label>
       <div class="note why">
         <b>Why these numbers.</b> Breaking a sit every 30 min blunts the glucose
         and blood-pressure cost of sitting (the best-proven piece — stand,
@@ -261,8 +261,9 @@
     }
     const minOfDay = () => { const d = now(); return d.getHours() * 60 + d.getMinutes(); };
 
-    // A due slot stays claimable for 10 min, then silently lapses to "miss".
-    const DUE_WINDOW = 10;
+    // A due slot stays claimable for 5 min, then silently lapses to "miss"
+    // and the countdown moves on (kept in sync with TayoBar.swift).
+    const DUE_WINDOW = 5;
     let active = null; // the slot currently taking over the stage
     let eyesUntil = 0; // epoch ms while the eyes banner runs
 
@@ -347,7 +348,7 @@
         active = due;
         chime(due.type === 'snack' ? 3 : 2);
         notify(
-          due.type === 'snack' ? 'Tayô — snack time' : 'Tayô — stand up',
+          due.type === 'snack' ? 'Tayô — time to move' : 'Tayô — stand up',
           due.type === 'snack' ? snackText() : '2 minutes on your feet.',
         );
       }
@@ -358,7 +359,14 @@
     function nextUpcoming() {
       const { day } = log();
       const mins = minOfDay();
-      return slots().find((s) => !day.slots[s.id] && s.min > mins) || null;
+      // The headline countdown tracks the REAL breaks only — EYES stays an
+      // ambient banner (and the menu bar only knows MOVE/STAND, so counting
+      // eyes here made the two surfaces disagree).
+      return (
+        slots().find(
+          (s) => s.type !== 'eyes' && !day.slots[s.id] && s.min > mins,
+        ) || null
+      );
     }
 
     function render() {
@@ -376,7 +384,7 @@
       if (active) {
         const isSnack = active.type === 'snack';
         stage.className = `stage due ${active.type}`;
-        $('kicker').textContent = isSnack ? 'TAYO NA — SNACK' : 'TAYO NA — STAND';
+        $('kicker').textContent = isSnack ? 'TAYO NA — MOVE' : 'TAYO NA — STAND';
         $('count').textContent = '';
         $('what').textContent = isSnack ? snackText() : 'Stand. Walk somewhere. Water counts.';
         $('sub').textContent = isSnack
@@ -398,7 +406,7 @@
         return;
       }
       stage.className = 'stage';
-      const labels = { snack: 'SNACK', stand: 'STAND', eyes: 'EYES' };
+      const labels = { snack: 'MOVE', stand: 'STAND', eyes: 'EYES' };
       $('kicker').textContent = `NEXT · ${labels[nxt.type]} · ${String(Math.floor(nxt.min / 60)).padStart(2, '0')}:${String(nxt.min % 60).padStart(2, '0')}`;
       $('count').textContent = fmt(nxt.min - mins - (now().getSeconds() / 60));
       $('what').textContent = nxt.type === 'snack' ? snackText() : '';
