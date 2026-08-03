@@ -1,9 +1,18 @@
-# Your voice as the coach — recording guide
+# The coach voice — clips guide
 
-The player already prefers your recorded clips over the system voice: drop
-files into `public/voice/` named `<slug>.m4a` (or `.mp3`) and they take over
-instantly — any phrase without a clip falls back to the system voice, so you
-can record in one sitting or gradually.
+> **Current coach: "Brian" (ElevenLabs premade), generated via API.** Every
+> spoken phrase in the player ships as a Brian clip in `public/voice/` —
+> new phrases are generated with `node scripts/generate-voice.mjs` (needs
+> `ELEVENLABS_API_KEY` in `.env.local`), which matches the pack's profile
+> automatically (trim, 0.89 peak, AAC 48k mono). Keep every word in ONE
+> voice: if a phrase is added in code, generate its clip in the same run.
+> iOS throttles speechSynthesis mid-session, so a phrase without a clip is
+> effectively silent on iPhone — TTS is a desktop-only last resort.
+
+The rest of this doc is the **optional personal-voice path**: drop files
+into `public/voice/` named `<slug>.m4a` (or `.mp3`) and they take over
+instantly (your recordings outrank nothing — they simply replace the Brian
+files; the originals stay recoverable in git history).
 
 ## How to record (2 minutes, iPhone Voice Memos is fine)
 
@@ -55,9 +64,11 @@ warm-up, lift, squeeze, lower, one … ten, session-complete`
 
 ## Batch 2 — coach lines (pushes + form reminders)
 
-Same drill: one memo, ~1s pause between phrases, calm coach. These play in
-the quiet windows (mid-rest, early in a hold) — until recorded, the system
-voice covers them.
+**Already generated as Brian clips** (2026-08-04, via
+`scripts/generate-voice.mjs` — the script's phrase list is built from
+`src/workout/formCues.js`, so code and audio can't drift). The list below
+stays for the personal-voice path: same drill, one memo, ~1s pause between
+phrases, calm coach.
 
 ### Milestones
 
