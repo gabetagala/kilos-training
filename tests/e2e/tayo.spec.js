@@ -21,6 +21,13 @@ test('a due move takes the stage; Done logs a hit dot', async ({ page }) => {
   await expect(page.locator('#kicker')).toContainText('NEXT');
 });
 
+test('eye breaks count down in the headline too (matches the menu bar)', async ({
+  page,
+}) => {
+  await page.goto('/tayo/?at=10:05');
+  await expect(page.locator('#kicker')).toContainText('NEXT · EYES · 10:20');
+});
+
 test('outside the window it goes quiet', async ({ page }) => {
   await page.goto('/tayo/?at=16:10');
   await expect(page.locator('#kicker')).toContainText('OFF THE CLOCK');

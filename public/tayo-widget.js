@@ -28,6 +28,7 @@ function slots() {
   for (let m = S; m <= E; m++) {
     if (m % 60 === 0 && m > S) out.push({ m, type: 'MOVE' });
     else if (m % 60 === 30) out.push({ m, type: 'STAND' });
+    else if (m % 60 === 20 || m % 60 === 40) out.push({ m, type: 'EYES' });
   }
   return out;
 }
