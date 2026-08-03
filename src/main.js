@@ -40,6 +40,7 @@ import {
   WEEK_PLAN,
 } from './workout/program.js';
 import { PROGRAM_DEMOS, REHAB_DEMOS } from './workout/rehabDemos.js';
+import { mayInterject, ttsWindowMs } from './workout/voiceMic.js';
 import { addCheckin, checkinStatus } from './workout/checkin.js';
 import { loggedExercisesOf, resolveMuscleGroup } from './workout/muscles.js';
 import { currentStreak, longestStreak } from './workout/streak.js';
@@ -1684,6 +1685,8 @@ async function rhDecodeClip(slug) {
 // word may cut a lingering count's tail. Without this, the buffer channel
 // and the announcement channel play simultaneously — audible pile-ups at
 // set start ("go" + "lift") and set end (last count + "rest").
+// The rules live in workout/voiceMic.js (pure, unit-tested); this side owns
+// the channel state. TTS is the third voice on the same mic — see rhSay.
 let rhBufSrc = null;
 let rhBufUntil = 0;
 let rhAnnounceUntil = 0;
@@ -1695,19 +1698,40 @@ function rhStopBuf() {
   rhBufSrc = null;
   rhBufUntil = 0;
 }
+// Utterance ownership: a cancelled utterance's end event must not release a
+// mic window a newer speaker holds, so every takeover bumps the token.
+let rhTtsToken = 0;
+function rhTtsActive() {
+  try {
+    return typeof speechSynthesis !== 'undefined' && speechSynthesis.speaking;
+  } catch {
+    return false;
+  }
+}
+function rhStopTts() {
+  rhTtsToken += 1;
+  if (typeof speechSynthesis === 'undefined') return;
+  try {
+    speechSynthesis.cancel();
+  } catch {}
+}
 function rhPlayBuf(slug, opts = {}) {
   const buf = rhClipBuffers.get(slug);
   if (!buf) return false;
-  // Gate on the live announce source too — window arithmetic can drift, a
-  // playing chain cannot.
-  if (rhAnnounceActive() || rhAnnSrc) return false;
+  // Gate on the live sources too — window arithmetic can drift, but a playing
+  // chain or a talking synthesizer cannot.
+  const mic = mayInterject(
+    {
+      now: Date.now(),
+      announceUntil: rhAnnounceUntil,
+      announceLive: !!rhAnnSrc || rhTtsActive(),
+      bufUntil: rhBufUntil,
+    },
+    { cut: opts.cut },
+  );
+  if (!mic.speak) return false;
+  if (mic.stopBuf) rhStopBuf();
   const now = Date.now();
-  // Counts drop when they'd talk over a word; phase words cut anything with
-  // more than a fade-tail left (30ms) — rep boundaries must land clean.
-  if (rhBufUntil - now > (opts.cut ? 30 : 120)) {
-    if (!opts.cut) return false;
-    rhStopBuf();
-  }
   try {
     const ctx = ensureCtx();
     const src = ctx.createBufferSource();
@@ -1740,6 +1764,7 @@ function rhPlayClipSeq(slugs) {
   if (ctx.state !== 'running') ctx.resume();
   rhStopBuf(); // announcements outrank tempo words
   rhStopAnnounce();
+  rhStopTts(); // …and replace a still-talking TTS announcement
   const bufs = slugs.map((sl) => rhClipBuffers.get(sl)).filter(Boolean);
   // An announcement belongs to its moment. If the context was suspended and
   // playback queued, a late clip must be DROPPED, not fired mid-set as a
@@ -1777,6 +1802,7 @@ function rhPlayClips(urls) {
   } catch {}
   rhStopBuf();
   rhStopAnnounce();
+  rhStopTts();
   // ceiling estimate keeps the mic reserved even if `ended` never fires
   // (autoplay rejection); the chain clears it early on real completion.
   rhAnnounceUntil = Date.now() + urls.length * 1100;
@@ -1818,7 +1844,12 @@ const speakReps = (r) =>
 function rhSay(text) {
   if (!rhVoiceOn || typeof speechSynthesis === 'undefined') return;
   try {
-    speechSynthesis.cancel();
+    // A TTS announcement takes the whole mic, same as a clip announcement —
+    // without this, counts keep playing under the synthesized voice (the
+    // audible overlap when a recorded clip is missing).
+    rhStopBuf();
+    rhStopAnnounce();
+    rhStopTts();
     const u = new SpeechSynthesisUtterance(text);
     u.rate = 1.05;
     if (!rhVoice) rhRefreshVoice();
@@ -1828,6 +1859,16 @@ function rhSay(text) {
         u.voice = rhVoice;
       } catch {}
     }
+    // Claim the window for the estimated spoken length; the real end releases
+    // it early. Token-guarded so a cancelled utterance can't free a window a
+    // newer speaker owns.
+    const token = ++rhTtsToken;
+    rhAnnounceUntil = Date.now() + ttsWindowMs(text);
+    const release = () => {
+      if (token === rhTtsToken) rhAnnounceUntil = 0;
+    };
+    u.onend = release;
+    u.onerror = release;
     speechSynthesis.speak(u);
   } catch {}
 }
@@ -3416,10 +3457,15 @@ document.getElementById('rp-skip').addEventListener('click', () => {
 document.getElementById('rp-voice').addEventListener('click', () => {
   rhVoiceOn = !rhVoiceOn;
   set(REHAB_VOICE_KEY, rhVoiceOn);
-  if (!rhVoiceOn && typeof speechSynthesis !== 'undefined') {
+  if (!rhVoiceOn) {
+    // Mute means NOW — silence every channel, not just the synthesizer.
+    rhStopBuf();
+    rhStopAnnounce();
+    rhStopTts();
     try {
-      speechSynthesis.cancel();
+      rhClipAudio?.pause();
     } catch {}
+    rhAnnounceUntil = 0;
   }
   rhRenderVoiceBtn();
 });
