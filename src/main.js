@@ -41,6 +41,7 @@ import {
 } from './workout/program.js';
 import { PROGRAM_DEMOS, REHAB_DEMOS } from './workout/rehabDemos.js';
 import { mayInterject, ttsWindowMs } from './workout/voiceMic.js';
+import { FORM_CUES, pickFormCue } from './workout/formCues.js';
 import { addCheckin, checkinStatus } from './workout/checkin.js';
 import { loggedExercisesOf, resolveMuscleGroup } from './workout/muscles.js';
 import { currentStreak, longestStreak } from './workout/streak.js';
@@ -1593,6 +1594,11 @@ let rhWallInterval = null;
 let rhGuide = null; // active tempo guide on a self-paced set
 let rhGuideInterval = null;
 let rhVoiceOn = get(REHAB_VOICE_KEY) ?? true;
+// Coach lines (form reminders + sparse pushes): at most one per step, only on
+// a free mic — they never collide with counting or announcements.
+let rhStepSpoke = false; // a coach line already used this step's quiet window
+let rhLastFormExId = null; // rest-window form cue fires once per exercise change
+const rhCueRot = new Map(); // exId → lines spoken this session (rotates the list)
 
 const rhStep = () => rhQueue[rhIdx];
 
@@ -1715,6 +1721,10 @@ function rhStopTts() {
     speechSynthesis.cancel();
   } catch {}
 }
+// Is anyone talking (or holding the window)? Coach lines are polite — they
+// only take a FREE mic, unlike announcements, which seize it.
+const rhMicFree = () =>
+  !rhAnnounceActive() && !rhAnnSrc && !rhTtsActive() && Date.now() >= rhBufUntil;
 function rhPlayBuf(slug, opts = {}) {
   const buf = rhClipBuffers.get(slug);
   if (!buf) return false;
@@ -1873,6 +1883,24 @@ function rhSay(text) {
   } catch {}
 }
 
+// A coach line: speaks only when nobody else is (or is about to), and burns
+// this step's one quiet-window slot so a session never turns chatty.
+function rhCoachLine(parts, ttsText) {
+  if (!rhVoiceOn || !rhMicFree()) return false;
+  rhStepSpoke = true;
+  rhCueSay(parts, ttsText);
+  return true;
+}
+// The exercise's form reminder ("lower back stays on the floor"), rotating
+// through its lines so consecutive sets and consecutive days differ.
+function rhFormCue(exId) {
+  const cue = pickFormCue(exId, rhVariant + (rhCueRot.get(exId) || 0));
+  if (!cue) return false;
+  if (!rhCoachLine([cue.slug], cue.text)) return false;
+  rhCueRot.set(exId, (rhCueRot.get(exId) || 0) + 1);
+  return true;
+}
+
 function rhCue(kind) {
   if (kind === 'work') {
     // the LANDING: one long unmistakable tone — the CrossFit-timer "go"
@@ -1895,9 +1923,20 @@ function rhCue(kind) {
   }
 }
 
+// Only work steps sandwiched between other sets of the SAME exercise count:
+// "last set" on a single-set exercise would just be noise.
+function rhIsFinalSet(step) {
+  const same = (st) => st.kind === 'work' && st.manual && st.exId === step.exId;
+  return (
+    rhQueue.slice(0, rhIdx).some(same) &&
+    !rhQueue.slice(rhIdx + 1).some(same)
+  );
+}
+
 // Arriving at a step: distinct tone + spoken cue, so ears alone carry you.
 function rhAnnounceStep(step) {
   rhAnnouncedIdx = rhIdx;
+  rhStepSpoke = false; // each step gets one fresh quiet-window slot
   const overlay = document.getElementById('rehab-player');
   if (step.kind === 'work') {
     rhCue('work');
@@ -1934,7 +1973,15 @@ function rhAnnounceStep(step) {
       // (logWeight:false) used to get announced as "warm up" too.
       rhCueSay(['warm-up'], 'Warm up — your pace');
     } else if (step.manual) {
-      rhCueSay(['your-pace'], `Set — ${speakReps(step.reps)} reps, your pace`);
+      // The push that matters: the final set of an exercise says so.
+      if (rhIsFinalSet(step)) {
+        rhCueSay(
+          ['last-set'],
+          `Last set — ${speakReps(step.reps)} reps, your pace`,
+        );
+      } else {
+        rhCueSay(['your-pace'], `Set — ${speakReps(step.reps)} reps, your pace`);
+      }
     } else if (step.tempo) {
       rhCueSay(
         step.side ? [`${step.side.toLowerCase()}-side`, 'go'] : ['go'],
@@ -2182,7 +2229,7 @@ function phaseWordSlug(label) {
   return 'lower';
 }
 
-function rhTempoTick(st, mem) {
+function rhTempoTick(st, mem, totalReps = 0) {
   const key = `${st.rep}:${st.label}:${st.phaseSec}`;
   if (mem.key === key) return;
   mem.key = key;
@@ -2199,8 +2246,24 @@ function rhTempoTick(st, mem) {
         ? NUM_SLUGS[st.phaseSec + 1]
         : null;
   const wantVoice = rhVoiceOn && (scheme === 'coach' || scheme === 'voice');
+  // "Last three" lands ON the drive beat three reps out — it replaces that
+  // beat's phase word, so by construction it can't collide with counting.
+  // Long sets only: on a 5-rep set the push would outweigh the work.
+  const milestone =
+    isDrive && st.phaseSec === 0 && totalReps >= 6 && st.rep === totalReps - 2;
+  let spoke = false;
+  if (wantVoice && milestone) {
+    if (rhClipBuffers.get('last-three')) {
+      spoke = rhPlayBuf('last-three', { cut: true });
+    } else if (rhMicFree()) {
+      rhSay('Last three');
+      spoke = true;
+    }
+  }
   // phase words may cut a lingering count; plain counts never talk over
-  const spoke = wantVoice && slug ? rhPlayBuf(slug, { cut: st.phaseSec === 0 }) : false;
+  if (!spoke && wantVoice && slug) {
+    spoke = rhPlayBuf(slug, { cut: st.phaseSec === 0 });
+  }
   // in voice scheme, silent beats stay silent — no surprise ticks in a
   // tickless scheme (word dropped by an announcement, or a no-number beat)
   if (scheme === 'voice' && (spoke || !slug || rhAnnounceActive())) return;
@@ -2307,7 +2370,7 @@ function rhStartGuide() {
       return;
     }
     const st = tempoStateAt(g.tempo, elapsed);
-    rhTempoTick(st, g);
+    rhTempoTick(st, g, g.tempo.reps);
     const n = rhFrameCount();
     if (n) rhSetDemoFrame(rhFrameForTempo(st, n, g.tempo.pattern));
     el.textContent = `${st.rep}/${g.tempo.reps} · ${st.label}`;
@@ -2651,10 +2714,29 @@ function rhTick() {
     rhCue('count');
   }
 
+  // Coach lines in the quiet windows — one per step, free mic only.
+  // Mid-rest, before a NEW exercise: its form line ("lower back stays on the
+  // floor"), landed well clear of the 3-2-1 and the go-word. The sec===8
+  // window retries across ~1s of ticks if the mic happens to be busy.
+  if (step.phase === 'REST' && step.secs >= 12 && sec === 8 && !rhStepSpoke) {
+    const coming = rhQueue.slice(rhIdx + 1).find((st) => st.kind === 'work');
+    if (coming && coming.exId !== rhLastFormExId && rhFormCue(coming.exId)) {
+      rhLastFormExId = coming.exId;
+    }
+  }
+  // A few seconds into a long hold: this exercise's form line. Long holds
+  // with no line get "halfway" at the midpoint instead — time awareness,
+  // not chatter. Never both: rhStepSpoke burns the slot.
+  if (step.kind === 'work' && !step.tempo && !step.manual && !rhStepSpoke) {
+    if (step.secs >= 15 && sec === step.secs - 4) rhFormCue(step.exId);
+    else if (step.secs >= 20 && sec === Math.ceil(step.secs / 2))
+      rhCoachLine(['halfway'], 'Halfway');
+  }
+
   // Tempo sets: percussive per-second pacing + frame-synced figure.
   if (step.tempo) {
     const st = tempoStateAt(step.tempo, step.secs * 1000 - left);
-    rhTempoTick(st, rhTempoMem);
+    rhTempoTick(st, rhTempoMem, step.tempo.reps);
     const n = rhFrameCount();
     if (n) rhSetDemoFrame(rhFrameForTempo(st, n, step.tempo.pattern));
   }
@@ -2758,6 +2840,9 @@ function openRehabPlayer(session, saved = null) {
   newPRsThisSession = [];
   rhStepEnteredAt = Date.now();
   rhAnnouncedIdx = -1;
+  rhStepSpoke = false;
+  rhLastFormExId = null;
+  rhCueRot.clear();
   rhStop(); // opens paused — press play to go
   if (rhWallInterval) clearInterval(rhWallInterval);
   rhWallInterval = setInterval(() => {
@@ -2807,7 +2892,14 @@ function openRehabPlayer(session, saved = null) {
     'ten',
     'of',
     'next',
+    'last-three',
+    'last-set',
+    'halfway',
     ...Object.keys(GUIDED_EXERCISES).map((id) => `name-${id}`),
+    // …and only the session's own form lines — no point probing all 40+.
+    ...[...new Set(rhQueue.map((s) => s.exId))].flatMap((exId) =>
+      (FORM_CUES[exId] || []).map((c) => c.slug),
+    ),
   ].forEach((slug) => {
     // Decode everything up front: iOS Safari only allows fresh HTMLAudio
     // inside a tap, so timer-driven announcements must play through the
