@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#191919" />
+  <title>Tayô — desk breaks</title>
+  <style>
+    /* Kilos-dark, quiet-confidence. Self-contained: no fonts, no assets. */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #191919; --card: #222; --ink: #f1eee8; --soft: #9c9c9c;
+      --line: #333; --go: #d8ff3e; --calm: #7fb4ff;
+    }
+    html, body { height: 100%; }
+    body {
+      background: var(--bg); color: var(--ink);
+      font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+      display: flex; flex-direction: column; max-width: 520px; margin: 0 auto;
+      padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom));
+      gap: 14px; min-height: 100dvh;
+    }
+    .mono { font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+    header { display: flex; align-items: baseline; justify-content: space-between; }
+    header h1 { font-size: 20px; font-weight: 800; letter-spacing: 0.08em; }
+    header h1 span { color: var(--go); }
+    .window-chip { color: var(--soft); font-size: 13px; }
+
+    /* Idle: the big countdown to whatever's next */
+    .stage {
+      flex: 1; display: flex; flex-direction: column; justify-content: center;
+      align-items: center; text-align: center; gap: 10px; border-radius: 20px;
+      background: var(--card); border: 1px solid var(--line); padding: 28px 20px;
+    }
+    .stage .kicker { color: var(--soft); font-size: 13px; letter-spacing: 0.14em; }
+    .stage .count { font-size: 64px; font-weight: 800; line-height: 1; }
+    .stage .what { font-size: 16px; color: var(--ink); }
+    .stage .sub { font-size: 13px; color: var(--soft); max-width: 34ch; }
+    .stage.off .count { font-size: 34px; }
+
+    /* Break takeover */
+    .stage.due { background: #20240f; border-color: #4c531f; }
+    .stage.due .kicker { color: var(--go); }
+    .stage.due .what { font-size: 26px; font-weight: 700; line-height: 1.3; }
+    .stage.due.stand { background: #101a26; border-color: #274157; }
+    .stage.due.stand .kicker { color: var(--calm); }
+
+    .btnrow { display: flex; gap: 10px; margin-top: 14px; }
+    button {
+      font: inherit; border: 1px solid var(--line); background: #2b2b2b;
+      color: var(--ink); border-radius: 12px; padding: 14px 22px; font-weight: 700;
+      min-height: 48px; cursor: pointer;
+    }
+    button.primary { background: var(--go); color: #141400; border-color: var(--go); }
+    .stand button.primary { background: var(--calm); color: #04121f; border-color: var(--calm); }
+
+    /* Eyes banner — subtle, never a takeover */
+    .eyes {
+      display: none; align-items: center; justify-content: space-between; gap: 10px;
+      background: var(--card); border: 1px solid #2c3a2c; border-radius: 14px;
+      padding: 12px 14px; font-size: 14px; color: var(--soft);
+    }
+    .eyes.on { display: flex; }
+    .eyes b { color: var(--ink); font-weight: 600; }
+
+    /* Today strip */
+    .today { display: flex; align-items: center; justify-content: space-between; }
+    .dots { display: flex; gap: 6px; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; background: #333; }
+    .dot.hit { background: var(--go); }
+    .dot.miss { background: #4a3030; }
+    .today .label { color: var(--soft); font-size: 13px; }
+
+    /* Settings */
+    details { border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+    summary { padding: 12px 14px; color: var(--soft); font-size: 14px; cursor: pointer; list-style: none; }
+    summary::-webkit-details-marker { display: none; }
+    .cfg { padding: 0 14px 14px; display: grid; gap: 10px; font-size: 14px; }
+    .cfg label { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .cfg input[type='time'], .cfg input[type='text'] {
+      font: inherit; background: #1d1d1d; color: var(--ink); border: 1px solid var(--line);
+      border-radius: 8px; padding: 8px 10px;
+    }
+    .cfg input[type='text'] { width: 100%; }
+    .cfg input[type='checkbox'] { width: 20px; height: 20px; accent-color: var(--go); }
+    .cfg .note { color: var(--soft); font-size: 12px; line-height: 1.5; }
+    .cfg .why { border-top: 1px solid var(--line); padding-top: 10px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>TAY<span>Ô</span></h1>
+    <div class="window-chip mono" id="chip">9:00–15:00</div>
+  </header>
+
+  <div class="eyes" id="eyes">
+    <div><b>Eyes.</b> 20 seconds on something 20 feet away.</div>
+    <div class="mono" id="eyes-count">20</div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="kicker" id="kicker">NEXT</div>
+    <div class="count mono" id="count">–:––</div>
+    <div class="what" id="what"></div>
+    <div class="sub" id="sub"></div>
+    <div class="btnrow" id="btns" style="display:none">
+      <button class="primary" id="done">Done ✓</button>
+      <button id="skip">Skip</button>
+    </div>
+  </div>
+
+  <div class="today">
+    <div class="label">Today’s snacks</div>
+    <div class="dots" id="dots"></div>
+  </div>
+
+  <details>
+    <summary>Settings & why</summary>
+    <div class="cfg">
+      <label>Desk window <span>
+        <input type="time" id="cfg-start" /> – <input type="time" id="cfg-end" /></span></label>
+      <label>Hourly snack (:00) <input type="checkbox" id="cfg-snack" /></label>
+      <label>Half-hour stand (:30) <input type="checkbox" id="cfg-stand" /></label>
+      <label>Eye breaks (:20 / :40, silent) <input type="checkbox" id="cfg-eyes" /></label>
+      <label>Sound <input type="checkbox" id="cfg-sound" /></label>
+      <label>Notifications <button id="notif-btn" style="padding:8px 12px;min-height:0">Enable</button></label>
+      <label>Snack A <input type="text" id="cfg-snack-a" /></label>
+      <label>Snack B <input type="text" id="cfg-snack-b" /></label>
+      <div class="note why">
+        <b>Why these numbers.</b> Breaking a sit every 30 min blunts the glucose
+        and blood-pressure cost of sitting (the best-proven piece — stand,
+        water, window). One ≤1-min “exercise snack” per hour builds real
+        fitness and A/B rotation keeps it fresh. Eyes: 20-20-20 — evidence is
+        mixed, cost is zero, so it stays subtle. Skip any snack your back
+        vetoes; this never replaces the Daily Reset.
+      </div>
+    </div>
+  </details>
+
+  <script type="module">
+    // Tayô — desk-break coach. Wall-clock scheduler, localStorage state,
+    // no framework, no assets. Lives off the home page on purpose.
+    // Slots inside the desk window: :00 SNACK (hourly, A/B rotate),
+    // :30 STAND (2 min), :20/:40 EYES (silent 20 s banner).
+    const CFG_KEY = 'kilos-tayo-cfg';
+    const LOG_KEY = 'kilos-tayo-log';
+    const get = (k) => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } };
+    const set = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+    const DEF = {
+      start: '09:00', end: '15:00',
+      snack: true, stand: true, eyes: true, sound: true,
+      snackA: '3 pull-ups · 5 push-ups · 10 squats',
+      snackB: '15 squats · 60s brisk walk · 30s hip-flexor stretch',
+    };
+    let cfg = { ...DEF, ...(get(CFG_KEY) || {}) };
+
+    // ?at=HH:MM freezes "now" to that time and advances in real time — dev/test hook.
+    const atParam = new URLSearchParams(location.search).get('at');
+    const bootMs = Date.now();
+    const now = () => {
+      if (!atParam) return new Date();
+      const d = new Date();
+      const [h, m] = atParam.split(':').map(Number);
+      d.setHours(h, m, 0, 0);
+      return new Date(d.getTime() + (Date.now() - bootMs));
+    };
+    const dateKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const hm = (s) => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
+
+    // Today's log: per-slot outcomes so refreshes never double-count.
+    const log = () => {
+      const all = get(LOG_KEY) || {};
+      const k = dateKey(now());
+      if (!all[k]) { all[k] = { slots: {} }; set(LOG_KEY, all); }
+      return { all, day: all[k], k };
+    };
+
+    // The day's slots, oldest first: {id, min, type}
+    function slots() {
+      const s = hm(cfg.start), e = hm(cfg.end), out = [];
+      for (let min = s; min <= e; min++) {
+        const m = min % 60;
+        if (m === 0 && min > s && cfg.snack) out.push({ id: `snack-${min}`, min, type: 'snack' });
+        else if (m === 30 && cfg.stand) out.push({ id: `stand-${min}`, min, type: 'stand' });
+        else if ((m === 20 || m === 40) && cfg.eyes) out.push({ id: `eyes-${min}`, min, type: 'eyes' });
+      }
+      return out;
+    }
+    const minOfDay = () => { const d = now(); return d.getHours() * 60 + d.getMinutes(); };
+
+    // A due slot stays claimable for 10 min, then silently lapses to "miss".
+    const DUE_WINDOW = 10;
+    let active = null; // the slot currently taking over the stage
+    let eyesUntil = 0; // epoch ms while the eyes banner runs
+
+    const $ = (id) => document.getElementById(id);
+    const fmt = (mins) => {
+      const t = Math.max(0, Math.round(mins * 60));
+      return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+    };
+
+    // One WebAudio context, unlocked by the first tap anywhere (iOS rule).
+    let actx = null;
+    document.addEventListener('pointerdown', () => {
+      if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch {} }
+      actx?.resume?.();
+    }, { capture: true });
+    function chime(n = 2) {
+      if (!cfg.sound || !actx) return;
+      for (let i = 0; i < n; i++) {
+        const o = actx.createOscillator(), g = actx.createGain();
+        o.frequency.value = 880; o.type = 'sine';
+        g.gain.setValueAtTime(0.0001, actx.currentTime + i * 0.22);
+        g.gain.exponentialRampToValueAtTime(0.12, actx.currentTime + i * 0.22 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + i * 0.22 + 0.18);
+        o.connect(g).connect(actx.destination);
+        o.start(actx.currentTime + i * 0.22); o.stop(actx.currentTime + i * 0.22 + 0.2);
+      }
+    }
+    function notify(title, body) {
+      if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+      try { new Notification(title, { body, tag: 'tayo' }); } catch {}
+    }
+
+    // Snack A/B rotates by how many snacks today are already resolved.
+    function snackText() {
+      const { day } = log();
+      const done = Object.entries(day.slots).filter(([id]) => id.startsWith('snack-')).length;
+      return done % 2 === 0 ? cfg.snackA : cfg.snackB;
+    }
+
+    function resolve(slot, outcome) {
+      const { all, day, k } = log();
+      day.slots[slot.id] = outcome;
+      all[k] = day; set(LOG_KEY, all);
+      active = null;
+      render();
+    }
+
+    function tick() {
+      const { day } = log();
+      const mins = minOfDay();
+      const list = slots();
+
+      // lapse anything past its window; surface the newest claimable slot
+      let due = null;
+      for (const s of list) {
+        if (day.slots[s.id]) continue;
+        if (mins >= s.min && mins < s.min + DUE_WINDOW) due = s;
+        else if (mins >= s.min + DUE_WINDOW) { day.slots[s.id] = 'miss'; }
+      }
+      const { all, k } = log(); all[k] = day; set(LOG_KEY, all);
+
+      if (due && due.type === 'eyes') {
+        if (!day.slots[due.id]) {
+          const first = eyesUntil === 0;
+          if (first) { eyesUntil = Date.now() + 20000; }
+          if (Date.now() >= eyesUntil) { resolve(due, 'hit'); eyesUntil = 0; }
+        }
+        due = null; // eyes never takes the stage
+      } else if (eyesUntil && Date.now() >= eyesUntil) { eyesUntil = 0; }
+
+      if (due && (!active || active.id !== due.id)) {
+        active = due;
+        chime(due.type === 'snack' ? 3 : 2);
+        notify(
+          due.type === 'snack' ? 'Tayô — snack time' : 'Tayô — stand up',
+          due.type === 'snack' ? snackText() : '2 minutes on your feet.',
+        );
+      }
+      if (active && day.slots[active.id]) active = null;
+      render();
+    }
+
+    function nextUpcoming() {
+      const { day } = log();
+      const mins = minOfDay();
+      return slots().find((s) => !day.slots[s.id] && s.min > mins) || null;
+    }
+
+    function render() {
+      $('chip').textContent = `${cfg.start}–${cfg.end}`;
+      const stage = $('stage');
+      const mins = minOfDay();
+      const inWindow = mins >= hm(cfg.start) && mins <= hm(cfg.end);
+
+      // eyes banner
+      const eyesOn = eyesUntil > Date.now();
+      $('eyes').classList.toggle('on', eyesOn);
+      if (eyesOn) $('eyes-count').textContent = Math.ceil((eyesUntil - Date.now()) / 1000);
+
+      if (active) {
+        const isSnack = active.type === 'snack';
+        stage.className = `stage due ${active.type}`;
+        $('kicker').textContent = isSnack ? 'TAYO NA — SNACK' : 'TAYO NA — STAND';
+        $('count').textContent = '';
+        $('what').textContent = isSnack ? snackText() : 'Stand. Walk somewhere. Water counts.';
+        $('sub').textContent = isSnack
+          ? 'Crisp and easy — nowhere near failure. Back talking today? Skip, no debt.'
+          : 'Two minutes on your feet resets the sit.';
+        $('btns').style.display = '';
+        return;
+      }
+
+      $('btns').style.display = 'none';
+      const nxt = nextUpcoming();
+      if (!inWindow || !nxt) {
+        stage.className = 'stage off';
+        $('kicker').textContent = 'OFF THE CLOCK';
+        $('count').textContent = mins < hm(cfg.start) ? `starts ${cfg.start}` : 'done for today';
+        $('what').textContent = '';
+        $('sub').textContent = 'The desk window is closed. Go live your life.';
+        renderDots();
+        return;
+      }
+      stage.className = 'stage';
+      const labels = { snack: 'SNACK', stand: 'STAND', eyes: 'EYES' };
+      $('kicker').textContent = `NEXT · ${labels[nxt.type]} · ${String(Math.floor(nxt.min / 60)).padStart(2, '0')}:${String(nxt.min % 60).padStart(2, '0')}`;
+      $('count').textContent = fmt(nxt.min - mins - (now().getSeconds() / 60));
+      $('what').textContent = nxt.type === 'snack' ? snackText() : '';
+      $('sub').textContent = '';
+      renderDots();
+    }
+
+    function renderDots() {
+      const { day } = log();
+      const snackSlots = slots().filter((s) => s.type === 'snack');
+      $('dots').innerHTML = snackSlots
+        .map((s) => {
+          const o = day.slots[s.id];
+          return `<div class="dot${o === 'hit' ? ' hit' : o ? ' miss' : ''}"></div>`;
+        })
+        .join('');
+    }
+
+    $('done').addEventListener('click', () => active && resolve(active, 'hit'));
+    $('skip').addEventListener('click', () => active && resolve(active, 'skip'));
+    $('notif-btn').addEventListener('click', async () => {
+      try { await Notification.requestPermission(); } catch {}
+    });
+
+    // settings wiring
+    const bindCfg = (id, key, prop = 'checked') => {
+      const el = $(id);
+      el[prop] = cfg[key];
+      el.addEventListener('change', () => { cfg[key] = el[prop]; set(CFG_KEY, cfg); render(); });
+    };
+    bindCfg('cfg-start', 'start', 'value');
+    bindCfg('cfg-end', 'end', 'value');
+    bindCfg('cfg-snack', 'snack');
+    bindCfg('cfg-stand', 'stand');
+    bindCfg('cfg-eyes', 'eyes');
+    bindCfg('cfg-sound', 'sound');
+    bindCfg('cfg-snack-a', 'snackA', 'value');
+    bindCfg('cfg-snack-b', 'snackB', 'value');
+
+    document.addEventListener('visibilitychange', tick);
+    setInterval(tick, 1000);
+    tick();
+  </script>
+</body>
+</html>
