@@ -5,6 +5,7 @@
   "start_url": "/tayo/",
   "scope": "/tayo/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "background_color": "#181818",
   "theme_color": "#181818",
   "icons": [

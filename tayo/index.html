@@ -93,6 +93,23 @@
     }
     button.primary { background: var(--white); color: #111; border-color: var(--white); }
 
+    /* Sound-arm nudge — browsers mute pages until the first click */
+    .arm {
+      display: none; align-items: center; justify-content: center; gap: 8px;
+      border: 1px dashed var(--border); border-radius: var(--r-md);
+      padding: 10px 14px; font-size: 11px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--text2);
+    }
+    .arm.on { display: flex; }
+
+    /* Installed-PWA overlay mode: the page extends into the title bar —
+       only the traffic lights float. Header becomes the drag handle. */
+    @media (display-mode: window-controls-overlay) {
+      body { padding-top: max(env(titlebar-area-height, 18px), 18px); }
+      header { -webkit-app-region: drag; }
+      header .window-chip { -webkit-app-region: no-drag; }
+    }
+
     /* Eyes banner — subtle, never a takeover */
     .eyes {
       display: none; align-items: center; justify-content: space-between; gap: 10px;
@@ -145,6 +162,8 @@
     <h1>TAYÔ <span>· KILOS</span></h1>
     <div class="window-chip mono" id="chip">9:00–15:00</div>
   </header>
+
+  <div class="arm" id="arm">Sound is asleep — click anywhere to arm the chime</div>
 
   <div class="eyes" id="eyes">
     <div><b>Eyes.</b> 20 seconds on something 20 feet away.</div>
@@ -253,11 +272,21 @@
       return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
     };
 
-    // One WebAudio context, unlocked by the first tap anywhere (iOS rule).
+    // One WebAudio context, unlocked by the first tap anywhere (browser
+    // autoplay rule). Created eagerly so we can SHOW when it's still muted.
     let actx = null;
+    try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch {}
+    const renderArm = () => {
+      $('arm').classList.toggle(
+        'on',
+        !!cfg.sound && (!actx || actx.state !== 'running'),
+      );
+    };
+    if (actx) actx.onstatechange = renderArm;
     document.addEventListener('pointerdown', () => {
-      if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch {} }
-      actx?.resume?.();
+      if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); actx.onstatechange = renderArm; } catch {} }
+      actx?.resume?.().then(renderArm, () => {});
+      renderArm();
     }, { capture: true });
     function chime(n = 2) {
       if (!cfg.sound || !actx) return;
@@ -333,6 +362,7 @@
     }
 
     function render() {
+      renderArm();
       $('chip').textContent = `${cfg.start}–${cfg.end}`;
       const stage = $('stage');
       const mins = minOfDay();
