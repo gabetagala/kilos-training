@@ -1,9 +1,9 @@
 // TayoBar — native macOS menu bar countdown for Tayô (tayo/index.html).
-// Mirrors the slot math: SNACK on the hour, STAND on the half hour,
+// Mirrors the slot math: MOVE on the hour, STAND on the half hour,
 // inside the 09:00–15:00 desk window. Menu-bar only (no Dock icon).
 //
-// Explicit by request: full words in the bar ("SNACK 14:32" ticking every
-// second, "SNACK NOW" during the 10-min break window), and the click-menu
+// Explicit by request: full words in the bar ("MOVE 14:32" ticking every
+// second, "MOVE NOW" during the 10-min break window), and the click-menu
 // carries the actual prescription so the app never needs opening.
 //
 // Build:  swiftc -O TayoBar.swift -o TayoBar
@@ -14,13 +14,13 @@ import Cocoa
 
 let START = 9 * 60
 let END = 15 * 60
-let DUE_WINDOW = 10 // minutes a slot stays "NOW" (matches the web page)
+let DUE_WINDOW = 5 // minutes a slot stays "NOW" before moving on (matches the web page)
 let TAYO_URL = "https://kilostraining.vercel.app/tayo/"
 
 // A/B alternation by hour parity — same heuristic as the lock widget;
 // the web page owns the day's true rotation.
-let SNACK_A = ["3 pull-ups", "5 push-ups", "10 squats"]
-let SNACK_B = ["15 squats", "60s brisk walk", "30s hip-flexor stretch"]
+let MOVE_A = ["3 pull-ups", "5 push-ups", "10 squats"]
+let MOVE_B = ["15 squats", "60s brisk walk", "30s hip-flexor stretch"]
 let STAND_RX = ["Stand up. Walk somewhere.", "Water counts — 2 minutes."]
 
 struct Slot {
@@ -33,7 +33,7 @@ func daySlots() -> [Slot] {
     var m = START
     while m <= END {
         let mm = m % 60
-        if mm == 0 && m > START { out.append(Slot(m: m, type: "SNACK")) }
+        if mm == 0 && m > START { out.append(Slot(m: m, type: "MOVE")) }
         if mm == 30 { out.append(Slot(m: m, type: "STAND")) }
         m += 1
     }
@@ -42,7 +42,7 @@ func daySlots() -> [Slot] {
 
 func prescription(for slot: Slot) -> [String] {
     if slot.type == "STAND" { return STAND_RX }
-    return (slot.m / 60) % 2 == 0 ? SNACK_A : SNACK_B
+    return (slot.m / 60) % 2 == 0 ? MOVE_A : MOVE_B
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -51,8 +51,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var rxItems: [NSMenuItem] = []
     var timer: Timer?
     var lastMenuKey = ""
+    var activity: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ n: Notification) {
+        // Opt out of App Nap — a napped timer freezes the countdown ("stuck
+        // on SNACK NOW"). A 1s tick is negligible battery-wise.
+        activity = ProcessInfo.processInfo.beginActivity(
+            options: [.userInitiatedAllowingIdleSystemSleep],
+            reason: "Tayô break countdown"
+        )
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.button?.font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .semibold)
 
@@ -80,6 +87,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             self?.update()
         }
+        timer?.tolerance = 0.2
     }
 
     @objc func openTayo() {
@@ -106,7 +114,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let secsIntoMin = cal.component(.second, from: now)
         let slots = daySlots()
 
-        // A slot in its 10-minute NOW window takes over the bar.
+        // A slot in its NOW window takes over the bar.
         if let cur = slots.last(where: { $0.m <= mins && mins < $0.m + DUE_WINDOW }) {
             item.button?.title = "\(cur.type) NOW"
             setMenu(

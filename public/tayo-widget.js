@@ -6,7 +6,7 @@
 //   3. Lock Screen → hold to customize → add a rectangular widget →
 //      choose Scriptable → Script: Tayo
 //
-// It shows the next break (SNACK on the hour / STAND on the half hour)
+// It shows the next break (MOVE on the hour / STAND on the half hour)
 // with a live-ticking countdown, and taps through to the Tayô page.
 // Mirror of the /tayo schedule — edit the window here if you edit it there.
 
@@ -26,7 +26,7 @@ const E = hm(END);
 function slots() {
   const out = [];
   for (let m = S; m <= E; m++) {
-    if (m % 60 === 0 && m > S) out.push({ m, type: 'SNACK' });
+    if (m % 60 === 0 && m > S) out.push({ m, type: 'MOVE' });
     else if (m % 60 === 30) out.push({ m, type: 'STAND' });
   }
   return out;
@@ -74,7 +74,7 @@ if (nxt && inDay) {
     : Font.boldSystemFont(44);
   if (!onLock) timer.textColor = WHITE;
 
-  if (nxt.type === 'SNACK') {
+  if (nxt.type === 'MOVE') {
     if (!onLock) w.addSpacer(4);
     // rough A/B hint: even hours A, odd hours B (the page owns the truth)
     const sub = w.addText(
