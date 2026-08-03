@@ -2871,10 +2871,26 @@ function rhFinish() {
   } else {
     newPRsThisSession = [];
     const exercises = sessionBlocks(session, rhVariant)
-      .filter((b) => b.ex)
+      .flatMap((b) =>
+        b.members
+          ? b.members.map((m) => ({
+              ex: m.ex,
+              sets: b.rounds || 1,
+              mode: 'circuit',
+            }))
+          : b.ex
+            ? [
+                {
+                  ex: b.ex,
+                  sets: b.sets || b.repScheme?.length || 1,
+                  mode: b.mode,
+                },
+              ]
+            : [],
+      )
       .map((b) => ({
         name: GUIDED_EXERCISES[b.ex].name,
-        sets: b.sets || b.repScheme?.length || 1,
+        sets: b.sets,
         logs:
           b.mode === 'lift'
             ? liftSets.map((l) => ({
@@ -2957,6 +2973,10 @@ function renderWeekPlan() {
             (h) => h.rehabId === 'daily' || h.rehabId === 'hinge',
           );
           action = 'session:daily';
+        } else if (item.type === 'power') {
+          label = 'POWER';
+          done = entries.some((h) => h.rehabId === 'power');
+          action = 'session:power';
         } else if (item.type === 'lift') {
           const pinned = item.session ? getProgramSession(item.session) : null;
           const doneEntry = pinned
@@ -3003,7 +3023,7 @@ function renderWeekPlan() {
     </div>`);
   }
   el.innerHTML = `${rows.join('')}
-    <div class="wp-legend">REHAB the daily back protocol (hinge rotates in) · PULL / LEGS / PUSH the week's lifts · ENGINE conditioning</div>`;
+    <div class="wp-legend">REHAB the daily back protocol (hinge rotates in) · POWER the fast primer · PULL / LEGS / PUSH the week's lifts · ENGINE conditioning</div>`;
 
   el.querySelectorAll('.wp-chip[data-action]').forEach((chip) => {
     chip.addEventListener('click', () => {
@@ -3330,7 +3350,9 @@ function renderRehabPage() {
     ...new Set(
       REHAB_SESSIONS.flatMap((s) =>
         s.blocks.flatMap((b) =>
-          (b.rotate || [b]).filter(Boolean).map((r) => r.ex),
+          (b.rotate || [b])
+            .filter(Boolean)
+            .flatMap((r) => (r.members ? r.members.map((m) => m.ex) : [r.ex])),
         ),
       ),
     ),
@@ -3620,6 +3642,14 @@ function todayPlan() {
           (h) => h.rehabId === 'daily' || h.rehabId === 'hinge',
         ),
         sessionId: 'daily',
+      };
+    }
+    if (item.type === 'power') {
+      return {
+        type: 'power',
+        label: 'Power',
+        done: entries.some((h) => h.rehabId === 'power'),
+        sessionId: 'power',
       };
     }
     if (item.type === 'lift') {
