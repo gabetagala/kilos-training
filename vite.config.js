@@ -30,11 +30,13 @@ export default defineConfig({
   build: {
     rollupOptions: {
       // Multi-page: Kilos SPA + the Tomato Cam baby-monitor sub-app (tomato/SCOPE.md §2)
+      // + Tayô, the desk-break coach (own URL, deliberately unlinked from home)
       input: {
         main: page('index.html'),
         'tomato-home': page('tomato/index.html'),
         'tomato-cam': page('tomato/cam.html'),
         'tomato-view': page('tomato/view.html'),
+        tayo: page('tayo/index.html'),
       },
     },
   },
@@ -54,7 +56,7 @@ export default defineConfig({
         // SPA fallback — all navigation goes to index.html
         // Exclude standalone pages (coach previews, Bantay) from SW interception
         navigateFallback: 'index.html',
-        navigateFallbackDenylist: [/^\/coach-/, /^\/bantay/, /^\/tomato/],
+        navigateFallbackDenylist: [/^\/coach-/, /^\/bantay/, /^\/tomato/, /^\/tayo/],
 
         // Nuke old caches when a new SW activates
         cleanupOutdatedCaches: true,
