@@ -9,8 +9,9 @@
 > as flat straight sets; single-leg bridges; the old Hinge Day's RDL now
 > rotates INSIDE the daily, every other completed run as its "B day") plus
 > a 2×/wk **Power Primer** (pogo hops, broad jumps, explosive push-ups —
-> ~8 min, quiet-back days only) before Sessions A and C. Where this doc
-> says "Hinge Day", read: the daily session's B run. Power upgrade path
+> ~8 min, quiet-back days only) on the rehab-only days (Tue/Thu), right
+> after the daily session. Where this doc says "Hinge Day", read: the
+> daily session's B run. Power upgrade path
 > when gear arrives: med-ball rotational throws → primer; KB swings →
 > the hinge slot, each only after a quiet month.
 
