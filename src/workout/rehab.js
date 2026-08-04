@@ -307,15 +307,16 @@ export const REHAB_SESSIONS = [
     name: 'Power Primer',
     freq: '2× a week',
     blurb:
-      'The fast stuff, fresh: bounce, leap, throw the floor away. Quiet-back days only — every rep crisp, stop while springy.',
+      'The fast stuff on the days you don’t lift: bounce, leap, throw the floor away. Quiet-back days only — every rep crisp, stop while springy.',
     // POWER REINTRODUCTION (2026-08-03): the athletic layer his goals were
     // missing — power fades ~2× faster than strength with age, and none of
     // it lives in D40 or the rehab. Doses are deliberately tiny (quality
     // over quantity; ballistic work is never tempo-guided and never taken
-    // near fatigue). DDD gate: symptom-free days only, after the daily
-    // rehab, never before Session B (front squats). Upgrade path when gear
-    // arrives: med-ball rotational throws → this session; KB swings → the
-    // hinge slot, both only after a quiet month.
+    // near fatigue). Scheduled on REHAB-ONLY days (Tue/Thu — his call
+    // 2026-08-04), right after the daily rehab warms him up. DDD gate:
+    // symptom-free days only. Upgrade path when gear arrives: med-ball
+    // rotational throws → this session; KB swings → the hinge slot, both
+    // only after a quiet month.
     blocks: [
       // Elasticity first — short ground contact, spine tall.
       {

@@ -528,22 +528,15 @@ export const getProgramSession = (id) =>
 // queue. 'walk'/'engine' are manual mark-done items.
 // The hinge is no longer its own slot — it lives inside the daily rehab
 // session, rotating in every other completed run (see rehab.js).
-// Power Primer rides the upper-lift days (A/C) — fast work goes first,
-// fresh, and never shares a morning with B's front squats.
+// Power Primer rides the rehab-only days (his call 2026-08-04): lift days
+// stay short, and the fast work lands fresh with nothing competing. Run it
+// right after the daily rehab — the rehab IS the warm-up.
 export const WEEK_PLAN = [
   /* Sun */ [{ type: 'rehab' }, { type: 'walk' }],
-  /* Mon */ [
-    { type: 'rehab' },
-    { type: 'power' },
-    { type: 'lift', session: 'd40-a' },
-  ],
-  /* Tue */ [{ type: 'rehab' }],
+  /* Mon */ [{ type: 'rehab' }, { type: 'lift', session: 'd40-a' }],
+  /* Tue */ [{ type: 'rehab' }, { type: 'power' }],
   /* Wed */ [{ type: 'rehab' }, { type: 'lift', session: 'd40-b' }],
-  /* Thu */ [{ type: 'rehab' }],
-  /* Fri */ [
-    { type: 'rehab' },
-    { type: 'power' },
-    { type: 'lift', session: 'd40-c' },
-  ],
+  /* Thu */ [{ type: 'rehab' }, { type: 'power' }],
+  /* Fri */ [{ type: 'rehab' }, { type: 'lift', session: 'd40-c' }],
   /* Sat */ [{ type: 'rehab' }, { type: 'engine' }],
 ];
