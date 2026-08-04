@@ -124,7 +124,7 @@ export const ART_MANIFEST = {
     a: 'chest lowered to just above the floor, elbows bent at 45 degrees, body horizontal',
     b: 'the top of an explosive push: arms fully extended and both palms a few centimeters OFF the floor, body still one rigid horizontal line facing the floor',
     important:
-      'BOTH poses are horizontal push-up positions facing the floor — he is NEVER standing, kneeling or upright; no hip sag, no pike',
+      'BOTH poses are horizontal push-up positions facing the floor — never standing or kneeling; the TWO FIGURES MUST LOOK CLEARLY DIFFERENT: top figure LOW with elbows deeply bent, bottom figure HIGH with arms perfectly straight and palms airborne; no hip sag',
   },
   'hamstring-stretch': {
     scene: 'lying on his back, one leg flat on the floor',
@@ -177,10 +177,12 @@ export const ART_MANIFEST = {
       'in the working pose the arms are EXACTLY horizontal — hands at shoulder height, never above it; torso upright with no lean-back',
   },
   'cable-lateral-raise': {
+    view:
+      'seen from the FRONT — he faces the viewer straight on, so an arm raised to the side travels across the picture, not toward the camera',
     scene:
-      'standing side-on next to a low cable pulley, the cable handle in the far hand, cable crossing in front of his body, near hand resting on the machine for balance',
-    a: 'the working arm down across his body toward the low pulley, cable slack ready',
-    b: 'the working arm raised straight OUT TO HIS SIDE in the frontal plane of his shoulders — a lateral raise, not forward — hand exactly at shoulder height, cable taut in a diagonal line down to the pulley',
+      'a compact cable machine column with a low pulley stands beside him; the handle is in the hand FARTHER from the machine, the cable crossing low in front of his shins to that hand; his near hand rests on the column for balance',
+    a: 'facing the viewer, the working arm hanging down across his body toward the low pulley, cable gently slack',
+    b: 'facing the viewer, the working arm raised straight out to his side to exactly shoulder height — half of a T — the cable taut in a straight diagonal from the low pulley across his shins up to his hand',
     important:
       'the arm travels sideways in line with his shoulders, NEVER forward like a front raise; it stops exactly at shoulder height; ONE single unbroken cable line visibly connects the pulley to the handle in his hands — no other lines, poles, stubs or floating fragments anywhere in the image',
   },
@@ -204,14 +206,16 @@ export const ART_MANIFEST = {
       'facing AWAY from a low cable pulley, the rope held behind his head, one foot slightly forward, ribs down',
     a: 'elbows bent, hands behind his neck, elbows pointing to the ceiling beside his ears',
     b: 'arms extended fully overhead and slightly forward, rope ends split, elbows still narrow',
-    important: 'no lower-back arch — ribs stay down',
+    important:
+      'SIDE PROFILE view like the reference — never drawn from behind; no lower-back arch, ribs stay down',
   },
   'hammer-curl': {
     scene:
       'standing tall, a dumbbell in each hand held with a neutral thumbs-up grip',
     a: 'arms straight at his sides',
     b: 'both dumbbells curled to shoulder height, thumbs still up, elbows staying at his ribs, torso perfectly upright',
-    important: 'no lean-back, elbows pinned at the ribs',
+    important:
+      'each dumbbell is held VERTICAL — neutral hammer grip, thumb side up, the round end face of the dumbbell toward the viewer; no lean-back, elbows pinned at the ribs',
   },
   'supinated-curl': {
     scene: 'standing tall, dumbbells at his sides with palms facing FORWARD',
@@ -277,7 +281,7 @@ export const ART_MANIFEST = {
   },
   'face-pull': {
     scene:
-      'a cable machine column with a pulley at upper-chest height; a two-ended rope attachment connects to the pulley by a clearly drawn taut cable',
+      'a compact free-standing cable machine column on its own base plate stands directly in FRONT of him at arm’s length (each figure faces his OWN separate machine); a two-ended rope attachment connects to its upper-chest-height pulley by one clearly drawn taut cable',
     a: 'arms extended forward holding the rope ends, the cable taut back to the pulley, shoulder blades reaching',
     b: 'rope pulled to his eyebrows, the cable still clearly connected to the pulley, elbows high and wide, hands split apart with thumbs pointing behind him, chest tall',
     important:

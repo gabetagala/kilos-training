@@ -87,8 +87,11 @@ const hasArt = (id) =>
 
 // ── prompt assembly ──────────────────────────────────────────────────────────
 function buildPrompt(id) {
-  const { scene, a, b, important, stack } = ART_MANIFEST[id];
+  const { scene, a, b, important, stack, view } = ART_MANIFEST[id];
   const name = GUIDED[id]?.name || id;
+  // a per-exercise camera override (e.g. frontal moves that don't read in
+  // profile) — stated after the style block so the specific wins
+  const viewNote = view ? `\nVIEW for this exercise (overrides the default): ${view}.` : '';
   const [first, second] = stack ? ['TOP', 'BOTTOM'] : ['LEFT', 'RIGHT'];
   const body = b
     ? `${stack ? STACK_LAYOUT : PAIR_LAYOUT}
@@ -101,7 +104,7 @@ The two poses must look clearly different at a glance.`
 
 EXERCISE — ${name}: ${scene}.
 POSE: ${a}.`;
-  return `${STYLE_PROMPT}
+  return `${STYLE_PROMPT}${viewNote}
 
 ${REFERENCE_NOTE}
 
