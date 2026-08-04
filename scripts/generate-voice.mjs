@@ -43,6 +43,7 @@ const TAIL_PAD_S = 0.03;
 // ── the phrase list ──────────────────────────────────────────────────────────
 const MILESTONES = {
   'last-three': 'Last three',
+  'last-one': 'Last one',
   'last-set': 'Last set',
   halfway: 'Halfway',
 };

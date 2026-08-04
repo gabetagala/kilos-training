@@ -42,6 +42,7 @@ import {
 import { PROGRAM_DEMOS, REHAB_DEMOS } from './workout/rehabDemos.js';
 import { mayInterject, ttsWindowMs } from './workout/voiceMic.js';
 import { FORM_CUES, pickFormCue } from './workout/formCues.js';
+import { NUM_SLUGS, tempoBeatSlug } from './workout/tempoCues.js';
 import { addCheckin, checkinStatus } from './workout/checkin.js';
 import { loggedExercisesOf, resolveMuscleGroup } from './workout/muscles.js';
 import { currentStreak, longestStreak } from './workout/streak.js';
@@ -1952,19 +1953,7 @@ function rhAnnounceStep(step) {
   navigator.vibrate?.(step.kind === 'work' ? 120 : 60);
 
   const ex = GUIDED_EXERCISES[step.exId];
-  const NUMS = [
-    'zero',
-    'one',
-    'two',
-    'three',
-    'four',
-    'five',
-    'six',
-    'seven',
-    'eight',
-    'nine',
-    'ten',
-  ];
+  const NUMS = NUM_SLUGS;
   if (step.kind === 'prep') {
     rhCueSay(['get-set', `name-${step.exId}`], `Get set — ${ex.name}`);
   } else if (step.kind === 'work') {
@@ -2209,60 +2198,34 @@ function rhRenderDemo(demoEl, exId) {
 const TEMPO_SCHEME_KEY = 'kilos-tempo-scheme';
 const getTempoScheme = () => get(TEMPO_SCHEME_KEY) || 'coach';
 
-const NUM_SLUGS = [
-  'zero',
-  'one',
-  'two',
-  'three',
-  'four',
-  'five',
-  'six',
-  'seven',
-  'eight',
-  'nine',
-  'ten',
-];
-function phaseWordSlug(label) {
-  if (label === 'UP' || label === 'LIFT') return 'lift';
-  if (label === 'SQUEEZE') return 'squeeze';
-  if (label === 'PAUSE') return 'hold';
-  return 'lower';
-}
-
-function rhTempoTick(st, mem, totalReps = 0) {
+function rhTempoTick(st, mem, tempo) {
   const key = `${st.rep}:${st.label}:${st.phaseSec}`;
   if (mem.key === key) return;
   mem.key = key;
   const scheme = getTempoScheme();
   const isDrive = st.label === 'UP' || st.label === 'LIFT';
   const isSqueeze = st.label === 'SQUEEZE' || st.label === 'PAUSE';
-  // the word: phase word on second 1 (it IS count one); in-phase numbers only
-  // when the phase is long enough to need pacing (≥3s) — a 2s squeeze saying
-  // "squeeze… two" is noise, a 3s eccentric saying "down… two… three" is help
-  const slug =
-    st.phaseSec === 0
-      ? phaseWordSlug(st.label)
-      : st.phaseLen >= 3
-        ? NUM_SLUGS[st.phaseSec + 1]
-        : null;
+  // What this beat says — rep numbers on rep-start beats (the athlete is
+  // under a bar, eyes off the screen: the ear carries which rep this is and
+  // when the set ends), phase words on the other boundaries, pacing counts
+  // inside long phases. Decision logic is pure + unit-tested in tempoCues.js.
+  const slug = tempoBeatSlug(st, tempo);
   const wantVoice = rhVoiceOn && (scheme === 'coach' || scheme === 'voice');
-  // "Last three" lands ON the drive beat three reps out — it replaces that
-  // beat's phase word, so by construction it can't collide with counting.
-  // Long sets only: on a 5-rep set the push would outweigh the work.
-  const milestone =
-    isDrive && st.phaseSec === 0 && totalReps >= 6 && st.rep === totalReps - 2;
   let spoke = false;
-  if (wantVoice && milestone) {
-    if (rhClipBuffers.get('last-three')) {
-      spoke = rhPlayBuf('last-three', { cut: true });
-    } else if (rhMicFree()) {
-      rhSay('Last three');
+  if (wantVoice && slug) {
+    // on-the-beat words may cut a lingering count; in-phase counts never talk over
+    spoke = rhPlayBuf(slug, { cut: st.phaseSec === 0 });
+    // milestones matter enough to borrow the synthesizer when their clip is
+    // missing; numbers and phase words just drop
+    if (
+      !spoke &&
+      (slug === 'last-three' || slug === 'last-one') &&
+      !rhClipBuffers.get(slug) &&
+      rhMicFree()
+    ) {
+      rhSay(slug === 'last-three' ? 'Last three' : 'Last one');
       spoke = true;
     }
-  }
-  // phase words may cut a lingering count; plain counts never talk over
-  if (!spoke && wantVoice && slug) {
-    spoke = rhPlayBuf(slug, { cut: st.phaseSec === 0 });
   }
   // in voice scheme, silent beats stay silent — no surprise ticks in a
   // tickless scheme (word dropped by an announcement, or a no-number beat)
@@ -2330,7 +2293,12 @@ function rhStopGuide(silent = false) {
   rhGuideInterval = null;
   const was = rhGuide;
   rhGuide = null;
-  if (was && !silent) rhCue('rest');
+  // A guided set ending is a real moment for ears-off-screen lifts (floor
+  // press: he's still under the bar) — say it, don't just beep it.
+  if (was && !silent) {
+    rhCue('rest');
+    rhCueSay(['rest'], 'Rest');
+  }
   const g = document.getElementById('rp-guide');
   if (g) g.textContent = 'TAP ▶ FOR TEMPO GUIDE';
   rhRenderPlayBtn();
@@ -2370,7 +2338,7 @@ function rhStartGuide() {
       return;
     }
     const st = tempoStateAt(g.tempo, elapsed);
-    rhTempoTick(st, g, g.tempo.reps);
+    rhTempoTick(st, g, g.tempo);
     const n = rhFrameCount();
     if (n) rhSetDemoFrame(rhFrameForTempo(st, n, g.tempo.pattern));
     el.textContent = `${st.rep}/${g.tempo.reps} · ${st.label}`;
@@ -2736,7 +2704,7 @@ function rhTick() {
   // Tempo sets: percussive per-second pacing + frame-synced figure.
   if (step.tempo) {
     const st = tempoStateAt(step.tempo, step.secs * 1000 - left);
-    rhTempoTick(st, rhTempoMem, step.tempo.reps);
+    rhTempoTick(st, rhTempoMem, step.tempo);
     const n = rhFrameCount();
     if (n) rhSetDemoFrame(rhFrameForTempo(st, n, step.tempo.pattern));
   }
@@ -2893,6 +2861,7 @@ function openRehabPlayer(session, saved = null) {
     'of',
     'next',
     'last-three',
+    'last-one',
     'last-set',
     'halfway',
     ...Object.keys(GUIDED_EXERCISES).map((id) => `name-${id}`),
