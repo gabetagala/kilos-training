@@ -953,6 +953,7 @@ function startSession(sessionId, dose) {
     running: true,
     since: Date.now(),
     totals: { secs: 0, sets: 0, tut: 0 },
+    deltas: [],
     startedAt: Date.now(),
   };
   enterPlayer();
@@ -992,7 +993,10 @@ function announce(st) {
     // Queued, not timed — a fixed 900ms delay landed on top of longer names.
     sayAfter(`name-${st.exId}`);
   } else if (st.kind === 'rest') {
-    say(st.phase === 'SWITCH SIDES' ? 'switch-sides' : 'rest');
+    // The engine calls the short re-brace between McGill-style reps BREATHE.
+    if (st.phase === 'SWITCH SIDES') say('switch-sides');
+    else if (st.phase === 'BREATHE') say('breathe');
+    else say('rest');
   } else if (st.tempo) {
     say('go');
   } else if (st.kind === 'work') {
@@ -1014,6 +1018,7 @@ function enterPlayer() {
     'get-set',
     'go',
     'rest',
+    'breathe',
     'switch-sides',
     'last-three',
     'last-one',
@@ -1067,6 +1072,7 @@ function renderPlayer() {
 
       <div class="pl-foot">
         <div class="btn-row">
+          <button class="btn btn-ghost btn-sm" id="back" aria-label="Previous step" ${run.idx === 0 ? 'disabled' : ''}>BACK</button>
           <button class="btn btn-ghost" id="pause">${run.running ? 'PAUSE' : 'RESUME'}</button>
           <button class="btn btn-ghost btn-sm" id="skip" aria-label="Skip this step">SKIP</button>
         </div>
@@ -1075,6 +1081,7 @@ function renderPlayer() {
     </div>`;
 
   app.querySelector('#pause').addEventListener('click', togglePause);
+  app.querySelector('#back').addEventListener('click', stepBack);
   app.querySelector('#skip').addEventListener('click', () => advance(true));
   app.querySelector('#quit').addEventListener('click', endEarly);
   paintStatic();
@@ -1166,11 +1173,16 @@ function tick() {
 
 function advance(skipped = false) {
   const st = step();
+  const delta = { sets: 0, tut: 0, secs: Math.round(elapsedMs() / 1000) };
   if (st.kind === 'work') {
-    if (st.countsAsSet) run.totals.sets++;
-    if (!skipped) run.totals.tut += st.secs || 0;
+    if (st.countsAsSet) delta.sets = 1;
+    if (!skipped) delta.tut = st.secs || 0;
   }
-  run.totals.secs += Math.round(elapsedMs() / 1000);
+  run.totals.sets += delta.sets;
+  run.totals.tut += delta.tut;
+  run.totals.secs += delta.secs;
+  if (!run.deltas) run.deltas = [];
+  run.deltas.push(delta);
 
   run.idx++;
   run.elapsed = 0;
@@ -1214,6 +1226,7 @@ const lastRunStage = () => run.stages[run.stagePos];
 function startStage() {
   const session = getSession(run.sessionId);
   run.queue = buildStepQueue(stageSession(session, run.stages[run.stagePos]));
+  run.deltas = [];
   run.idx = 0;
   run.elapsed = 0;
   run.since = Date.now();
@@ -1252,16 +1265,55 @@ function askExtend(stageIdx) {
 
 // ─── Finishing ─────────────────────────────────────────────────────────────
 
+/** The ✕ asks first — a mis-tap mid-set shouldn't end twenty minutes of work. */
 function endEarly() {
-  if (run.totals.sets === 0) {
+  const sets = run.totals.sets;
+  // Pause the clock while she decides; the dialog shouldn't cost her seconds.
+  const wasRunning = run.running;
+  if (wasRunning) togglePause();
+
+  const quit = () => {
     drop(K.active);
     run = null;
     view = 'home';
     keepAwake(false);
     cancelAnimationFrame(raf);
-    return renderHome();
-  }
-  finishRun();
+    renderHome();
+  };
+
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet';
+  sheet.innerHTML = `<div class="sheet-card" role="dialog" aria-label="End the session">
+      <div class="sheet-top"><h3>${sets ? 'Done for today?' : 'Leave this session?'}</h3></div>
+      <p class="row-s">${
+        sets
+          ? `You've done ${sets} set${sets === 1 ? '' : 's'}. Finish here and they're saved — it still counts as a session.`
+          : "Nothing's been logged yet, so there's nothing to save."
+      }</p>
+      <button class="btn" id="q-stay">KEEP GOING</button>
+      <div class="btn-row">
+        ${sets ? '<button class="btn btn-ghost btn-sm" id="q-finish">FINISH &amp; SAVE</button>' : ''}
+        <button class="btn btn-ghost btn-sm" id="q-quit">${sets ? 'DISCARD' : 'LEAVE'}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(sheet);
+
+  const close = () => {
+    sheet.remove();
+    if (wasRunning && run && !run.running) togglePause(); // pick the clock back up
+  };
+  sheet.querySelector('#q-stay').addEventListener('click', close);
+  sheet.querySelector('#q-finish')?.addEventListener('click', () => {
+    sheet.remove();
+    finishRun();
+  });
+  sheet.querySelector('#q-quit').addEventListener('click', () => {
+    sheet.remove();
+    quit();
+  });
+  sheet.addEventListener('click', (e) => {
+    if (e.target === sheet) close();
+  });
 }
 
 function finishRun() {
@@ -1337,6 +1389,26 @@ function renderFinish(rec) {
 }
 
 // ─── Pause / persist / restore ─────────────────────────────────────────────
+
+/** Redo the step before this one — she lost her place, or wants it again. */
+function stepBack() {
+  if (!run || run.idx === 0) return;
+  const d = run.deltas?.pop();
+  if (d) {
+    run.totals.sets -= d.sets;
+    run.totals.tut -= d.tut;
+    run.totals.secs -= d.secs;
+  }
+  run.idx--;
+  run.elapsed = 0;
+  run.since = Date.now();
+  run.running = true;
+  lastBeat = '';
+  save();
+  renderPlayer();
+  announce(step());
+  tick();
+}
 
 function togglePause() {
   if (run.running) {

@@ -28,6 +28,7 @@ import {
 import {
   beatSlug,
   countdownSlug,
+  countPhase,
   PHASE_WORDS,
   phaseWord,
 } from '../../src/hotmum/cues.js';
@@ -313,12 +314,40 @@ describe('drives the shipped step engine', () => {
     expect(tempoStateAt(set.tempo, 5000).rep).toBe(2);
     expect(tempoStateAt(set.tempo, 49000).rep).toBe(10);
 
-    // and what Alice actually says on those beats
-    expect(beatSlug(tempoStateAt(set.tempo, 0), set.tempo)).toBe('one');
+    // A rep is counted when it's FINISHED, and an RDL finishes on the way up.
+    expect(beatSlug(tempoStateAt(set.tempo, 0), set.tempo)).toBe('down');
     expect(beatSlug(tempoStateAt(set.tempo, 3000), set.tempo)).toBe('hold');
-    expect(beatSlug(tempoStateAt(set.tempo, 4000), set.tempo)).toBe('up');
-    expect(beatSlug(tempoStateAt(set.tempo, 35000), set.tempo)).toBe('last-three');
-    expect(beatSlug(tempoStateAt(set.tempo, 45000), set.tempo)).toBe('last-one');
+    expect(beatSlug(tempoStateAt(set.tempo, 4000), set.tempo)).toBe('one');
+    expect(beatSlug(tempoStateAt(set.tempo, 9000), set.tempo)).toBe('two');
+    expect(beatSlug(tempoStateAt(set.tempo, 39000), set.tempo)).toBe('last-three');
+    expect(beatSlug(tempoStateAt(set.tempo, 49000), set.tempo)).toBe('last-one');
+    // nothing between phase changes — the old in-phase pacing collided with it
+    expect(beatSlug(tempoStateAt(set.tempo, 1000), set.tempo)).toBeNull();
+    expect(beatSlug(tempoStateAt(set.tempo, 2000), set.tempo)).toBeNull();
+  });
+
+  // The bug: on a bridge the number landed on the way up (right), on a squat it
+  // landed on the way down (backwards). Both count at the top now.
+  it('always counts the rep on the way up, whatever the pattern starts with', () => {
+    const at = (id) => {
+      const b = allBlocks.find((x) => x.ex === id);
+      return { tempo: b.tempo, count: countPhase({ pattern: b.tempo }) };
+    };
+    expect(at('goblet-squat').count).toBe('UP'); // pattern starts DOWN
+    expect(at('rdl').count).toBe('UP'); // starts DOWN
+    expect(at('hip-thrust').count).toBe('UP'); // starts UP — was already right
+    expect(at('glute-bridge').count).toBe('UP');
+    expect(at('shoulder-press').count).toBe('UP');
+    // returning is what completes a dead bug
+    expect(at('dead-bug').count).toBe('BACK');
+    expect(at('heel-slide').count).toBe('BACK');
+
+    // every tempo block in the program counts on a real, speakable phase
+    for (const b of allBlocks.filter((x) => x.tempo)) {
+      const c = countPhase({ pattern: b.tempo });
+      expect(phaseWord(c), `${b.ex} counts on ${c}`).toBeTruthy();
+      expect(b.tempo.map(([l]) => l)).toContain(c);
+    }
   });
 
   // The whole point of the stepEngine extraction: bound to HOTMUM_EXERCISES,
