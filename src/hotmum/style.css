@@ -405,8 +405,11 @@ body {
    IN over plum; now the field is always there, so the beat is a dark veil
    LIFTING off it. Full colour on the up, dimmed on the down — she still reads
    the tempo from across the room without looking at a number. */
+/* FIXED, not absolute: the dim has to cover the whole screen. Scoped to the
+   player's column it stopped at the content edge, which on a laptop left the
+   rail and the margins bright while the middle went dark. */
 .bloom {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: -1;
   opacity: 0.5;
@@ -439,14 +442,42 @@ body {
 }
 /* One centred block: timer, phase, cue, then the set/rep line right under it.
    Two competing `auto` margins left a dead band mid-screen. */
-.timer-wrap {
-  margin: auto 0;
-  text-align: center;
-  padding: 12px 0;
+/* Three bands: name, the work, the controls. The old version had `margin:auto`
+   on both the middle and the foot, and two competing autos left a dead strip
+   down the middle of the screen. */
+.pl-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-shrink: 0;
 }
-.timer-wrap .lbl {
-  display: block;
-  margin-top: 22px;
+.pl-mid {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 4px;
+  padding: 16px 0;
+}
+.pl-mid .lbl {
+  margin-top: 18px;
+}
+.pl-mid .pips {
+  width: 100%;
+  margin-top: 10px;
+}
+/* Tempo and load are facts about the SET — they belong with the set line, not
+   parked next to the buttons with a void between. */
+.pl-mid .strip {
+  width: 100%;
+  margin: 16px 0 0;
+  border-top: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 0 0 12px;
 }
 .timer {
   font-family: var(--display);
@@ -472,13 +503,11 @@ body {
   color: var(--cream);
 }
 .cue {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.55;
   color: var(--ink-soft);
-  margin-top: 12px;
+  margin-top: 14px;
   max-width: 34ch;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .pips {
@@ -499,10 +528,9 @@ body {
   background: var(--ink);
 }
 
-.foot {
-  margin-top: auto;
-  padding-top: 16px;
+.pl-foot {
   flex-shrink: 0;
+  padding-top: 0;
 }
 .strip {
   display: flex;
@@ -1080,10 +1108,19 @@ body {
 }
 
 /* ─── Laptop ───────────────────────────────────────────────────────────────
-   A real desktop layout, not a phone in a frame. The screens are already
-   grouped into panes; on a phone those panes are `display: contents`, so the
-   markup flows exactly as before and nothing moves. On a wide screen they
-   become columns. */
+   A designed desktop layout, not mobile content in two columns.
+
+   Three decisions carry it:
+     1. The nav becomes a LEFT RAIL. A floating thumb-pill is a phone control;
+        on a laptop the cursor is already at the edge and the rail gives the
+        page a spine.
+     2. Every screen FILLS THE VIEWPORT. The first attempt left a third of the
+        canvas empty below the fold, which is what made it read unfinished —
+        rows now stretch instead of stacking to their natural height.
+     3. The type steps up. At 1440px the phone's 40px headline looks timid.
+
+   On a phone the panes are `display: contents`, so all of this is inert and
+   the single-column layout is untouched. */
 
 .pane {
   display: contents;
@@ -1093,107 +1130,291 @@ body {
   #app {
     max-width: none;
     height: 100dvh;
+    flex-direction: row;
+    overflow: hidden;
   }
 
+  /* ── the rail ── */
+  .nav {
+    order: -1;
+    position: static;
+    transform: none;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 4px;
+    width: 232px;
+    flex-shrink: 0;
+    height: 100%;
+    padding: 40px 24px;
+    border-radius: 0;
+    border-right: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(18, 6, 12, 0.42);
+    backdrop-filter: blur(30px) saturate(160%);
+    -webkit-backdrop-filter: blur(30px) saturate(160%);
+    box-shadow: none;
+  }
+  /* the wordmark lives in the rail on desktop, not floating in the canvas */
+  .nav::before {
+    content: "HOT\AMUM";
+    white-space: pre;
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 34px;
+    line-height: 0.76;
+    letter-spacing: 0.02em;
+    color: #fff;
+    padding: 0 16px;
+    margin-bottom: 36px;
+  }
+  .nav-btn {
+    text-align: left;
+    padding: 0 16px;
+    height: 46px;
+    font-size: 13px;
+  }
+
+  /* ── the canvas ── */
   .screen {
+    flex: 1;
+    min-width: 0;
     display: grid;
-    grid-template-columns: minmax(340px, 460px) minmax(0, 1fr);
-    grid-auto-rows: min-content;
-    column-gap: 64px;
-    align-content: start;
-    width: 100%;
-    max-width: 1180px;
-    margin: 0 auto;
-    padding: 48px 48px 120px;
+    grid-template-columns: minmax(380px, 0.82fr) minmax(0, 1.18fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    column-gap: 56px;
+    row-gap: 28px;
+    align-content: stretch;
+    padding: 48px 56px;
+    overflow: hidden;
+  }
+  .screen.has-nav {
+    padding-bottom: 48px;
+  }
+  .screen > .top {
+    grid-column: 1 / -1;
+    grid-row: 1;
   }
 
   .pane {
-    display: block;
+    display: flex;
+    flex-direction: column;
     min-width: 0;
-  }
-  .top {
-    grid-column: 1 / -1;
-    margin-bottom: 8px;
-  }
-  .pane-a {
-    grid-column: 1;
-  }
-  .pane-b {
-    grid-column: 2;
-    grid-row: 2 / span 3;
-  }
-  .pane-c {
-    grid-column: 1;
+    min-height: 0;
   }
   .pane-wide {
-    grid-column: 1 / -1;
+    display: none;
   }
 
-  /* the room lets the type breathe */
+  /* Each screen owns its own grid — one shared pane mapping can't serve four
+     different pages, which is what broke the athlete layout first time. */
+
+  /* HOME — greeting across the top, the day left, the season right. */
+  .scr-home > .top {
+    display: none; /* the rail already carries the wordmark */
+  }
+  .scr-home .pane-a {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+  .scr-home .pane-c {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .scr-home .pane-b {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  /* PROGRAM — season masthead, blocks left, the week right. */
+  .scr-program {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .scr-program .pane-a {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .scr-program .pane-b {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  /* ME — stats across, settings left, the log right. */
+  .scr-me {
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+  .scr-me .pane-a {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .scr-me .pane-b {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .scr-me .pane-c {
+    grid-column: 2;
+    grid-row: 3;
+  }
+
+  /* ── type at this size ── */
   .page-h {
-    font-size: 56px;
+    font-size: 68px;
+    line-height: 0.88;
   }
   .hello {
-    margin-top: 8px;
+    margin: 0;
   }
+  .hello .row-s {
+    font-size: 15px;
+    margin-top: 12px;
+  }
+  .sec-h {
+    margin-top: 0;
+  }
+
+  /* ── home: the card is a hero panel, the season fills the right ── */
   .today-card {
-    margin-top: 28px;
+    flex: 1;
+    align-items: flex-start;
+    flex-direction: column;
+    justify-content: flex-end;
+    margin: 0 0 22px;
+    padding: 32px;
+    min-height: 0;
   }
   .today-card .day-name {
-    font-size: 58px;
+    font-size: clamp(64px, 6vw, 92px);
+    margin-top: auto;
+  }
+  .today-card .chev {
+    position: absolute;
+    top: 28px;
+    right: 32px;
+    font-size: 40px;
+  }
+  .today-card {
+    position: relative;
   }
   .boxes {
-    gap: 5px;
     grid-template-columns: repeat(14, 1fr);
+    gap: 6px;
+    margin-top: 14px;
   }
   .bx {
-    border-radius: 3px;
+    border-radius: 4px;
   }
-  .mark {
-    font-size: 30px;
-  }
-
-  /* the player is a focus screen — centred and big, never a two-column page */
-  .screen.player {
-    display: flex;
-    max-width: 760px;
-    padding: 48px 48px 96px;
-  }
-  .timer {
-    font-size: 210px;
-  }
-  .phase {
-    font-size: 66px;
-  }
-  .cue {
-    font-size: 16px;
-    max-width: 44ch;
+  .boxes-key {
+    margin-top: 16px;
   }
 
-  /* so is the finish card */
+  /* ── lists breathe ── */
+  .row,
+  .wk,
+  .ex-row {
+    padding: 15px 0;
+  }
+  .row-t,
+  .wk .nm {
+    font-size: 22px;
+  }
+  .sess summary {
+    padding: 18px 0;
+  }
+  .sess-nm {
+    font-size: 24px;
+  }
+  .tiles {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  /* The phone bleeds the active-block highlight into the screen padding; in a
+     pane that just overflows the column. Keep it inside. */
+  .row-on {
+    margin: 0;
+    padding: 15px 16px;
+    border-radius: var(--r-sm);
+  }
+
+  /* ── focus screens stay single-column and centred ── */
+  .screen.player,
   .screen.finish {
     display: flex;
-    max-width: 620px;
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 56px 56px 48px;
+  }
+  .timer {
+    font-size: 220px;
+  }
+  .phase {
+    font-size: 68px;
+  }
+  .cue {
+    font-size: 17px;
+    max-width: 46ch;
   }
   .screen.finish .day-name {
-    font-size: 96px;
+    font-size: 104px;
+  }
+  .fin-cell b {
+    font-size: 52px;
   }
 
-  .sheet-card {
-    max-width: 560px;
-  }
   .sheet {
     align-items: center;
   }
-
-  .nav {
-    bottom: 24px;
+  .sheet-card {
+    max-width: 560px;
   }
 }
 
-/* Wider still — cap the reading measure rather than letting rows sprawl. */
-@media (min-width: 1500px) {
+@media (min-width: 1600px) {
   .screen {
-    max-width: 1280px;
+    padding: 64px 88px;
+    column-gap: 72px;
   }
+  .page-h {
+    font-size: 80px;
+  }
+}
+
+/* ─── Scrollbars ───────────────────────────────────────────────────────────
+   The app is meant to read in one fold; where a scroll genuinely remains (a
+   long movement list inside a sheet) the bar shouldn't draw a grey slab
+   across the design. */
+
+* {
+  scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* The sheet is the one place that scrolls, and it scrolls INSIDE itself so
+   the page behind never moves. */
+.sheet-session {
+  display: flex;
+  flex-direction: column;
+  max-height: min(86vh, 760px);
+}
+.sheet-day {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 42px;
+  line-height: 0.82;
+  letter-spacing: 0.01em;
+  margin-top: 4px;
+}
+.sheet-day em {
+  font-style: normal;
+  color: var(--cream);
+}
+.sheet-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 12px 0 4px;
+}
+.sheet-session .doses,
+.sheet-session .btn {
+  flex-shrink: 0;
 }

@@ -264,30 +264,18 @@ function renderProgram() {
     })
     .join('');
 
-  const sessions = HOTMUM_SESSIONS.map((s) => {
-    const rows = sessionOverview(s)
-      .map((r, i) => {
-        const block = s.blocks[i];
-        const load = block?.load ? formatLoad(block.load, profile.unit) : '';
-        return `<button class="ex-row" data-ex="${esc(block?.ex || '')}">
-          <span class="ex-nm">${esc(r.title)}</span>
-          <span class="ex-d">${esc(r.detail)}${load ? ` · ${esc(load)}` : ''}</span>
-        </button>`;
-      })
-      .join('');
-    return `<details class="sess">
-      <summary>
-        <span class="sess-nm">${esc(s.day)} · ${esc(s.name.toUpperCase())}</span>
-        <span class="lbl lbl-sm">${estimateSessionMins(stageSession(s, 0))} MIN</span>
-      </summary>
-      <p class="row-s sess-blurb">${esc(s.blurb)}</p>
-      ${rows}
-      <button class="btn btn-sm open-sess" data-open="${esc(s.id)}">OPEN ${esc(s.name.toUpperCase())}</button>
-    </details>`;
-  }).join('');
+  const sessions = HOTMUM_SESSIONS.map(
+    (s) => `<button class="row row-tap" data-open="${esc(s.id)}">
+      <div>
+        <div class="row-t">${esc(s.day)} · ${esc(s.name.toUpperCase())}</div>
+        <div class="row-s">${esc(s.blurb)}</div>
+      </div>
+      <span class="lbl lbl-sm lbl-hot">${estimateSessionMins(stageSession(s, 0))} MIN</span>
+    </button>`,
+  ).join('');
 
   app.innerHTML = `
-    <div class="screen has-nav">
+    <div class="screen has-nav scr-program">
       <div class="top">
         <div>
           <div class="lbl lbl-sm">${esc(SEASON.label)}</div>
@@ -308,13 +296,13 @@ function renderProgram() {
       <div class="pane pane-b">
         <h2 class="sec-h">The week</h2>
         ${sessions}
-      <div class="row">
+      <button class="row row-tap" data-open="walk">
         <div>
           <div class="row-t">Walk days</div>
           <div class="row-s">${esc(WALK.blurb)}</div>
         </div>
-        <span class="lbl lbl-sm">${WALK.mins} MIN</span>
-      </div>
+        <span class="lbl lbl-sm lbl-hot">${WALK.mins} MIN</span>
+      </button>
       </div>
       <p class="fine pane-wide">Every set is a countdown, not a count — Alice
         speaks the tempo and calls the reps, so you never have to keep track.</p>
@@ -326,7 +314,7 @@ function renderProgram() {
     b.addEventListener('click', () => openExercise(b.dataset.ex));
   }
   for (const b of app.querySelectorAll('[data-open]')) {
-    b.addEventListener('click', () => renderSession(b.dataset.open));
+    b.addEventListener('click', () => openSession(b.dataset.open));
   }
 }
 
@@ -565,7 +553,7 @@ function renderAthlete() {
     .join('');
 
   app.innerHTML = `
-    <div class="screen has-nav">
+    <div class="screen has-nav scr-me">
       <div class="top">
         <div>
           <div class="lbl lbl-sm">ATHLETE</div>
@@ -581,7 +569,9 @@ function renderAthlete() {
         <div class="tile"><b>${Math.round(totalSecs / 60)}</b><span class="lbl lbl-sm">MINUTES</span></div>
         <div class="tile"><b>${Math.round(totalTut / 60)}</b><span class="lbl lbl-sm">UNDER TENSION</span></div>
       </div>
+      </div>
 
+      <div class="pane pane-b">
       <h2 class="sec-h">Settings</h2>
       <button class="row row-tap" data-edit="name">
         <div><div class="row-t">Name</div><div class="row-s">Used in the greeting</div></div>
@@ -601,12 +591,6 @@ function renderAthlete() {
         <span class="lbl lbl-sm lbl-hot">↗</span>
       </button>
 
-      </div>
-      <div class="pane pane-b">
-      <h2 class="sec-h">The log</h2>
-      ${log || '<p class="fine">Nothing logged yet. It starts on your first session.</p>'}
-      </div>
-
       <h2 class="sec-h">Backup</h2>
       <div id="account-slot"><p class="fine">Checking…</p></div>
 
@@ -617,6 +601,12 @@ function renderAthlete() {
       </button>
       <p class="fine" id="build-stamp"></p>
       <p class="fine">HOTMUM — hot as in strong.<br>Everything lives on this phone. Nothing is uploaded.</p>
+      </div>
+
+      <div class="pane pane-c">
+      <h2 class="sec-h">The log</h2>
+      ${log || '<p class="fine">Nothing logged yet. It starts on your first session.</p>'}
+      </div>
     </div>
     ${nav('athlete')}`;
 
@@ -797,7 +787,7 @@ function renderHome() {
         </button>`;
 
   app.innerHTML = `
-    <div class="screen has-nav">
+    <div class="screen has-nav scr-home">
       <div class="top">
         <div class="mark">HOT<br>MUM</div>
         <button class="icon-btn" id="voice" aria-pressed="${voiceOn}" aria-label="Coach voice">${voiceOn ? '♪' : '✕'}</button>
@@ -838,18 +828,20 @@ function renderHome() {
     renderHome();
   });
   app.querySelector('#open-today')?.addEventListener('click', () => {
-    if (plan.kind === 'walk') renderWalk();
-    else renderSession(plan.id);
+    openSession(plan.kind === 'walk' ? 'walk' : plan.id);
   });
 }
 
 // ─── Open a day, then go ───────────────────────────────────────────────────
-// The same screen whether she got here from today's card or from the program
-// page: what the session is, how long each dose takes, and one button.
+// A SHEET, not a page and not an accordion: it opens over whatever she was
+// looking at, scrolls inside itself if the movement list is long, and closes
+// back to exactly where she was. Same on a phone and a laptop — no scrolling
+// down to find the button.
 
-function renderSession(id) {
-  view = 'session';
+function openSession(id) {
+  if (id === 'walk') return openWalkSheet();
   const s = getSession(id);
+  if (!s) return;
   const short = estimateSessionMins(stageSession(s, 0));
   const full = [0, 1, 2].reduce((n, i) => n + stageMins(s, i), 0);
   const core = stageMins(s, 2);
@@ -865,81 +857,82 @@ function renderSession(id) {
     })
     .join('');
 
-  app.innerHTML = `
-    <div class="screen">
-      <div class="top">
-        <button class="icon-btn" id="back" aria-label="Back">←</button>
-        <span class="lbl lbl-sm">${esc(s.day)} · WK ${seasonWeek()} OF ${SEASON.weeks}</span>
-      </div>
-      <div class="pane pane-a">
-        <div class="hero">
-          <div class="day-name">${dayTitle(s.name)}</div>
-          <p class="blurb">${esc(s.blurb)}</p>
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet';
+  sheet.innerHTML = `<div class="sheet-card sheet-session" role="dialog" aria-label="${esc(s.name)}">
+      <div class="sheet-top">
+        <div>
+          <span class="lbl lbl-sm">${esc(s.day)} · WK ${seasonWeek()} OF ${SEASON.weeks}</span>
+          <h3 class="sheet-day">${dayTitle(s.name)}</h3>
         </div>
+        <button class="icon-btn" id="sheet-x" aria-label="Close">✕</button>
       </div>
-      <div class="pane pane-b">
-        <h2 class="sec-h">The movements</h2>
-        ${rows}
+      <p class="row-s">${esc(s.blurb)}</p>
+      <div class="sheet-scroll">${rows}</div>
+      <div class="doses">
+        <button class="dose" data-dose="short" aria-pressed="true">SHORT<i>${short} MIN</i></button>
+        <button class="dose" data-dose="full" aria-pressed="false">FULL<i>${full} MIN</i></button>
+        <button class="dose" data-dose="core" aria-pressed="false">CORE<i>${core} MIN</i></button>
       </div>
-      <div class="pane pane-c" style="flex-shrink:0">
-        <div class="doses">
-          <button class="dose" data-dose="short" aria-pressed="true">SHORT<i>${short} MIN</i></button>
-          <button class="dose" data-dose="full" aria-pressed="false">FULL<i>${full} MIN</i></button>
-          <button class="dose" data-dose="core" aria-pressed="false">CORE<i>${core} MIN</i></button>
-        </div>
-        <button class="btn" id="go-session">GO</button>
-      </div>
+      <button class="btn" id="go-session">GO</button>
     </div>`;
+  document.body.appendChild(sheet);
 
-  app.querySelector('#back').addEventListener('click', () => go('home'));
-  for (const b of app.querySelectorAll('[data-ex]')) {
+  for (const b of sheet.querySelectorAll('[data-ex]')) {
     b.addEventListener('click', () => openExercise(b.dataset.ex));
   }
-  for (const b of app.querySelectorAll('.dose')) {
+  for (const b of sheet.querySelectorAll('.dose')) {
     b.addEventListener('click', () => {
-      for (const o of app.querySelectorAll('.dose'))
+      for (const o of sheet.querySelectorAll('.dose'))
         o.setAttribute('aria-pressed', String(o === b));
     });
   }
-  app.querySelector('#go-session').addEventListener('click', () => {
+  sheet.querySelector('#go-session').addEventListener('click', () => {
     const dose =
-      app.querySelector('.dose[aria-pressed="true"]')?.dataset.dose || 'short';
-    // MUST happen inside the tap: iOS only lets a real gesture start audio.
-    unlock();
+      sheet.querySelector('.dose[aria-pressed="true"]')?.dataset.dose ||
+      'short';
+    unlock(); // MUST be inside the tap — iOS only lets a gesture start audio
+    sheet.remove();
     startSession(id, dose);
+  });
+  sheet.addEventListener('click', (e) => {
+    if (e.target === sheet || e.target.id === 'sheet-x') sheet.remove();
   });
 }
 
-function renderWalk() {
-  view = 'session';
-  app.innerHTML = `
-    <div class="screen">
-      <div class="top">
-        <button class="icon-btn" id="back" aria-label="Back">←</button>
-        <span class="lbl lbl-sm">WK ${seasonWeek()} OF ${SEASON.weeks}</span>
-      </div>
-      <div class="hero">
-        <div class="day-name"><em>WALK</em></div>
-        <p class="blurb">${esc(WALK.blurb)}</p>
-        <div class="stats">
-          <div class="stat"><b>${WALK.mins}</b><span class="lbl lbl-sm">MINUTES</span></div>
-          <div class="stat"><b>${history().filter((h) => h.kind === 'walk').length}</b><span class="lbl lbl-sm">LOGGED</span></div>
+function openWalkSheet() {
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet';
+  sheet.innerHTML = `<div class="sheet-card" role="dialog" aria-label="Walk">
+      <div class="sheet-top">
+        <div>
+          <span class="lbl lbl-sm">WK ${seasonWeek()} OF ${SEASON.weeks}</span>
+          <h3 class="sheet-day"><em>WALK</em></h3>
         </div>
+        <button class="icon-btn" id="sheet-x" aria-label="Close">✕</button>
       </div>
-      <div style="flex-shrink:0">
-        <button class="btn" id="go-walk">START WALK</button>
-        <div class="btn-row"><button class="btn btn-ghost btn-sm" id="log-walk">ALREADY WALKED — LOG IT</button></div>
+      <p class="row-s">${esc(WALK.blurb)}</p>
+      <div class="stats">
+        <div class="stat"><b>${WALK.mins}</b><span class="lbl lbl-sm">MINUTES</span></div>
+        <div class="stat"><b>${history().filter((h) => h.kind === 'walk').length}</b><span class="lbl lbl-sm">LOGGED</span></div>
       </div>
+      <button class="btn" id="go-walk">START WALK</button>
+      <div class="btn-row"><button class="btn btn-ghost btn-sm" id="log-walk">ALREADY WALKED — LOG IT</button></div>
     </div>`;
-  app.querySelector('#back').addEventListener('click', () => go('home'));
-  app.querySelector('#go-walk').addEventListener('click', () => {
+  document.body.appendChild(sheet);
+  sheet.querySelector('#go-walk').addEventListener('click', () => {
     unlock();
+    sheet.remove();
     startWalk();
   });
-  app.querySelector('#log-walk').addEventListener('click', () => {
+  sheet.querySelector('#log-walk').addEventListener('click', () => {
     const rec = { kind: 'walk', secs: WALK.mins * 60 };
     logDone(rec);
+    sheet.remove();
     renderFinish(rec);
+  });
+  sheet.addEventListener('click', (e) => {
+    if (e.target === sheet || e.target.id === 'sheet-x') sheet.remove();
   });
 }
 
@@ -1055,22 +1048,24 @@ function renderPlayer() {
   app.innerHTML = `
     <div class="screen player" id="pl">
       <div class="bloom"></div>
-      <div class="top">
+      <div class="pl-top">
         <div class="ex-name">${esc(isWalk ? 'WALK' : exName(st.exId))}</div>
         <button class="icon-btn" id="quit" aria-label="End session">✕</button>
       </div>
-      <div class="timer-wrap">
+
+      <div class="pl-mid">
         <div class="timer" id="timer">0:00</div>
         <div class="phase" id="phase">${esc(st.phase || '')}</div>
         <p class="cue" id="cue">${esc(cue)}</p>
         <span class="lbl lbl-sm" id="meta">${esc(st.meta || '')}</span>
         <div class="pips" id="pips"></div>
-      </div>
-      <div class="foot">
         <div class="strip">
           <span class="lbl lbl-sm" id="tempo-lbl"></span>
           <span class="lbl lbl-sm" id="load-lbl"></span>
         </div>
+      </div>
+
+      <div class="pl-foot">
         <div class="btn-row">
           <button class="btn btn-ghost" id="pause">${run.running ? 'PAUSE' : 'RESUME'}</button>
           <button class="btn btn-ghost btn-sm" id="skip" aria-label="Skip this step">SKIP</button>
