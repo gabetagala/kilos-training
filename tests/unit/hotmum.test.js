@@ -26,6 +26,13 @@ import {
   tempoStateAt,
 } from '../../src/hotmum/engine.js';
 import { phaseWordSlug } from '../../src/workout/tempoCues.js';
+import {
+  DEFAULTS,
+  formatLoad,
+  greeting,
+  lbToKg,
+  subGreeting,
+} from '../../src/hotmum/profile.js';
 
 const allBlocks = HOTMUM_SESSIONS.flatMap((s) => s.blocks);
 
@@ -325,5 +332,52 @@ describe('drives the shipped step engine', () => {
     expect(
       queue.some((st) => st.exId === 'lunge' && st.phase === 'SWITCH SIDES'),
     ).toBe(true);
+  });
+});
+
+describe('profile — greeting and units', () => {
+  it('greets by time of day, by name', () => {
+    const at = (h) => new Date(`2026-09-01T${String(h).padStart(2, '0')}:00:00`);
+    expect(greeting('Sam', at(8))).toBe('Morning, Sam.');
+    expect(greeting('Sam', at(14))).toBe('Afternoon, Sam.');
+    expect(greeting('Sam', at(20))).toBe('Evening, Sam.');
+    expect(greeting('Sam', at(3))).toBe('Late one, Sam.');
+  });
+
+  it('changes register once the day is done', () => {
+    expect(greeting('Sam', new Date('2026-09-01T08:00:00'), true)).toBe(
+      'Nice work, Sam.',
+    );
+  });
+
+  // "Hot as in strong" is the whole reframe — the app talks about what she
+  // does, never about how she looks.
+  it('never comments on her appearance', () => {
+    const banned = /hot|sexy|slim|skinny|thin|body|look/i;
+    for (const h of [0, 6, 13, 19, 23]) {
+      const d = new Date(`2026-09-01T${String(h).padStart(2, '0')}:00:00`);
+      expect(greeting('Sam', d)).not.toMatch(banned);
+      expect(greeting('Sam', d, true)).not.toMatch(banned);
+    }
+    for (const kind of ['walk', 'session']) {
+      for (const doneToday of [true, false]) {
+        expect(subGreeting({ kind, doneToday, daysToGo: 100 })).not.toMatch(banned);
+      }
+    }
+  });
+
+  it('formats load in her unit, and bodyweight as words', () => {
+    expect(formatLoad({ lb: 15, each: true })).toBe('15 lb × 2');
+    expect(formatLoad({ lb: 20 })).toBe('20 lb');
+    expect(formatLoad('BW')).toBe('Bodyweight');
+    expect(formatLoad(null)).toBe('Bodyweight');
+  });
+
+  it('converts to kg for display only, to the nearest half', () => {
+    expect(lbToKg(10)).toBe(4.5);
+    expect(lbToKg(20)).toBe(9);
+    expect(formatLoad({ lb: 15, each: true }, 'kg')).toBe('7 kg × 2');
+    // the prescription itself never changes — still the same pounds underneath
+    expect(DEFAULTS.dumbbells).toEqual([10, 15, 20]);
   });
 });

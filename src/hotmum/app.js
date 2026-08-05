@@ -16,16 +16,25 @@ import {
   buildStepQueue,
   estimateSessionMins,
   nextWorkLabel,
+  sessionOverview,
   tempoStateAt,
 } from './engine.js';
+import {
+  formatLoad,
+  getProfile,
+  greeting,
+  saveProfile,
+  subGreeting,
+} from './profile.js';
 import {
   blockForWeek,
   daysToGo,
   getSession,
   HOTMUM_EXERCISES,
-  loadLabel,
+  HOTMUM_SESSIONS,
   SEASON,
   seasonWeek,
+  tempoLabel,
   WALK,
   WEEK,
 } from './program.js';
@@ -92,7 +101,15 @@ const stageMins = (session, stageIdx) =>
 
 const VOICE_DIR = '/voice-hotmum/';
 const silent = new Set();
-let voiceOn = get(K.voice, true);
+// Voice used to live under its own key; the profile owns it now, and an
+// existing hotmum-voice value is honoured once so nobody's setting flips.
+let profile = getProfile();
+const legacyVoice = get(K.voice);
+if (legacyVoice !== null && legacyVoice !== undefined) {
+  profile = saveProfile({ voice: legacyVoice });
+  drop(K.voice);
+}
+let voiceOn = profile.voice;
 
 function say(slug) {
   if (!voiceOn || !slug || silent.has(slug)) return;
@@ -170,6 +187,297 @@ function doneToday() {
   return history().some((h) => h.date === t);
 }
 
+// ─── Nav ───────────────────────────────────────────────────────────────────
+// Three tabs, same shape as KILOS. Hidden during the player and the finish
+// card — mid-set is not a moment to offer navigation.
+
+const TABS = [
+  { id: 'home', label: 'Today' },
+  { id: 'program', label: 'Program' },
+  { id: 'athlete', label: 'Me' },
+];
+
+function nav(active) {
+  return `<nav class="nav">${TABS.map(
+    (t) =>
+      `<button class="nav-btn" data-go="${t.id}" aria-current="${t.id === active}">${t.label}</button>`,
+  ).join('')}</nav>`;
+}
+
+function wireNav() {
+  for (const b of app.querySelectorAll('[data-go]')) {
+    b.addEventListener('click', () => go(b.dataset.go));
+  }
+}
+
+function go(where) {
+  view = where;
+  if (where === 'home') renderHome();
+  else if (where === 'program') renderProgram();
+  else if (where === 'athlete') renderAthlete();
+}
+
+// ─── Program ───────────────────────────────────────────────────────────────
+// What she'd otherwise only discover by doing it: the whole season, every
+// session, and every movement's coaching copy — which until now surfaced one
+// line at a time, mid-set, when it is far too late to read it.
+
+function renderProgram() {
+  const week = seasonWeek();
+  const current = blockForWeek(week);
+
+  const blocks = SEASON.blocks
+    .map((b) => {
+      const on = b === current;
+      return `<div class="row ${on ? 'row-on' : ''}">
+        <div>
+          <div class="row-t">${esc(b.name)}</div>
+          <div class="row-s">${esc(b.blurb)}</div>
+        </div>
+        <span class="lbl lbl-sm ${on ? 'lbl-hot' : ''}">WK ${b.weeks[0]}–${b.weeks[1]}</span>
+      </div>`;
+    })
+    .join('');
+
+  const sessions = HOTMUM_SESSIONS.map((s) => {
+    const rows = sessionOverview(s)
+      .map((r, i) => {
+        const block = s.blocks[i];
+        const load = block?.load ? formatLoad(block.load, profile.unit) : '';
+        return `<button class="ex-row" data-ex="${esc(block?.ex || '')}">
+          <span class="ex-nm">${esc(r.title)}</span>
+          <span class="ex-d">${esc(r.detail)}${load ? ` · ${esc(load)}` : ''}</span>
+        </button>`;
+      })
+      .join('');
+    return `<details class="sess">
+      <summary>
+        <span class="sess-nm">${esc(s.day)} · ${esc(s.name.toUpperCase())}</span>
+        <span class="lbl lbl-sm">${estimateSessionMins(stageSession(s, 0))} MIN</span>
+      </summary>
+      <p class="row-s sess-blurb">${esc(s.blurb)}</p>
+      ${rows}
+    </details>`;
+  }).join('');
+
+  app.innerHTML = `
+    <div class="screen">
+      <div class="top">
+        <div>
+          <div class="lbl lbl-sm">${esc(SEASON.label)}</div>
+          <h1 class="page-h">${esc(SEASON.name)}</h1>
+        </div>
+      </div>
+      <div class="season-row">
+        <span class="lbl lbl-sm">WK ${week} OF ${SEASON.weeks}</span>
+        <span class="lbl lbl-sm lbl-hot">${daysToGo()} DAYS</span>
+      </div>
+      <div class="season">${seasonRail()}</div>
+
+      <h2 class="sec-h">The five blocks</h2>
+      ${blocks}
+
+      <h2 class="sec-h">The week</h2>
+      ${sessions}
+      <div class="row">
+        <div>
+          <div class="row-t">Walk days</div>
+          <div class="row-s">${esc(WALK.blurb)}</div>
+        </div>
+        <span class="lbl lbl-sm">${WALK.mins} MIN</span>
+      </div>
+      <p class="fine">Every set is a countdown, not a count — Alice speaks the
+        tempo and calls the reps, so you never have to keep track.</p>
+    </div>
+    ${nav('program')}`;
+
+  wireNav();
+  for (const b of app.querySelectorAll('[data-ex]')) {
+    b.addEventListener('click', () => openExercise(b.dataset.ex));
+  }
+}
+
+// A movement's full coaching copy, on demand.
+function openExercise(id) {
+  const ex = HOTMUM_EXERCISES[id];
+  if (!ex) return;
+  const tempo = ex.repTempo ? tempoLabel(ex.repTempo) : null;
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet';
+  sheet.innerHTML = `<div class="sheet-card" role="dialog" aria-label="${esc(ex.name)}">
+      <div class="sheet-top">
+        <h3>${esc(ex.name)}</h3>
+        <button class="icon-btn" id="sheet-x" aria-label="Close">✕</button>
+      </div>
+      ${tempo ? `<span class="lbl lbl-sm lbl-hot">TEMPO ${esc(tempo)}</span>` : ''}
+      <dl class="sheet-dl">
+        <dt>How to</dt><dd>${esc(ex.cue)}</dd>
+        <dt>Should feel like</dt><dd>${esc(ex.feel)}</dd>
+        <dt>Watch out for</dt><dd>${esc(ex.avoid)}</dd>
+        <dt>Why it's in here</dt><dd>${esc(ex.why)}</dd>
+      </dl>
+    </div>`;
+  const close = () => sheet.remove();
+  sheet.addEventListener('click', (e) => {
+    if (e.target === sheet || e.target.id === 'sheet-x') close();
+  });
+  document.body.appendChild(sheet);
+}
+
+// ─── Athlete ───────────────────────────────────────────────────────────────
+
+function renderAthlete() {
+  const hist = history();
+  const sessions = hist.filter((h) => h.kind === 'session');
+  const walks = hist.filter((h) => h.kind === 'walk');
+  const totalSecs = hist.reduce((n, h) => n + (h.secs || 0), 0);
+  const totalTut = hist.reduce((n, h) => n + (h.tut || 0), 0);
+
+  const log = hist
+    .slice()
+    .reverse()
+    .slice(0, 40)
+    .map((h, i) => {
+      const s = h.sessionId ? getSession(h.sessionId) : null;
+      const title = s ? s.name : 'Walk';
+      const detail = s
+        ? `${h.dose?.toUpperCase() || ''} · ${h.sets} sets · ${mmss(h.secs)}`
+        : `${WALK.mins} min`;
+      return `<div class="row">
+        <div>
+          <div class="row-t">${esc(title)}</div>
+          <div class="row-s">${esc(h.date)} · ${esc(detail)}</div>
+        </div>
+        <button class="del" data-del="${hist.length - 1 - i}" aria-label="Delete this entry">✕</button>
+      </div>`;
+    })
+    .join('');
+
+  app.innerHTML = `
+    <div class="screen">
+      <div class="top">
+        <div>
+          <div class="lbl lbl-sm">ATHLETE</div>
+          <h1 class="page-h">${esc(profile.name)}</h1>
+        </div>
+      </div>
+
+      <h2 class="sec-h">This season</h2>
+      <div class="tiles">
+        <div class="tile"><b>${sessions.length}</b><span class="lbl lbl-sm">SESSIONS</span></div>
+        <div class="tile"><b>${walks.length}</b><span class="lbl lbl-sm">WALKS</span></div>
+        <div class="tile"><b>${Math.round(totalSecs / 60)}</b><span class="lbl lbl-sm">MINUTES</span></div>
+        <div class="tile"><b>${Math.round(totalTut / 60)}</b><span class="lbl lbl-sm">UNDER TENSION</span></div>
+      </div>
+
+      <h2 class="sec-h">Settings</h2>
+      <button class="row row-tap" data-edit="name">
+        <div><div class="row-t">Name</div><div class="row-s">Used in the greeting</div></div>
+        <span class="lbl lbl-sm lbl-hot">${esc(profile.name)}</span>
+      </button>
+      <button class="row row-tap" data-edit="unit">
+        <div><div class="row-t">Weight unit</div><div class="row-s">Display only — the program stays in pounds</div></div>
+        <span class="lbl lbl-sm lbl-hot">${esc(profile.unit.toUpperCase())}</span>
+      </button>
+      <button class="row row-tap" data-edit="voice">
+        <div><div class="row-t">Coach voice</div><div class="row-s">Alice calls the tempo and the reps</div></div>
+        <span class="lbl lbl-sm lbl-hot">${voiceOn ? 'ON' : 'OFF'}</span>
+      </button>
+
+      <h2 class="sec-h">The log</h2>
+      ${log || '<p class="fine">Nothing logged yet. It starts on your first session.</p>'}
+
+      <h2 class="sec-h">About</h2>
+      <button class="row row-tap" id="btn-update">
+        <div><div class="row-t">Check for update</div><div class="row-s" id="update-s">Get the newest version</div></div>
+        <span class="lbl lbl-sm lbl-hot">↻</span>
+      </button>
+      <p class="fine" id="build-stamp"></p>
+      <p class="fine">HOTMUM — hot as in strong.<br>Everything lives on this phone. Nothing is uploaded.</p>
+    </div>
+    ${nav('athlete')}`;
+
+  wireNav();
+  const stamp = app.querySelector('#build-stamp');
+  if (stamp) {
+    stamp.textContent = `Version ${import.meta.env.KILOS_BUILD || 'dev'} · ${import.meta.env.KILOS_COMMIT || '—'}`;
+  }
+  for (const b of app.querySelectorAll('[data-edit]')) {
+    b.addEventListener('click', () => editSetting(b.dataset.edit));
+  }
+  for (const b of app.querySelectorAll('[data-del]')) {
+    b.addEventListener('click', () => {
+      const list = history();
+      list.splice(Number(b.dataset.del), 1);
+      set(K.history, list);
+      renderAthlete();
+    });
+  }
+  app.querySelector('#btn-update')?.addEventListener('click', checkForUpdate);
+}
+
+// Tap a settings row to change it — inline, no separate settings screen.
+function editSetting(field) {
+  if (field === 'unit') {
+    profile = saveProfile({ unit: profile.unit === 'lb' ? 'kg' : 'lb' });
+    return renderAthlete();
+  }
+  if (field === 'voice') {
+    voiceOn = !voiceOn;
+    profile = saveProfile({ voice: voiceOn });
+    if (voiceOn) say('go');
+    return renderAthlete();
+  }
+  if (field === 'name') {
+    const sheet = document.createElement('div');
+    sheet.className = 'sheet';
+    sheet.innerHTML = `<div class="sheet-card" role="dialog" aria-label="Your name">
+        <div class="sheet-top"><h3>Your name</h3>
+          <button class="icon-btn" id="sheet-x" aria-label="Close">✕</button></div>
+        <p class="row-s">However you'd like to be greeted.</p>
+        <input class="field" id="name-in" value="${esc(profile.name)}" maxlength="24" autocomplete="off" />
+        <button class="btn" id="name-save">SAVE</button>
+      </div>`;
+    document.body.appendChild(sheet);
+    const input = sheet.querySelector('#name-in');
+    input.focus();
+    input.select();
+    const save = () => {
+      const v = input.value.trim();
+      if (v) profile = saveProfile({ name: v });
+      sheet.remove();
+      renderAthlete();
+    };
+    sheet.querySelector('#name-save').addEventListener('click', save);
+    input.addEventListener('keydown', (e) => e.key === 'Enter' && save());
+    sheet.addEventListener('click', (e) => {
+      if (e.target === sheet || e.target.id === 'sheet-x') sheet.remove();
+    });
+  }
+}
+
+async function checkForUpdate() {
+  const s = app.querySelector('#update-s');
+  if (s) s.textContent = 'Checking…';
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    if (!reg) {
+      if (s)
+        s.textContent = 'Not installed yet — add to your Home Screen first.';
+      return;
+    }
+    await reg.update();
+    if (reg.installing || reg.waiting) {
+      if (s) s.textContent = 'New version found — reloading…';
+      setTimeout(() => location.reload(), 900);
+    } else if (s) {
+      s.textContent = "You're on the newest version.";
+    }
+  } catch {
+    if (s) s.textContent = 'Could not check — try again when you have signal.';
+  }
+}
+
 // ─── Home ──────────────────────────────────────────────────────────────────
 
 function renderHome() {
@@ -178,6 +486,12 @@ function renderHome() {
   const plan = todayPlan();
   const done = doneToday();
   const hist = history();
+
+  const hello = `
+    <div class="hello">
+      <h1 class="page-h">${esc(greeting(profile.name, new Date(), done))}</h1>
+      <p class="row-s">${esc(subGreeting({ kind: plan.kind, doneToday: done, daysToGo: daysToGo() }))}</p>
+    </div>`;
 
   const seasonHead = `
     <div class="season-row">
@@ -249,14 +563,17 @@ function renderHome() {
         <div class="mark">HOT<br>MUM</div>
         <button class="icon-btn" id="voice" aria-pressed="${voiceOn}" aria-label="Coach voice">${voiceOn ? '♪' : '✕'}</button>
       </div>
+      ${hello}
       ${seasonHead}
       ${hero}
       <div class="week">${weekList}</div>
-    </div>`;
+    </div>
+    ${nav('home')}`;
 
+  wireNav();
   app.querySelector('#voice')?.addEventListener('click', () => {
     voiceOn = !voiceOn;
-    set(K.voice, voiceOn);
+    profile = saveProfile({ voice: voiceOn });
     renderHome();
   });
   for (const b of app.querySelectorAll('.dose')) {
