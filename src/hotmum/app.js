@@ -300,11 +300,14 @@ function renderProgram() {
       </div>
       <div class="season">${seasonRail()}</div>
 
-      <h2 class="sec-h">The five blocks</h2>
-      ${blocks}
+      <div class="pane pane-a">
+        <h2 class="sec-h">The five blocks</h2>
+        ${blocks}
+      </div>
 
-      <h2 class="sec-h">The week</h2>
-      ${sessions}
+      <div class="pane pane-b">
+        <h2 class="sec-h">The week</h2>
+        ${sessions}
       <div class="row">
         <div>
           <div class="row-t">Walk days</div>
@@ -312,8 +315,9 @@ function renderProgram() {
         </div>
         <span class="lbl lbl-sm">${WALK.mins} MIN</span>
       </div>
-      <p class="fine">Every set is a countdown, not a count — Alice speaks the
-        tempo and calls the reps, so you never have to keep track.</p>
+      </div>
+      <p class="fine pane-wide">Every set is a countdown, not a count — Alice
+        speaks the tempo and calls the reps, so you never have to keep track.</p>
     </div>
     ${nav('program')}`;
 
@@ -569,6 +573,7 @@ function renderAthlete() {
         </div>
       </div>
 
+      <div class="pane pane-a">
       <h2 class="sec-h">This season</h2>
       <div class="tiles">
         <div class="tile"><b>${sessions.length}</b><span class="lbl lbl-sm">SESSIONS</span></div>
@@ -596,8 +601,11 @@ function renderAthlete() {
         <span class="lbl lbl-sm lbl-hot">↗</span>
       </button>
 
+      </div>
+      <div class="pane pane-b">
       <h2 class="sec-h">The log</h2>
       ${log || '<p class="fine">Nothing logged yet. It starts on your first session.</p>'}
+      </div>
 
       <h2 class="sec-h">Backup</h2>
       <div id="account-slot"><p class="fine">Checking…</p></div>
@@ -795,25 +803,30 @@ function renderHome() {
         <button class="icon-btn" id="voice" aria-pressed="${voiceOn}" aria-label="Coach voice">${voiceOn ? '♪' : '✕'}</button>
       </div>
 
-      <div class="hello">
-        <h1 class="page-h">${esc(greeting(profile.name, new Date(), done))}</h1>
-        <p class="row-s">${esc(subGreeting({ kind: plan.kind, doneToday: done, daysToGo: daysToGo() }))}</p>
+      <div class="pane pane-a">
+        <div class="hello">
+          <h1 class="page-h">${esc(greeting(profile.name, new Date(), done))}</h1>
+          <p class="row-s">${esc(subGreeting({ kind: plan.kind, doneToday: done, daysToGo: daysToGo() }))}</p>
+        </div>
       </div>
 
-      <div class="season-row">
-        <span class="lbl lbl-sm">WK ${week} OF ${SEASON.weeks} · ${esc(block.name)}</span>
-        <span class="lbl lbl-sm lbl-hot">${daysToGo()} DAYS</span>
-      </div>
-      <div class="boxes">${grid.html}</div>
-      <div class="season-row boxes-key">
-        <span class="lbl lbl-sm">${grid.filled} OF ${grid.total} DAYS IN</span>
-        <span class="lbl lbl-sm">CHRISTMAS →</span>
+      <div class="pane pane-b">
+        <div class="season-row">
+          <span class="lbl lbl-sm">WK ${week} OF ${SEASON.weeks} · ${esc(block.name)}</span>
+          <span class="lbl lbl-sm lbl-hot">${daysToGo()} DAYS</span>
+        </div>
+        <div class="boxes">${grid.html}</div>
+        <div class="season-row boxes-key">
+          <span class="lbl lbl-sm">${grid.filled} OF ${grid.total} DAYS IN</span>
+          <span class="lbl lbl-sm">CHRISTMAS →</span>
+        </div>
       </div>
 
-      ${card}
-
-      ${recent ? `<h2 class="sec-h">Recent</h2>${recent}` : ''}
-      <p class="fine">Everything lives on this phone.</p>
+      <div class="pane pane-c">
+        ${card}
+        ${recent ? `<h2 class="sec-h">Recent</h2>${recent}` : ''}
+        <p class="fine">Everything lives on this phone.</p>
+      </div>
     </div>
     ${nav('home')}`;
 
@@ -858,13 +871,17 @@ function renderSession(id) {
         <button class="icon-btn" id="back" aria-label="Back">←</button>
         <span class="lbl lbl-sm">${esc(s.day)} · WK ${seasonWeek()} OF ${SEASON.weeks}</span>
       </div>
-      <div class="hero">
-        <div class="day-name">${dayTitle(s.name)}</div>
-        <p class="blurb">${esc(s.blurb)}</p>
+      <div class="pane pane-a">
+        <div class="hero">
+          <div class="day-name">${dayTitle(s.name)}</div>
+          <p class="blurb">${esc(s.blurb)}</p>
+        </div>
       </div>
-      <h2 class="sec-h">The movements</h2>
-      ${rows}
-      <div style="flex-shrink:0">
+      <div class="pane pane-b">
+        <h2 class="sec-h">The movements</h2>
+        ${rows}
+      </div>
+      <div class="pane pane-c" style="flex-shrink:0">
         <div class="doses">
           <button class="dose" data-dose="short" aria-pressed="true">SHORT<i>${short} MIN</i></button>
           <button class="dose" data-dose="full" aria-pressed="false">FULL<i>${full} MIN</i></button>
