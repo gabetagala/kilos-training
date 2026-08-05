@@ -363,7 +363,11 @@ export const SEASON = {
 };
 
 const DAY_MS = 86400000;
-const asDate = (d) => (d instanceof Date ? d : new Date(`${d}T00:00:00`));
+// Local midnight either way, so a countdown doesn't tick down mid-afternoon.
+const asDate = (d) =>
+  d instanceof Date
+    ? new Date(d.getFullYear(), d.getMonth(), d.getDate())
+    : new Date(`${d}T00:00:00`);
 
 /** Whole days from `today` to Christmas. Never negative. */
 export const daysToGo = (today = new Date()) =>

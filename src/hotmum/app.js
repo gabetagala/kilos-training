@@ -96,7 +96,12 @@ const drop = (k) => {
   }
 };
 
-const todayKey = () => new Date().toISOString().slice(0, 10);
+// LOCAL date, never toISOString(). In Manila (UTC+8) a 7am session stamped
+// with the UTC date lands on YESTERDAY, so by that evening the app had
+// forgotten she'd trained and invited her to do the session again.
+const dayKey = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const todayKey = () => dayKey();
 const history = () => get(K.history, []);
 
 // ─── The session grows, it doesn't shrink ──────────────────────────────────
@@ -717,7 +722,6 @@ async function checkForUpdate() {
 // the season IS the motivation, so it's the thing the page is mostly made of.
 
 const DAY_MS = 86400000;
-const iso = (d) => d.toISOString().slice(0, 10);
 
 // One box per day of the season. Filled when something was logged, outlined on
 // a lifting day, dim on a walk day. A missed day just stays empty — no red, no
@@ -725,7 +729,7 @@ const iso = (d) => d.toISOString().slice(0, 10);
 function christmasGrid() {
   const start = new Date(`${SEASON.startDate}T00:00:00`);
   const end = new Date(`${SEASON.endDate}T00:00:00`);
-  const today = iso(new Date());
+  const today = todayKey();
   const done = new Set(history().map((h) => h.date));
 
   const cells = [];
@@ -733,7 +737,7 @@ function christmasGrid() {
   let total = 0;
   for (let t = start.getTime(); t <= end.getTime(); t += DAY_MS) {
     const d = new Date(t);
-    const k = iso(d);
+    const k = dayKey(d);
     const plan = WEEK[(d.getDay() + 6) % 7];
     let cls = plan.kind === 'session' ? 'session' : 'walk';
     if (done.has(k)) {
@@ -959,7 +963,10 @@ function startSession(sessionId, dose) {
   enterPlayer();
 }
 
-function startWalk() {
+// Split from startWalk so restore() can rebuild a paused walk WITHOUT
+// entering the player — it entered twice otherwise, announcing "go" and
+// preloading the whole vocabulary two times over.
+function buildWalkRun() {
   run = {
     kind: 'walk',
     queue: [
@@ -976,8 +983,13 @@ function startWalk() {
     running: true,
     since: Date.now(),
     totals: { secs: 0, sets: 0, tut: 0 },
+    deltas: [],
     startedAt: Date.now(),
   };
+}
+
+function startWalk() {
+  buildWalkRun();
   enterPlayer();
 }
 
@@ -1149,14 +1161,16 @@ function tick() {
     } else {
       if (pl)
         pl.className = `screen player${st.kind === 'rest' ? ' resting' : ''}`;
-      // 3-2-1 into the end of any plain timed step — a hold or a rest used to
-      // simply stop with no warning.
-      const left = (total - e) / 1000;
-      const cd = countdownSlug(left);
-      const key = cd ? `cd${Math.ceil(left)}` : '';
-      if (cd && key !== lastBeat) {
-        lastBeat = key;
-        say(cd);
+      // 3-2-1 into the end of a timed HOLD only. A rest already said "rest"
+      // when it began; counting it down again fills the one quiet part.
+      if (st.kind === 'work') {
+        const left = (total - e) / 1000;
+        const cd = countdownSlug(left);
+        const key = cd ? `cd${Math.ceil(left)}` : '';
+        if (cd && key !== lastBeat) {
+          lastBeat = key;
+          say(cd);
+        }
       }
     }
 
@@ -1444,9 +1458,12 @@ function restore() {
     return false;
   }
   if (s.kind === 'walk') {
-    startWalk();
+    // Build the walk run WITHOUT entering the player — startWalk() would enter
+    // it here and again below, announcing "go" twice and preloading twice.
+    buildWalkRun();
     run.idx = s.idx;
     run.elapsed = s.elapsed;
+    run.totals = s.totals || run.totals;
   } else {
     const session = getSession(s.sessionId);
     if (!session) {
@@ -1477,6 +1494,19 @@ for (const ev of ['pagehide', 'visibilitychange']) {
 // to a silent coach mid-session is exactly the bug this whole module exists for.
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) resumeIfNeeded();
+});
+
+// Escape closes the topmost sheet. Every sheet is dismissible by tapping the
+// backdrop or the ✕; on a laptop the key is what people actually reach for.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const sheets = document.querySelectorAll('.sheet');
+  const top = sheets[sheets.length - 1];
+  if (!top) return;
+  // The quit dialog owns its own dismissal — it has to un-pause the clock.
+  const stay = top.querySelector('#q-stay');
+  if (stay) stay.click();
+  else top.remove();
 });
 
 // ─── Boot ──────────────────────────────────────────────────────────────────
