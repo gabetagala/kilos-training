@@ -25,7 +25,12 @@ import {
   sessionOverview,
   tempoStateAt,
 } from '../../src/hotmum/engine.js';
-import { phaseWordSlug } from '../../src/workout/tempoCues.js';
+import {
+  beatSlug,
+  countdownSlug,
+  PHASE_WORDS,
+  phaseWord,
+} from '../../src/hotmum/cues.js';
 import {
   DEFAULTS,
   formatLoad,
@@ -73,16 +78,45 @@ describe('program data', () => {
     }
   });
 
-  // The coach can only say lift / squeeze / hold / lower. A label outside that
-  // set doesn't add a word — it silently makes her say "lower" on the wrong beat.
-  it('uses only phase labels the coach voice can actually speak', () => {
-    const speakable = { LIFT: 'lift', SQUEEZE: 'squeeze', PAUSE: 'hold', LOWER: 'lower' };
+  // Alice only owns these words as clips. A label outside the set is silent,
+  // and silence mid-set is worse than a wrong word — so catch it here.
+  it('uses only phase labels Alice has a clip for', () => {
     for (const b of allBlocks) {
       for (const [label] of b.tempo || []) {
-        expect(Object.keys(speakable), `${b.ex} phase ${label}`).toContain(label);
-        expect(phaseWordSlug(label)).toBe(speakable[label]);
+        expect(Object.keys(PHASE_WORDS), `${b.ex} phase ${label}`).toContain(
+          label,
+        );
+        expect(phaseWord(label), `${b.ex} phase ${label}`).toBeTruthy();
       }
     }
+  });
+
+  // The words have to match what the body does: you go DOWN and UP in a squat.
+  // The shared tempoCues.js would have said "lift"/"lower" here, which is why
+  // HOTMUM has its own vocabulary.
+  it('says down and up on the squats and hinges, out and back on the core', () => {
+    const words = (id) =>
+      (allBlocks.find((b) => b.ex === id)?.tempo || []).map(([l]) => l);
+    expect(words('goblet-squat')).toEqual(['DOWN', 'HOLD', 'UP']);
+    expect(words('bw-squat')).toEqual(['DOWN', 'UP']);
+    expect(words('rdl')).toEqual(['DOWN', 'HOLD', 'UP']);
+    expect(words('shoulder-press')).toEqual(['UP', 'DOWN']);
+    expect(words('dead-bug')[0]).toBe('OUT');
+    expect(words('dead-bug').at(-1)).toBe('BACK');
+    // nothing anywhere still says the barbell words
+    const all = allBlocks.flatMap((b) => (b.tempo || []).map(([l]) => l));
+    expect(all).not.toContain('LIFT');
+    expect(all).not.toContain('LOWER');
+    expect(all).not.toContain('PAUSE');
+  });
+
+  // A hold, a carry or a rest used to simply stop with no warning.
+  it('counts 3-2-1 into the end of any plain timed step', () => {
+    expect(countdownSlug(3)).toBe('three');
+    expect(countdownSlug(2)).toBe('two');
+    expect(countdownSlug(0.4)).toBe('one');
+    expect(countdownSlug(4)).toBeNull();
+    expect(countdownSlug(0)).toBeNull();
   });
 
   it('prescribes pounds, never kilos', () => {
@@ -273,11 +307,18 @@ describe('drives the shipped step engine', () => {
     expect(set.tempo.reps).toBe(10);
 
     // first beat of rep 1, mid-set, and the last beat of rep 10
-    expect(tempoStateAt(set.tempo, 0).label).toBe('LOWER');
-    expect(tempoStateAt(set.tempo, 3000).label).toBe('PAUSE');
-    expect(tempoStateAt(set.tempo, 4000).label).toBe('LIFT');
+    expect(tempoStateAt(set.tempo, 0).label).toBe('DOWN');
+    expect(tempoStateAt(set.tempo, 3000).label).toBe('HOLD');
+    expect(tempoStateAt(set.tempo, 4000).label).toBe('UP');
     expect(tempoStateAt(set.tempo, 5000).rep).toBe(2);
     expect(tempoStateAt(set.tempo, 49000).rep).toBe(10);
+
+    // and what Alice actually says on those beats
+    expect(beatSlug(tempoStateAt(set.tempo, 0), set.tempo)).toBe('one');
+    expect(beatSlug(tempoStateAt(set.tempo, 3000), set.tempo)).toBe('hold');
+    expect(beatSlug(tempoStateAt(set.tempo, 4000), set.tempo)).toBe('up');
+    expect(beatSlug(tempoStateAt(set.tempo, 35000), set.tempo)).toBe('last-three');
+    expect(beatSlug(tempoStateAt(set.tempo, 45000), set.tempo)).toBe('last-one');
   });
 
   // The whole point of the stepEngine extraction: bound to HOTMUM_EXERCISES,

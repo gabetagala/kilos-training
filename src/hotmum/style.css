@@ -22,13 +22,16 @@
 
 :root {
   --bg: #14060e;
-  --surface: #1f0a16;
-  --surface-2: #2a0e1e;
-  --ink: #fff5fa;
-  --ink-soft: #c9a8b8;
+  /* Everything sits on the field now (#app::before), so surfaces are veils
+     over it rather than opaque plates — the colour has to come through. */
+  --surface: rgba(255, 255, 255, 0.12);
+  --surface-2: rgba(255, 255, 255, 0.16);
+  --ink: #ffffff;
+  --ink-soft: rgba(255, 255, 255, 0.82);
   --hot: #ff1e8e;
+  --cream: #ffe9a8;
   --ember: #ff6b2c;
-  --line: rgba(255, 30, 142, 0.18);
+  --line: rgba(255, 255, 255, 0.28);
   --bone: #faf7f5;
   --coal: #141414;
   --hot-deep: #c40c6b;
@@ -59,7 +62,7 @@ html {
 body {
   height: 100%;
   min-height: 100dvh;
-  background: var(--bg);
+  background: #8e0068;
   color: var(--ink);
   font-family: var(--grot);
   -webkit-font-smoothing: antialiased;
@@ -82,12 +85,52 @@ body {
 
 #app {
   height: 100dvh;
-  max-width: 520px;
+  max-width: 560px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
+  isolation: isolate;
+  color: var(--ink);
+}
+
+/* THE FIELD, EVERYWHERE. Fixed to the viewport rather than painted per screen,
+   so it never stretches or re-flows as a page scrolls — the app feels like one
+   object lit from the same direction. */
+#app::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(
+      90% 55% at 8% 104%,
+      #ffe9a8 0%,
+      #ffc65c 18%,
+      rgba(255, 158, 61, 0) 52%
+    ),
+    radial-gradient(85% 55% at 72% 94%, #ff8a3d 0%, rgba(255, 107, 44, 0) 58%),
+    radial-gradient(80% 60% at 82% 26%, #ff4fa0 0%, rgba(255, 46, 147, 0) 62%),
+    radial-gradient(130% 100% at 32% 6%, #e0119b 0%, #b4007f 52%, #8e0068 100%);
+}
+/* Grain, plus a soft scrim that seats white type. Without it, text over the
+   cream corner is unreadable — this keeps the field loud and the words legible,
+   which was the whole brief. */
+#app::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(20, 6, 14, 0.28) 0%,
+      rgba(20, 6, 14, 0.12) 38%,
+      rgba(20, 6, 14, 0.42) 100%
+    ),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='.5'/></svg>");
 }
 
 /* ─── Type ─────────────────────────────────────────────────────────────── */
@@ -101,7 +144,7 @@ body {
   color: var(--ink-soft);
 }
 .lbl-hot {
-  color: var(--hot);
+  color: var(--cream);
 }
 .lbl-sm {
   font-size: 10px;
@@ -152,6 +195,10 @@ body {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
+/* Room for the floating nav so the last row is never trapped under it. */
+.screen.has-nav {
+  padding-bottom: calc(84px + env(safe-area-inset-bottom));
+}
 
 .top {
   display: flex;
@@ -162,10 +209,10 @@ body {
 .mark {
   font-family: var(--display);
   font-weight: 600;
-  font-size: 23px;
+  font-size: 25px;
   line-height: 0.76;
   letter-spacing: 0.02em;
-  color: var(--hot);
+  color: #fff;
 }
 
 /* ─── Season rail ──────────────────────────────────────────────────────── */
@@ -209,7 +256,7 @@ body {
 }
 .day-name em {
   font-style: normal;
-  color: var(--hot);
+  color: var(--cream);
 }
 .stats {
   display: flex;
@@ -255,9 +302,9 @@ body {
   min-height: 46px;
 }
 .dose[aria-pressed="true"] {
-  background: var(--hot);
-  border-color: var(--hot);
-  color: #12040b;
+  background: #fff;
+  border-color: #fff;
+  color: #b4007f;
 }
 .dose i {
   display: block;
@@ -274,8 +321,8 @@ body {
   width: 100%;
   border: 0;
   border-radius: var(--r-sm);
-  background: var(--hot);
-  color: #12040b;
+  background: #fff;
+  color: #b4007f;
   font-family: var(--display);
   font-weight: 600;
   font-size: 30px;
@@ -285,9 +332,9 @@ body {
   min-height: 56px;
 }
 .btn-ghost {
-  background: transparent;
-  border: 1px solid var(--line);
-  color: var(--ink);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  color: #fff;
 }
 .btn-row {
   display: flex;
@@ -354,31 +401,32 @@ body {
      behind body's background — i.e. invisible. */
   isolation: isolate;
 }
+/* THE SIGNATURE, inverted for the field. It used to be a magenta bloom fading
+   IN over plum; now the field is always there, so the beat is a dark veil
+   LIFTING off it. Full colour on the up, dimmed on the down — she still reads
+   the tempo from across the room without looking at a number. */
 .bloom {
   position: absolute;
   inset: 0;
   z-index: -1;
+  opacity: 0.5;
+  transition: opacity 0.45s ease;
+  background: rgba(18, 4, 11, 0.78);
+}
+.player.down .bloom,
+.player.out .bloom {
+  opacity: 0.5;
+}
+.player.hold .bloom {
+  opacity: 0.26;
+}
+.player.up .bloom,
+.player.squeeze .bloom,
+.player.back .bloom {
   opacity: 0;
-  transition: opacity 0.5s ease;
-  background:
-    radial-gradient(110% 60% at 20% 106%, #ffc65c 0%, rgba(255, 158, 61, 0) 48%),
-    radial-gradient(90% 60% at 76% 20%, #ff4fa0 0%, rgba(255, 46, 147, 0) 62%),
-    radial-gradient(130% 90% at 40% 60%, #e0119b 0%, rgba(180, 0, 127, 0) 78%);
-}
-/* The signature: the canvas keeps time. She reads the tempo from across the
-   room without looking at a number or waiting for the voice (PLAN.md §1). */
-.player.lower .bloom {
-  opacity: 0.3;
-}
-.player.pause .bloom {
-  opacity: 0.55;
-}
-.player.lift .bloom,
-.player.squeeze .bloom {
-  opacity: 1;
 }
 .player.resting .bloom {
-  opacity: 0;
+  opacity: 0.62;
 }
 
 .ex-name {
@@ -411,17 +459,17 @@ body {
 .phase {
   font-family: var(--display);
   font-weight: 600;
-  font-size: clamp(34px, 12vw, 48px);
+  font-size: clamp(34px, 12vw, 52px);
   line-height: 1;
   letter-spacing: 0.09em;
-  color: var(--hot);
+  color: #fff;
   margin-top: 6px;
   transition: color 0.3s;
 }
-.player.lift .phase,
+.player.up .phase,
 .player.squeeze .phase,
-.player.pause .phase {
-  color: #ffe9a8;
+.player.back .phase {
+  color: var(--cream);
 }
 .cue {
   font-size: 13px;
@@ -445,7 +493,7 @@ body {
   background: rgba(255, 255, 255, 0.16);
 }
 .pip.on {
-  background: var(--hot);
+  background: var(--cream);
 }
 .pip.now {
   background: var(--ink);
@@ -467,7 +515,7 @@ body {
 /* progress through the whole session */
 .prog {
   height: 2px;
-  background: var(--surface-2);
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 1px;
   overflow: hidden;
   margin-top: 12px;
@@ -475,7 +523,7 @@ body {
 .prog i {
   display: block;
   height: 100%;
-  background: var(--hot);
+  background: #fff;
   transition: width 0.3s;
 }
 
@@ -587,18 +635,18 @@ body {
 }
 
 .icon-btn {
-  background: transparent;
-  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.45);
   border-radius: var(--r-pill);
-  color: var(--ink-soft);
+  color: #fff;
   width: 44px;
   height: 44px;
   font-size: 17px;
   cursor: pointer;
 }
 .icon-btn[aria-pressed="true"] {
-  color: var(--hot);
-  border-color: var(--hot);
+  color: var(--cream);
+  border-color: var(--cream);
 }
 
 :focus-visible {
@@ -618,39 +666,45 @@ body {
 /* Three tabs, KILOS' shape. Absent during the player — mid-set is not a
    moment to offer navigation. */
 
+/* Floating glass pill, KILOS' shape: absolute inside #app so it rides the true
+   bottom under the standalone 100vh fix, hugging its content rather than
+   spanning the width, with the active tab as a solid pill. */
 .nav {
+  position: absolute;
+  bottom: max(12px, calc(env(safe-area-inset-bottom) - 8px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
   display: flex;
-  flex-shrink: 0;
-  border-top: 1px solid var(--line);
-  background: var(--bg);
-  padding-bottom: env(safe-area-inset-bottom);
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border-radius: var(--r-pill);
+  background: rgba(18, 6, 12, 0.72);
+  backdrop-filter: blur(26px) saturate(160%);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+  border: none;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.34);
 }
 .nav-btn {
-  flex: 1;
+  flex: 0 0 auto;
   background: transparent;
   border: 0;
-  color: var(--ink-soft);
+  border-radius: var(--r-pill);
+  color: rgba(255, 255, 255, 0.72);
   font-family: var(--grot);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  padding: 15px 0;
-  min-height: 52px;
+  padding: 0 20px;
+  height: 44px;
+  min-width: 44px;
   cursor: pointer;
-  position: relative;
 }
 .nav-btn[aria-current="true"] {
-  color: var(--hot);
-}
-.nav-btn[aria-current="true"]::before {
-  content: "";
-  position: absolute;
-  top: -1px;
-  left: 22%;
-  right: 22%;
-  height: 2px;
-  background: var(--hot);
+  background: #fff;
+  color: #b4007f;
 }
 
 /* ─── Page furniture ───────────────────────────────────────────────────── */
@@ -807,7 +861,7 @@ body {
   margin-top: 12px;
 }
 .tile {
-  background: var(--bg);
+  background: rgba(0, 0, 0, 0.18);
   padding: 14px 12px;
 }
 .tile b {
@@ -832,7 +886,7 @@ body {
   padding-bottom: max(16px, env(safe-area-inset-bottom));
 }
 .sheet-card {
-  background: var(--surface);
+  background: #1b0713;
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   padding: 20px;
@@ -877,7 +931,7 @@ body {
    it everywhere because it comes later in the cascade. */
 .text-input {
   width: 100%;
-  background: var(--bg);
+  background: rgba(0, 0, 0, 0.35);
   border: 1px solid var(--line);
   border-radius: var(--r-sm);
   color: var(--ink);
@@ -913,9 +967,9 @@ body {
   cursor: pointer;
 }
 .tpl[aria-pressed="true"] {
-  background: var(--hot);
-  border-color: var(--hot);
-  color: #12040b;
+  background: #fff;
+  border-color: #fff;
+  color: #b4007f;
 }
 .tpl-preview {
   display: block;
@@ -944,26 +998,19 @@ body {
   gap: 3px;
   margin-top: 12px;
 }
+/* Every box identical — no outlines, no session/walk distinction. The only
+   thing a box says is done / today / still to come. */
 .bx {
   aspect-ratio: 1;
   border-radius: 2px;
-  background: var(--surface-2);
-}
-.bx.session {
-  background: transparent;
-  box-shadow: inset 0 0 0 1.5px rgba(255, 30, 142, 0.55);
-}
-.bx.walk {
-  background: var(--surface-2);
-}
-.bx.past {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.18);
 }
 .bx.done {
-  background: var(--hot);
+  background: #fff;
 }
 .bx.today {
-  background: var(--ink);
+  background: var(--cream);
+  box-shadow: 0 0 0 2px rgba(255, 233, 168, 0.35);
 }
 .boxes-key {
   margin-top: 10px;
@@ -980,9 +1027,10 @@ body {
   text-align: left;
   margin-top: 22px;
   padding: 20px 20px 22px;
-  border: 0;
+  border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: var(--r-md);
   overflow: hidden;
+  background: rgba(255, 255, 255, 0.12);
   color: #fff;
   cursor: pointer;
   min-height: 96px;

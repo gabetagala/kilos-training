@@ -11,7 +11,7 @@
 // backgrounded tab or a mid-set refresh restores to the exact second.
 
 import './style.css';
-import { tempoBeatSlug } from '../workout/tempoCues.js';
+import { beatSlug, countdownSlug, NUM_SLUGS } from './cues.js';
 import {
   buildStepQueue,
   estimateSessionMins,
@@ -129,14 +129,55 @@ if (legacyVoice !== null && legacyVoice !== undefined) {
 }
 let voiceOn = profile.voice;
 
-function say(slug) {
-  if (!voiceOn || !slug || silent.has(slug)) return;
+// ONE clip at a time. Every phrase used to get its own Audio element fired at
+// whatever moment it was due, so a long name landed on top of the next beat and
+// two voices talked over each other. Beats are time-critical and interrupt;
+// anything queued behind a beat is dropped rather than played late.
+let nowPlaying = null;
+let queued = null;
+
+function play(slug) {
+  if (!slug || silent.has(slug)) return;
   try {
     const a = new Audio(`${VOICE_DIR}${slug}.m4a`);
-    a.play().catch(() => silent.add(slug));
+    nowPlaying = a;
+    a.addEventListener('ended', () => {
+      if (nowPlaying === a) nowPlaying = null;
+      const next = queued;
+      queued = null;
+      if (next) play(next);
+    });
+    a.play().catch(() => {
+      silent.add(slug);
+      nowPlaying = null;
+    });
   } catch {
     silent.add(slug);
+    nowPlaying = null;
   }
+}
+
+/** Say it now, cutting off whatever is mid-word. */
+function say(slug) {
+  if (!voiceOn || !slug) return;
+  if (nowPlaying) {
+    nowPlaying.pause();
+    nowPlaying = null;
+  }
+  queued = null;
+  play(slug);
+}
+
+/** Say it after the current clip finishes — used for "get set" → the name. */
+function sayAfter(slug) {
+  if (!voiceOn || !slug) return;
+  if (nowPlaying) queued = slug;
+  else play(slug);
+}
+
+/** Drop anything pending — a step change makes old phrases wrong, not late. */
+function hushQueued() {
+  queued = null;
 }
 
 // ─── Screen wake lock ──────────────────────────────────────────────────────
@@ -280,7 +321,7 @@ function renderProgram() {
   }).join('');
 
   app.innerHTML = `
-    <div class="screen">
+    <div class="screen has-nav">
       <div class="top">
         <div>
           <div class="lbl lbl-sm">${esc(SEASON.label)}</div>
@@ -535,7 +576,7 @@ function renderAthlete() {
     .join('');
 
   app.innerHTML = `
-    <div class="screen">
+    <div class="screen has-nav">
       <div class="top">
         <div>
           <div class="lbl lbl-sm">ATHLETE</div>
@@ -742,7 +783,7 @@ function renderHome() {
 
   const card =
     plan.kind === 'walk'
-      ? `<button class="today-card field" id="open-today">
+      ? `<button class="today-card" id="open-today">
           <div>
             <span class="lbl lbl-sm">TODAY</span>
             <div class="day-name"><em>WALK</em></div>
@@ -750,7 +791,7 @@ function renderHome() {
           </div>
           <span class="chev">→</span>
         </button>`
-      : `<button class="today-card field" id="open-today">
+      : `<button class="today-card" id="open-today">
           <div>
             <span class="lbl lbl-sm">TODAY</span>
             <div class="day-name">${dayTitle(getSession(plan.id).name)}</div>
@@ -760,7 +801,7 @@ function renderHome() {
         </button>`;
 
   app.innerHTML = `
-    <div class="screen">
+    <div class="screen has-nav">
       <div class="top">
         <div class="mark">HOT<br>MUM</div>
         <button class="icon-btn" id="voice" aria-pressed="${voiceOn}" aria-label="Coach voice">${voiceOn ? '♪' : '✕'}</button>
@@ -940,14 +981,20 @@ function startWalk() {
 // to start in silence.
 function announce(st) {
   if (!st) return;
+  hushQueued();
   if (st.kind === 'prep') {
     say('get-set');
     // …then name what's coming, so she can set up without reading the screen.
-    setTimeout(() => say(`name-${st.exId}`), 900);
+    // Queued, not timed — a fixed 900ms delay landed on top of longer names.
+    sayAfter(`name-${st.exId}`);
   } else if (st.kind === 'rest') {
     say(st.phase === 'SWITCH SIDES' ? 'switch-sides' : 'rest');
   } else if (st.tempo) {
     say('go');
+  } else if (st.kind === 'work') {
+    // Timed holds (bird dog, side plank, carries) had no voice at all.
+    // Call the rep so she knows where she is in the set.
+    say(NUM_SLUGS[st.rep] || 'hold');
   }
 }
 
@@ -1070,10 +1117,20 @@ function tick() {
       const key = `${ts.rep}:${ts.label}:${ts.phaseSec}`;
       if (key !== lastBeat) {
         lastBeat = key;
-        say(tempoBeatSlug(ts, st.tempo));
+        say(beatSlug(ts, st.tempo));
       }
-    } else if (pl) {
-      pl.className = `screen player${st.kind === 'rest' ? ' resting' : ''}`;
+    } else {
+      if (pl)
+        pl.className = `screen player${st.kind === 'rest' ? ' resting' : ''}`;
+      // 3-2-1 into the end of any plain timed step — a hold or a rest used to
+      // simply stop with no warning.
+      const left = (total - e) / 1000;
+      const cd = countdownSlug(left);
+      const key = cd ? `cd${Math.ceil(left)}` : '';
+      if (cd && key !== lastBeat) {
+        lastBeat = key;
+        say(cd);
+      }
     }
 
     const prog = app.querySelector('#prog');
@@ -1221,7 +1278,7 @@ function renderFinish(rec) {
   const title = isWalk ? '<em>WALK</em>' : dayTitle(session.name);
 
   app.innerHTML = `
-    <div class="screen finish field">
+    <div class="screen finish">
       <div class="top">
         <span class="lbl lbl-sm">${isWalk ? 'WALK LOGGED' : 'SESSION COMPLETE'}</span>
         <span class="lbl lbl-sm">WK ${week} OF ${SEASON.weeks}</span>
