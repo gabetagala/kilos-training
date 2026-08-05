@@ -263,6 +263,7 @@ function renderProgram() {
       </summary>
       <p class="row-s sess-blurb">${esc(s.blurb)}</p>
       ${rows}
+      <button class="btn btn-sm open-sess" data-open="${esc(s.id)}">OPEN ${esc(s.name.toUpperCase())}</button>
     </details>`;
   }).join('');
 
@@ -300,6 +301,9 @@ function renderProgram() {
   wireNav();
   for (const b of app.querySelectorAll('[data-ex]')) {
     b.addEventListener('click', () => openExercise(b.dataset.ex));
+  }
+  for (const b of app.querySelectorAll('[data-open]')) {
+    b.addEventListener('click', () => renderSession(b.dataset.open));
   }
 }
 
@@ -524,7 +528,7 @@ function editSetting(field) {
         <div class="sheet-top"><h3>Your name</h3>
           <button class="icon-btn" id="sheet-x" aria-label="Close">✕</button></div>
         <p class="row-s">However you'd like to be greeted.</p>
-        <input class="field" id="name-in" value="${esc(profile.name)}" maxlength="24" autocomplete="off" />
+        <input class="text-input" id="name-in" value="${esc(profile.name)}" maxlength="24" autocomplete="off" />
         <button class="btn" id="name-save">SAVE</button>
       </div>`;
     document.body.appendChild(sheet);
@@ -568,83 +572,80 @@ async function checkForUpdate() {
 }
 
 // ─── Home ──────────────────────────────────────────────────────────────────
+// ─── Home ──────────────────────────────────────────────────────────────────
+// KILOS' shape: wordmark, greeting, a grid of boxes, then a card you tap to
+// open the day. Hers counts boxes to Christmas rather than days in a month —
+// the season IS the motivation, so it's the thing the page is mostly made of.
+
+const DAY_MS = 86400000;
+const iso = (d) => d.toISOString().slice(0, 10);
+
+// One box per day of the season. Filled when something was logged, outlined on
+// a lifting day, dim on a walk day. A missed day just stays empty — no red, no
+// broken streak, nothing to feel bad about.
+function christmasGrid() {
+  const start = new Date(`${SEASON.startDate}T00:00:00`);
+  const end = new Date(`${SEASON.endDate}T00:00:00`);
+  const today = iso(new Date());
+  const done = new Set(history().map((h) => h.date));
+
+  const cells = [];
+  let filled = 0;
+  let total = 0;
+  for (let t = start.getTime(); t <= end.getTime(); t += DAY_MS) {
+    const d = new Date(t);
+    const k = iso(d);
+    const plan = WEEK[(d.getDay() + 6) % 7];
+    let cls = plan.kind === 'session' ? 'session' : 'walk';
+    if (done.has(k)) {
+      cls = 'done';
+      filled++;
+    } else if (k === today) cls = 'today';
+    else if (k < today) cls = 'past';
+    total++;
+    cells.push(`<i class="bx ${cls}"></i>`);
+  }
+  return { html: cells.join(''), filled, total };
+}
 
 function renderHome() {
   const week = seasonWeek();
   const block = blockForWeek(week);
   const plan = todayPlan();
   const done = doneToday();
+  const grid = christmasGrid();
   const hist = history();
 
-  const hello = `
-    <div class="hello">
-      <h1 class="page-h">${esc(greeting(profile.name, new Date(), done))}</h1>
-      <p class="row-s">${esc(subGreeting({ kind: plan.kind, doneToday: done, daysToGo: daysToGo() }))}</p>
-    </div>`;
-
-  const seasonHead = `
-    <div class="season-row">
-      <span class="lbl lbl-sm">WK ${week} OF ${SEASON.weeks} · ${esc(block.name)}</span>
-      <span class="lbl lbl-sm lbl-hot">${daysToGo()} DAYS</span>
-    </div>
-    <div class="season">${seasonRail()}</div>`;
-
-  const weekList = WEEK.map((d, i) => {
-    const isToday = i === todayIdx();
-    const s = d.kind === 'session' ? getSession(d.id) : null;
-    const label = s ? `${d.day} · ${s.name.toUpperCase()}` : `${d.day} · WALK`;
-    const right = s
-      ? `${estimateSessionMins(stageSession(s, 0))} MIN`
-      : `${WALK.mins} MIN`;
-    // only mark days already past or today, and only if something was logged
-    const wasDone = isToday && done;
-    return `<div class="wk ${d.kind === 'walk' ? 'walk' : ''} ${wasDone ? 'done' : ''} ${isToday ? 'today' : ''}">
-      <span class="nm">${esc(label)}</span>
-      <span class="lbl lbl-sm ${wasDone ? 'lbl-hot' : ''}">${wasDone ? 'DONE' : right}</span>
-    </div>`;
-  }).join('');
-
-  let hero;
-  if (plan.kind === 'walk') {
-    hero = `
-      <div class="hero">
-        <span class="lbl lbl-sm">TODAY</span>
-        <div class="day-name"><em>WALK</em></div>
-        <div class="stats">
-          <div class="stat"><b>${WALK.mins}</b><span class="lbl lbl-sm">MINUTES</span></div>
-          <div class="stat"><b>${hist.filter((h) => h.kind === 'walk').length}</b><span class="lbl lbl-sm">LOGGED</span></div>
-        </div>
-        <p class="blurb">${esc(WALK.blurb)}</p>
-      </div>
-      <div style="flex-shrink:0">
-        <button class="btn" id="go-walk">START WALK</button>
-        <div class="btn-row"><button class="btn btn-ghost btn-sm" id="log-walk">ALREADY WALKED — LOG IT</button></div>
+  const recent = hist
+    .slice(-3)
+    .reverse()
+    .map((h) => {
+      const s = h.sessionId ? getSession(h.sessionId) : null;
+      return `<div class="wk">
+        <span class="nm">${esc(s ? s.name : 'Walk')}</span>
+        <span class="lbl lbl-sm">${esc(h.date)}</span>
       </div>`;
-  } else {
-    const s = getSession(plan.id);
-    const short = estimateSessionMins(stageSession(s, 0));
-    const full = [0, 1, 2].reduce((n, i) => n + stageMins(s, i), 0);
-    const core = stageMins(s, 2);
-    hero = `
-      <div class="hero">
-        <span class="lbl lbl-sm">TODAY</span>
-        <div class="day-name">${dayTitle(s.name)}</div>
-        <div class="stats">
-          <div class="stat"><b>${s.blocks.filter((b) => b.dose === 'main').length}</b><span class="lbl lbl-sm">MOVES</span></div>
-          <div class="stat"><b>${short}</b><span class="lbl lbl-sm">MINUTES</span></div>
-          <div class="stat"><b>15</b><span class="lbl lbl-sm">LB</span></div>
-        </div>
-        <p class="blurb">${esc(s.blurb)}</p>
-      </div>
-      <div style="flex-shrink:0">
-        <div class="doses">
-          <button class="dose" data-dose="short" aria-pressed="true">SHORT<i>${short} MIN</i></button>
-          <button class="dose" data-dose="full" aria-pressed="false">FULL<i>${full} MIN</i></button>
-          <button class="dose" data-dose="core" aria-pressed="false">CORE<i>${core} MIN</i></button>
-        </div>
-        <button class="btn" id="go-session">START</button>
-      </div>`;
-  }
+    })
+    .join('');
+
+  const card =
+    plan.kind === 'walk'
+      ? `<button class="today-card field" id="open-today">
+          <div>
+            <span class="lbl lbl-sm">TODAY</span>
+            <div class="day-name"><em>WALK</em></div>
+            <div class="row-s">${WALK.mins} minutes, whenever it fits</div>
+          </div>
+          <span class="chev">→</span>
+        </button>`
+      : `<button class="today-card field" id="open-today">
+          <div>
+            <span class="lbl lbl-sm">TODAY</span>
+            <div class="day-name">${dayTitle(getSession(plan.id).name)}</div>
+            <div class="row-s">${estimateSessionMins(stageSession(getSession(plan.id), 0))} min · tap to open</div>
+          </div>
+          <span class="chev">→</span>
+        </button>`;
 
   app.innerHTML = `
     <div class="screen">
@@ -652,10 +653,26 @@ function renderHome() {
         <div class="mark">HOT<br>MUM</div>
         <button class="icon-btn" id="voice" aria-pressed="${voiceOn}" aria-label="Coach voice">${voiceOn ? '♪' : '✕'}</button>
       </div>
-      ${hello}
-      ${seasonHead}
-      ${hero}
-      <div class="week">${weekList}</div>
+
+      <div class="hello">
+        <h1 class="page-h">${esc(greeting(profile.name, new Date(), done))}</h1>
+        <p class="row-s">${esc(subGreeting({ kind: plan.kind, doneToday: done, daysToGo: daysToGo() }))}</p>
+      </div>
+
+      <div class="season-row">
+        <span class="lbl lbl-sm">WK ${week} OF ${SEASON.weeks} · ${esc(block.name)}</span>
+        <span class="lbl lbl-sm lbl-hot">${daysToGo()} DAYS</span>
+      </div>
+      <div class="boxes">${grid.html}</div>
+      <div class="season-row boxes-key">
+        <span class="lbl lbl-sm">${grid.filled} OF ${grid.total} DAYS IN</span>
+        <span class="lbl lbl-sm">CHRISTMAS →</span>
+      </div>
+
+      ${card}
+
+      ${recent ? `<h2 class="sec-h">Recent</h2>${recent}` : ''}
+      <p class="fine">Everything lives on this phone.</p>
     </div>
     ${nav('home')}`;
 
@@ -665,21 +682,100 @@ function renderHome() {
     profile = saveProfile({ voice: voiceOn });
     renderHome();
   });
+  app.querySelector('#open-today')?.addEventListener('click', () => {
+    if (plan.kind === 'walk') renderWalk();
+    else renderSession(plan.id);
+  });
+}
+
+// ─── Open a day, then go ───────────────────────────────────────────────────
+// The same screen whether she got here from today's card or from the program
+// page: what the session is, how long each dose takes, and one button.
+
+function renderSession(id) {
+  view = 'session';
+  const s = getSession(id);
+  const short = estimateSessionMins(stageSession(s, 0));
+  const full = [0, 1, 2].reduce((n, i) => n + stageMins(s, i), 0);
+  const core = stageMins(s, 2);
+
+  const rows = sessionOverview(s)
+    .map((r, i) => {
+      const b = s.blocks[i];
+      const load = b?.load ? formatLoad(b.load, profile.unit) : '';
+      return `<button class="ex-row" data-ex="${esc(b?.ex || '')}">
+        <span class="ex-nm">${esc(r.title)}</span>
+        <span class="ex-d">${esc(r.detail)}${load ? ` · ${esc(load)}` : ''}</span>
+      </button>`;
+    })
+    .join('');
+
+  app.innerHTML = `
+    <div class="screen">
+      <div class="top">
+        <button class="icon-btn" id="back" aria-label="Back">←</button>
+        <span class="lbl lbl-sm">${esc(s.day)} · WK ${seasonWeek()} OF ${SEASON.weeks}</span>
+      </div>
+      <div class="hero">
+        <div class="day-name">${dayTitle(s.name)}</div>
+        <p class="blurb">${esc(s.blurb)}</p>
+      </div>
+      <h2 class="sec-h">The movements</h2>
+      ${rows}
+      <div style="flex-shrink:0">
+        <div class="doses">
+          <button class="dose" data-dose="short" aria-pressed="true">SHORT<i>${short} MIN</i></button>
+          <button class="dose" data-dose="full" aria-pressed="false">FULL<i>${full} MIN</i></button>
+          <button class="dose" data-dose="core" aria-pressed="false">CORE<i>${core} MIN</i></button>
+        </div>
+        <button class="btn" id="go-session">GO</button>
+      </div>
+    </div>`;
+
+  app.querySelector('#back').addEventListener('click', () => go('home'));
+  for (const b of app.querySelectorAll('[data-ex]')) {
+    b.addEventListener('click', () => openExercise(b.dataset.ex));
+  }
   for (const b of app.querySelectorAll('.dose')) {
     b.addEventListener('click', () => {
       for (const o of app.querySelectorAll('.dose'))
         o.setAttribute('aria-pressed', String(o === b));
     });
   }
-  app.querySelector('#go-session')?.addEventListener('click', () => {
+  app.querySelector('#go-session').addEventListener('click', () => {
     const dose =
       app.querySelector('.dose[aria-pressed="true"]')?.dataset.dose || 'short';
-    startSession(plan.id, dose);
+    startSession(id, dose);
   });
-  app.querySelector('#go-walk')?.addEventListener('click', startWalk);
-  app.querySelector('#log-walk')?.addEventListener('click', () => {
-    logDone({ kind: 'walk', secs: WALK.mins * 60 });
-    renderFinish({ kind: 'walk', secs: WALK.mins * 60 });
+}
+
+function renderWalk() {
+  view = 'session';
+  app.innerHTML = `
+    <div class="screen">
+      <div class="top">
+        <button class="icon-btn" id="back" aria-label="Back">←</button>
+        <span class="lbl lbl-sm">WK ${seasonWeek()} OF ${SEASON.weeks}</span>
+      </div>
+      <div class="hero">
+        <div class="day-name"><em>WALK</em></div>
+        <p class="blurb">${esc(WALK.blurb)}</p>
+        <div class="stats">
+          <div class="stat"><b>${WALK.mins}</b><span class="lbl lbl-sm">MINUTES</span></div>
+          <div class="stat"><b>${history().filter((h) => h.kind === 'walk').length}</b><span class="lbl lbl-sm">LOGGED</span></div>
+        </div>
+      </div>
+      <div style="flex-shrink:0">
+        <button class="btn" id="go-walk">START WALK</button>
+        <div class="btn-row"><button class="btn btn-ghost btn-sm" id="log-walk">ALREADY WALKED — LOG IT</button></div>
+      </div>
+    </div>`;
+  app.querySelector('#back').addEventListener('click', () => go('home'));
+  app.querySelector('#go-walk').addEventListener('click', startWalk);
+  app.querySelector('#log-walk').addEventListener('click', () => {
+    const rec = { kind: 'walk', secs: WALK.mins * 60 };
+    logDone(rec);
+    renderFinish(rec);
   });
 }
 
@@ -1012,10 +1108,14 @@ function renderFinish(rec) {
   const title = isWalk ? '<em>WALK</em>' : dayTitle(session.name);
 
   app.innerHTML = `
-    <div class="screen finish">
+    <div class="screen finish field">
       <div class="top">
         <span class="lbl lbl-sm">${isWalk ? 'WALK LOGGED' : 'SESSION COMPLETE'}</span>
         <span class="lbl lbl-sm">WK ${week} OF ${SEASON.weeks}</span>
+      </div>
+      <div class="poster-type">
+        <div class="pt-row"><span>${esc(SEASON.label)}</span><u>${isWalk ? 'SHE WALKED IT' : 'SHE LIFTED IT'}</u><span>2026</span></div>
+        <div>ATTN :: ${esc(profile.name.toUpperCase())}</div>
       </div>
       <div class="hero">
         <div class="day-name">${title}</div>

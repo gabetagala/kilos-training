@@ -496,26 +496,46 @@ body {
 /* ─── Finish — the one light screen ────────────────────────────────────── */
 
 .finish {
-  background: var(--bone);
-  color: var(--coal);
+  color: #fff;
 }
 .finish .lbl {
-  color: #6b6560;
+  color: rgba(255, 255, 255, 0.88);
+}
+.finish .day-name {
+  text-shadow: 0 3px 40px rgba(120, 0, 70, 0.45);
 }
 .finish .day-name em {
-  color: var(--hot-deep);
+  color: #ffe9a8;
+}
+/* The poster's own centred micro-type — the grammar the reference images use,
+   and the same rail the share cards carry, so the screen and the card she
+   posts from it are recognisably the same object. */
+.poster-type {
+  text-align: center;
+  margin-top: 18px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 10px;
+  line-height: 2.1;
+  color: rgba(255, 255, 255, 0.92);
+}
+.poster-type .pt-row {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+}
+.poster-type u {
+  text-underline-offset: 4px;
 }
 .fin-grid {
   margin-top: auto;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1px;
-  background: #e9e2dd;
-  border: 1px solid #e9e2dd;
+  gap: 10px 16px;
 }
 .fin-cell {
-  background: var(--bone);
-  padding: 14px 12px;
+  padding: 4px 0;
 }
 .fin-cell b {
   display: block;
@@ -525,9 +545,9 @@ body {
   line-height: 1;
 }
 .fin-tag {
-  margin-top: 18px;
+  margin-top: 20px;
   padding-top: 14px;
-  border-top: 2px solid var(--coal);
+  border-top: 2px solid #fff;
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -540,12 +560,17 @@ body {
 }
 .fin-mark em {
   font-style: normal;
-  color: var(--hot-deep);
+  color: #ffe9a8;
 }
 .finish .btn {
   margin-top: 16px;
-  background: var(--coal);
-  color: var(--bone);
+  background: #fff;
+  color: #b4007f;
+}
+.finish .btn-share {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  color: #fff;
 }
 
 /* ─── Bits ─────────────────────────────────────────────────────────────── */
@@ -848,7 +873,9 @@ body {
   color: var(--ink);
   margin-top: 4px;
 }
-.field {
+/* NOT .field — that's the poster background, and this rule used to override
+   it everywhere because it comes later in the cascade. */
+.text-input {
   width: 100%;
   background: var(--bg);
   border: 1px solid var(--line);
@@ -905,8 +932,93 @@ body {
   border: 1px solid var(--hot);
   color: var(--hot);
 }
-.finish .btn-share {
-  border-color: var(--coal);
-  color: var(--coal);
+
+/* ─── Boxes to Christmas ───────────────────────────────────────────────── */
+/* One box per day of the season. A missed day just stays empty — no red,
+   no broken streak, nothing to feel bad about with a newborn in the house. */
+
+.boxes {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: repeat(14, 1fr);
+  gap: 3px;
+  margin-top: 12px;
+}
+.bx {
+  aspect-ratio: 1;
+  border-radius: 2px;
+  background: var(--surface-2);
+}
+.bx.session {
   background: transparent;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 30, 142, 0.55);
+}
+.bx.walk {
+  background: var(--surface-2);
+}
+.bx.past {
+  background: rgba(255, 255, 255, 0.05);
+}
+.bx.done {
+  background: var(--hot);
+}
+.bx.today {
+  background: var(--ink);
+}
+.boxes-key {
+  margin-top: 10px;
+}
+
+/* ─── Today card ───────────────────────────────────────────────────────── */
+
+.today-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  margin-top: 22px;
+  padding: 20px 20px 22px;
+  border: 0;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  color: #fff;
+  cursor: pointer;
+  min-height: 96px;
+  /* Flex items shrink by default; on a full page this card was compressed
+     below its own content and the text spilled past the border. */
+  flex-shrink: 0;
+}
+.today-card > * {
+  position: relative;
+  z-index: 2;
+}
+.today-card .day-name {
+  font-size: 46px;
+  margin-top: 6px;
+  text-shadow: 0 3px 30px rgba(120, 0, 70, 0.45);
+}
+.today-card .day-name em {
+  color: #ffe9a8;
+}
+.today-card .lbl,
+.today-card .row-s {
+  color: rgba(255, 255, 255, 0.88);
+}
+.today-card .row-s {
+  margin-top: 8px;
+}
+.today-card .chev {
+  color: #fff;
+}
+.chev {
+  font-family: var(--display);
+  font-size: 34px;
+  color: var(--hot);
+  line-height: 1;
+  flex-shrink: 0;
+}
+.open-sess {
+  margin: 12px 0 16px;
 }
