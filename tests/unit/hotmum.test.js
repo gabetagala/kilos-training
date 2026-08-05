@@ -18,7 +18,13 @@ import {
   timeUnderTension,
   WEEK,
 } from '../../src/hotmum/program.js';
-import { buildStepQueue, tempoStateAt } from '../../src/workout/rehab.js';
+import {
+  buildStepQueue,
+  estimateSessionMins,
+  nextWorkLabel,
+  sessionOverview,
+  tempoStateAt,
+} from '../../src/hotmum/engine.js';
 import { phaseWordSlug } from '../../src/workout/tempoCues.js';
 
 const allBlocks = HOTMUM_SESSIONS.flatMap((s) => s.blocks);
@@ -265,6 +271,49 @@ describe('drives the shipped step engine', () => {
     expect(tempoStateAt(set.tempo, 4000).label).toBe('LIFT');
     expect(tempoStateAt(set.tempo, 5000).rep).toBe(2);
     expect(tempoStateAt(set.tempo, 49000).rep).toBe(10);
+  });
+
+  // The whole point of the stepEngine extraction: bound to HOTMUM_EXERCISES,
+  // the engine speaks her exercises. Before it, every name rendered as a raw
+  // id — "hip-thrust" instead of "Hip Thrust".
+  it('resolves HER exercise names, not raw ids', () => {
+    for (const s of HOTMUM_SESSIONS) {
+      for (const row of sessionOverview(s)) {
+        expect(row.title, `${s.id} overview`).not.toMatch(/^[a-z0-9-]+$/);
+        expect(row.detail).toBeTruthy();
+      }
+    }
+    const overview = sessionOverview(getSession('lower-a'));
+    expect(overview.map((r) => r.title)).toContain('Romanian Deadlift');
+    expect(overview.find((r) => r.title === 'Romanian Deadlift').detail).toBe(
+      '3 × 10 tempo',
+    );
+  });
+
+  it('tells her what is coming during a rest, by name and side', () => {
+    const queue = buildStepQueue(getSession('lower-a'));
+    const restIdx = queue.findIndex((st) => st.kind === 'rest');
+    expect(nextWorkLabel(queue, restIdx)).not.toMatch(/^[a-z0-9-]+$/);
+    expect(nextWorkLabel(queue, queue.length - 1)).toBe('FINISH');
+    // per-side work announces the side
+    const lungeRest = queue.findIndex(
+      (st) => st.exId === 'lunge' && st.phase === 'SWITCH SIDES',
+    );
+    expect(nextWorkLabel(queue, lungeRest)).toContain('Lunge');
+  });
+
+  // Two independent length calculations: program.js does it from the data,
+  // the engine does it by summing the real queue. They should broadly agree —
+  // a wide gap means one of them is wrong.
+  it('the data estimate and the engine estimate agree within a few minutes', () => {
+    for (const s of HOTMUM_SESSIONS) {
+      const fromData = estimateMins(s);
+      const fromQueue = estimateSessionMins(s);
+      expect(
+        Math.abs(fromData - fromQueue),
+        `${s.id}: data ${fromData}m vs queue ${fromQueue}m`,
+      ).toBeLessThanOrEqual(4);
+    }
   });
 
   it('splits per-side work into left and right with a switch between', () => {
