@@ -1,0 +1,693 @@
+// HOTMUM — the app shell. Vanilla, local-first, no framework, same as KILOS.
+//
+// Three screens: home, player, finish. The walk day is a player with one step.
+//
+// LOCAL-FIRST IS NOT NEGOTIABLE (CLAUDE.md): every write hits localStorage
+// first so the loop never waits on a network. There is no sync yet — Season 01
+// runs entirely on-device (PLAN.md §4).
+//
+// CRASH-SAFETY: the live session is persisted on every step change, every
+// couple of seconds inside a step, and on pagehide/visibilitychange. A
+// backgrounded tab or a mid-set refresh restores to the exact second.
+
+import './style.css';
+import { tempoBeatSlug } from '../workout/tempoCues.js';
+import {
+  buildStepQueue,
+  estimateSessionMins,
+  nextWorkLabel,
+  tempoStateAt,
+} from './engine.js';
+import {
+  blockForWeek,
+  daysToGo,
+  getSession,
+  HOTMUM_EXERCISES,
+  loadLabel,
+  SEASON,
+  seasonWeek,
+  WALK,
+  WEEK,
+} from './program.js';
+
+// ─── Storage ───────────────────────────────────────────────────────────────
+
+const K = {
+  active: 'hotmum-active',
+  history: 'hotmum-history',
+  voice: 'hotmum-voice',
+};
+const get = (k, fallback = null) => {
+  try {
+    const raw = localStorage.getItem(k);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+const set = (k, v) => {
+  try {
+    localStorage.setItem(k, JSON.stringify(v));
+  } catch {
+    /* private mode / quota — the session still runs, it just won't survive */
+  }
+};
+const drop = (k) => {
+  try {
+    localStorage.removeItem(k);
+  } catch {
+    /* ignore */
+  }
+};
+
+const todayKey = () => new Date().toISOString().slice(0, 10);
+const history = () => get(K.history, []);
+
+// ─── The session grows, it doesn't shrink ──────────────────────────────────
+// SHORT starts by default; when the main work is done the app OFFERS the
+// finishers, then the core. Minute zero is the wrong time to ask a mother how
+// long the baby will sleep, so every exit point is a complete session rather
+// than an abandoned one (PLAN.md §2.7).
+
+const STAGES = [
+  { key: 'main', doses: ['warmup', 'main'], asks: 'Add the finishers?' },
+  { key: 'finisher', doses: ['finisher'], asks: 'Add the core?' },
+  { key: 'core', doses: ['core'], asks: null },
+];
+const DOSE_STAGES = { short: [0], full: [0, 1, 2], core: [2] };
+
+const stageSession = (session, stageIdx) => ({
+  ...session,
+  blocks: session.blocks.filter((b) => STAGES[stageIdx].doses.includes(b.dose)),
+});
+const stageMins = (session, stageIdx) =>
+  estimateSessionMins(stageSession(session, stageIdx));
+
+// ─── Coach voice — wired now, clips land in P5 ─────────────────────────────
+// Alice (ElevenLabs) is decided but not generated yet. Every phrase resolves to
+// /voice-hotmum/<slug>.m4a; a missing clip fails silently and is never retried,
+// so the app is simply quiet until the pack is dropped in. iOS throttles
+// speechSynthesis mid-session, so there is deliberately no TTS fallback.
+
+const VOICE_DIR = '/voice-hotmum/';
+const silent = new Set();
+let voiceOn = get(K.voice, true);
+
+function say(slug) {
+  if (!voiceOn || !slug || silent.has(slug)) return;
+  try {
+    const a = new Audio(`${VOICE_DIR}${slug}.m4a`);
+    a.play().catch(() => silent.add(slug));
+  } catch {
+    silent.add(slug);
+  }
+}
+
+// ─── Screen wake lock ──────────────────────────────────────────────────────
+// A 50-second tempo set with no touches will sleep the screen mid-rep.
+
+let wakeLock = null;
+async function keepAwake(on) {
+  try {
+    if (on && !wakeLock && 'wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => {
+        wakeLock = null;
+      });
+    } else if (!on && wakeLock) {
+      wakeLock.release();
+      wakeLock = null;
+    }
+  } catch {
+    /* denied or unsupported — not worth surfacing */
+  }
+}
+
+// ─── App state ─────────────────────────────────────────────────────────────
+
+const app = document.getElementById('app');
+let view = 'home';
+let run = null; // the live session
+let raf = 0;
+let lastBeat = '';
+let lastSave = 0;
+
+const esc = (s) =>
+  String(s).replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[
+        c
+      ],
+  );
+const mmss = (secs) => {
+  const s = Math.max(0, Math.ceil(Number(secs) || 0));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+};
+const exName = (id) => HOTMUM_EXERCISES[id]?.name || id;
+
+// "Lower A" → "LOWER<br><em>A</em>". Escape FIRST, then add the markup —
+// the other order escapes the tags we just wrote.
+const dayTitle = (name) =>
+  esc(name.toUpperCase()).replace(/ ([AB])$/, '<br><em>$1</em>');
+
+// ─── Season ────────────────────────────────────────────────────────────────
+
+function seasonRail() {
+  const now = seasonWeek();
+  return Array.from({ length: SEASON.weeks }, (_, i) => {
+    const w = i + 1;
+    return `<i class="${w < now ? 'on' : w === now ? 'now' : ''}"></i>`;
+  }).join('');
+}
+
+const todayIdx = () => (new Date().getDay() + 6) % 7; // WEEK is MON-first
+const todayPlan = () => WEEK[todayIdx()];
+
+function doneToday() {
+  const t = todayKey();
+  return history().some((h) => h.date === t);
+}
+
+// ─── Home ──────────────────────────────────────────────────────────────────
+
+function renderHome() {
+  const week = seasonWeek();
+  const block = blockForWeek(week);
+  const plan = todayPlan();
+  const done = doneToday();
+  const hist = history();
+
+  const seasonHead = `
+    <div class="season-row">
+      <span class="lbl lbl-sm">WK ${week} OF ${SEASON.weeks} · ${esc(block.name)}</span>
+      <span class="lbl lbl-sm lbl-hot">${daysToGo()} DAYS</span>
+    </div>
+    <div class="season">${seasonRail()}</div>`;
+
+  const weekList = WEEK.map((d, i) => {
+    const isToday = i === todayIdx();
+    const s = d.kind === 'session' ? getSession(d.id) : null;
+    const label = s ? `${d.day} · ${s.name.toUpperCase()}` : `${d.day} · WALK`;
+    const right = s
+      ? `${estimateSessionMins(stageSession(s, 0))} MIN`
+      : `${WALK.mins} MIN`;
+    // only mark days already past or today, and only if something was logged
+    const wasDone = isToday && done;
+    return `<div class="wk ${d.kind === 'walk' ? 'walk' : ''} ${wasDone ? 'done' : ''} ${isToday ? 'today' : ''}">
+      <span class="nm">${esc(label)}</span>
+      <span class="lbl lbl-sm ${wasDone ? 'lbl-hot' : ''}">${wasDone ? 'DONE' : right}</span>
+    </div>`;
+  }).join('');
+
+  let hero;
+  if (plan.kind === 'walk') {
+    hero = `
+      <div class="hero">
+        <span class="lbl lbl-sm">TODAY</span>
+        <div class="day-name"><em>WALK</em></div>
+        <div class="stats">
+          <div class="stat"><b>${WALK.mins}</b><span class="lbl lbl-sm">MINUTES</span></div>
+          <div class="stat"><b>${hist.filter((h) => h.kind === 'walk').length}</b><span class="lbl lbl-sm">LOGGED</span></div>
+        </div>
+        <p class="blurb">${esc(WALK.blurb)}</p>
+      </div>
+      <div style="flex-shrink:0">
+        <button class="btn" id="go-walk">START WALK</button>
+        <div class="btn-row"><button class="btn btn-ghost btn-sm" id="log-walk">ALREADY WALKED — LOG IT</button></div>
+      </div>`;
+  } else {
+    const s = getSession(plan.id);
+    const short = estimateSessionMins(stageSession(s, 0));
+    const full = [0, 1, 2].reduce((n, i) => n + stageMins(s, i), 0);
+    const core = stageMins(s, 2);
+    hero = `
+      <div class="hero">
+        <span class="lbl lbl-sm">TODAY</span>
+        <div class="day-name">${dayTitle(s.name)}</div>
+        <div class="stats">
+          <div class="stat"><b>${s.blocks.filter((b) => b.dose === 'main').length}</b><span class="lbl lbl-sm">MOVES</span></div>
+          <div class="stat"><b>${short}</b><span class="lbl lbl-sm">MINUTES</span></div>
+          <div class="stat"><b>15</b><span class="lbl lbl-sm">LB</span></div>
+        </div>
+        <p class="blurb">${esc(s.blurb)}</p>
+      </div>
+      <div style="flex-shrink:0">
+        <div class="doses">
+          <button class="dose" data-dose="short" aria-pressed="true">SHORT<i>${short} MIN</i></button>
+          <button class="dose" data-dose="full" aria-pressed="false">FULL<i>${full} MIN</i></button>
+          <button class="dose" data-dose="core" aria-pressed="false">CORE<i>${core} MIN</i></button>
+        </div>
+        <button class="btn" id="go-session">START</button>
+      </div>`;
+  }
+
+  app.innerHTML = `
+    <div class="screen">
+      <div class="top">
+        <div class="mark">HOT<br>MUM</div>
+        <button class="icon-btn" id="voice" aria-pressed="${voiceOn}" aria-label="Coach voice">${voiceOn ? '♪' : '✕'}</button>
+      </div>
+      ${seasonHead}
+      ${hero}
+      <div class="week">${weekList}</div>
+    </div>`;
+
+  app.querySelector('#voice')?.addEventListener('click', () => {
+    voiceOn = !voiceOn;
+    set(K.voice, voiceOn);
+    renderHome();
+  });
+  for (const b of app.querySelectorAll('.dose')) {
+    b.addEventListener('click', () => {
+      for (const o of app.querySelectorAll('.dose'))
+        o.setAttribute('aria-pressed', String(o === b));
+    });
+  }
+  app.querySelector('#go-session')?.addEventListener('click', () => {
+    const dose =
+      app.querySelector('.dose[aria-pressed="true"]')?.dataset.dose || 'short';
+    startSession(plan.id, dose);
+  });
+  app.querySelector('#go-walk')?.addEventListener('click', startWalk);
+  app.querySelector('#log-walk')?.addEventListener('click', () => {
+    logDone({ kind: 'walk', secs: WALK.mins * 60 });
+    renderFinish({ kind: 'walk', secs: WALK.mins * 60 });
+  });
+}
+
+// ─── Starting work ─────────────────────────────────────────────────────────
+
+function startSession(sessionId, dose) {
+  const session = getSession(sessionId);
+  const stages = DOSE_STAGES[dose] || DOSE_STAGES.short;
+  run = {
+    kind: 'session',
+    sessionId,
+    dose,
+    stages,
+    stagePos: 0,
+    queue: buildStepQueue(stageSession(session, stages[0])),
+    idx: 0,
+    elapsed: 0,
+    running: true,
+    since: Date.now(),
+    totals: { secs: 0, sets: 0, tut: 0 },
+    startedAt: Date.now(),
+  };
+  enterPlayer();
+}
+
+function startWalk() {
+  run = {
+    kind: 'walk',
+    queue: [
+      {
+        kind: 'work',
+        exId: 'walk',
+        secs: WALK.mins * 60,
+        phase: 'WALK',
+        meta: `${WALK.mins} MINUTES`,
+      },
+    ],
+    idx: 0,
+    elapsed: 0,
+    running: true,
+    since: Date.now(),
+    totals: { secs: 0, sets: 0, tut: 0 },
+    startedAt: Date.now(),
+  };
+  enterPlayer();
+}
+
+function enterPlayer() {
+  view = 'player';
+  lastBeat = '';
+  keepAwake(true);
+  renderPlayer();
+  tick();
+}
+
+// ─── The player ────────────────────────────────────────────────────────────
+
+const elapsedMs = () =>
+  run.elapsed + (run.running ? Date.now() - run.since : 0);
+
+const step = () => run.queue[run.idx];
+
+function renderPlayer() {
+  const st = step();
+  const ex = HOTMUM_EXERCISES[st.exId];
+  const isWalk = run.kind === 'walk';
+  // Resting is when she wants to know what's coming — a rest step's own exId
+  // is the move she just finished, so ask the queue instead.
+  const cue =
+    st.kind === 'rest'
+      ? `Next — ${nextWorkLabel(run.queue, run.idx)}`
+      : st.kind === 'work' && ex?.cue
+        ? ex.cue
+        : '';
+
+  app.innerHTML = `
+    <div class="screen player" id="pl">
+      <div class="bloom"></div>
+      <div class="top">
+        <div class="ex-name">${esc(isWalk ? 'WALK' : exName(st.exId))}</div>
+        <button class="icon-btn" id="quit" aria-label="End session">✕</button>
+      </div>
+      <div class="timer-wrap">
+        <div class="timer" id="timer">0:00</div>
+        <div class="phase" id="phase">${esc(st.phase || '')}</div>
+        <p class="cue" id="cue">${esc(cue)}</p>
+        <span class="lbl lbl-sm" id="meta">${esc(st.meta || '')}</span>
+        <div class="pips" id="pips"></div>
+      </div>
+      <div class="foot">
+        <div class="strip">
+          <span class="lbl lbl-sm" id="tempo-lbl"></span>
+          <span class="lbl lbl-sm" id="load-lbl"></span>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" id="pause">${run.running ? 'PAUSE' : 'RESUME'}</button>
+          <button class="btn btn-ghost btn-sm" id="skip" aria-label="Skip this step">SKIP</button>
+        </div>
+        <div class="prog"><i id="prog" style="width:0%"></i></div>
+      </div>
+    </div>`;
+
+  app.querySelector('#pause').addEventListener('click', togglePause);
+  app.querySelector('#skip').addEventListener('click', () => advance(true));
+  app.querySelector('#quit').addEventListener('click', endEarly);
+  paintStatic();
+}
+
+function paintStatic() {
+  const st = step();
+  const blk = st.tempo;
+  const tempoLbl = app.querySelector('#tempo-lbl');
+  const loadLbl = app.querySelector('#load-lbl');
+  if (tempoLbl)
+    tempoLbl.textContent = blk
+      ? `TEMPO ${blk.pattern.map(([, s]) => s).join('-')}`
+      : '';
+  if (loadLbl) {
+    const b = findBlock(st);
+    loadLbl.textContent = b?.load ? loadLabel(b.load).toUpperCase() : '';
+  }
+  const pips = app.querySelector('#pips');
+  if (pips) {
+    pips.innerHTML = blk
+      ? Array.from({ length: blk.reps }, () => '<i class="pip"></i>').join('')
+      : '';
+  }
+}
+
+// The block a step came from — the engine tags steps with `bi`.
+function findBlock(st) {
+  if (run.kind !== 'session' || st.bi == null) return null;
+  const session = getSession(run.sessionId);
+  return stageSession(session, run.stages[run.stagePos]).blocks[st.bi] || null;
+}
+
+function tick() {
+  cancelAnimationFrame(raf);
+  const frame = () => {
+    if (view !== 'player' || !run) return;
+    const st = step();
+    const e = elapsedMs();
+    const total = (st.secs ?? 0) * 1000;
+
+    const timer = app.querySelector('#timer');
+    if (timer) timer.textContent = mmss((total - e) / 1000);
+
+    const pl = app.querySelector('#pl');
+    if (st.tempo) {
+      const ts = tempoStateAt(st.tempo, e);
+      const phase = app.querySelector('#phase');
+      if (phase) phase.textContent = ts.label;
+      const meta = app.querySelector('#meta');
+      if (meta)
+        meta.textContent = `${st.meta} · REP ${ts.rep} OF ${st.tempo.reps}`;
+      if (pl) pl.className = `screen player ${ts.label.toLowerCase()}`;
+      for (const [i, p] of [...app.querySelectorAll('.pip')].entries()) {
+        p.className = `pip${i < ts.rep - 1 ? ' on' : i === ts.rep - 1 ? ' now' : ''}`;
+      }
+      // one spoken beat per phase-second boundary
+      const key = `${ts.rep}:${ts.label}:${ts.phaseSec}`;
+      if (key !== lastBeat) {
+        lastBeat = key;
+        say(tempoBeatSlug(ts, st.tempo));
+      }
+    } else if (pl) {
+      pl.className = `screen player${st.kind === 'rest' ? ' resting' : ''}`;
+    }
+
+    const prog = app.querySelector('#prog');
+    if (prog)
+      prog.style.width = `${((run.idx + e / (total || 1)) / run.queue.length) * 100}%`;
+
+    if (Date.now() - lastSave > 2000) save();
+    if (st.secs != null && e >= total) advance();
+    else raf = requestAnimationFrame(frame);
+  };
+  raf = requestAnimationFrame(frame);
+}
+
+function advance(skipped = false) {
+  const st = step();
+  if (st.kind === 'work') {
+    if (st.countsAsSet) run.totals.sets++;
+    if (!skipped) run.totals.tut += st.secs || 0;
+  }
+  run.totals.secs += Math.round(elapsedMs() / 1000);
+
+  run.idx++;
+  run.elapsed = 0;
+  run.since = Date.now();
+  lastBeat = '';
+
+  if (run.idx >= run.queue.length) return stageComplete();
+
+  const next = step();
+  if (next.kind === 'prep') say('get-set');
+  else if (next.kind === 'rest') say('rest');
+  else if (next.tempo) say('go');
+
+  save();
+  renderPlayer();
+  tick();
+}
+
+// ─── End of a stage: offer to keep going ───────────────────────────────────
+
+function stageComplete() {
+  cancelAnimationFrame(raf);
+  if (run.kind === 'walk') return finishRun();
+
+  const atLast = run.stagePos >= run.stages.length - 1;
+  const nextStage = run.stages[run.stagePos + 1];
+
+  // FULL and CORE were chosen up front — don't interrupt them.
+  if (!atLast && nextStage != null) {
+    run.stagePos++;
+    startStage();
+    return;
+  }
+  // SHORT: the session grows only if she says yes.
+  const grown = STAGES.findIndex((_, i) => i > lastRunStage());
+  if (run.dose === 'short' && grown !== -1 && STAGES[lastRunStage()].asks) {
+    return askExtend(grown);
+  }
+  finishRun();
+}
+
+const lastRunStage = () => run.stages[run.stagePos];
+
+function startStage() {
+  const session = getSession(run.sessionId);
+  run.queue = buildStepQueue(stageSession(session, run.stages[run.stagePos]));
+  run.idx = 0;
+  run.elapsed = 0;
+  run.since = Date.now();
+  run.running = true;
+  save();
+  renderPlayer();
+  tick();
+}
+
+function askExtend(stageIdx) {
+  view = 'ask';
+  const session = getSession(run.sessionId);
+  const mins = stageMins(session, stageIdx);
+  const ask = STAGES[lastRunStage()].asks;
+  app.innerHTML = `
+    <div class="screen">
+      <div class="top"><div class="mark">HOT<br>MUM</div></div>
+      <div class="ask">
+        <span class="lbl lbl-sm lbl-hot">THAT'S THE MAIN WORK DONE</span>
+        <h2>${esc(ask)}</h2>
+        <p class="blurb">+${mins} min. Stop here and it still counts as a full session.</p>
+      </div>
+      <div style="flex-shrink:0">
+        <button class="btn" id="yes">KEEP GOING</button>
+        <div class="btn-row"><button class="btn btn-ghost btn-sm" id="no">I'M DONE</button></div>
+      </div>
+    </div>`;
+  app.querySelector('#yes').addEventListener('click', () => {
+    run.stages = [...run.stages, stageIdx];
+    run.stagePos = run.stages.length - 1;
+    view = 'player';
+    startStage();
+  });
+  app.querySelector('#no').addEventListener('click', finishRun);
+}
+
+// ─── Finishing ─────────────────────────────────────────────────────────────
+
+function endEarly() {
+  if (run.totals.sets === 0) {
+    drop(K.active);
+    run = null;
+    view = 'home';
+    keepAwake(false);
+    cancelAnimationFrame(raf);
+    return renderHome();
+  }
+  finishRun();
+}
+
+function finishRun() {
+  cancelAnimationFrame(raf);
+  keepAwake(false);
+  say('session-complete');
+  const rec = {
+    kind: run.kind,
+    sessionId: run.sessionId,
+    dose: run.dose,
+    secs: run.totals.secs,
+    sets: run.totals.sets,
+    tut: run.totals.tut,
+  };
+  logDone(rec);
+  drop(K.active);
+  const done = { ...rec };
+  run = null;
+  renderFinish(done);
+}
+
+function logDone(rec) {
+  const list = history();
+  list.push({ date: todayKey(), at: Date.now(), ...rec });
+  set(K.history, list.slice(-400));
+}
+
+function renderFinish(rec) {
+  view = 'finish';
+  const week = seasonWeek();
+  const isWalk = rec.kind === 'walk';
+  const session = rec.sessionId ? getSession(rec.sessionId) : null;
+  const title = isWalk ? '<em>WALK</em>' : dayTitle(session.name);
+
+  app.innerHTML = `
+    <div class="screen finish">
+      <div class="top">
+        <span class="lbl lbl-sm">${isWalk ? 'WALK LOGGED' : 'SESSION COMPLETE'}</span>
+        <span class="lbl lbl-sm">WK ${week} OF ${SEASON.weeks}</span>
+      </div>
+      <div class="hero">
+        <div class="day-name">${title}</div>
+      </div>
+      <div class="fin-grid">
+        <div class="fin-cell"><b>${mmss(rec.secs)}</b><span class="lbl lbl-sm">TIME</span></div>
+        <div class="fin-cell"><b>${isWalk ? WALK.mins : rec.sets}</b><span class="lbl lbl-sm">${isWalk ? 'MINUTES' : 'SETS'}</span></div>
+        ${
+          isWalk
+            ? `<div class="fin-cell"><b>${history().filter((h) => h.kind === 'walk').length}</b><span class="lbl lbl-sm">WALKS LOGGED</span></div>`
+            : `<div class="fin-cell"><b>${mmss(rec.tut)}</b><span class="lbl lbl-sm">UNDER TENSION</span></div>`
+        }
+        <div class="fin-cell"><b>${daysToGo()}</b><span class="lbl lbl-sm">DAYS TO GO</span></div>
+      </div>
+      <div class="fin-tag">
+        <div class="fin-mark">HOT<br><em>MUM</em></div>
+        <span class="lbl lbl-sm">HOT AS IN STRONG</span>
+      </div>
+      <button class="btn" id="home">DONE</button>
+    </div>`;
+  app.querySelector('#home').addEventListener('click', () => {
+    view = 'home';
+    renderHome();
+  });
+}
+
+// ─── Pause / persist / restore ─────────────────────────────────────────────
+
+function togglePause() {
+  if (run.running) {
+    run.elapsed += Date.now() - run.since;
+    run.running = false;
+  } else {
+    run.since = Date.now();
+    run.running = true;
+  }
+  save();
+  renderPlayer();
+  if (run.running) tick();
+}
+
+function save() {
+  if (!run) return;
+  lastSave = Date.now();
+  set(K.active, {
+    ...run,
+    queue: undefined, // rebuilt from the program on restore
+    elapsed: elapsedMs(),
+    since: Date.now(),
+    savedAt: Date.now(),
+  });
+}
+
+function restore() {
+  const s = get(K.active);
+  if (!s) return false;
+  // Anything older than 6 hours is a forgotten session, not a paused one.
+  if (Date.now() - (s.savedAt || 0) > 6 * 3600 * 1000) {
+    drop(K.active);
+    return false;
+  }
+  if (s.kind === 'walk') {
+    startWalk();
+    run.idx = s.idx;
+    run.elapsed = s.elapsed;
+  } else {
+    const session = getSession(s.sessionId);
+    if (!session) {
+      drop(K.active);
+      return false;
+    }
+    run = {
+      ...s,
+      queue: buildStepQueue(stageSession(session, s.stages[s.stagePos])),
+    };
+    if (run.idx >= run.queue.length) {
+      drop(K.active);
+      return false;
+    }
+  }
+  run.running = false; // always resume paused — she may not be holding the phone
+  run.since = Date.now();
+  enterPlayer();
+  return true;
+}
+
+for (const ev of ['pagehide', 'visibilitychange']) {
+  window.addEventListener(ev, () => {
+    if (run && view === 'player') save();
+  });
+}
+
+// ─── Boot ──────────────────────────────────────────────────────────────────
+
+if (!restore()) renderHome();
+
+// The mock lives at /hotmum-mock.html; this is the real thing.
+export { renderHome };

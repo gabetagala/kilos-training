@@ -37,6 +37,9 @@ export default defineConfig({
         'tomato-cam': page('tomato/cam.html'),
         'tomato-view': page('tomato/view.html'),
         tayo: page('tayo/index.html'),
+        // HOTMUM — Sam's app. Own page, own icon, own localStorage namespace;
+        // shares only the step engine and the fonts (hotmum/PLAN.md §4).
+        hotmum: page('hotmum/index.html'),
       },
     },
   },
@@ -56,7 +59,13 @@ export default defineConfig({
         // SPA fallback — all navigation goes to index.html
         // Exclude standalone pages (coach previews, Bantay) from SW interception
         navigateFallback: 'index.html',
-        navigateFallbackDenylist: [/^\/coach-/, /^\/bantay/, /^\/tomato/, /^\/tayo/],
+        navigateFallbackDenylist: [
+          /^\/coach-/,
+          /^\/bantay/,
+          /^\/tomato/,
+          /^\/tayo/,
+          /^\/hotmum/,
+        ],
 
         // Nuke old caches when a new SW activates
         cleanupOutdatedCaches: true,

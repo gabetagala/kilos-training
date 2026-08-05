@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="HOTMUM">
+  <defs>
+    <linearGradient id="f" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#E0119B"/>
+      <stop offset="0.55" stop-color="#FF2E93"/>
+      <stop offset="1" stop-color="#FF8A3D"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#f)"/>
+  <!-- HOT over MUM: three letters over three letters, a square block.
+       Never "HM" — that reads as H&M (hotmum/PLAN.md §1.1). -->
+  <g fill="#12040B" font-family="Teko, 'Arial Narrow', sans-serif" font-weight="600"
+     font-size="196" text-anchor="middle" letter-spacing="2">
+    <text x="256" y="235">HOT</text>
+    <text x="256" y="404">MUM</text>
+  </g>
+</svg>

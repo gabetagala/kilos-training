@@ -1,0 +1,16 @@
+{
+  "name": "HOTMUM",
+  "short_name": "HOTMUM",
+  "description": "Season 01 — Sam's Toned Christmas. Hot as in strong.",
+  "start_url": "/hotmum/",
+  "scope": "/hotmum/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#14060E",
+  "theme_color": "#14060E",
+  "icons": [
+    { "src": "/hotmum-icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/hotmum-icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/hotmum-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
