@@ -28,14 +28,23 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { FORM_CUES } from '../src/workout/formCues.js';
+import { HOTMUM_EXERCISES } from '../src/hotmum/program.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const OUT_DIR = join(ROOT, 'public', 'voice');
+const PACKS = {
+  kilos: { voice: 'brian', dir: 'voice' },
+  hotmum: { voice: 'alice', dir: 'voice-hotmum' },
+};
 const WORK = join(tmpdir(), 'kilos-voice-gen');
 mkdirSync(WORK, { recursive: true });
 
-// ElevenLabs premade "Brian" — a global id, identical for every account.
-const BRIAN = 'nPczCjzI2devNBz1zQrb';
+// ElevenLabs premade voices — global ids, identical for every account.
+// Both are DEFAULT voices, so they work on the free plan; the British
+// "library" voices (Dorothy, Charlotte) return 402 without a paid plan.
+const VOICES = {
+  brian: 'nPczCjzI2devNBz1zQrb', // KILOS — Gabe's coach
+  alice: 'Xb7hH8MSUJpSbSDYk0k2', // HOTMUM — Sam's coach, British, composed
+};
 const MODEL = 'eleven_multilingual_v2';
 const TARGET_PEAK = 0.89; // matches the measured existing pack
 const TAIL_PAD_S = 0.03;
@@ -47,9 +56,35 @@ const MILESTONES = {
   'last-set': 'Last set',
   halfway: 'Halfway',
 };
-const PHRASES = { ...MILESTONES };
-for (const cues of Object.values(FORM_CUES)) {
-  for (const { slug, text } of cues) PHRASES[slug] = text;
+function kilosPhrases() {
+  const out = { ...MILESTONES };
+  for (const cues of Object.values(FORM_CUES)) {
+    for (const { slug, text } of cues) out[slug] = text;
+  }
+  return out;
+}
+
+// HOTMUM speaks a smaller, tighter set: the tempo beat words and rep numbers
+// (src/workout/tempoCues.js decides which fires when), the step transitions the
+// player emits, and one clip per exercise so a prep step announces what's next.
+function hotmumPhrases() {
+  const out = {
+    'get-set': 'Get set',
+    go: 'Go',
+    rest: 'Rest',
+    'switch-sides': 'Switch sides',
+    lift: 'Lift',
+    squeeze: 'Squeeze',
+    hold: 'Hold',
+    lower: 'Lower',
+    'last-three': 'Last three',
+    'last-one': 'Last one',
+    'session-complete': 'Session complete. Nice work.',
+  };
+  const nums = ['one','two','three','four','five','six','seven','eight','nine','ten'];
+  for (const n of nums) out[n] = n[0].toUpperCase() + n.slice(1);
+  for (const [id, ex] of Object.entries(HOTMUM_EXERCISES)) out[`name-${id}`] = ex.name;
+  return out;
 }
 
 // ── args ─────────────────────────────────────────────────────────────────────
@@ -65,6 +100,16 @@ const ONLY = opt('only', '')
   .filter(Boolean);
 const FORCE = flag('force');
 const DRY = flag('dry-run');
+const PACK = opt('pack', 'kilos');
+if (!PACKS[PACK]) {
+  console.error(`Unknown --pack ${PACK}. Try: ${Object.keys(PACKS).join(', ')}`);
+  process.exit(1);
+}
+const VOICE_NAME = PACKS[PACK].voice;
+const VOICE_ID = VOICES[VOICE_NAME];
+const OUT_DIR = join(ROOT, 'public', PACKS[PACK].dir);
+mkdirSync(OUT_DIR, { recursive: true });
+const PHRASES = PACK === 'hotmum' ? hotmumPhrases() : kilosPhrases();
 
 function apiKey() {
   if (process.env.ELEVENLABS_API_KEY) return process.env.ELEVENLABS_API_KEY;
@@ -82,7 +127,7 @@ const speechText = (t) => t.replace(/\s*—\s*/g, ', ').replace(/\s+/g, ' ');
 async function ttsMp3(key, text) {
   for (let attempt = 1; attempt <= 3; attempt++) {
     const res = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${BRIAN}?output_format=mp3_44100_128`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}?output_format=mp3_44100_128`,
       {
         method: 'POST',
         headers: { 'xi-api-key': key, 'Content-Type': 'application/json' },
@@ -188,7 +233,7 @@ if (!targets.length) {
   process.exit(0);
 }
 console.log(
-  `${DRY ? '[dry-run] would generate' : 'Generating'} ${targets.length} Brian clip(s):`,
+  `${DRY ? '[dry-run] would generate' : 'Generating'} ${targets.length} ${VOICE_NAME} clip(s) → public/${PACKS[PACK].dir}/:`,
 );
 for (const slug of targets) console.log(`  ${slug} — “${PHRASES[slug]}”`);
 if (DRY) process.exit(0);
@@ -230,5 +275,5 @@ if (failures.length) {
   console.warn(`\nFailed: ${failures.join(', ')}`);
   process.exitCode = 1;
 } else {
-  console.log('\nAll clips installed in public/voice/.');
+  console.log(`\nAll clips installed in public/${PACKS[PACK].dir}/.`);
 }
