@@ -72,6 +72,7 @@ function hotmumPhrases() {
     'get-set': 'Get set',
     go: 'Go',
     rest: 'Rest',
+    breathe: 'Breathe',
     'switch-sides': 'Switch sides',
     // Movement words, chosen to match what the body does: you go DOWN and UP
     // in a squat, OUT and BACK in a dead bug (src/hotmum/cues.js).
