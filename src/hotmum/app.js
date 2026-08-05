@@ -38,6 +38,12 @@ import {
   WALK,
   WEEK,
 } from './program.js';
+import {
+  buildShareData,
+  renderShare,
+  shareCanvas,
+  TEMPLATES,
+} from './share.js';
 
 // ─── Storage ───────────────────────────────────────────────────────────────
 
@@ -324,6 +330,81 @@ function openExercise(id) {
   document.body.appendChild(sheet);
 }
 
+// ─── Share ─────────────────────────────────────────────────────────────────
+// Three cards that read as one set (share.js). Opened from the finish card and
+// from the athlete page, so she can post the day she had or just the mark.
+
+function shareDataFor(record) {
+  // Sharing from the athlete page has no record, so the card takes today's
+  // plan — "LOWER A" or "WALK" says something; the app's own name doesn't.
+  const plan = todayPlan();
+  const session = record?.sessionId
+    ? getSession(record.sessionId)
+    : plan.kind === 'session'
+      ? getSession(plan.id)
+      : null;
+  const kind = record?.kind || plan.kind;
+  return buildShareData({
+    record: record || { kind },
+    session,
+    week: seasonWeek(),
+    weeks: SEASON.weeks,
+    daysToGo: daysToGo(),
+    seasonLabel: SEASON.label,
+    seasonName: SEASON.name,
+    rows: session
+      ? sessionOverview(session).map((r) => ({
+          title: r.title,
+          detail: r.detail,
+        }))
+      : [],
+  });
+}
+
+function openShare(record) {
+  const data = shareDataFor(record);
+  // The workout card needs a workout; offer it only when there is one.
+  const templates = data.rows.length
+    ? TEMPLATES
+    : TEMPLATES.filter((t) => t.id !== 'workout');
+  let pick = templates[0].id;
+
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet';
+  sheet.innerHTML = `<div class="sheet-card" role="dialog" aria-label="Share">
+      <div class="sheet-top"><h3>Share</h3>
+        <button class="icon-btn" id="sheet-x" aria-label="Close">✕</button></div>
+      <div class="tpl-row">${templates
+        .map(
+          (t) =>
+            `<button class="tpl" data-tpl="${t.id}" aria-pressed="${t.id === pick}">${esc(t.name)}</button>`,
+        )
+        .join('')}</div>
+      <canvas class="tpl-preview" id="share-canvas"></canvas>
+      <button class="btn" id="share-go">SAVE / SHARE</button>
+    </div>`;
+  document.body.appendChild(sheet);
+
+  const canvas = sheet.querySelector('#share-canvas');
+  const paint = () => renderShare(canvas, data, pick);
+  paint();
+
+  for (const b of sheet.querySelectorAll('[data-tpl]')) {
+    b.addEventListener('click', () => {
+      pick = b.dataset.tpl;
+      for (const o of sheet.querySelectorAll('[data-tpl]'))
+        o.setAttribute('aria-pressed', String(o === b));
+      paint();
+    });
+  }
+  sheet.querySelector('#share-go').addEventListener('click', async () => {
+    await shareCanvas(canvas, `hotmum-${pick}.png`);
+  });
+  sheet.addEventListener('click', (e) => {
+    if (e.target === sheet || e.target.id === 'sheet-x') sheet.remove();
+  });
+}
+
 // ─── Athlete ───────────────────────────────────────────────────────────────
 
 function renderAthlete() {
@@ -384,6 +465,11 @@ function renderAthlete() {
         <span class="lbl lbl-sm lbl-hot">${voiceOn ? 'ON' : 'OFF'}</span>
       </button>
 
+      <button class="row row-tap" id="share-mark">
+        <div><div class="row-t">Share a card</div><div class="row-s">The countdown, or just the mark</div></div>
+        <span class="lbl lbl-sm lbl-hot">↗</span>
+      </button>
+
       <h2 class="sec-h">The log</h2>
       ${log || '<p class="fine">Nothing logged yet. It starts on your first session.</p>'}
 
@@ -414,6 +500,9 @@ function renderAthlete() {
     });
   }
   app.querySelector('#btn-update')?.addEventListener('click', checkForUpdate);
+  app
+    .querySelector('#share-mark')
+    ?.addEventListener('click', () => openShare(null));
 }
 
 // Tap a settings row to change it — inline, no separate settings screen.
@@ -727,7 +816,9 @@ function paintStatic() {
       : '';
   if (loadLbl) {
     const b = findBlock(st);
-    loadLbl.textContent = b?.load ? loadLabel(b.load).toUpperCase() : '';
+    loadLbl.textContent = b?.load
+      ? formatLoad(b.load, profile.unit).toUpperCase()
+      : '';
   }
   const pips = app.querySelector('#pips');
   if (pips) {
@@ -943,12 +1034,16 @@ function renderFinish(rec) {
         <div class="fin-mark">HOT<br><em>MUM</em></div>
         <span class="lbl lbl-sm">HOT AS IN STRONG</span>
       </div>
-      <button class="btn" id="home">DONE</button>
+      <div class="btn-row">
+        <button class="btn" id="home">DONE</button>
+        <button class="btn btn-share" id="share">SHARE</button>
+      </div>
     </div>`;
   app.querySelector('#home').addEventListener('click', () => {
     view = 'home';
     renderHome();
   });
+  app.querySelector('#share').addEventListener('click', () => openShare(rec));
 }
 
 // ─── Pause / persist / restore ─────────────────────────────────────────────
