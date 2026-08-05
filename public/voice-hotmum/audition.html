@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>HOTMUM — Alice pack</title>
+<style>
+  body{font:15px/1.5 -apple-system,system-ui,sans-serif;background:#14060E;color:#FFF5FA;
+       max-width:40rem;margin:0 auto;padding:2rem 1.25rem 4rem}
+  h1{font-size:1.3rem;letter-spacing:-.01em;margin-bottom:.2rem}
+  p.sub{color:#C9A8B8;margin-bottom:1.6rem;font-size:.9rem}
+  button{background:#FF1E8E;color:#12040B;border:0;border-radius:8px;padding:.7rem 1.1rem;
+         font-weight:700;font-size:.9rem;cursor:pointer;margin-bottom:1.6rem}
+  h2{font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:#C9A8B8;
+     margin:1.6rem 0 .6rem;border-bottom:1px solid rgba(255,30,142,.18);padding-bottom:.4rem}
+  .row{display:flex;align-items:center;gap:.8rem;padding:.4rem 0}
+  .row b{font-weight:600;min-width:11rem;font-size:.88rem}
+  audio{height:32px;flex:1;min-width:0}
+</style>
+<h1>Alice — HOTMUM coach pack</h1>
+<p class="sub">44 clips. Same pipeline as the KILOS pack: hard-trimmed, 0.89 peak, AAC 48k mono.</p>
+<button id="all">▶ Play a full tempo set in order</button>
+<div id="out"></div>
+<script>
+const GROUPS = {
+  'The set, in order': ['get-set','name-rdl','go','one','lift','two','squeeze','three','lower','last-three','last-one','rest'],
+  'Transitions': ['get-set','go','rest','switch-sides','session-complete'],
+  'Beat words': ['lift','squeeze','hold','lower'],
+  'Counting': ['one','two','three','four','five','six','seven','eight','nine','ten','last-three','last-one'],
+  'Exercises': ['name-bw-squat','name-glute-bridge','name-bird-dog','name-hip-circles','name-rdl',
+    'name-lunge','name-reverse-lunge','name-hip-thrust','name-goblet-squat','name-step-up',
+    'name-calf-raise','name-glute-bridge-burnout','name-shoulder-press','name-one-arm-row',
+    'name-floor-press','name-lateral-raise','name-rear-delt-fly','name-bicep-curl',
+    'name-tricep-ext','name-farmer-carry','name-side-plank','name-dead-bug','name-heel-slide'],
+};
+const out = document.getElementById('out');
+for (const [title, slugs] of Object.entries(GROUPS)) {
+  out.insertAdjacentHTML('beforeend', `<h2>${title}</h2>` + slugs.map(s =>
+    `<div class="row"><b>${s}</b><audio controls preload="none" src="./${s}.m4a"></audio></div>`).join(''));
+}
+document.getElementById('all').addEventListener('click', async () => {
+  for (const s of GROUPS['The set, in order']) {
+    await new Promise(done => {
+      const a = new Audio(`./${s}.m4a`);
+      a.addEventListener('ended', done);
+      a.addEventListener('error', done);
+      a.play().catch(done);
+    });
+    await new Promise(r => setTimeout(r, 260));
+  }
+});
+</script>
