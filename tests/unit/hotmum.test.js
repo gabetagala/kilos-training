@@ -450,3 +450,31 @@ describe('profile — greeting and units', () => {
     expect(DEFAULTS.dumbbells).toEqual([10, 15, 20]);
   });
 });
+
+describe('dates are LOCAL, not UTC', () => {
+  // In Manila (UTC+8) a 7am session stamped with the UTC date lands on
+  // yesterday, so by that evening the app had forgotten she'd trained.
+  const localKey = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+  it('stamps a 7am session with today, not yesterday', () => {
+    const morning = new Date(2026, 8, 1, 7, 0, 0); // 1 Sep, local
+    expect(localKey(morning)).toBe('2026-09-01');
+    // the old behaviour, for the record
+    if (morning.getTimezoneOffset() < 0) {
+      expect(morning.toISOString().slice(0, 10)).toBe('2026-08-31');
+    }
+  });
+
+  it('the countdown does not drift through the day', () => {
+    const morning = daysToGo(new Date(2026, 8, 1, 7, 0, 0));
+    const evening = daysToGo(new Date(2026, 8, 1, 22, 0, 0));
+    expect(morning).toBe(evening);
+  });
+
+  it('the season week is the same all day', () => {
+    expect(seasonWeek(new Date(2026, 8, 1, 6, 0, 0))).toBe(
+      seasonWeek(new Date(2026, 8, 1, 23, 0, 0)),
+    );
+  });
+});

@@ -232,19 +232,25 @@ function drawWorkout(ctx, d) {
     tracked(ctx, d.dose, PAD, PAD + 232, 22, 0.2);
   }
 
-  // the movements
+  // The movements — ALL of them. This printed the first 9 of a 13-row session
+  // and said nothing about the other 4, so the card quietly misrepresented the
+  // workout. The pitch now scales to fit whatever the session holds.
+  const rows = d.rows;
+  const spaceFor = H - PAD - 190 - 74 - (PAD + 320);
+  const pitch = Math.min(62, Math.floor(spaceFor / Math.max(rows.length, 1)));
+  const nameSize = pitch >= 52 ? 30 : pitch >= 42 ? 26 : 22;
   let y = PAD + 320;
   ctx.save();
-  for (const r of d.rows.slice(0, 9)) {
+  for (const r of rows) {
     ctx.fillStyle = 'rgba(255,255,255,.22)';
-    ctx.fillRect(PAD, y - 34, W - PAD * 2, 2);
+    ctx.fillRect(PAD, y - Math.round(pitch * 0.55), W - PAD * 2, 2);
     ctx.fillStyle = INK;
-    ctx.font = `400 30px ${GROT}`;
+    ctx.font = `400 ${nameSize}px ${GROT}`;
     ctx.textAlign = 'left';
     ctx.fillText(r.title, PAD, y);
     ctx.fillStyle = 'rgba(255,255,255,.8)';
-    tracked(ctx, r.detail, W - PAD, y, 19, 0.14, 'right');
-    y += 62;
+    tracked(ctx, r.detail, W - PAD, y, nameSize >= 26 ? 19 : 17, 0.14, 'right');
+    y += pitch;
   }
   ctx.restore();
 
