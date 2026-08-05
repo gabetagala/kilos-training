@@ -1078,3 +1078,44 @@ body {
   padding: 10px 0 10px 12px;
   min-height: 44px;
 }
+
+/* ─── Laptop / desktop ─────────────────────────────────────────────────────
+   The app is a phone app. On a wide screen it shows as a phone-shaped panel
+   floating on the field rather than a stretched column — same choice KILOS
+   makes, and it keeps every screen at the width it was designed for. */
+
+@media (min-width: 900px) and (min-height: 620px) {
+  body {
+    display: grid;
+    place-items: center;
+    padding: 32px;
+  }
+  #app {
+    width: 440px;
+    max-width: 440px;
+    height: min(940px, calc(100vh - 64px));
+    border-radius: 44px;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 10px rgba(12, 3, 8, 0.9),
+      0 40px 90px rgba(0, 0, 0, 0.55);
+  }
+  /* The field is fixed to the viewport, so inside a framed app it must be
+     clipped to the frame instead — otherwise it paints the whole desktop and
+     the panel looks like a hole. */
+  #app::before,
+  #app::after {
+    position: absolute;
+  }
+  .nav {
+    bottom: 16px;
+  }
+}
+
+/* Wide but short (a laptop in a small window): keep it flush rather than
+   cropping the phone frame. */
+@media (min-width: 900px) and (max-height: 619px) {
+  #app {
+    max-width: 480px;
+  }
+}
