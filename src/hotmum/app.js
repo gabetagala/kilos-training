@@ -44,6 +44,18 @@ import {
   shareCanvas,
   TEMPLATES,
 } from './share.js';
+import {
+  getSession as authSession,
+  lastSynced,
+  pendingSync,
+  pullAndMerge,
+  queuePush,
+  signInWithPassword,
+  signOut,
+  signUpWithPassword,
+  syncAvailable,
+  syncOnStart,
+} from './sync.js';
 
 // ─── Storage ───────────────────────────────────────────────────────────────
 
@@ -409,6 +421,90 @@ function openShare(record) {
   });
 }
 
+// ─── Account ───────────────────────────────────────────────────────────────
+// Her own login on the shared Supabase project, so a lost or replaced phone
+// doesn't lose the season. Everything still works signed out — this is backup,
+// not a gate (CLAUDE.md: never paywall or block a basic need).
+
+let account = null; // cached session, refreshed on render
+
+async function accountSection() {
+  if (!syncAvailable()) {
+    return `<p class="fine">Cloud backup isn't configured on this build —
+      everything is saved on this phone.</p>`;
+  }
+  account = await authSession();
+  if (!account) {
+    return `<button class="row row-tap" id="btn-account">
+      <div><div class="row-t">Back up my progress</div>
+        <div class="row-s">Create a login so a new phone keeps the season</div></div>
+      <span class="lbl lbl-sm lbl-hot">SET UP</span>
+    </button>`;
+  }
+  const when = lastSynced();
+  const ago = when
+    ? `${Math.max(1, Math.round((Date.now() - when) / 60000))} min ago`
+    : 'not yet';
+  return `<div class="row">
+      <div><div class="row-t">${esc(account.user.user_metadata?.username || 'Signed in')}</div>
+        <div class="row-s">${pendingSync() ? 'Waiting for signal…' : `Backed up ${esc(ago)}`}</div></div>
+      <button class="lbl lbl-sm lbl-hot del-txt" id="btn-signout">SIGN OUT</button>
+    </div>`;
+}
+
+function openAccount() {
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet';
+  sheet.innerHTML = `<div class="sheet-card" role="dialog" aria-label="Back up my progress">
+      <div class="sheet-top"><h3>Back up my progress</h3>
+        <button class="icon-btn" id="sheet-x" aria-label="Close">✕</button></div>
+      <p class="row-s">A username and password, just for you. It keeps the
+        season if this phone is lost or replaced. Nothing is shared.</p>
+      <input class="text-input" id="ac-user" placeholder="username" autocapitalize="none" autocomplete="username" />
+      <input class="text-input" id="ac-pass" type="password" placeholder="password" autocomplete="current-password" />
+      <p class="fine" id="ac-msg"></p>
+      <button class="btn" id="ac-create">CREATE</button>
+      <div class="btn-row"><button class="btn btn-ghost btn-sm" id="ac-signin">I ALREADY HAVE ONE</button></div>
+    </div>`;
+  document.body.appendChild(sheet);
+  const msg = sheet.querySelector('#ac-msg');
+  const creds = () => [
+    sheet.querySelector('#ac-user').value.trim(),
+    sheet.querySelector('#ac-pass').value,
+  ];
+
+  const done = async (fn, label) => {
+    const [u, p] = creds();
+    if (!u || p.length < 6) {
+      msg.textContent = 'A username and at least 6 characters.';
+      return;
+    }
+    msg.textContent = `${label}…`;
+    const { error } = await fn(u, p);
+    if (error) {
+      msg.textContent = error.message;
+      return;
+    }
+    await pullAndMerge();
+    sheet.remove();
+    renderAthlete();
+  };
+
+  sheet
+    .querySelector('#ac-create')
+    .addEventListener('click', () =>
+      done((u, p) => signUpWithPassword(u, u, p), 'Creating'),
+    );
+  sheet
+    .querySelector('#ac-signin')
+    .addEventListener('click', () =>
+      done((u, p) => signInWithPassword(u, p), 'Signing in'),
+    );
+  sheet.addEventListener('click', (e) => {
+    if (e.target === sheet || e.target.id === 'sheet-x') sheet.remove();
+  });
+}
+
 // ─── Athlete ───────────────────────────────────────────────────────────────
 
 function renderAthlete() {
@@ -477,6 +573,9 @@ function renderAthlete() {
       <h2 class="sec-h">The log</h2>
       ${log || '<p class="fine">Nothing logged yet. It starts on your first session.</p>'}
 
+      <h2 class="sec-h">Backup</h2>
+      <div id="account-slot"><p class="fine">Checking…</p></div>
+
       <h2 class="sec-h">About</h2>
       <button class="row row-tap" id="btn-update">
         <div><div class="row-t">Check for update</div><div class="row-s" id="update-s">Get the newest version</div></div>
@@ -507,6 +606,19 @@ function renderAthlete() {
   app
     .querySelector('#share-mark')
     ?.addEventListener('click', () => openShare(null));
+
+  // Painted in after the page: checking the session is a network call and the
+  // rest of the screen shouldn't wait on it.
+  accountSection().then((html) => {
+    const slot = app.querySelector('#account-slot');
+    if (!slot) return; // she navigated away while we were checking
+    slot.innerHTML = html;
+    slot.querySelector('#btn-account')?.addEventListener('click', openAccount);
+    slot.querySelector('#btn-signout')?.addEventListener('click', async () => {
+      await signOut();
+      renderAthlete();
+    });
+  });
 }
 
 // Tap a settings row to change it — inline, no separate settings screen.
@@ -1098,6 +1210,7 @@ function logDone(rec) {
   const list = history();
   list.push({ date: todayKey(), at: Date.now(), ...rec });
   set(K.history, list.slice(-400));
+  queuePush(); // fire-and-forget; the loop never waits on the network
 }
 
 function renderFinish(rec) {
@@ -1215,6 +1328,9 @@ for (const ev of ['pagehide', 'visibilitychange']) {
 // ─── Boot ──────────────────────────────────────────────────────────────────
 
 if (!restore()) renderHome();
+
+// Reconcile with the cloud in the background — never on the critical path.
+syncOnStart();
 
 // The mock lives at /hotmum-mock.html; this is the real thing.
 export { renderHome };

@@ -1022,3 +1022,11 @@ body {
 .open-sess {
   margin: 12px 0 16px;
 }
+
+.del-txt {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  padding: 10px 0 10px 12px;
+  min-height: 44px;
+}
