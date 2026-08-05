@@ -12,11 +12,12 @@
 // tension is the only fine-grained progression lever available, which is why
 // the season progresses tempo → reps → sets → load, load LAST (§2.0.1).
 //
-// PHASE LABELS ARE A CLOSED SET. tempoCues.phaseWordSlug() maps
-// UP/LIFT → "lift", SQUEEZE → "squeeze", PAUSE → "hold", and EVERYTHING ELSE
-// falls through to "lower". Inventing a label here doesn't add a word to the
-// coach's mouth — it silently makes her say "lower" at the wrong moment.
-// Only use: LIFT, SQUEEZE, PAUSE, LOWER.
+// PHASE LABELS ARE A CLOSED SET, defined in cues.js: UP, DOWN, SQUEEZE, HOLD,
+// OUT, BACK. They are the words Alice actually owns as clips, and they're
+// chosen to match the movement — on a squat you go DOWN and UP, not "lower"
+// and "lift" (which is what the shared tempoCues.js would have said). A label
+// outside the set is silent rather than mispronounced, and a test walks every
+// pattern to catch one.
 //
 // Blocks match the engine schema in src/workout/rehab.js:
 //   tempo — one continuous timed set; reps derived from the tempo pattern
@@ -31,67 +32,67 @@
 // only way to make 10 lb hard is to refuse to drop it.
 
 const ECCENTRIC = [
-  ['LOWER', 3],
-  ['PAUSE', 1],
-  ['LIFT', 1],
+  ['DOWN', 3],
+  ['HOLD', 1],
+  ['UP', 1],
 ]; // 5s — RDL, goblet squat, floor press
 const ECCENTRIC_SHORT = [
-  ['LOWER', 2],
-  ['PAUSE', 1],
-  ['LIFT', 1],
+  ['DOWN', 2],
+  ['HOLD', 1],
+  ['UP', 1],
 ]; // 4s — lunges, where balance caps how slow she can go
 const SQUEEZE = [
-  ['LIFT', 1],
+  ['UP', 1],
   ['SQUEEZE', 2],
-  ['LOWER', 2],
+  ['DOWN', 2],
 ]; // 5s — hip thrust, calf raise
 const SQUEEZE_FAST = [
-  ['LIFT', 1],
+  ['UP', 1],
   ['SQUEEZE', 1],
-  ['LOWER', 1],
+  ['DOWN', 1],
 ]; // 3s — bridge burnout
 const HANG = [
-  ['LIFT', 1],
-  ['PAUSE', 1],
-  ['LOWER', 3],
+  ['UP', 1],
+  ['HOLD', 1],
+  ['DOWN', 3],
 ]; // 5s — lateral raise, rear delt fly
 const PULL = [
-  ['LIFT', 1],
+  ['UP', 1],
   ['SQUEEZE', 1],
-  ['LOWER', 3],
+  ['DOWN', 3],
 ]; // 5s — rows, curls
 const PRESS = [
-  ['LIFT', 1],
-  ['LOWER', 3],
+  ['UP', 1],
+  ['DOWN', 3],
 ]; // 4s — shoulder press
 const EXTEND = [
-  ['LOWER', 3],
-  ['LIFT', 1],
+  ['DOWN', 3],
+  ['UP', 1],
 ]; // 4s — overhead tricep extension
 const STEP = [
-  ['LIFT', 1],
-  ['LOWER', 2],
+  ['UP', 1],
+  ['DOWN', 2],
 ]; // 3s — step-ups; slower gets wobbly
 const REACH = [
-  ['LOWER', 2],
-  ['PAUSE', 1],
-  ['LIFT', 2],
-]; // 5s — dead bug, heel slide (LOWER = limbs away)
+  ['OUT', 2],
+  ['HOLD', 1],
+  ['BACK', 2],
+]; // 5s — dead bug, heel slide (OUT = limbs away, BACK = return)
 const WARM = [
-  ['LOWER', 2],
-  ['LIFT', 1],
+  ['DOWN', 2],
+  ['UP', 1],
 ]; // 3s — warm-up squat
 const WARM_BRIDGE = [
-  ['LIFT', 1],
+  ['UP', 1],
   ['SQUEEZE', 1],
-  ['LOWER', 2],
+  ['DOWN', 2],
 ]; // 4s
 
 // ─── Exercises ───────────────────────────────────────────────────────────────
 // `feel` / `avoid` / `cue` / `why` follow the KILOS convention (src/workout/
 // rehab.js) — they're what the player shows and what the coach voice reads.
 // `breathe: true` marks the loaded moves where the exhale cue fires on the
-// LIFT beat: a long tempo set holds intra-abdominal pressure longer than fast
+// UP beat: a long tempo set holds intra-abdominal pressure longer than fast
 // reps do, which matters more postpartum (PLAN.md §2.8).
 
 export const HOTMUM_EXERCISES = {
@@ -774,7 +775,7 @@ export const getSession = (id) =>
 /** Seconds for one rep of a tempo pattern. */
 export const tempoSecs = (tempo) => tempo.reduce((n, [, s]) => n + s, 0);
 
-/** Human tempo notation — [['LOWER',3],['PAUSE',1],['LIFT',1]] → "3-1-1". */
+/** Human tempo notation — [['DOWN',3],['HOLD',1],['UP',1]] → "3-1-1". */
 export const tempoLabel = (tempo) => tempo.map(([, s]) => s).join('-');
 
 /** A session cut down to one dose. Returns a session, not just blocks. */

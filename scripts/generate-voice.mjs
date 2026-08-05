@@ -73,9 +73,15 @@ function hotmumPhrases() {
     go: 'Go',
     rest: 'Rest',
     'switch-sides': 'Switch sides',
-    lift: 'Lift',
+    // Movement words, chosen to match what the body does: you go DOWN and UP
+    // in a squat, OUT and BACK in a dead bug (src/hotmum/cues.js).
+    up: 'Up',
+    down: 'Down',
+    out: 'Out',
+    back: 'Back',
     squeeze: 'Squeeze',
     hold: 'Hold',
+    lift: 'Lift',
     lower: 'Lower',
     'last-three': 'Last three',
     'last-one': 'Last one',

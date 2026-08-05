@@ -11,24 +11,51 @@
 // backgrounded tab or a mid-set refresh restores to the exact second.
 
 import './style.css';
-import { tempoBeatSlug } from '../workout/tempoCues.js';
+import { beatSlug, countdownSlug, NUM_SLUGS } from './cues.js';
 import {
   buildStepQueue,
   estimateSessionMins,
   nextWorkLabel,
+  sessionOverview,
   tempoStateAt,
 } from './engine.js';
+import {
+  formatLoad,
+  getProfile,
+  greeting,
+  saveProfile,
+  subGreeting,
+} from './profile.js';
 import {
   blockForWeek,
   daysToGo,
   getSession,
   HOTMUM_EXERCISES,
-  loadLabel,
+  HOTMUM_SESSIONS,
   SEASON,
   seasonWeek,
+  tempoLabel,
   WALK,
   WEEK,
 } from './program.js';
+import {
+  buildShareData,
+  renderShare,
+  shareCanvas,
+  TEMPLATES,
+} from './share.js';
+import {
+  getSession as authSession,
+  lastSynced,
+  pendingSync,
+  pullAndMerge,
+  queuePush,
+  signInWithPassword,
+  signOut,
+  signUpWithPassword,
+  syncAvailable,
+  syncOnStart,
+} from './sync.js';
 
 // ─── Storage ───────────────────────────────────────────────────────────────
 
@@ -36,6 +63,7 @@ const K = {
   active: 'hotmum-active',
   history: 'hotmum-history',
   voice: 'hotmum-voice',
+  onboarded: 'hotmum-onboarded',
 };
 const get = (k, fallback = null) => {
   try {
@@ -92,16 +120,65 @@ const stageMins = (session, stageIdx) =>
 
 const VOICE_DIR = '/voice-hotmum/';
 const silent = new Set();
-let voiceOn = get(K.voice, true);
+// Voice used to live under its own key; the profile owns it now, and an
+// existing hotmum-voice value is honoured once so nobody's setting flips.
+let profile = getProfile();
+const legacyVoice = get(K.voice);
+if (legacyVoice !== null && legacyVoice !== undefined) {
+  profile = saveProfile({ voice: legacyVoice });
+  drop(K.voice);
+}
+let voiceOn = profile.voice;
 
-function say(slug) {
-  if (!voiceOn || !slug || silent.has(slug)) return;
+// ONE clip at a time. Every phrase used to get its own Audio element fired at
+// whatever moment it was due, so a long name landed on top of the next beat and
+// two voices talked over each other. Beats are time-critical and interrupt;
+// anything queued behind a beat is dropped rather than played late.
+let nowPlaying = null;
+let queued = null;
+
+function play(slug) {
+  if (!slug || silent.has(slug)) return;
   try {
     const a = new Audio(`${VOICE_DIR}${slug}.m4a`);
-    a.play().catch(() => silent.add(slug));
+    nowPlaying = a;
+    a.addEventListener('ended', () => {
+      if (nowPlaying === a) nowPlaying = null;
+      const next = queued;
+      queued = null;
+      if (next) play(next);
+    });
+    a.play().catch(() => {
+      silent.add(slug);
+      nowPlaying = null;
+    });
   } catch {
     silent.add(slug);
+    nowPlaying = null;
   }
+}
+
+/** Say it now, cutting off whatever is mid-word. */
+function say(slug) {
+  if (!voiceOn || !slug) return;
+  if (nowPlaying) {
+    nowPlaying.pause();
+    nowPlaying = null;
+  }
+  queued = null;
+  play(slug);
+}
+
+/** Say it after the current clip finishes — used for "get set" → the name. */
+function sayAfter(slug) {
+  if (!voiceOn || !slug) return;
+  if (nowPlaying) queued = slug;
+  else play(slug);
+}
+
+/** Drop anything pending — a step change makes old phrases wrong, not late. */
+function hushQueued() {
+  queued = null;
 }
 
 // ─── Screen wake lock ──────────────────────────────────────────────────────
@@ -170,110 +247,709 @@ function doneToday() {
   return history().some((h) => h.date === t);
 }
 
+// ─── Nav ───────────────────────────────────────────────────────────────────
+// Three tabs, same shape as KILOS. Hidden during the player and the finish
+// card — mid-set is not a moment to offer navigation.
+
+const TABS = [
+  { id: 'home', label: 'Today' },
+  { id: 'program', label: 'Program' },
+  { id: 'athlete', label: 'Me' },
+];
+
+function nav(active) {
+  return `<nav class="nav">${TABS.map(
+    (t) =>
+      `<button class="nav-btn" data-go="${t.id}" aria-current="${t.id === active}">${t.label}</button>`,
+  ).join('')}</nav>`;
+}
+
+function wireNav() {
+  for (const b of app.querySelectorAll('[data-go]')) {
+    b.addEventListener('click', () => go(b.dataset.go));
+  }
+}
+
+function go(where) {
+  view = where;
+  if (where === 'home') renderHome();
+  else if (where === 'program') renderProgram();
+  else if (where === 'athlete') renderAthlete();
+}
+
+// ─── Program ───────────────────────────────────────────────────────────────
+// What she'd otherwise only discover by doing it: the whole season, every
+// session, and every movement's coaching copy — which until now surfaced one
+// line at a time, mid-set, when it is far too late to read it.
+
+function renderProgram() {
+  const week = seasonWeek();
+  const current = blockForWeek(week);
+
+  const blocks = SEASON.blocks
+    .map((b) => {
+      const on = b === current;
+      return `<div class="row ${on ? 'row-on' : ''}">
+        <div>
+          <div class="row-t">${esc(b.name)}</div>
+          <div class="row-s">${esc(b.blurb)}</div>
+        </div>
+        <span class="lbl lbl-sm ${on ? 'lbl-hot' : ''}">WK ${b.weeks[0]}–${b.weeks[1]}</span>
+      </div>`;
+    })
+    .join('');
+
+  const sessions = HOTMUM_SESSIONS.map((s) => {
+    const rows = sessionOverview(s)
+      .map((r, i) => {
+        const block = s.blocks[i];
+        const load = block?.load ? formatLoad(block.load, profile.unit) : '';
+        return `<button class="ex-row" data-ex="${esc(block?.ex || '')}">
+          <span class="ex-nm">${esc(r.title)}</span>
+          <span class="ex-d">${esc(r.detail)}${load ? ` · ${esc(load)}` : ''}</span>
+        </button>`;
+      })
+      .join('');
+    return `<details class="sess">
+      <summary>
+        <span class="sess-nm">${esc(s.day)} · ${esc(s.name.toUpperCase())}</span>
+        <span class="lbl lbl-sm">${estimateSessionMins(stageSession(s, 0))} MIN</span>
+      </summary>
+      <p class="row-s sess-blurb">${esc(s.blurb)}</p>
+      ${rows}
+      <button class="btn btn-sm open-sess" data-open="${esc(s.id)}">OPEN ${esc(s.name.toUpperCase())}</button>
+    </details>`;
+  }).join('');
+
+  app.innerHTML = `
+    <div class="screen has-nav">
+      <div class="top">
+        <div>
+          <div class="lbl lbl-sm">${esc(SEASON.label)}</div>
+          <h1 class="page-h">${esc(SEASON.name)}</h1>
+        </div>
+      </div>
+      <div class="season-row">
+        <span class="lbl lbl-sm">WK ${week} OF ${SEASON.weeks}</span>
+        <span class="lbl lbl-sm lbl-hot">${daysToGo()} DAYS</span>
+      </div>
+      <div class="season">${seasonRail()}</div>
+
+      <h2 class="sec-h">The five blocks</h2>
+      ${blocks}
+
+      <h2 class="sec-h">The week</h2>
+      ${sessions}
+      <div class="row">
+        <div>
+          <div class="row-t">Walk days</div>
+          <div class="row-s">${esc(WALK.blurb)}</div>
+        </div>
+        <span class="lbl lbl-sm">${WALK.mins} MIN</span>
+      </div>
+      <p class="fine">Every set is a countdown, not a count — Alice speaks the
+        tempo and calls the reps, so you never have to keep track.</p>
+    </div>
+    ${nav('program')}`;
+
+  wireNav();
+  for (const b of app.querySelectorAll('[data-ex]')) {
+    b.addEventListener('click', () => openExercise(b.dataset.ex));
+  }
+  for (const b of app.querySelectorAll('[data-open]')) {
+    b.addEventListener('click', () => renderSession(b.dataset.open));
+  }
+}
+
+// A movement's full coaching copy, on demand.
+function openExercise(id) {
+  const ex = HOTMUM_EXERCISES[id];
+  if (!ex) return;
+  const tempo = ex.repTempo ? tempoLabel(ex.repTempo) : null;
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet';
+  sheet.innerHTML = `<div class="sheet-card" role="dialog" aria-label="${esc(ex.name)}">
+      <div class="sheet-top">
+        <h3>${esc(ex.name)}</h3>
+        <button class="icon-btn" id="sheet-x" aria-label="Close">✕</button>
+      </div>
+      ${tempo ? `<span class="lbl lbl-sm lbl-hot">TEMPO ${esc(tempo)}</span>` : ''}
+      <dl class="sheet-dl">
+        <dt>How to</dt><dd>${esc(ex.cue)}</dd>
+        <dt>Should feel like</dt><dd>${esc(ex.feel)}</dd>
+        <dt>Watch out for</dt><dd>${esc(ex.avoid)}</dd>
+        <dt>Why it's in here</dt><dd>${esc(ex.why)}</dd>
+      </dl>
+    </div>`;
+  const close = () => sheet.remove();
+  sheet.addEventListener('click', (e) => {
+    if (e.target === sheet || e.target.id === 'sheet-x') close();
+  });
+  document.body.appendChild(sheet);
+}
+
+// ─── Share ─────────────────────────────────────────────────────────────────
+// Three cards that read as one set (share.js). Opened from the finish card and
+// from the athlete page, so she can post the day she had or just the mark.
+
+function shareDataFor(record) {
+  // Sharing from the athlete page has no record, so the card takes today's
+  // plan — "LOWER A" or "WALK" says something; the app's own name doesn't.
+  const plan = todayPlan();
+  const session = record?.sessionId
+    ? getSession(record.sessionId)
+    : plan.kind === 'session'
+      ? getSession(plan.id)
+      : null;
+  const kind = record?.kind || plan.kind;
+  return buildShareData({
+    record: record || { kind },
+    session,
+    week: seasonWeek(),
+    weeks: SEASON.weeks,
+    daysToGo: daysToGo(),
+    seasonLabel: SEASON.label,
+    seasonName: SEASON.name,
+    rows: session
+      ? sessionOverview(session).map((r) => ({
+          title: r.title,
+          detail: r.detail,
+        }))
+      : [],
+  });
+}
+
+function openShare(record) {
+  const data = shareDataFor(record);
+  // The workout card needs a workout; offer it only when there is one.
+  const templates = data.rows.length
+    ? TEMPLATES
+    : TEMPLATES.filter((t) => t.id !== 'workout');
+  let pick = templates[0].id;
+
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet';
+  sheet.innerHTML = `<div class="sheet-card" role="dialog" aria-label="Share">
+      <div class="sheet-top"><h3>Share</h3>
+        <button class="icon-btn" id="sheet-x" aria-label="Close">✕</button></div>
+      <div class="tpl-row">${templates
+        .map(
+          (t) =>
+            `<button class="tpl" data-tpl="${t.id}" aria-pressed="${t.id === pick}">${esc(t.name)}</button>`,
+        )
+        .join('')}</div>
+      <canvas class="tpl-preview" id="share-canvas"></canvas>
+      <button class="btn" id="share-go">SAVE / SHARE</button>
+    </div>`;
+  document.body.appendChild(sheet);
+
+  const canvas = sheet.querySelector('#share-canvas');
+  const paint = () => renderShare(canvas, data, pick);
+  paint();
+
+  for (const b of sheet.querySelectorAll('[data-tpl]')) {
+    b.addEventListener('click', () => {
+      pick = b.dataset.tpl;
+      for (const o of sheet.querySelectorAll('[data-tpl]'))
+        o.setAttribute('aria-pressed', String(o === b));
+      paint();
+    });
+  }
+  sheet.querySelector('#share-go').addEventListener('click', async () => {
+    await shareCanvas(canvas, `hotmum-${pick}.png`);
+  });
+  sheet.addEventListener('click', (e) => {
+    if (e.target === sheet || e.target.id === 'sheet-x') sheet.remove();
+  });
+}
+
+// ─── Account ───────────────────────────────────────────────────────────────
+// Her own login on the shared Supabase project, so a lost or replaced phone
+// doesn't lose the season. Everything still works signed out — this is backup,
+// not a gate (CLAUDE.md: never paywall or block a basic need).
+
+let account = null; // cached session, refreshed on render
+
+async function accountSection() {
+  if (!syncAvailable()) {
+    return `<p class="fine">Cloud backup isn't configured on this build —
+      everything is saved on this phone.</p>`;
+  }
+  account = await authSession();
+  if (!account) {
+    return `<button class="row row-tap" id="btn-account">
+      <div><div class="row-t">Back up my progress</div>
+        <div class="row-s">Create a login so a new phone keeps the season</div></div>
+      <span class="lbl lbl-sm lbl-hot">SET UP</span>
+    </button>`;
+  }
+  const when = lastSynced();
+  const ago = when
+    ? `${Math.max(1, Math.round((Date.now() - when) / 60000))} min ago`
+    : 'not yet';
+  return `<div class="row">
+      <div><div class="row-t">${esc(account.user.user_metadata?.username || 'Signed in')}</div>
+        <div class="row-s">${pendingSync() ? 'Waiting for signal…' : `Backed up ${esc(ago)}`}</div></div>
+      <button class="lbl lbl-sm lbl-hot del-txt" id="btn-signout">SIGN OUT</button>
+    </div>`;
+}
+
+function openAccount({ firstRun = false } = {}) {
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet';
+  sheet.innerHTML = `<div class="sheet-card" role="dialog" aria-label="Back up my progress">
+      <div class="sheet-top"><h3>${firstRun ? 'Before you start' : 'Back up my progress'}</h3>
+        <button class="icon-btn" id="sheet-x" aria-label="Close">✕</button></div>
+      <p class="row-s">${
+        firstRun
+          ? 'Make a login so twenty weeks of work survives a lost or replaced phone. It takes ten seconds, and you can do it later from Me.'
+          : 'A username and password, just for you. It keeps the season if this phone is lost or replaced. Nothing is shared.'
+      }</p>
+      <input class="text-input" id="ac-user" placeholder="username" autocapitalize="none" autocomplete="username" />
+      <input class="text-input" id="ac-pass" type="password" placeholder="password" autocomplete="current-password" />
+      <p class="fine" id="ac-msg"></p>
+      <button class="btn" id="ac-create">CREATE</button>
+      <div class="btn-row">
+        <button class="btn btn-ghost btn-sm" id="ac-signin">I ALREADY HAVE ONE</button>
+        ${firstRun ? '<button class="btn btn-ghost btn-sm" id="ac-later">NOT NOW</button>' : ''}
+      </div>
+    </div>`;
+  document.body.appendChild(sheet);
+  const msg = sheet.querySelector('#ac-msg');
+  const creds = () => [
+    sheet.querySelector('#ac-user').value.trim(),
+    sheet.querySelector('#ac-pass').value,
+  ];
+
+  const done = async (fn, label) => {
+    const [u, p] = creds();
+    if (!u || p.length < 6) {
+      msg.textContent = 'A username and at least 6 characters.';
+      return;
+    }
+    msg.textContent = `${label}…`;
+    const { error } = await fn(u, p);
+    if (error) {
+      msg.textContent = error.message;
+      return;
+    }
+    await pullAndMerge();
+    sheet.remove();
+    renderAthlete();
+  };
+
+  sheet
+    .querySelector('#ac-create')
+    .addEventListener('click', () =>
+      done((u, p) => signUpWithPassword(u, u, p), 'Creating'),
+    );
+  sheet
+    .querySelector('#ac-signin')
+    .addEventListener('click', () =>
+      done((u, p) => signInWithPassword(u, p), 'Signing in'),
+    );
+  sheet
+    .querySelector('#ac-later')
+    ?.addEventListener('click', () => sheet.remove());
+  sheet.addEventListener('click', (e) => {
+    if (e.target === sheet || e.target.id === 'sheet-x') sheet.remove();
+  });
+}
+
+// Offered ONCE, on the first open, and skippable. Backup is not a gate — but
+// the one moment she'll reliably see the offer is before the season starts,
+// not after she's lost a phone.
+async function offerBackupOnce() {
+  if (!syncAvailable()) return;
+  if (get(K.onboarded)) return;
+  set(K.onboarded, true);
+  if (await authSession()) return; // already signed in
+  openAccount({ firstRun: true });
+}
+
+// ─── Athlete ───────────────────────────────────────────────────────────────
+
+function renderAthlete() {
+  const hist = history();
+  const sessions = hist.filter((h) => h.kind === 'session');
+  const walks = hist.filter((h) => h.kind === 'walk');
+  const totalSecs = hist.reduce((n, h) => n + (h.secs || 0), 0);
+  const totalTut = hist.reduce((n, h) => n + (h.tut || 0), 0);
+
+  const log = hist
+    .slice()
+    .reverse()
+    .slice(0, 40)
+    .map((h, i) => {
+      const s = h.sessionId ? getSession(h.sessionId) : null;
+      const title = s ? s.name : 'Walk';
+      const detail = s
+        ? `${h.dose?.toUpperCase() || ''} · ${h.sets} sets · ${mmss(h.secs)}`
+        : `${WALK.mins} min`;
+      return `<div class="row">
+        <div>
+          <div class="row-t">${esc(title)}</div>
+          <div class="row-s">${esc(h.date)} · ${esc(detail)}</div>
+        </div>
+        <button class="del" data-del="${hist.length - 1 - i}" aria-label="Delete this entry">✕</button>
+      </div>`;
+    })
+    .join('');
+
+  app.innerHTML = `
+    <div class="screen has-nav">
+      <div class="top">
+        <div>
+          <div class="lbl lbl-sm">ATHLETE</div>
+          <h1 class="page-h">${esc(profile.name)}</h1>
+        </div>
+      </div>
+
+      <h2 class="sec-h">This season</h2>
+      <div class="tiles">
+        <div class="tile"><b>${sessions.length}</b><span class="lbl lbl-sm">SESSIONS</span></div>
+        <div class="tile"><b>${walks.length}</b><span class="lbl lbl-sm">WALKS</span></div>
+        <div class="tile"><b>${Math.round(totalSecs / 60)}</b><span class="lbl lbl-sm">MINUTES</span></div>
+        <div class="tile"><b>${Math.round(totalTut / 60)}</b><span class="lbl lbl-sm">UNDER TENSION</span></div>
+      </div>
+
+      <h2 class="sec-h">Settings</h2>
+      <button class="row row-tap" data-edit="name">
+        <div><div class="row-t">Name</div><div class="row-s">Used in the greeting</div></div>
+        <span class="lbl lbl-sm lbl-hot">${esc(profile.name)}</span>
+      </button>
+      <button class="row row-tap" data-edit="unit">
+        <div><div class="row-t">Weight unit</div><div class="row-s">Display only — the program stays in pounds</div></div>
+        <span class="lbl lbl-sm lbl-hot">${esc(profile.unit.toUpperCase())}</span>
+      </button>
+      <button class="row row-tap" data-edit="voice">
+        <div><div class="row-t">Coach voice</div><div class="row-s">Alice calls the tempo and the reps</div></div>
+        <span class="lbl lbl-sm lbl-hot">${voiceOn ? 'ON' : 'OFF'}</span>
+      </button>
+
+      <button class="row row-tap" id="share-mark">
+        <div><div class="row-t">Share a card</div><div class="row-s">The countdown, or just the mark</div></div>
+        <span class="lbl lbl-sm lbl-hot">↗</span>
+      </button>
+
+      <h2 class="sec-h">The log</h2>
+      ${log || '<p class="fine">Nothing logged yet. It starts on your first session.</p>'}
+
+      <h2 class="sec-h">Backup</h2>
+      <div id="account-slot"><p class="fine">Checking…</p></div>
+
+      <h2 class="sec-h">About</h2>
+      <button class="row row-tap" id="btn-update">
+        <div><div class="row-t">Check for update</div><div class="row-s" id="update-s">Get the newest version</div></div>
+        <span class="lbl lbl-sm lbl-hot">↻</span>
+      </button>
+      <p class="fine" id="build-stamp"></p>
+      <p class="fine">HOTMUM — hot as in strong.<br>Everything lives on this phone. Nothing is uploaded.</p>
+    </div>
+    ${nav('athlete')}`;
+
+  wireNav();
+  const stamp = app.querySelector('#build-stamp');
+  if (stamp) {
+    stamp.textContent = `Version ${import.meta.env.KILOS_BUILD || 'dev'} · ${import.meta.env.KILOS_COMMIT || '—'}`;
+  }
+  for (const b of app.querySelectorAll('[data-edit]')) {
+    b.addEventListener('click', () => editSetting(b.dataset.edit));
+  }
+  for (const b of app.querySelectorAll('[data-del]')) {
+    b.addEventListener('click', () => {
+      const list = history();
+      list.splice(Number(b.dataset.del), 1);
+      set(K.history, list);
+      renderAthlete();
+    });
+  }
+  app.querySelector('#btn-update')?.addEventListener('click', checkForUpdate);
+  app
+    .querySelector('#share-mark')
+    ?.addEventListener('click', () => openShare(null));
+
+  // Painted in after the page: checking the session is a network call and the
+  // rest of the screen shouldn't wait on it.
+  accountSection().then((html) => {
+    const slot = app.querySelector('#account-slot');
+    if (!slot) return; // she navigated away while we were checking
+    slot.innerHTML = html;
+    slot.querySelector('#btn-account')?.addEventListener('click', openAccount);
+    slot.querySelector('#btn-signout')?.addEventListener('click', async () => {
+      await signOut();
+      renderAthlete();
+    });
+  });
+}
+
+// Tap a settings row to change it — inline, no separate settings screen.
+function editSetting(field) {
+  if (field === 'unit') {
+    profile = saveProfile({ unit: profile.unit === 'lb' ? 'kg' : 'lb' });
+    return renderAthlete();
+  }
+  if (field === 'voice') {
+    voiceOn = !voiceOn;
+    profile = saveProfile({ voice: voiceOn });
+    if (voiceOn) say('go');
+    return renderAthlete();
+  }
+  if (field === 'name') {
+    const sheet = document.createElement('div');
+    sheet.className = 'sheet';
+    sheet.innerHTML = `<div class="sheet-card" role="dialog" aria-label="Your name">
+        <div class="sheet-top"><h3>Your name</h3>
+          <button class="icon-btn" id="sheet-x" aria-label="Close">✕</button></div>
+        <p class="row-s">However you'd like to be greeted.</p>
+        <input class="text-input" id="name-in" value="${esc(profile.name)}" maxlength="24" autocomplete="off" />
+        <button class="btn" id="name-save">SAVE</button>
+      </div>`;
+    document.body.appendChild(sheet);
+    const input = sheet.querySelector('#name-in');
+    input.focus();
+    input.select();
+    const save = () => {
+      const v = input.value.trim();
+      if (v) profile = saveProfile({ name: v });
+      sheet.remove();
+      renderAthlete();
+    };
+    sheet.querySelector('#name-save').addEventListener('click', save);
+    input.addEventListener('keydown', (e) => e.key === 'Enter' && save());
+    sheet.addEventListener('click', (e) => {
+      if (e.target === sheet || e.target.id === 'sheet-x') sheet.remove();
+    });
+  }
+}
+
+async function checkForUpdate() {
+  const s = app.querySelector('#update-s');
+  if (s) s.textContent = 'Checking…';
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    if (!reg) {
+      if (s)
+        s.textContent = 'Not installed yet — add to your Home Screen first.';
+      return;
+    }
+    await reg.update();
+    if (reg.installing || reg.waiting) {
+      if (s) s.textContent = 'New version found — reloading…';
+      setTimeout(() => location.reload(), 900);
+    } else if (s) {
+      s.textContent = "You're on the newest version.";
+    }
+  } catch {
+    if (s) s.textContent = 'Could not check — try again when you have signal.';
+  }
+}
+
 // ─── Home ──────────────────────────────────────────────────────────────────
+// ─── Home ──────────────────────────────────────────────────────────────────
+// KILOS' shape: wordmark, greeting, a grid of boxes, then a card you tap to
+// open the day. Hers counts boxes to Christmas rather than days in a month —
+// the season IS the motivation, so it's the thing the page is mostly made of.
+
+const DAY_MS = 86400000;
+const iso = (d) => d.toISOString().slice(0, 10);
+
+// One box per day of the season. Filled when something was logged, outlined on
+// a lifting day, dim on a walk day. A missed day just stays empty — no red, no
+// broken streak, nothing to feel bad about.
+function christmasGrid() {
+  const start = new Date(`${SEASON.startDate}T00:00:00`);
+  const end = new Date(`${SEASON.endDate}T00:00:00`);
+  const today = iso(new Date());
+  const done = new Set(history().map((h) => h.date));
+
+  const cells = [];
+  let filled = 0;
+  let total = 0;
+  for (let t = start.getTime(); t <= end.getTime(); t += DAY_MS) {
+    const d = new Date(t);
+    const k = iso(d);
+    const plan = WEEK[(d.getDay() + 6) % 7];
+    let cls = plan.kind === 'session' ? 'session' : 'walk';
+    if (done.has(k)) {
+      cls = 'done';
+      filled++;
+    } else if (k === today) cls = 'today';
+    else if (k < today) cls = 'past';
+    total++;
+    cells.push(`<i class="bx ${cls}"></i>`);
+  }
+  return { html: cells.join(''), filled, total };
+}
 
 function renderHome() {
   const week = seasonWeek();
   const block = blockForWeek(week);
   const plan = todayPlan();
   const done = doneToday();
+  const grid = christmasGrid();
   const hist = history();
 
-  const seasonHead = `
-    <div class="season-row">
-      <span class="lbl lbl-sm">WK ${week} OF ${SEASON.weeks} · ${esc(block.name)}</span>
-      <span class="lbl lbl-sm lbl-hot">${daysToGo()} DAYS</span>
-    </div>
-    <div class="season">${seasonRail()}</div>`;
-
-  const weekList = WEEK.map((d, i) => {
-    const isToday = i === todayIdx();
-    const s = d.kind === 'session' ? getSession(d.id) : null;
-    const label = s ? `${d.day} · ${s.name.toUpperCase()}` : `${d.day} · WALK`;
-    const right = s
-      ? `${estimateSessionMins(stageSession(s, 0))} MIN`
-      : `${WALK.mins} MIN`;
-    // only mark days already past or today, and only if something was logged
-    const wasDone = isToday && done;
-    return `<div class="wk ${d.kind === 'walk' ? 'walk' : ''} ${wasDone ? 'done' : ''} ${isToday ? 'today' : ''}">
-      <span class="nm">${esc(label)}</span>
-      <span class="lbl lbl-sm ${wasDone ? 'lbl-hot' : ''}">${wasDone ? 'DONE' : right}</span>
-    </div>`;
-  }).join('');
-
-  let hero;
-  if (plan.kind === 'walk') {
-    hero = `
-      <div class="hero">
-        <span class="lbl lbl-sm">TODAY</span>
-        <div class="day-name"><em>WALK</em></div>
-        <div class="stats">
-          <div class="stat"><b>${WALK.mins}</b><span class="lbl lbl-sm">MINUTES</span></div>
-          <div class="stat"><b>${hist.filter((h) => h.kind === 'walk').length}</b><span class="lbl lbl-sm">LOGGED</span></div>
-        </div>
-        <p class="blurb">${esc(WALK.blurb)}</p>
-      </div>
-      <div style="flex-shrink:0">
-        <button class="btn" id="go-walk">START WALK</button>
-        <div class="btn-row"><button class="btn btn-ghost btn-sm" id="log-walk">ALREADY WALKED — LOG IT</button></div>
+  const recent = hist
+    .slice(-3)
+    .reverse()
+    .map((h) => {
+      const s = h.sessionId ? getSession(h.sessionId) : null;
+      return `<div class="wk">
+        <span class="nm">${esc(s ? s.name : 'Walk')}</span>
+        <span class="lbl lbl-sm">${esc(h.date)}</span>
       </div>`;
-  } else {
-    const s = getSession(plan.id);
-    const short = estimateSessionMins(stageSession(s, 0));
-    const full = [0, 1, 2].reduce((n, i) => n + stageMins(s, i), 0);
-    const core = stageMins(s, 2);
-    hero = `
+    })
+    .join('');
+
+  const card =
+    plan.kind === 'walk'
+      ? `<button class="today-card" id="open-today">
+          <div>
+            <span class="lbl lbl-sm">TODAY</span>
+            <div class="day-name"><em>WALK</em></div>
+            <div class="row-s">${WALK.mins} minutes, whenever it fits</div>
+          </div>
+          <span class="chev">→</span>
+        </button>`
+      : `<button class="today-card" id="open-today">
+          <div>
+            <span class="lbl lbl-sm">TODAY</span>
+            <div class="day-name">${dayTitle(getSession(plan.id).name)}</div>
+            <div class="row-s">${estimateSessionMins(stageSession(getSession(plan.id), 0))} min · tap to open</div>
+          </div>
+          <span class="chev">→</span>
+        </button>`;
+
+  app.innerHTML = `
+    <div class="screen has-nav">
+      <div class="top">
+        <div class="mark">HOT<br>MUM</div>
+        <button class="icon-btn" id="voice" aria-pressed="${voiceOn}" aria-label="Coach voice">${voiceOn ? '♪' : '✕'}</button>
+      </div>
+
+      <div class="hello">
+        <h1 class="page-h">${esc(greeting(profile.name, new Date(), done))}</h1>
+        <p class="row-s">${esc(subGreeting({ kind: plan.kind, doneToday: done, daysToGo: daysToGo() }))}</p>
+      </div>
+
+      <div class="season-row">
+        <span class="lbl lbl-sm">WK ${week} OF ${SEASON.weeks} · ${esc(block.name)}</span>
+        <span class="lbl lbl-sm lbl-hot">${daysToGo()} DAYS</span>
+      </div>
+      <div class="boxes">${grid.html}</div>
+      <div class="season-row boxes-key">
+        <span class="lbl lbl-sm">${grid.filled} OF ${grid.total} DAYS IN</span>
+        <span class="lbl lbl-sm">CHRISTMAS →</span>
+      </div>
+
+      ${card}
+
+      ${recent ? `<h2 class="sec-h">Recent</h2>${recent}` : ''}
+      <p class="fine">Everything lives on this phone.</p>
+    </div>
+    ${nav('home')}`;
+
+  wireNav();
+  app.querySelector('#voice')?.addEventListener('click', () => {
+    voiceOn = !voiceOn;
+    profile = saveProfile({ voice: voiceOn });
+    renderHome();
+  });
+  app.querySelector('#open-today')?.addEventListener('click', () => {
+    if (plan.kind === 'walk') renderWalk();
+    else renderSession(plan.id);
+  });
+}
+
+// ─── Open a day, then go ───────────────────────────────────────────────────
+// The same screen whether she got here from today's card or from the program
+// page: what the session is, how long each dose takes, and one button.
+
+function renderSession(id) {
+  view = 'session';
+  const s = getSession(id);
+  const short = estimateSessionMins(stageSession(s, 0));
+  const full = [0, 1, 2].reduce((n, i) => n + stageMins(s, i), 0);
+  const core = stageMins(s, 2);
+
+  const rows = sessionOverview(s)
+    .map((r, i) => {
+      const b = s.blocks[i];
+      const load = b?.load ? formatLoad(b.load, profile.unit) : '';
+      return `<button class="ex-row" data-ex="${esc(b?.ex || '')}">
+        <span class="ex-nm">${esc(r.title)}</span>
+        <span class="ex-d">${esc(r.detail)}${load ? ` · ${esc(load)}` : ''}</span>
+      </button>`;
+    })
+    .join('');
+
+  app.innerHTML = `
+    <div class="screen">
+      <div class="top">
+        <button class="icon-btn" id="back" aria-label="Back">←</button>
+        <span class="lbl lbl-sm">${esc(s.day)} · WK ${seasonWeek()} OF ${SEASON.weeks}</span>
+      </div>
       <div class="hero">
-        <span class="lbl lbl-sm">TODAY</span>
         <div class="day-name">${dayTitle(s.name)}</div>
-        <div class="stats">
-          <div class="stat"><b>${s.blocks.filter((b) => b.dose === 'main').length}</b><span class="lbl lbl-sm">MOVES</span></div>
-          <div class="stat"><b>${short}</b><span class="lbl lbl-sm">MINUTES</span></div>
-          <div class="stat"><b>15</b><span class="lbl lbl-sm">LB</span></div>
-        </div>
         <p class="blurb">${esc(s.blurb)}</p>
       </div>
+      <h2 class="sec-h">The movements</h2>
+      ${rows}
       <div style="flex-shrink:0">
         <div class="doses">
           <button class="dose" data-dose="short" aria-pressed="true">SHORT<i>${short} MIN</i></button>
           <button class="dose" data-dose="full" aria-pressed="false">FULL<i>${full} MIN</i></button>
           <button class="dose" data-dose="core" aria-pressed="false">CORE<i>${core} MIN</i></button>
         </div>
-        <button class="btn" id="go-session">START</button>
-      </div>`;
-  }
-
-  app.innerHTML = `
-    <div class="screen">
-      <div class="top">
-        <div class="mark">HOT<br>MUM</div>
-        <button class="icon-btn" id="voice" aria-pressed="${voiceOn}" aria-label="Coach voice">${voiceOn ? '♪' : '✕'}</button>
+        <button class="btn" id="go-session">GO</button>
       </div>
-      ${seasonHead}
-      ${hero}
-      <div class="week">${weekList}</div>
     </div>`;
 
-  app.querySelector('#voice')?.addEventListener('click', () => {
-    voiceOn = !voiceOn;
-    set(K.voice, voiceOn);
-    renderHome();
-  });
+  app.querySelector('#back').addEventListener('click', () => go('home'));
+  for (const b of app.querySelectorAll('[data-ex]')) {
+    b.addEventListener('click', () => openExercise(b.dataset.ex));
+  }
   for (const b of app.querySelectorAll('.dose')) {
     b.addEventListener('click', () => {
       for (const o of app.querySelectorAll('.dose'))
         o.setAttribute('aria-pressed', String(o === b));
     });
   }
-  app.querySelector('#go-session')?.addEventListener('click', () => {
+  app.querySelector('#go-session').addEventListener('click', () => {
     const dose =
       app.querySelector('.dose[aria-pressed="true"]')?.dataset.dose || 'short';
-    startSession(plan.id, dose);
+    startSession(id, dose);
   });
-  app.querySelector('#go-walk')?.addEventListener('click', startWalk);
-  app.querySelector('#log-walk')?.addEventListener('click', () => {
-    logDone({ kind: 'walk', secs: WALK.mins * 60 });
-    renderFinish({ kind: 'walk', secs: WALK.mins * 60 });
+}
+
+function renderWalk() {
+  view = 'session';
+  app.innerHTML = `
+    <div class="screen">
+      <div class="top">
+        <button class="icon-btn" id="back" aria-label="Back">←</button>
+        <span class="lbl lbl-sm">WK ${seasonWeek()} OF ${SEASON.weeks}</span>
+      </div>
+      <div class="hero">
+        <div class="day-name"><em>WALK</em></div>
+        <p class="blurb">${esc(WALK.blurb)}</p>
+        <div class="stats">
+          <div class="stat"><b>${WALK.mins}</b><span class="lbl lbl-sm">MINUTES</span></div>
+          <div class="stat"><b>${history().filter((h) => h.kind === 'walk').length}</b><span class="lbl lbl-sm">LOGGED</span></div>
+        </div>
+      </div>
+      <div style="flex-shrink:0">
+        <button class="btn" id="go-walk">START WALK</button>
+        <div class="btn-row"><button class="btn btn-ghost btn-sm" id="log-walk">ALREADY WALKED — LOG IT</button></div>
+      </div>
+    </div>`;
+  app.querySelector('#back').addEventListener('click', () => go('home'));
+  app.querySelector('#go-walk').addEventListener('click', startWalk);
+  app.querySelector('#log-walk').addEventListener('click', () => {
+    const rec = { kind: 'walk', secs: WALK.mins * 60 };
+    logDone(rec);
+    renderFinish(rec);
   });
 }
 
@@ -326,14 +1002,20 @@ function startWalk() {
 // to start in silence.
 function announce(st) {
   if (!st) return;
+  hushQueued();
   if (st.kind === 'prep') {
     say('get-set');
     // …then name what's coming, so she can set up without reading the screen.
-    setTimeout(() => say(`name-${st.exId}`), 900);
+    // Queued, not timed — a fixed 900ms delay landed on top of longer names.
+    sayAfter(`name-${st.exId}`);
   } else if (st.kind === 'rest') {
     say(st.phase === 'SWITCH SIDES' ? 'switch-sides' : 'rest');
   } else if (st.tempo) {
     say('go');
+  } else if (st.kind === 'work') {
+    // Timed holds (bird dog, side plank, carries) had no voice at all.
+    // Call the rep so she knows where she is in the set.
+    say(NUM_SLUGS[st.rep] || 'hold');
   }
 }
 
@@ -410,7 +1092,9 @@ function paintStatic() {
       : '';
   if (loadLbl) {
     const b = findBlock(st);
-    loadLbl.textContent = b?.load ? loadLabel(b.load).toUpperCase() : '';
+    loadLbl.textContent = b?.load
+      ? formatLoad(b.load, profile.unit).toUpperCase()
+      : '';
   }
   const pips = app.querySelector('#pips');
   if (pips) {
@@ -454,10 +1138,20 @@ function tick() {
       const key = `${ts.rep}:${ts.label}:${ts.phaseSec}`;
       if (key !== lastBeat) {
         lastBeat = key;
-        say(tempoBeatSlug(ts, st.tempo));
+        say(beatSlug(ts, st.tempo));
       }
-    } else if (pl) {
-      pl.className = `screen player${st.kind === 'rest' ? ' resting' : ''}`;
+    } else {
+      if (pl)
+        pl.className = `screen player${st.kind === 'rest' ? ' resting' : ''}`;
+      // 3-2-1 into the end of any plain timed step — a hold or a rest used to
+      // simply stop with no warning.
+      const left = (total - e) / 1000;
+      const cd = countdownSlug(left);
+      const key = cd ? `cd${Math.ceil(left)}` : '';
+      if (cd && key !== lastBeat) {
+        lastBeat = key;
+        say(cd);
+      }
     }
 
     const prog = app.querySelector('#prog');
@@ -594,6 +1288,7 @@ function logDone(rec) {
   const list = history();
   list.push({ date: todayKey(), at: Date.now(), ...rec });
   set(K.history, list.slice(-400));
+  queuePush(); // fire-and-forget; the loop never waits on the network
 }
 
 function renderFinish(rec) {
@@ -608,6 +1303,10 @@ function renderFinish(rec) {
       <div class="top">
         <span class="lbl lbl-sm">${isWalk ? 'WALK LOGGED' : 'SESSION COMPLETE'}</span>
         <span class="lbl lbl-sm">WK ${week} OF ${SEASON.weeks}</span>
+      </div>
+      <div class="poster-type">
+        <div class="pt-row"><span>${esc(SEASON.label)}</span><u>${isWalk ? 'SHE WALKED IT' : 'SHE LIFTED IT'}</u><span>2026</span></div>
+        <div>ATTN :: ${esc(profile.name.toUpperCase())}</div>
       </div>
       <div class="hero">
         <div class="day-name">${title}</div>
@@ -626,12 +1325,16 @@ function renderFinish(rec) {
         <div class="fin-mark">HOT<br><em>MUM</em></div>
         <span class="lbl lbl-sm">HOT AS IN STRONG</span>
       </div>
-      <button class="btn" id="home">DONE</button>
+      <div class="btn-row">
+        <button class="btn" id="home">DONE</button>
+        <button class="btn btn-share" id="share">SHARE</button>
+      </div>
     </div>`;
   app.querySelector('#home').addEventListener('click', () => {
     view = 'home';
     renderHome();
   });
+  app.querySelector('#share').addEventListener('click', () => openShare(rec));
 }
 
 // ─── Pause / persist / restore ─────────────────────────────────────────────
@@ -703,6 +1406,9 @@ for (const ev of ['pagehide', 'visibilitychange']) {
 // ─── Boot ──────────────────────────────────────────────────────────────────
 
 if (!restore()) renderHome();
+
+// Reconcile with the cloud in the background — never on the critical path.
+syncOnStart().then(offerBackupOnce);
 
 // The mock lives at /hotmum-mock.html; this is the real thing.
 export { renderHome };
