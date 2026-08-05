@@ -11,7 +11,7 @@
 // backgrounded tab or a mid-set refresh restores to the exact second.
 
 import './style.css';
-import { beatSlug, countdownSlug, NUM_SLUGS } from './cues.js';
+import { beatSlug, countdownSlug, NUM_SLUGS, PHASE_WORDS } from './cues.js';
 import {
   buildStepQueue,
   estimateSessionMins,
@@ -56,6 +56,15 @@ import {
   syncAvailable,
   syncOnStart,
 } from './sync.js';
+import {
+  hush,
+  preload,
+  resumeIfNeeded,
+  setMuted,
+  speak,
+  speakAfter,
+  unlock,
+} from './voice.js';
 
 // ─── Storage ───────────────────────────────────────────────────────────────
 
@@ -63,7 +72,6 @@ const K = {
   active: 'hotmum-active',
   history: 'hotmum-history',
   voice: 'hotmum-voice',
-  onboarded: 'hotmum-onboarded',
 };
 const get = (k, fallback = null) => {
   try {
@@ -118,8 +126,6 @@ const stageMins = (session, stageIdx) =>
 // iOS throttles speechSynthesis mid-session, so there is deliberately no TTS
 // fallback — a phrase without a clip is simply not spoken.
 
-const VOICE_DIR = '/voice-hotmum/';
-const silent = new Set();
 // Voice used to live under its own key; the profile owns it now, and an
 // existing hotmum-voice value is honoured once so nobody's setting flips.
 let profile = getProfile();
@@ -130,55 +136,14 @@ if (legacyVoice !== null && legacyVoice !== undefined) {
 }
 let voiceOn = profile.voice;
 
-// ONE clip at a time. Every phrase used to get its own Audio element fired at
-// whatever moment it was due, so a long name landed on top of the next beat and
-// two voices talked over each other. Beats are time-critical and interrupt;
-// anything queued behind a beat is dropped rather than played late.
-let nowPlaying = null;
-let queued = null;
+// Alice speaks through voice.js (Web Audio), not <audio> elements — see the
+// header there for why iOS clipped and dropped the old approach.
 
-function play(slug) {
-  if (!slug || silent.has(slug)) return;
-  try {
-    const a = new Audio(`${VOICE_DIR}${slug}.m4a`);
-    nowPlaying = a;
-    a.addEventListener('ended', () => {
-      if (nowPlaying === a) nowPlaying = null;
-      const next = queued;
-      queued = null;
-      if (next) play(next);
-    });
-    a.play().catch(() => {
-      silent.add(slug);
-      nowPlaying = null;
-    });
-  } catch {
-    silent.add(slug);
-    nowPlaying = null;
-  }
-}
-
-/** Say it now, cutting off whatever is mid-word. */
 function say(slug) {
-  if (!voiceOn || !slug) return;
-  if (nowPlaying) {
-    nowPlaying.pause();
-    nowPlaying = null;
-  }
-  queued = null;
-  play(slug);
+  if (voiceOn) speak(slug);
 }
-
-/** Say it after the current clip finishes — used for "get set" → the name. */
 function sayAfter(slug) {
-  if (!voiceOn || !slug) return;
-  if (nowPlaying) queued = slug;
-  else play(slug);
-}
-
-/** Drop anything pending — a step change makes old phrases wrong, not late. */
-function hushQueued() {
-  queued = null;
+  if (voiceOn) speakAfter(slug);
 }
 
 // ─── Screen wake lock ──────────────────────────────────────────────────────
@@ -556,14 +521,13 @@ function openAccount({ firstRun = false } = {}) {
   });
 }
 
-// Offered ONCE, on the first open, and skippable. Backup is not a gate — but
-// the one moment she'll reliably see the offer is before the season starts,
-// not after she's lost a phone.
-async function offerBackupOnce() {
+// Offered on EVERY cold start until she actually has an account — twenty weeks
+// of work living on one phone with no backup is the thing worth being
+// persistent about. Still skippable every time: NOT NOW always works, and it
+// never interrupts a session, only a fresh open.
+async function offerBackup() {
   if (!syncAvailable()) return;
-  if (get(K.onboarded)) return;
-  set(K.onboarded, true);
-  if (await authSession()) return; // already signed in
+  if (await authSession()) return; // signed in — never ask again
   openAccount({ firstRun: true });
 }
 
@@ -691,8 +655,11 @@ function editSetting(field) {
   }
   if (field === 'voice') {
     voiceOn = !voiceOn;
+    setMuted(!voiceOn);
     profile = saveProfile({ voice: voiceOn });
-    if (voiceOn) say('go');
+    if (voiceOn) {
+      unlock().then(() => say('go'));
+    }
     return renderAthlete();
   }
   if (field === 'name') {
@@ -853,6 +820,7 @@ function renderHome() {
   wireNav();
   app.querySelector('#voice')?.addEventListener('click', () => {
     voiceOn = !voiceOn;
+    setMuted(!voiceOn);
     profile = saveProfile({ voice: voiceOn });
     renderHome();
   });
@@ -919,6 +887,8 @@ function renderSession(id) {
   app.querySelector('#go-session').addEventListener('click', () => {
     const dose =
       app.querySelector('.dose[aria-pressed="true"]')?.dataset.dose || 'short';
+    // MUST happen inside the tap: iOS only lets a real gesture start audio.
+    unlock();
     startSession(id, dose);
   });
 }
@@ -945,7 +915,10 @@ function renderWalk() {
       </div>
     </div>`;
   app.querySelector('#back').addEventListener('click', () => go('home'));
-  app.querySelector('#go-walk').addEventListener('click', startWalk);
+  app.querySelector('#go-walk').addEventListener('click', () => {
+    unlock();
+    startWalk();
+  });
   app.querySelector('#log-walk').addEventListener('click', () => {
     const rec = { kind: 'walk', secs: WALK.mins * 60 };
     logDone(rec);
@@ -1002,7 +975,7 @@ function startWalk() {
 // to start in silence.
 function announce(st) {
   if (!st) return;
-  hushQueued();
+  hush();
   if (st.kind === 'prep') {
     say('get-set');
     // …then name what's coming, so she can set up without reading the screen.
@@ -1023,6 +996,20 @@ function enterPlayer() {
   view = 'player';
   lastBeat = '';
   keepAwake(true);
+  // Decode everything this session will say BEFORE the first set — decoding
+  // mid-beat is what makes a word land late.
+  preload([
+    ...Object.values(PHASE_WORDS),
+    ...NUM_SLUGS.filter(Boolean),
+    'get-set',
+    'go',
+    'rest',
+    'switch-sides',
+    'last-three',
+    'last-one',
+    'session-complete',
+    ...new Set(run.queue.map((st) => `name-${st.exId}`)),
+  ]);
   renderPlayer();
   announce(step());
   tick();
@@ -1402,13 +1389,21 @@ for (const ev of ['pagehide', 'visibilitychange']) {
     if (run && view === 'player') save();
   });
 }
+// iOS suspends the AudioContext whenever the app is backgrounded — coming back
+// to a silent coach mid-session is exactly the bug this whole module exists for.
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) resumeIfNeeded();
+});
 
 // ─── Boot ──────────────────────────────────────────────────────────────────
 
-if (!restore()) renderHome();
+const resumed = restore();
+if (!resumed) renderHome();
 
 // Reconcile with the cloud in the background — never on the critical path.
-syncOnStart().then(offerBackupOnce);
+syncOnStart().then(() => {
+  if (!resumed) offerBackup(); // never interrupt a restored session
+});
 
 // The mock lives at /hotmum-mock.html; this is the real thing.
 export { renderHome };
