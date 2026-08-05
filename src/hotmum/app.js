@@ -63,6 +63,7 @@ const K = {
   active: 'hotmum-active',
   history: 'hotmum-history',
   voice: 'hotmum-voice',
+  onboarded: 'hotmum-onboarded',
 };
 const get = (k, fallback = null) => {
   try {
@@ -493,19 +494,25 @@ async function accountSection() {
     </div>`;
 }
 
-function openAccount() {
+function openAccount({ firstRun = false } = {}) {
   const sheet = document.createElement('div');
   sheet.className = 'sheet';
   sheet.innerHTML = `<div class="sheet-card" role="dialog" aria-label="Back up my progress">
-      <div class="sheet-top"><h3>Back up my progress</h3>
+      <div class="sheet-top"><h3>${firstRun ? 'Before you start' : 'Back up my progress'}</h3>
         <button class="icon-btn" id="sheet-x" aria-label="Close">✕</button></div>
-      <p class="row-s">A username and password, just for you. It keeps the
-        season if this phone is lost or replaced. Nothing is shared.</p>
+      <p class="row-s">${
+        firstRun
+          ? 'Make a login so twenty weeks of work survives a lost or replaced phone. It takes ten seconds, and you can do it later from Me.'
+          : 'A username and password, just for you. It keeps the season if this phone is lost or replaced. Nothing is shared.'
+      }</p>
       <input class="text-input" id="ac-user" placeholder="username" autocapitalize="none" autocomplete="username" />
       <input class="text-input" id="ac-pass" type="password" placeholder="password" autocomplete="current-password" />
       <p class="fine" id="ac-msg"></p>
       <button class="btn" id="ac-create">CREATE</button>
-      <div class="btn-row"><button class="btn btn-ghost btn-sm" id="ac-signin">I ALREADY HAVE ONE</button></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost btn-sm" id="ac-signin">I ALREADY HAVE ONE</button>
+        ${firstRun ? '<button class="btn btn-ghost btn-sm" id="ac-later">NOT NOW</button>' : ''}
+      </div>
     </div>`;
   document.body.appendChild(sheet);
   const msg = sheet.querySelector('#ac-msg');
@@ -541,9 +548,23 @@ function openAccount() {
     .addEventListener('click', () =>
       done((u, p) => signInWithPassword(u, p), 'Signing in'),
     );
+  sheet
+    .querySelector('#ac-later')
+    ?.addEventListener('click', () => sheet.remove());
   sheet.addEventListener('click', (e) => {
     if (e.target === sheet || e.target.id === 'sheet-x') sheet.remove();
   });
+}
+
+// Offered ONCE, on the first open, and skippable. Backup is not a gate — but
+// the one moment she'll reliably see the offer is before the season starts,
+// not after she's lost a phone.
+async function offerBackupOnce() {
+  if (!syncAvailable()) return;
+  if (get(K.onboarded)) return;
+  set(K.onboarded, true);
+  if (await authSession()) return; // already signed in
+  openAccount({ firstRun: true });
 }
 
 // ─── Athlete ───────────────────────────────────────────────────────────────
@@ -1387,7 +1408,7 @@ for (const ev of ['pagehide', 'visibilitychange']) {
 if (!restore()) renderHome();
 
 // Reconcile with the cloud in the background — never on the critical path.
-syncOnStart();
+syncOnStart().then(offerBackupOnce);
 
 // The mock lives at /hotmum-mock.html; this is the real thing.
 export { renderHome };
