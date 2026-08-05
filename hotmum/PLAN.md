@@ -1,13 +1,13 @@
-# Sam's app — plan
+# HOTMUM — plan
 
-> Working doc. A **light, hot-pink sibling to KILOS** for Sam: her own
+> Working doc. A **plum-dark, hot-magenta sibling to KILOS** for Sam: her own
 > postpartum lean-&-toned program, rebuilt **time-based** (the app paces and
 > counts; she never counts), on her own home-screen icon with her own coach
 > voice.
 >
-> **Name locked 2026-08-05: the app is HOTMUM; the program is SAM'S TONED
-> CHRISTMAS** (§1.1, §2.0). MUM vs MOM still open, and Sam still has to say yes
-> to the name itself.
+> **LOCKED 2026-08-05 — the app is HOTMUM, the program is SAM'S TONED
+> CHRISTMAS** (§1.1, §2.0). MUM, not MOM. Tagline: *"hot as in strong."*
+> Coach voice: Alice (§5). Micro-label type: system grotesque (§3.6).
 
 ---
 
@@ -304,17 +304,31 @@ suite guards the bands):
 plan is 9 exercises plus core, and under tempo that's a 41–46 minute session.
 Nothing is padded — 26–28 of those minutes are actual time under tension.
 
-**Two open decisions this surfaces:**
+**DECIDED — SHORT is the default; the session GROWS instead of shrinking.**
 
-1. **Is 45 minutes viable with a newborn?** If not, the fix is hers to choose —
-   drop a finisher, or make SHORT the default and treat FULL as the good-day
-   option. Don't silently trim her plan.
-2. **SHORT doesn't work on Lower B.** It saves 46% on Upper but only 28% on
-   Lower B, landing at 31 min — nowhere near the ~22 the dose implies, because
-   Lower B's main block is enormous. Cleanest fix: re-tier the **step-up** as a
-   finisher (it duplicates the reverse-lunge pattern already covered that day),
-   which brings SHORT to ~25 min. That's a programming call, so it's flagged
-   rather than applied.
+The instinct is to make her pick a dose at minute zero. That's the wrong moment
+to ask: **she doesn't yet know how long the baby will sleep.** Asking her to
+commit to 45 minutes up front means she either over-promises and quits at 30 —
+which reads as failure — or under-picks and leaves work on the table.
+
+So invert it:
+
+1. **SHORT (25–31 min) starts by default.** One tap, no decision.
+2. **When the main work is done, the app offers to keep going** — *"Add the
+   finishers? +13 min"*, then *"Add the core? +6 min"*.
+3. Every exit point is a **complete session**, not an abandoned one.
+
+She ends up doing more work this way, not less, because every extra block is a
+yes she chooses when she already knows she has the time. The FULL/SHORT/CORE
+picker stays for the days she does know up front. Nothing is cut from her plan —
+only the order in which she's asked.
+
+**One programming decision still open:** SHORT saves 46% on Upper but only 28%
+on Lower B, landing at 31 min because that day's main block is enormous.
+Cleanest fix is re-tiering the **step-up** as a finisher — it duplicates the
+reverse-lunge pattern already covered that day — which brings Lower B's SHORT to
+~25 min and lines all three days up. That's a call on her program, so it stays
+flagged rather than applied.
 
 ### 2.8 Postpartum layer
 
@@ -397,15 +411,37 @@ still exists, in the one place that's meant to be seen by other people.
 
 ### 3.2 Type — reuse, don't buy
 
-No new fonts. The two KILOS already self-hosts do the poster look exactly:
+No new fonts, and no downloads for the small stuff:
 
-- **Teko** (condensed) — the timer, rep counts, session titles. Huge.
-- **Space Mono**, tracked ~0.18em, uppercase — the poster's small type is
-  literally this (`YEAR 02`, `ATTN ::`, `CH.0 FOR TIER ZERO`). Every micro-label
-  in her app.
+- **Teko** (self-hosted, already in the repo) — the timer, rep counts, session
+  titles, the stacked wordmark. Every number and display line.
+- **System grotesque**, tracked ~0.18em, uppercase — every micro-label
+  (`SEASON 01`, `ATTN ::`, `WK 04 OF 20`). See §3.6 for why this beat Space
+  Mono.
 
-That's a familial-but-distinct identity with zero extra download and zero cold-
-start flash.
+Zero extra download and zero cold-start flash.
+
+### 3.6 Micro-label type — DECIDED: system grotesque
+
+The reference poster's small type isn't monospace. It's a tight bold grotesque —
+essentially Helvetica — and Space Mono was the single thing holding the mock
+back from looking like the reference.
+
+**Micro-labels use `-apple-system, "Helvetica Neue", Inter, system-ui`.** Teko
+still owns every number and display line; only the tracked caps change.
+
+- It's what the poster actually uses, so the identity gets closer for free.
+- **Native on her iPhone** — zero download, zero cold-start flash, and more
+  reliably offline than a self-hosted font, because it's already on the device.
+- Space Mono's fixed width reads lab/techy. HOTMUM is fashion-sport.
+
+The counter-argument was family resemblance with KILOS. That argument is
+actually backwards: **HOTMUM is supposed to look like hers, not like his.**
+Shared fonts were a convenience, never a requirement.
+
+Caveat, and it's a non-issue here: system fonts differ per platform. On her
+iPhone that's SF Pro / Helvetica, exactly what's wanted. It's a personal app on
+one device, so cross-platform drift never arises.
 
 ### 3.4 The moments
 
@@ -560,7 +596,7 @@ room.
 
 ## 7. Open questions
 
-1. **Name** — and is Tagalog naming right for her? (§1)
+1. ~~Name~~ — **DECIDED: HOTMUM** (MUM, not MOM). Tagline *"hot as in strong."*
 2. ~~Coach voice~~ — **decided: Alice.** (§5)
 3. **Tue/Thu/Sat fixed, or "3 sessions a week, any day"?** Now that walk days
    fill Mon/Wed/Fri/Sun (§2.0.2), the week has a shape and fixed days make more
@@ -572,5 +608,6 @@ room.
 5. **Progression** — auto-suggest (*"RDL felt easy twice — go 12 reps"*) or
    leave it manual for v1? Recommend a suggestion she can accept, never an
    automatic change.
-6. **Photos/measurements** — in scope, or deliberately out? Body-comp tracking
+6. ~~Space Mono or system grotesque~~ — **DECIDED: system grotesque** (§3.6).
+7. **Photos/measurements** — in scope, or deliberately out? Body-comp tracking
    is a different product and a different emotional register postpartum.
