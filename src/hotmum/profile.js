@@ -48,17 +48,22 @@ export function formatLoad(load, unit = 'lb') {
 }
 
 // ─── The greeting ──────────────────────────────────────────────────────────
-// Warm but not gushing — HOTMUM is playful, not loud. One line, her name, and
-// an acknowledgement of where she is in the day. Never a compliment about how
-// she looks: the whole point of "hot as in strong" is that the app talks about
-// what she does.
+// "Hello, hot mum Sam." — Gabe's line, and it's the right one: it's what he
+// actually calls her, which for an app one husband built for one wife beats
+// anything neutral.
+//
+// "Hot mum" here is the BRAND NAME, not a remark about her body — that's what
+// the tagline exists to fix ("hot as in strong"). The distinction is load-
+// bearing and tested: the app may say hot mum, and must never comment on how
+// she looks. Postpartum, a training app that drifts into appearance talk stops
+// being a training app.
+//
+// The `date` argument is unused now (the greeting was time-of-day before) but
+// kept so the signature stays stable if that ever comes back.
 
-export function greeting(name, date = new Date(), doneToday = false) {
-  const h = date.getHours();
-  const part =
-    h < 5 ? 'Late one' : h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening';
-  if (doneToday) return `Nice work, ${name}.`;
-  return `${part}, ${name}.`;
+export function greeting(name, _date = new Date(), doneToday = false) {
+  if (doneToday) return `Nice work, hot mum ${name}.`;
+  return `Hello, hot mum ${name}.`;
 }
 
 /** The second line — what today actually asks of her. */

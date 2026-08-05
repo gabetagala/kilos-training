@@ -336,34 +336,33 @@ describe('drives the shipped step engine', () => {
 });
 
 describe('profile — greeting and units', () => {
-  it('greets by time of day, by name', () => {
-    const at = (h) => new Date(`2026-09-01T${String(h).padStart(2, '0')}:00:00`);
-    expect(greeting('Sam', at(8))).toBe('Morning, Sam.');
-    expect(greeting('Sam', at(14))).toBe('Afternoon, Sam.');
-    expect(greeting('Sam', at(20))).toBe('Evening, Sam.');
-    expect(greeting('Sam', at(3))).toBe('Late one, Sam.');
+  it('greets her by the name Gabe actually calls her', () => {
+    expect(greeting('Sam')).toBe('Hello, hot mum Sam.');
+    expect(greeting('Sammy')).toBe('Hello, hot mum Sammy.');
   });
 
   it('changes register once the day is done', () => {
-    expect(greeting('Sam', new Date('2026-09-01T08:00:00'), true)).toBe(
-      'Nice work, Sam.',
-    );
+    expect(greeting('Sam', new Date(), true)).toBe('Nice work, hot mum Sam.');
   });
 
-  // "Hot as in strong" is the whole reframe — the app talks about what she
-  // does, never about how she looks.
-  it('never comments on her appearance', () => {
-    const banned = /hot|sexy|slim|skinny|thin|body|look/i;
-    for (const h of [0, 6, 13, 19, 23]) {
-      const d = new Date(`2026-09-01T${String(h).padStart(2, '0')}:00:00`);
-      expect(greeting('Sam', d)).not.toMatch(banned);
-      expect(greeting('Sam', d, true)).not.toMatch(banned);
-    }
-    for (const kind of ['walk', 'session']) {
-      for (const doneToday of [true, false]) {
-        expect(subGreeting({ kind, doneToday, daysToGo: 100 })).not.toMatch(banned);
-      }
-    }
+  // The brand name is allowed; remarks about her body are not. "Hot as in
+  // strong" only holds if the app talks about what she DOES — postpartum, a
+  // training app that drifts into appearance talk stops being a training app.
+  // This should fail loudly if someone later writes a cute line.
+  it('says hot mum, but never comments on how she looks', () => {
+    const appearance = /sexy|slim|skinny|thin|lean|toned|bod(y|ies)|figure|look(s|ing)?\b|shape|weight loss|snap ?back|bounce ?back/i;
+    const lines = [
+      greeting('Sam'),
+      greeting('Sam', new Date(), true),
+      ...['walk', 'session'].flatMap((kind) =>
+        [true, false].map((doneToday) =>
+          subGreeting({ kind, doneToday, daysToGo: 100 }),
+        ),
+      ),
+    ];
+    for (const line of lines) expect(line, line).not.toMatch(appearance);
+    // …and the brand name survives, so the ban never quietly eats the greeting
+    expect(greeting('Sam')).toMatch(/hot mum/i);
   });
 
   it('formats load in her unit, and bodyweight as words', () => {
