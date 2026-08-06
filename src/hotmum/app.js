@@ -728,25 +728,79 @@ function editSetting(field) {
   }
 }
 
+// ─── Updates ───────────────────────────────────────────────────────────────
+// The service worker installs a new build and then SITS IN `waiting` forever.
+// It only steps aside when something posts it {type:'SKIP_WAITING'} — the
+// listener is right there in the generated sw.js and nothing was ever sending
+// the message. So every new deploy installed, waited, and never took over;
+// pressing "check for update" found the update, reloaded, and the OLD worker
+// served the OLD html from its own precache. Hence: same version, every time.
+//
+// This is the standard dance: wait for the incoming worker to finish
+// installing, tell it to skip waiting, wait for it to actually take control,
+// and only then reload.
+
+function applyWaitingWorker(worker) {
+  return new Promise((resolve) => {
+    const takeOver = () => {
+      navigator.serviceWorker.addEventListener(
+        'controllerchange',
+        () => resolve(true),
+        { once: true },
+      );
+      worker.postMessage({ type: 'SKIP_WAITING' });
+    };
+    if (worker.state === 'installed') takeOver();
+    else {
+      worker.addEventListener('statechange', () => {
+        if (worker.state === 'installed') takeOver();
+        else if (worker.state === 'redundant') resolve(false);
+      });
+    }
+    setTimeout(() => resolve(false), 15000); // never hang on a stalled install
+  });
+}
+
 async function checkForUpdate() {
-  const s = app.querySelector('#update-s');
-  if (s) s.textContent = 'Checking…';
+  const say = (t) => {
+    const el = app.querySelector('#update-s');
+    if (el) el.textContent = t;
+  };
+  say('Checking…');
   try {
     const reg = await navigator.serviceWorker?.getRegistration();
     if (!reg) {
-      if (s)
-        s.textContent = 'Not installed yet — add to your Home Screen first.';
+      say('Not installed yet — add it to your Home Screen first.');
       return;
     }
     await reg.update();
-    if (reg.installing || reg.waiting) {
-      if (s) s.textContent = 'New version found — reloading…';
-      setTimeout(() => location.reload(), 900);
-    } else if (s) {
-      s.textContent = "You're on the newest version.";
+    const incoming = reg.waiting || reg.installing;
+    if (!incoming) {
+      say("You're on the newest version.");
+      return;
     }
+    say('New version found — updating…');
+    const ok = await applyWaitingWorker(incoming);
+    if (ok) location.reload();
+    else say('Update stalled. Close the app fully and reopen it.');
   } catch {
-    if (s) s.textContent = 'Could not check — try again when you have signal.';
+    say('Could not check — try again when you have signal.');
+  }
+}
+
+// Take a pending update on a cold open, so she never has to think about it —
+// but NEVER mid-session: reloading someone out of a set is unforgivable.
+// Once per tab, so a broken install can't put her in a reload loop.
+async function autoApplyUpdate() {
+  if (run || sessionStorage.getItem('hotmum-updated')) return;
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    const waiting = reg?.waiting;
+    if (!waiting) return;
+    sessionStorage.setItem('hotmum-updated', '1');
+    if (await applyWaitingWorker(waiting)) location.reload();
+  } catch {
+    /* an update that won't apply is not worth interrupting her for */
   }
 }
 
@@ -1623,6 +1677,8 @@ if (!resumed) renderHome();
 syncOnStart().then(() => {
   if (!resumed) offerBackup(); // never interrupt a restored session
 });
+
+if (!resumed) autoApplyUpdate();
 
 // The mock lives at /hotmum-mock.html; this is the real thing.
 export { renderHome };
