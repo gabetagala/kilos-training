@@ -17,6 +17,7 @@ import {
   tempoSecs,
   timeUnderTension,
   WEEK,
+  WEEKLY_TARGET,
 } from '../../src/hotmum/program.js';
 import {
   buildStepQueue,
@@ -478,5 +479,38 @@ describe('dates are LOCAL, not UTC', () => {
     expect(seasonWeek(new Date(2026, 8, 1, 6, 0, 0))).toBe(
       seasonWeek(new Date(2026, 8, 1, 23, 0, 0)),
     );
+  });
+});
+
+describe('the weekly target', () => {
+  it('is three sessions and four walks', () => {
+    expect(WEEKLY_TARGET).toEqual({ sessions: 3, walks: 4 });
+  });
+
+  // The rhythm and the target have to agree, or the app asks for a week the
+  // program was never dosed for.
+  it('matches the rhythm the program was written around', () => {
+    expect(WEEK.filter((d) => d.kind === 'session')).toHaveLength(
+      WEEKLY_TARGET.sessions,
+    );
+    expect(WEEK.filter((d) => d.kind === 'walk')).toHaveLength(
+      WEEKLY_TARGET.walks,
+    );
+  });
+
+  // Mon-to-Sun, computed from LOCAL dates — the same UTC trap that filed her
+  // 7am session to yesterday would put a Monday session in the week before.
+  it('counts a Monday-to-Sunday week from local dates', () => {
+    const mondayOf = (d) => {
+      const m = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      m.setDate(m.getDate() - ((d.getDay() + 6) % 7));
+      return `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}-${String(m.getDate()).padStart(2, '0')}`;
+    };
+    // 2026-09-02 is a Wednesday; its week starts Monday the 31st of August
+    expect(mondayOf(new Date(2026, 8, 2, 7, 0))).toBe('2026-08-31');
+    // and a Monday is its own week start, even at 7am
+    expect(mondayOf(new Date(2026, 7, 31, 7, 0))).toBe('2026-08-31');
+    // Sunday belongs to the week that began six days earlier
+    expect(mondayOf(new Date(2026, 8, 6, 22, 0))).toBe('2026-08-31');
   });
 });

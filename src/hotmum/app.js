@@ -36,6 +36,7 @@ import {
   seasonWeek,
   tempoLabel,
   WALK,
+  WEEKLY_TARGET,
 } from './program.js';
 import {
   buildShareData,
@@ -206,6 +207,46 @@ function seasonRail() {
     const w = i + 1;
     return `<i class="${w < now ? 'on' : w === now ? 'now' : ''}"></i>`;
   }).join('');
+}
+
+// ─── The week's target ─────────────────────────────────────────────────────
+// Monday to Sunday, three sessions and four walks. Shown as PROGRESS, never as
+// a deficit: it says "2 of 3", not "1 missing", and once a target is met it
+// just goes gold and stops asking. She still chooses what she does each day —
+// this only tells her where the week stands.
+
+function weekProgress() {
+  const now = new Date();
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  monday.setDate(monday.getDate() - ((now.getDay() + 6) % 7));
+  const from = dayKey(monday);
+  const rows = history().filter((h) => h.date >= from);
+  return {
+    sessions: rows.filter((h) => h.kind === 'session').length,
+    walks: rows.filter((h) => h.kind === 'walk').length,
+    target: WEEKLY_TARGET,
+  };
+}
+
+function goalRow(label, done, target) {
+  const pips = Array.from(
+    { length: target },
+    (_, i) => `<i class="gp${i < done ? ' on' : ''}"></i>`,
+  ).join('');
+  return `<div class="goal ${done >= target ? 'met' : ''}">
+    <span class="lbl lbl-sm">${esc(label)}</span>
+    <span class="goal-pips">${pips}</span>
+    <span class="lbl lbl-sm goal-n">${done} / ${target}</span>
+  </div>`;
+}
+
+function goalsBlock() {
+  const w = weekProgress();
+  return `<div class="goals">
+    <div class="season-row"><span class="lbl lbl-sm">THIS WEEK · MON TO SUN</span></div>
+    ${goalRow('SESSIONS', w.sessions, w.target.sessions)}
+    ${goalRow('WALKS', w.walks, w.target.walks)}
+  </div>`;
 }
 
 function doneToday() {
@@ -805,6 +846,7 @@ function renderHome() {
       </div>
 
       <div class="pane pane-c">
+        ${goalsBlock()}
         ${card}
         ${recent ? `<h2 class="sec-h">Recent</h2>${recent}` : ''}
         <p class="fine">Everything lives on this phone.</p>
@@ -870,6 +912,7 @@ function openPicker() {
         <button class="icon-btn" id="sheet-x" aria-label="Close">✕</button>
       </div>
       <p class="row-s">Your pick — there's no wrong one.</p>
+      ${goalsBlock()}
       ${options
         .map(
           (o) => `<button class="row row-tap pick" data-pick="${esc(o.id)}">

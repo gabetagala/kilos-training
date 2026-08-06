@@ -404,6 +404,14 @@ export const WALK = {
     'Outside, the treadmill, or laps at the mall — it all counts. Stroller included.',
 };
 
+/**
+ * What a week should add up to, Monday through Sunday. NOT a schedule — she
+ * picks each day (see the note above) — but a week of three sessions and four
+ * walks is what the program is dosed for, so the app shows her where she is
+ * against it and lets her arrange it however the week allows.
+ */
+export const WEEKLY_TARGET = { sessions: 3, walks: 4 };
+
 export const WEEK = [
   { day: 'MON', kind: 'walk' },
   { day: 'TUE', kind: 'session', id: 'lower-a' },
