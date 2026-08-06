@@ -390,6 +390,11 @@ export const blockForWeek = (week) =>
 // Three sessions, four walks — something every day. The walks are what make
 // HOTMUM a daily open instead of a thrice-weekly one, and they're the one
 // thing that stays possible on no sleep.
+//
+// NOT A SCHEDULE. Sam picks what she does each day in the app; WEEK is the
+// recommended RHYTHM the program was written around — three lifting days with
+// walks between, never two sessions back to back — and it's what the doses and
+// the recovery assumptions are built on. Nothing reads it to decide her day.
 
 export const WALK = {
   id: 'walk',

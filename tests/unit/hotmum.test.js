@@ -264,7 +264,9 @@ describe('season — the countdown, not a streak', () => {
   });
 });
 
-describe('the week — something every day', () => {
+// WEEK is the recommended rhythm, not a schedule — she picks each day in the
+// app. These guard the shape the program was written around.
+describe('the recommended rhythm', () => {
   it('is three sessions and four walks', () => {
     expect(WEEK).toHaveLength(7);
     expect(WEEK.filter((d) => d.kind === 'session')).toHaveLength(3);

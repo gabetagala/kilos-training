@@ -36,7 +36,6 @@ import {
   seasonWeek,
   tempoLabel,
   WALK,
-  WEEK,
 } from './program.js';
 import {
   buildShareData,
@@ -209,9 +208,6 @@ function seasonRail() {
   }).join('');
 }
 
-const todayIdx = () => (new Date().getDay() + 6) % 7; // WEEK is MON-first
-const todayPlan = () => WEEK[todayIdx()];
-
 function doneToday() {
   const t = todayKey();
   return history().some((h) => h.date === t);
@@ -272,7 +268,7 @@ function renderProgram() {
   const sessions = HOTMUM_SESSIONS.map(
     (s) => `<button class="row row-tap" data-open="${esc(s.id)}">
       <div>
-        <div class="row-t">${esc(s.day)} · ${esc(s.name.toUpperCase())}</div>
+        <div class="row-t">${esc(s.name.toUpperCase())}</div>
         <div class="row-s">${esc(s.blurb)}</div>
       </div>
       <span class="lbl lbl-sm lbl-hot">${estimateSessionMins(stageSession(s, 0))} MIN</span>
@@ -355,17 +351,15 @@ function openExercise(id) {
 // from the athlete page, so she can post the day she had or just the mark.
 
 function shareDataFor(record) {
-  // Sharing from the athlete page has no record, so the card takes today's
-  // plan — "LOWER A" or "WALK" says something; the app's own name doesn't.
-  const plan = todayPlan();
-  const session = record?.sessionId
-    ? getSession(record.sessionId)
-    : plan.kind === 'session'
-      ? getSession(plan.id)
-      : null;
-  const kind = record?.kind || plan.kind;
+  // Sharing from the athlete page has no record. There's no schedule to fall
+  // back on any more, so it takes the LAST thing she actually did — a fact
+  // rather than a guess about what today was meant to be.
+  const last = [...history()].reverse()[0] || null;
+  const src = record || last;
+  const session = src?.sessionId ? getSession(src.sessionId) : null;
+  const kind = src?.kind || 'session';
   return buildShareData({
-    record: record || { kind },
+    record: record || (last ? { ...last } : { kind }),
     session,
     week: seasonWeek(),
     weeks: SEASON.weeks,
@@ -738,8 +732,7 @@ function christmasGrid() {
   for (let t = start.getTime(); t <= end.getTime(); t += DAY_MS) {
     const d = new Date(t);
     const k = dayKey(d);
-    const plan = WEEK[(d.getDay() + 6) % 7];
-    let cls = plan.kind === 'session' ? 'session' : 'walk';
+    let cls = '';
     if (done.has(k)) {
       cls = 'done';
       filled++;
@@ -754,7 +747,6 @@ function christmasGrid() {
 function renderHome() {
   const week = seasonWeek();
   const block = blockForWeek(week);
-  const plan = todayPlan();
   const done = doneToday();
   const grid = christmasGrid();
   const hist = history();
@@ -771,24 +763,20 @@ function renderHome() {
     })
     .join('');
 
-  const card =
-    plan.kind === 'walk'
-      ? `<button class="today-card" id="open-today">
-          <div>
-            <span class="lbl lbl-sm">TODAY</span>
-            <div class="day-name"><em>WALK</em></div>
-            <div class="row-s">${WALK.mins} minutes, whenever it fits</div>
-          </div>
-          <span class="chev">→</span>
-        </button>`
-      : `<button class="today-card" id="open-today">
-          <div>
-            <span class="lbl lbl-sm">TODAY</span>
-            <div class="day-name">${dayTitle(getSession(plan.id).name)}</div>
-            <div class="row-s">${estimateSessionMins(stageSession(getSession(plan.id), 0))} min · tap to open</div>
-          </div>
-          <span class="chev">→</span>
-        </button>`;
+  const card = `<button class="today-card" id="open-today">
+      <div>
+        <span class="lbl lbl-sm">TODAY</span>
+        <div class="day-name">${
+          done ? 'ANYTHING<br><em>ELSE?</em>' : 'WHAT ARE<br>WE <em>DOING?</em>'
+        }</div>
+        <div class="row-s">${
+          done
+            ? 'One more if you want it — a walk always counts.'
+            : 'Three sessions and a walk. Your pick.'
+        }</div>
+      </div>
+      <span class="chev">→</span>
+    </button>`;
 
   app.innerHTML = `
     <div class="screen has-nav scr-home">
@@ -800,7 +788,7 @@ function renderHome() {
       <div class="pane pane-a">
         <div class="hello">
           <h1 class="page-h">${esc(greeting(profile.name, new Date(), done))}</h1>
-          <p class="row-s">${esc(subGreeting({ kind: plan.kind, doneToday: done, daysToGo: daysToGo() }))}</p>
+          <p class="row-s">${esc(subGreeting({ doneToday: done, daysToGo: daysToGo() }))}</p>
         </div>
       </div>
 
@@ -831,8 +819,82 @@ function renderHome() {
     profile = saveProfile({ voice: voiceOn });
     renderHome();
   });
-  app.querySelector('#open-today')?.addEventListener('click', () => {
-    openSession(plan.kind === 'walk' ? 'walk' : plan.id);
+  app.querySelector('#open-today')?.addEventListener('click', openPicker);
+}
+
+// ─── She picks the day ─────────────────────────────────────────────────────
+// There is no schedule. The three sessions and the walk are always all four
+// available, and the home card asks rather than tells — a fixed Tue/Thu/Sat
+// turns every rearranged day into a missed one, which is the wrong feeling to
+// build into an app used by someone with a newborn.
+//
+// The only guidance offered is FACT, not instruction: how long ago she last
+// did each one. That helps her balance without telling her she's behind.
+
+function lastDoneLabel(match) {
+  const hits = history().filter(match);
+  if (!hits.length) return 'not yet';
+  const last = hits[hits.length - 1];
+  const days = Math.round(
+    (new Date(`${todayKey()}T00:00:00`) - new Date(`${last.date}T00:00:00`)) /
+      DAY_MS,
+  );
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  return `${days} days ago`;
+}
+
+function openPicker() {
+  const options = [
+    ...HOTMUM_SESSIONS.map((s) => ({
+      id: s.id,
+      name: s.name.toUpperCase(),
+      sub: s.blurb,
+      meta: `${estimateSessionMins(stageSession(s, 0))} MIN`,
+      last: lastDoneLabel((h) => h.sessionId === s.id),
+    })),
+    {
+      id: 'walk',
+      name: 'WALK',
+      sub: WALK.blurb,
+      meta: `${WALK.mins} MIN`,
+      last: lastDoneLabel((h) => h.kind === 'walk'),
+    },
+  ];
+
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet';
+  sheet.innerHTML = `<div class="sheet-card" role="dialog" aria-label="What are we doing today?">
+      <div class="sheet-top">
+        <h3>What are we doing?</h3>
+        <button class="icon-btn" id="sheet-x" aria-label="Close">✕</button>
+      </div>
+      <p class="row-s">Your pick — there's no wrong one.</p>
+      ${options
+        .map(
+          (o) => `<button class="row row-tap pick" data-pick="${esc(o.id)}">
+            <div>
+              <div class="row-t">${esc(o.name)}</div>
+              <div class="row-s">${esc(o.sub)}</div>
+            </div>
+            <span class="pick-meta">
+              <span class="lbl lbl-sm lbl-hot">${esc(o.meta)}</span>
+              <span class="lbl lbl-sm">${esc(o.last)}</span>
+            </span>
+          </button>`,
+        )
+        .join('')}
+    </div>`;
+  document.body.appendChild(sheet);
+
+  for (const b of sheet.querySelectorAll('[data-pick]')) {
+    b.addEventListener('click', () => {
+      sheet.remove();
+      openSession(b.dataset.pick);
+    });
+  }
+  sheet.addEventListener('click', (e) => {
+    if (e.target === sheet || e.target.id === 'sheet-x') sheet.remove();
   });
 }
 
@@ -866,7 +928,7 @@ function openSession(id) {
   sheet.innerHTML = `<div class="sheet-card sheet-session" role="dialog" aria-label="${esc(s.name)}">
       <div class="sheet-top">
         <div>
-          <span class="lbl lbl-sm">${esc(s.day)} · WK ${seasonWeek()} OF ${SEASON.weeks}</span>
+          <span class="lbl lbl-sm">WK ${seasonWeek()} OF ${SEASON.weeks}</span>
           <h3 class="sheet-day">${dayTitle(s.name)}</h3>
         </div>
         <button class="icon-btn" id="sheet-x" aria-label="Close">✕</button>
