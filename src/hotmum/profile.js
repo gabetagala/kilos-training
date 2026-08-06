@@ -66,9 +66,11 @@ export function greeting(name, _date = new Date(), doneToday = false) {
   return `Hello, hot mum ${name}.`;
 }
 
-/** The second line — what today actually asks of her. */
-export function subGreeting({ kind, doneToday, daysToGo }) {
+/**
+ * The second line. There is no schedule — she chooses each day — so this
+ * states the fact and gets out of the way rather than assigning her a session.
+ */
+export function subGreeting({ doneToday, daysToGo }) {
   if (doneToday) return "That's today done.";
-  if (kind === 'walk') return 'Thirty minutes on your feet, whenever it fits.';
-  return `${daysToGo} days to Christmas. Today's a lifting day.`;
+  return `${daysToGo} days to Christmas. Today's yours to pick.`;
 }
