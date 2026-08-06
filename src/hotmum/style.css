@@ -1433,3 +1433,47 @@ body {
 .sheet-session .btn {
   flex-shrink: 0;
 }
+
+/* ─── The week's target ────────────────────────────────────────────────────
+   Progress, never a deficit — "2 of 3", and gold once it's met. */
+
+.goals {
+  flex-shrink: 0;
+  margin-bottom: 4px;
+}
+.goal {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+  min-height: 42px;
+}
+.goal .lbl {
+  flex-shrink: 0;
+}
+.goal-pips {
+  display: flex;
+  gap: 5px;
+  flex: 1;
+}
+.gp {
+  flex: 1;
+  max-width: 44px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.2);
+}
+.gp.on {
+  background: #fff;
+}
+.goal.met .gp.on {
+  background: var(--cream);
+}
+.goal.met .lbl {
+  color: var(--cream);
+}
+.goal-n {
+  min-width: 42px;
+  text-align: right;
+}
