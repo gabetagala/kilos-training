@@ -38,23 +38,47 @@ describe('rehab program data', () => {
     }
   });
 
-  it('is ONE session covering the full protocol: opener, Big 3, glutes, hinge slot, stretches', () => {
-    expect(REHAB_SESSIONS.map((s) => s.id)).toEqual(['daily', 'power']);
+  it('is the 10-minute core only: opener, mobility, Big 3 — nothing else', () => {
+    expect(REHAB_SESSIONS.map((s) => s.id)).toEqual([
+      'daily',
+      'open-up',
+      'engine',
+      'power',
+    ]);
     const daily = getRehabSession('daily');
-    // A day: barbell-free — the hinge slot sits out, straight to stretches
+    // TRIMMED 2026-08-07: glutes/hinge/stretches moved out (see rehab.js).
     expect(sessionBlocks(daily, 0).map((b) => b.ex)).toEqual([
       'cat-camel',
       't-spine-reach',
       'mcgill-curlup',
       'side-plank',
       'bird-dog',
+    ]);
+    // one fixed session — no A/B variant left to track
+    expect(sessionVariantCount(daily)).toBe(1);
+    expect(variantLabel(daily, 1)).toBeNull();
+    expect(getRehabSession('hinge')).toBeNull();
+  });
+
+  it('holds the 10-minute promise — the whole reason it was trimmed', () => {
+    expect(estimateSessionMins(getRehabSession('daily'))).toBeLessThanOrEqual(
+      11,
+    );
+  });
+
+  it('the displaced work survives at a real dose, just not daily', () => {
+    // stretches + glute bridges: Sunday's easy day, and d40-b1 (leg day)
+    const openUp = getRehabSession('open-up');
+    expect(openUp.blocks.map((b) => b.ex)).toEqual([
       'single-leg-bridge',
       'hamstring-stretch',
       'hip-flexor-stretch',
     ]);
-    // B day: the old Hinge Day folded in — RDLs, nothing to choose
-    expect(sessionBlocks(daily, 1).map((b) => b.ex)[6]).toBe('rdl');
-    expect(getRehabSession('hinge')).toBeNull();
+    // the hinge kept its 3×/week dose — now inside the lift halves
+    const hingeHalves = DENSITY40_SESSIONS.filter((s) =>
+      s.blocks.some((b) => b.ex === 'rdl'),
+    ).map((s) => s.id);
+    expect(hingeHalves).toEqual(['d40-a1', 'd40-b2', 'd40-c1']);
   });
 
   it('doses the McGill Big 3 as straight sets of short 10s holds', () => {
@@ -75,7 +99,7 @@ describe('rehab program data', () => {
   });
 
   it('makes the single-leg bridge continuous tempo, one side at a time', () => {
-    const slb = getRehabSession('daily').blocks.find(
+    const slb = getRehabSession('open-up').blocks.find(
       (b) => b.ex === 'single-leg-bridge',
     );
     expect(slb.mode).toBe('tempo');
@@ -99,11 +123,11 @@ describe('rehab program data', () => {
 });
 
 describe('buildStepQueue', () => {
-  const daily = buildStepQueue(getRehabSession('daily')); // variant 0 = A day
-  const dailyB = buildStepQueue(getRehabSession('daily'), {}, 1); // B = hinge day
+  const daily = buildStepQueue(getRehabSession('daily'));
+  const openUp = buildStepQueue(getRehabSession('open-up'));
 
   it('starts every exercise with a prep step', () => {
-    for (const q of [daily, dailyB]) {
+    for (const q of [daily, openUp]) {
       let ex = null;
       for (const step of q) {
         if (step.exId !== ex) {
@@ -116,7 +140,7 @@ describe('buildStepQueue', () => {
   });
 
   it('never ends a session (or an exercise) on a rest step', () => {
-    for (const q of [daily, dailyB]) {
+    for (const q of [daily, openUp]) {
       expect(q[q.length - 1].kind).toBe('work');
       q.forEach((step, i) => {
         const next = q[i + 1];
@@ -149,7 +173,7 @@ describe('buildStepQueue', () => {
   });
 
   it('builds the single-leg bridge as continuous tempo steps, left then right', () => {
-    const slb = daily.filter(
+    const slb = openUp.filter(
       (s) => s.exId === 'single-leg-bridge' && s.kind === 'work',
     );
     expect(slb.map((s) => s.side)).toEqual(['LEFT', 'RIGHT', 'LEFT', 'RIGHT']);
@@ -160,8 +184,9 @@ describe('buildStepQueue', () => {
     }
   });
 
-  it('makes B-day RDL sets manual with weight logging', () => {
-    const rdls = dailyB.filter((s) => s.exId === 'rdl' && s.kind === 'work');
+  it('makes the RDL sets manual with weight logging, wherever they live', () => {
+    const q = buildStepQueue(getProgramSession('d40-b2'));
+    const rdls = q.filter((s) => s.exId === 'rdl' && s.kind === 'work');
     expect(rdls).toHaveLength(3);
     for (const s of rdls) {
       expect(s.manual).toBe(true);
@@ -171,24 +196,27 @@ describe('buildStepQueue', () => {
     }
   });
 
-  it('A days skip the hinge slot entirely — no barbell, no filler', () => {
+  it('the daily protocol carries no barbell and no filler', () => {
     expect(daily.some((s) => s.exId === 'rdl')).toBe(false);
-    // bridges flow straight into the stretches
-    const exOrder = [...new Set(daily.map((s) => s.exId))];
-    expect(exOrder.indexOf('hamstring-stretch')).toBe(
-      exOrder.indexOf('single-leg-bridge') + 1,
-    );
+    // opener → mobility → the Big 3, and it ends there
+    expect([...new Set(daily.map((s) => s.exId))]).toEqual([
+      'cat-camel',
+      't-spine-reach',
+      'mcgill-curlup',
+      'side-plank',
+      'bird-dog',
+    ]);
   });
 
   it('counts logical sets per side', () => {
-    // catcamel 1 + tspine 1×2 + curl 2 + (plank, bird, bridge, ham, hip) à 2×2 = 25
-    expect(sessionSetTotal(getRehabSession('daily'))).toBe(25);
-    // B day adds 3 RDL sets = 28
-    expect(sessionSetTotal(getRehabSession('daily'), 1)).toBe(28);
+    // catcamel 1 + tspine 1×2 + curl 2 + (plank, bird) à 2×2 = 13
+    expect(sessionSetTotal(getRehabSession('daily'))).toBe(13);
+    // open-up: (bridge, ham, hip) à 2×2 = 12
+    expect(sessionSetTotal(getRehabSession('open-up'))).toBe(12);
   });
 
   it('every timed step has positive seconds', () => {
-    for (const q of [daily, dailyB]) {
+    for (const q of [daily, openUp]) {
       for (const s of q) {
         if (!s.manual) expect(s.secs).toBeGreaterThan(0);
       }
@@ -224,13 +252,13 @@ describe('player helpers', () => {
     expect(tempoStateAt(tempo, 999999).rep).toBe(10);
   });
 
-  it('both day-flavors land in a believable duration band', () => {
-    const a = estimateSessionMins(getRehabSession('daily'), 0);
-    const b = estimateSessionMins(getRehabSession('daily'), 1);
-    expect(a).toBeGreaterThanOrEqual(14);
-    expect(a).toBeLessThanOrEqual(20); // barbell-free day stays snappy
-    expect(b).toBeGreaterThanOrEqual(18);
-    expect(b).toBeLessThanOrEqual(26);
+  it('the daily protocol and the easy day land in believable bands', () => {
+    const d = estimateSessionMins(getRehabSession('daily'));
+    expect(d).toBeGreaterThanOrEqual(8);
+    expect(d).toBeLessThanOrEqual(11); // the 10-minute promise
+    const o = estimateSessionMins(getRehabSession('open-up'));
+    expect(o).toBeGreaterThanOrEqual(6);
+    expect(o).toBeLessThanOrEqual(12);
   });
 });
 
@@ -264,71 +292,87 @@ describe('power primer', () => {
   });
 });
 
-describe('rotation (A/B day flavors)', () => {
+// The daily rehab lost its only rotation when the hinge moved into the lift
+// halves (2026-08-07). The MECHANISM is still live — HOTMUM uses it — so these
+// guard that every session is now fixed, and that a stale saved variant index
+// from a paused pre-split run can't build a different queue.
+describe('rotation (the mechanism outlives the hinge)', () => {
   const daily = getRehabSession('daily');
 
-  it('cycles two flavors, labeled A and B, and repeats', () => {
-    expect(sessionVariantCount(daily)).toBe(2);
-    expect(['A', 'B', 'A', 'B'].map((_, i) => variantLabel(daily, i))).toEqual([
-      'A',
-      'B',
-      'A',
-      'B',
+  it('the rehab protocol is fixed — the repetition IS the medicine', () => {
+    for (const s of REHAB_SESSIONS) {
+      expect(sessionVariantCount(s), s.id).toBe(1);
+      expect(variantLabel(s, 0), s.id).toBeNull();
+    }
+  });
+
+  // The halves that carry a FINISHER rotate through its pool — one per
+  // completed run, so at a run a week it's a different finisher every week.
+  it('the finisher days rotate through the whole pool and wrap', () => {
+    const withFinisher = DENSITY40_SESSIONS.filter(
+      (s) => sessionVariantCount(s) > 1,
+    );
+    expect(withFinisher.map((s) => s.id)).toEqual([
+      'd40-a1',
+      'd40-b2',
+      'd40-c1',
+      'd40-c2',
     ]);
-  });
-
-  it('fixed sessions rotate nothing and get no label', () => {
-    const d40a = getProgramSession('d40-a');
-    expect(sessionVariantCount(d40a)).toBe(1);
-    expect(variantLabel(d40a, 0)).toBeNull();
-    expect(buildStepQueue(d40a, {}, 3)).toEqual(buildStepQueue(d40a));
-  });
-
-  it('A rests the hinge, B loads it — and the cycle wraps around', () => {
-    const ids = (v) =>
-      buildStepQueue(daily, {}, v)
-        .filter((s) => s.kind === 'work')
-        .map((s) => s.exId);
-    expect(ids(0)).not.toContain('rdl');
-    expect(ids(1)).toContain('rdl');
-    expect(ids(2)).toEqual(ids(0));
-    expect(ids(3)).toEqual(ids(1));
-  });
-
-  it('default variant is 0 — old callers keep the canonical A day', () => {
-    expect(buildStepQueue(daily)).toEqual(buildStepQueue(daily, {}, 0));
-  });
-
-  it('the fixed medicine never rotates: Big 3 identical on both days', () => {
-    const fixed = (v) =>
-      buildStepQueue(daily, {}, v).filter((s) =>
-        ['cat-camel', 'mcgill-curlup', 'side-plank', 'bird-dog'].includes(
-          s.exId,
-        ),
+    for (const s of withFinisher) {
+      const n = sessionVariantCount(s);
+      expect(n, s.id).toBe(6);
+      const names = [...Array(n)].map(
+        (_, v) => sessionBlocks(s, v).at(-1).name,
       );
-    expect(fixed(0)).toEqual(fixed(1));
+      expect(new Set(names).size, `${s.id} repeats a finisher`).toBe(n);
+      // wraps cleanly — variant n is variant 0 again
+      expect(buildStepQueue(s, {}, n)).toEqual(buildStepQueue(s, {}, 0));
+    }
   });
 
-  it('sessionOverview reflects the rotation', () => {
-    const rowsA = sessionOverview(daily, {}, 0);
-    const rowsB = sessionOverview(daily, {}, 1);
-    expect(rowsA).toHaveLength(8); // the skipped slot leaves no empty row
-    expect(rowsA.some((r) => r.title === 'Romanian Deadlift')).toBe(false);
-    expect(rowsB).toHaveLength(9);
-    expect(rowsB[6].title).toBe('Romanian Deadlift');
-    expect(rowsB[6].detail).toBe('3 × 8');
-    expect(rowsB[6].note).toMatch(/quiet/i);
+  it('each finisher day starts on a different one — no shared Mondays', () => {
+    const firsts = DENSITY40_SESSIONS.filter(
+      (s) => sessionVariantCount(s) > 1,
+    ).map((s) => sessionBlocks(s, 0).at(-1).name);
+    expect(new Set(firsts).size).toBe(firsts.length);
+  });
+
+  it('a variant index is always deterministic — a refresh rebuilds the same queue', () => {
+    // the crash-safety guarantee: the same variant must always yield the same
+    // queue, however large the completed-run count has grown
+    for (const s of [daily, getProgramSession('d40-a1')]) {
+      expect(buildStepQueue(s, {}, 3)).toEqual(buildStepQueue(s, {}, 3));
+      const n = sessionVariantCount(s);
+      expect(buildStepQueue(s, {}, n * 4)).toEqual(buildStepQueue(s, {}, 0));
+    }
+  });
+
+  it('sessionOverview lists one row per block', () => {
+    expect(sessionOverview(daily, {}, 0)).toHaveLength(daily.blocks.length);
+    const b2 = getProgramSession('d40-b2');
+    const rows = sessionOverview(b2, {}, 0);
+    expect(rows[0].title).toBe('Romanian Deadlift');
+    expect(rows[0].detail).toBe('3 × 8');
+    expect(rows[0].note).toMatch(/quiet/i);
   });
 });
 
 describe('Density 40 program', () => {
+  // The halves now carry blocks built from REHAB_EXERCISES too (the hinge,
+  // the power primer, glute + stretch work), so both maps are in scope —
+  // which is exactly what the shared step engine is built from.
   it('every block/member references a known exercise with a demo', () => {
+    const exercises = { ...REHAB_EXERCISES, ...PROGRAM_EXERCISES };
+    const demos = { ...REHAB_DEMOS, ...PROGRAM_DEMOS };
     for (const session of DENSITY40_SESSIONS) {
       for (const block of session.blocks) {
-        const ids = block.members ? block.members.map((m) => m.ex) : [block.ex];
-        for (const id of ids) {
-          expect(PROGRAM_EXERCISES[id], `exercise ${id}`).toBeTruthy();
-          expect(PROGRAM_DEMOS[id], `demo ${id}`).toBeTruthy();
+        // finisher slots are rotation pools — check every option in them
+        for (const spec of (block.rotate || [block]).filter(Boolean)) {
+          const ids = spec.members ? spec.members.map((m) => m.ex) : [spec.ex];
+          for (const id of ids) {
+            expect(exercises[id], `exercise ${id}`).toBeTruthy();
+            expect(demos[id], `demo ${id}`).toBeTruthy();
+          }
         }
       }
     }
@@ -348,7 +392,7 @@ describe('Density 40 program', () => {
   });
 
   it('ramp sets are manual and unlogged, before the heavy lift, with one prep', () => {
-    const q = buildStepQueue(getProgramSession('d40-a'));
+    const q = buildStepQueue(getProgramSession('d40-a1'));
     expect(q[0].kind).toBe('prep');
     expect(q[0].exId).toBe('pull-up');
     expect(q[1].phase).toBe('RAMP');
@@ -359,60 +403,198 @@ describe('Density 40 program', () => {
   });
 
   it('supersets alternate members for the listed rounds with rests between', () => {
-    const q = buildStepQueue(getProgramSession('d40-a'));
-    const rows = q.filter((s) => s.exId === 'cable-row-1arm' && s.kind === 'work');
-    const lats = q.filter((s) => s.exId === 'db-lateral-raise' && s.kind === 'work');
-    expect(rows).toHaveLength(3);
-    expect(lats).toHaveLength(3);
-    expect(lats[2].cueNote).toMatch(/drop/i);
-    const iRow = q.indexOf(rows[0]);
-    expect(q[iRow + 1].kind).toBe('rest');
-    expect(q[iRow + 2].exId).toBe('db-lateral-raise');
+    // the power primer is the surviving circuit — the accessory supersets all
+    // became EMOM pieces on 2026-08-07
+    const q = buildStepQueue(getProgramSession('d40-a2'));
+    const jumps = q.filter((s) => s.exId === 'broad-jump' && s.kind === 'work');
+    expect(jumps).toHaveLength(3);
+    const iJump = q.indexOf(jumps[0]);
+    expect(q[iJump + 1].kind).toBe('rest');
+    expect(q[iJump + 1].secs).toBe(60);
   });
 
   it('carries are timed steps with sides that flip the demo', () => {
-    const q = buildStepQueue(getProgramSession('d40-a'));
-    const carries = q.filter(
-      (s) => s.exId === 'suitcase-carry' && s.kind === 'work',
+    // per-side timed work now lives in the rehab sessions (the D40 suitcase
+    // carry runs both sides inside one EMOM minute)
+    const q = buildStepQueue(getRehabSession('open-up'));
+    const holds = q.filter(
+      (s) => s.exId === 'hamstring-stretch' && s.kind === 'work',
     );
-    expect(carries.filter((s) => s.side === 'RIGHT')).toHaveLength(2);
-    expect(carries.filter((s) => s.side === 'LEFT')).toHaveLength(2);
-    for (const c of carries) expect(c.secs).toBe(40);
+    expect(holds.filter((s) => s.side === 'RIGHT')).toHaveLength(2);
+    expect(holds.filter((s) => s.side === 'LEFT')).toHaveLength(2);
+    for (const h of holds) expect(h.secs).toBe(30);
   });
 
   it('every self-paced working set carries the tempo guide (the rep counter)', () => {
+    // …except the ballistic primer, which is deliberately never tempo-paced
+    // (see the power-primer specs) — speed work can't be run to a metronome.
+    const BALLISTIC = ['pogo-hop', 'broad-jump', 'power-pushup'];
     for (const session of DENSITY40_SESSIONS) {
       const manual = buildStepQueue(session).filter(
         (s) => s.kind === 'work' && s.manual,
       );
       for (const s of manual) {
         if (s.phase === 'RAMP') continue; // the warm-up stays unpaced
+        if (BALLISTIC.includes(s.exId)) {
+          expect(s.repTempo, `${s.exId} repTempo`).toBeUndefined();
+          continue;
+        }
         expect(s.repTempo, `${s.exId} repTempo`).toBeTruthy();
         expect(s.repTarget, `${s.exId} repTarget`).toBeGreaterThan(0);
       }
     }
   });
 
-  it('exactly one RAMP step per session — working sets are never warm-ups', () => {
+  // Post-split: only the three anchor halves ramp. The accessory halves open
+  // on the power primer or the hinge, neither of which takes a warm-up set.
+  it('only the anchor halves ramp, and never more than once', () => {
+    const ramped = [];
     for (const session of DENSITY40_SESSIONS) {
       const ramps = buildStepQueue(session).filter((s) => s.phase === 'RAMP');
-      expect(ramps).toHaveLength(1);
-      expect(ramps[0].logWeight).toBe(false);
+      expect(ramps.length, session.id).toBeLessThanOrEqual(1);
+      if (ramps.length) {
+        expect(ramps[0].logWeight).toBe(false);
+        ramped.push(session.id);
+      }
+    }
+    expect(ramped).toEqual(['d40-a1', 'd40-b1', 'd40-c1']);
+  });
+
+  // His stated ceiling is 45 min a day, all in. The estimate is deliberately
+  // PESSIMISTIC for the ladder finishers — it counts their full queue ceiling,
+  // but a death-by ends at failure, so a day reading 42 really runs ~35.
+  it('no half runs long, on any finisher in the rotation', () => {
+    for (const session of DENSITY40_SESSIONS) {
+      for (let v = 0; v < sessionVariantCount(session); v++) {
+        const mins = estimateSessionMins(session, v);
+        expect(mins, `${session.id}/v${v}`).toBeGreaterThanOrEqual(15);
+        expect(mins, `${session.id}/v${v}`).toBeLessThanOrEqual(33);
+      }
     }
   });
 
-  it('sessions land inside the 40-minute promise', () => {
+  // ── Metcons (2026-08-07) ──────────────────────────────────────────────────
+  // The accessory work is delivered as named pieces on a clock instead of
+  // supersets with rest timers. These guard the two things that make that
+  // safe: volume stays exactly auditable, and AMRAP never carries programmed
+  // volume.
+  it('an EMOM emits one interval step per minute, no preps mid-piece', () => {
+    const q = buildStepQueue(getProgramSession('d40-b2'));
+    const piece = q.filter((s) => s.piece === 'Popeye');
+    expect(piece).toHaveLength(15); // 5 movements × 3 rounds
+    for (const s of piece) {
+      expect(s.kind).toBe('work');
+      expect(s.secs).toBe(60);
+      expect(s.emom).toBe(true);
+      expect(s.manual).toBeUndefined(); // the clock runs it, not a tap
+      expect(s.pieceFormat).toBe('EMOM 15');
+    }
+    expect(piece.map((s) => s.meta)[0]).toBe('MIN 1 OF 15 · ROUND 1 OF 3');
+    expect(piece.map((s) => s.meta)[14]).toBe('MIN 15 OF 15 · ROUND 3 OF 3');
+    // a prep between minutes would silently eat one
+    const first = q.indexOf(piece[0]);
+    expect(q.slice(first, first + 15).some((s) => s.kind === 'prep')).toBe(false);
+    // and no rest steps — the rest lives inside the interval
+    expect(q.slice(first, first + 15).some((s) => s.kind === 'rest')).toBe(false);
+  });
+
+  it('EMOM minutes still log load, so progression survives the format', () => {
+    const q = buildStepQueue(getProgramSession('d40-a2'));
+    const vice = q.filter((s) => s.piece === 'The Vice');
+    const pushdowns = vice.filter((s) => s.exId === 'rope-pushdown');
+    expect(pushdowns).toHaveLength(3);
+    for (const s of pushdowns) {
+      expect(s.logWeight).toBe(true);
+      expect(s.countsAsSet).toBe(true);
+      expect(s.repTempo).toBeTruthy(); // the rep counter still guides
+    }
+    // bodyweight members opt out of logging exactly as before
+    expect(vice.find((s) => s.exId === 'reverse-wrist-curl').logWeight).toBe(false);
+  });
+
+  // THE RULE THAT MUST NOT BREAK: a format whose volume is "whatever you
+  // managed" can never carry a muscle's programmed dose. So every AMRAP in
+  // the program has to be the LAST thing in its session — a finisher, never
+  // a block that something graded depends on.
+  it('AMRAP is always a capped finisher, never programmed volume', () => {
+    let found = 0;
+    for (const s of DENSITY40_SESSIONS) {
+      for (let v = 0; v < sessionVariantCount(s); v++) {
+        const q = buildStepQueue(s, {}, v);
+        q.forEach((st, i) => {
+          if (!st.amrap) return;
+          found += 1;
+          expect(st.secs, `${s.id}/v${v}`).toBeGreaterThan(0);
+          expect(st.logWeight, `${s.id}/v${v}`).toBe(false); // scored in rounds
+          expect(st.amrapMembers.length).toBeGreaterThan(0);
+          expect(i, `${s.id}/v${v}: AMRAP must close the session`).toBe(
+            q.length - 1,
+          );
+        });
+      }
+    }
+    expect(found).toBeGreaterThan(0);
+  });
+
+  it('finishers never sneak a spine-loaded movement onto a clock', () => {
+    const CLOCK_BANNED = [
+      'rdl',
+      'front-squat',
+      'rfe-split-squat',
+      'floor-press',
+      'pull-up',
+    ];
+    for (const s of DENSITY40_SESSIONS) {
+      for (let v = 0; v < sessionVariantCount(s); v++) {
+        for (const st of buildStepQueue(s, {}, v)) {
+          if (!st.emom && !st.amrap && !st.piece) continue;
+          expect(CLOCK_BANNED, `${s.id}/v${v}/${st.exId}`).not.toContain(
+            st.exId,
+          );
+        }
+      }
+    }
+  });
+
+  it('the clock never gets loaded unilateral leg work or the hinge', () => {
+    // fatigue is what breaks form, and form is what protects the disc — so
+    // these stay on straight sets with real rests, whatever the day looks like
+    const CLOCK_BANNED = ['rdl', 'front-squat', 'rfe-split-squat', 'floor-press', 'pull-up'];
+    for (const s of DENSITY40_SESSIONS) {
+      for (const st of buildStepQueue(s)) {
+        if (!st.emom && !st.amrap) continue;
+        expect(CLOCK_BANNED, `${s.id}/${st.exId}`).not.toContain(st.exId);
+      }
+    }
+  });
+
+  it('every piece has a name — it is a workout, not a block', () => {
+    for (const s of DENSITY40_SESSIONS) {
+      for (const st of buildStepQueue(s)) {
+        if (st.emom || st.amrap) {
+          expect(st.piece, `${s.id}/${st.exId}`).toBeTruthy();
+          expect(st.pieceFormat, `${s.id}/${st.exId}`).toBeTruthy();
+        }
+      }
+    }
+  });
+
+  it('the whole day fits inside the 45-minute ceiling, worst case', () => {
+    const rehab = estimateSessionMins(getRehabSession('daily'));
     for (const session of DENSITY40_SESSIONS) {
-      const mins = estimateSessionMins(session);
-      expect(mins).toBeGreaterThanOrEqual(20);
-      expect(mins).toBeLessThanOrEqual(40);
+      for (let v = 0; v < sessionVariantCount(session); v++) {
+        expect(
+          rehab + estimateSessionMins(session, v),
+          `${session.id}/v${v}`,
+        ).toBeLessThanOrEqual(45);
+      }
     }
   });
 });
 
 describe('exercise swaps (sanctioned alternates)', () => {
-  const d40a = getProgramSession('d40-a');
-  const d40b = getProgramSession('d40-b');
+  const d40a = getProgramSession('d40-a1');
+  const d40b = getProgramSession('d40-b1');
 
   it('unswapped queue is unchanged and carries swap metadata', () => {
     const q = buildStepQueue(d40a);
@@ -448,12 +630,16 @@ describe('exercise swaps (sanctioned alternates)', () => {
   });
 
   it('circuit members swap too, and unsanctioned swaps are ignored', () => {
-    const q = buildStepQueue(d40a, {
+    // the arms circuit lives on the second half of the pull day post-split
+    const arms = buildStepQueue(getProgramSession('d40-a2'), {
       'hammer-curl': 'reverse-curl',
+    });
+    expect(arms.some((s) => s.exId === 'reverse-curl')).toBe(true);
+    expect(arms.some((s) => s.exId === 'hammer-curl')).toBe(false);
+
+    const q = buildStepQueue(d40a, {
       'db-lateral-raise': 'front-squat', // not in that slot's alts
     });
-    expect(q.some((s) => s.exId === 'reverse-curl')).toBe(true);
-    expect(q.some((s) => s.exId === 'hammer-curl')).toBe(false);
     expect(q.filter((s) => s.exId === 'db-lateral-raise').length).toBeGreaterThan(0);
   });
 

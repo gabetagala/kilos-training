@@ -263,6 +263,29 @@ export const ART_MANIFEST = {
     important:
       'in BOTH poses his upper arms are HORIZONTAL with the elbows lifted to shoulder height pointing straight forward — the elbows NEVER drop, especially in the deep squat',
   },
+  'box-step-up': {
+    scene:
+      'a knee-high box sits on the floor directly IN FRONT of him; a dumbbell hangs in each hand at his sides',
+    a: 'standing on the floor behind the box, one whole foot already placed flat on top of the box, the other foot still flat on the floor, torso tall, dumbbells at his sides',
+    b: 'standing fully upright ON TOP of the box on the working leg, hip and knee locked out, the trailing leg hanging below with its foot off the floor, torso tall and vertical, dumbbells at his sides',
+    important:
+      'the torso stays VERTICAL in both poses — never leaning forward over the box; the working foot is FLAT on the box, never on the ball of the foot',
+  },
+  'box-squat': {
+    scene:
+      'a knee-high box sits on the floor directly BEHIND him, close enough to sit back onto; no weights, bodyweight only',
+    a: 'standing tall in front of the box, feet shoulder-width, arms reaching forward at chest height for balance',
+    b: 'squatted down until his backside just TOUCHES the top of the box, thighs about parallel to the floor, chest up and torso TALL, low back neutral, arms reaching forward',
+    important:
+      'he only TOUCHES the box, he is not sitting or resting on it; the torso stays upright and the low back stays flat — never rounded or tucked under at the bottom',
+  },
+  'push-up': {
+    scene: 'open floor, no equipment',
+    a: 'top of a push-up: arms locked straight, hands under the shoulders, body one straight rigid line from head to heels, toes on the floor',
+    b: 'bottom of a push-up: elbows bent to about 45 degrees from the ribs, chest an inch off the floor, body STILL one straight line — hips neither sagging nor piked',
+    important:
+      'the spine and hips stay in one straight line in BOTH poses — a sagging or piked hip is wrong',
+  },
   'rfe-split-squat': {
     scene:
       'a knee-high box sits on the floor BEHIND him; his rear leg reaches back so the TOP of that rear foot rests flat on the box, shoelaces down, while his front foot stands flat on the floor a long stride ahead; a dumbbell hangs in each hand',

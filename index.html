@@ -452,6 +452,55 @@
       </div>
     </div>
 
+    <!-- ─── DELOAD CHECKPOINT (a decision, never an imposition) ─── -->
+    <div class="confirm-overlay" id="deload-check">
+      <div class="confirm-sheet">
+        <div class="confirm-title">WEEK <span id="deload-week">4</span> CHECKPOINT</div>
+        <div class="confirm-sub">A deload is a decision, not a date — a mid-block deload has been shown to <em>cost</em> lower-body strength when it wasn't needed. Did any of these happen?</div>
+        <ul class="deload-list">
+          <li>Missed last session's load × reps on an anchor, twice running</li>
+          <li>Effort climbing while the numbers fall</li>
+          <li>Any back symptom lasting more than one session</li>
+        </ul>
+        <div class="confirm-actions">
+          <button class="confirm-no" id="deload-no">No — carry on</button>
+          <button class="confirm-yes danger" id="deload-yes">Yes — deload this week</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="confirm-overlay" id="deload-advice">
+      <div class="confirm-sheet">
+        <div class="confirm-title">DELOAD WEEK</div>
+        <div class="confirm-sub">Same days, same movements — just less of them:</div>
+        <ul class="deload-list">
+          <li><strong>Halve the sets</strong> on every graded block</li>
+          <li><strong>Drop the load ~10%</strong>, stop at 2–3 reps in reserve</li>
+          <li>Skip the finishers; keep the rehab exactly as it is</li>
+        </ul>
+        <div class="confirm-actions">
+          <button class="confirm-yes" id="deload-ok">Got it</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── BENCHMARK SCORE (heart-rate tests the player can't observe) ─── -->
+    <div class="confirm-overlay" id="bm-score">
+      <div class="confirm-sheet">
+        <div class="confirm-title" id="bm-score-title">RECOVERY HEART RATE</div>
+        <div class="confirm-sub" id="bm-score-sub">Count your pulse for 15 seconds and multiply by 4. Lower than last time is fitter.</div>
+        <div class="bm-score-row">
+          <button class="bm-wbtn" id="bm-minus" aria-label="Lower">−</button>
+          <div class="bm-weight"><span id="bm-val">100</span><span class="bm-w-unit" id="bm-unit">bpm</span></div>
+          <button class="bm-wbtn" id="bm-plus" aria-label="Higher">+</button>
+        </div>
+        <div class="confirm-actions">
+          <button class="confirm-yes" id="bm-score-save">Save score</button>
+          <button class="confirm-no" id="bm-score-skip">Skip</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ─── DELETE ACCOUNT CONFIRM ─── -->
     <div class="confirm-overlay" id="delete-confirm">
       <div class="confirm-sheet">
@@ -655,16 +704,21 @@
       </div>
       <div class="page-content">
         <p class="rh-intro">Built around a bad back: the daily rehab block is the warm-up — skip it if yours is fine. Every session runs itself — demos, timers, and the voice included.</p>
+        <div id="block-banner"></div>
         <div id="rehab-resume-slot"></div>
         <div id="rh-today-slot"></div>
-        <div class="section-label rh-ex-label">This week</div>
-        <div id="week-plan"></div>
+        <div class="section-label rh-ex-label">The block — every session, all 12 weeks</div>
+        <div id="block-calendar"></div>
         <div class="section-label rh-ex-label">Sunday check-in · waist &amp; weight</div>
         <div id="checkin-card"></div>
         <div class="section-label rh-ex-label">The protocol · daily</div>
         <div id="rehab-session-list"></div>
-        <div class="section-label rh-ex-label">Density 40 — the 40-min lifting rotation (A → B → C)</div>
+        <div class="section-label rh-ex-label">Density 40 — six half-sessions, one a day</div>
         <div id="d40-session-list"></div>
+        <div class="section-label rh-ex-label">Is it working? — the block so far</div>
+        <div id="block-progress"></div>
+        <div class="section-label rh-ex-label">Benchmarks</div>
+        <div id="benchmark-list"></div>
         <button class="section-label rh-ex-label rh-toggle" id="rh-toggle-moves" aria-expanded="false">Movement library <span class="rh-toggle-arrow">→</span></button>
         <div id="rehab-ex-list" style="display:none"></div>
         <p class="rh-note">Progress only while the back stays quiet — during the session and the day after. Sharp pain = stop.</p>

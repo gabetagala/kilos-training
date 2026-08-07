@@ -1,13 +1,36 @@
-import { PROGRAM_EXERCISES } from './program.js';
+import {
+  BRIDGE_BLOCK,
+  POWER_BLOCKS,
+  PROGRAM_EXERCISES,
+  STRETCH_BLOCKS,
+} from './program.js';
 import { createStepEngine } from './stepEngine.js';
 
 // Rehab program + guided-session step engine — pure, no DOM, no storage.
 // Unit-tested in tests/unit/rehab.test.js.
 //
 // The program is Gabe's DDD back protocol, dosed per the published protocols
-// (researched 2026-07 — see PROTOCOL notes on each block). ONE session now:
-// the old separate Hinge Day folded into the daily 2026-08 — one thing to
-// do, the loaded hinge rotates in every other run.
+// (researched 2026-07 — see PROTOCOL notes on each block).
+//
+// TRIMMED 2026-08-07 to the 10-minute core. It had grown to 18:55 (A) /
+// 23:50 (B) — against a doc that claimed 15 — and stacked on top of a ~30-min
+// lift it made his Wednesday 52 minutes. He asked for 10 max. Nothing was
+// cut on medical grounds; three blocks moved to where they belong, in the
+// same commit that split D40 into six half-sessions (see program.js):
+//   - Static stretches → post-lift cool-down on the leg days. Cold static
+//     stretching before training transiently blunts force output; warm
+//     tissue after the session is the correct slot. Re-dosed 7×→3×/week —
+//     "more adds little" was already the note here.
+//   - Single-leg bridge → the leg halves as glute prep. An activation drill
+//     doesn't need 7×/week next to 10+ weekly sets of squat/split/hinge.
+//     Re-dosed 7×→2×/week.
+//   - RDL → the three accessory halves (A2/B2/C2). It is a barbell lift with
+//     90s rests; it never belonged inside a warm-up. Dose UNCHANGED at
+//     3×/week — that was the evidence dose and it still is. Bonus: heavy
+//     axial days and light hinge days now alternate across the week.
+// What's left is the daily non-negotiable: one fixed 10-minute session, the
+// same every single day, no A/B variant to track.
+//
 // - Cat-camel: 6 slow unloaded cycles as the opener — McGill's own warm-up.
 //   (Dead hangs opened the session until 2026-08 — hanging never clicked for
 //   him. The def and demo stay only so an old paused session still restores.)
@@ -17,19 +40,13 @@ import { createStepEngine } from './stepEngine.js';
 //   ladders bored him and ate time, and the medicine is the short holds and
 //   never grinding to fatigue, not the ladder shape. Progress by adding a
 //   rep per set, never hold length. (Squat University's McGill write-up;
-//   backfitpro.)
-// - Glute work: CONTINUOUS tempo reps — lift 1s, squeeze 2s at top, lower
-//   2s. Single-leg bridges, one side at a time (kickbacks tried 2026-07,
-//   dropped 2026-08: same-position single-leg bridges activate better for
-//   him, and each hip works alone so the strong side can't cover).
-// - RDL: self-paced light sets, slow eccentric, hinge quality over load.
-// - Static stretches: 30s holds × 2/side (evidence sweet spot; more adds little).
+//   backfitpro.) These stay untouched: the repetition IS the protocol.
 //
 // VARIETY: a block may be a rotation wrapper { rotate: [specA, specB, …] } —
-// the app advances the active spec once per completed run of the session
-// (A/B days). A spec may be null: that variant simply skips the block. The
-// McGill Big 3 stay fixed on purpose (the repetition IS the protocol —
-// grooving the same motor pattern daily); only the hinge slot rotates.
+// the app advances the active spec once per completed run of the session.
+// A spec may be null: that variant simply skips the block. The daily session
+// no longer uses one (the hinge slot was its only rotation); the mechanism
+// stays for HOTMUM and future use.
 //
 // A session is a list of BLOCKS; buildStepQueue() expands blocks into a flat
 // queue of STEPS the player walks through one at a time:
@@ -174,13 +191,6 @@ export const REHAB_EXERCISES = {
   },
 };
 
-// Tempo pattern for the glute bridge: [label, seconds] per sub-phase.
-const BRIDGE_TEMPO = [
-  ['LIFT', 1],
-  ['SQUEEZE', 2],
-  ['LOWER', 2], // the eccentric is the point — 1s read as a drop, not a lower
-];
-
 // Cat-camel cycle: exhale into the round, inhale into the arch — breath-paced.
 const CATCAMEL_TEMPO = [
   ['ROUND', 3],
@@ -198,8 +208,7 @@ export const REHAB_SESSIONS = [
     id: 'daily',
     name: 'Daily Reset',
     freq: 'Every day',
-    blurb:
-      'Wake the spine, brace it, open it. The barbell joins every other run.',
+    blurb: 'Wake the spine, then brace it. Ten minutes, the same every day.',
     blocks: [
       // Opener — McGill's warm-up. Slow breath-paced cycles, nothing forced.
       {
@@ -256,101 +265,89 @@ export const REHAB_SESSIONS = [
         switchSecs: 8,
         restSecs: 20,
       },
-      // PROTOCOL: continuous tempo reps — 1s up, 2s squeeze, 2s down, one
-      // side at a time. Single-leg bridges replaced kickbacks 2026-08: same
-      // position as a bridge, but each hip lifts alone — the activation he
-      // actually feels, and the strong side can't cover for the weak one.
-      // 8/side (not the two-leg 10): one leg carries double the load.
+    ],
+  },
+  {
+    id: 'open-up',
+    name: 'Open Up',
+    freq: 'Sun · the easy day',
+    blurb:
+      'Glutes awake, hamstrings and hip flexors long. Nothing hard — this is the day off that still counts.',
+    // ADDED 2026-08-07 with the rehab trim. The glute bridges and the two
+    // static stretches used to run EVERY day inside the rehab, which is where
+    // a third of its length came from. They now land twice a week: once on
+    // the leg half (d40-b1, warm and worked) and once here.
+    //
+    // Sunday was the only day light enough to take them — it was 10:12 of
+    // rehab and two mark-done chips. With this it's ~19 min, still the
+    // easiest day of the week by a wide margin, and it gives the week a real
+    // low day instead of a blank one. Run it any other day too if the hips
+    // feel tight; nothing here needs recovery.
+    blocks: [BRIDGE_BLOCK, ...STRETCH_BLOCKS],
+  },
+  {
+    id: 'engine',
+    name: 'The Long Way',
+    freq: 'Sun · steady, not hard',
+    blurb:
+      'Twelve minutes of easy, unbroken work. Conversational the whole way — if you are breathing hard you are doing it wrong.',
+    // BUILT 2026-08-07. Sunday's engine slot had been a mark-done checkbox
+    // since the beginning; this fills it. FIXED on purpose — no rotation pool,
+    // no formats to learn. The week already carries all the variety it needs
+    // (six sessions, six finishers, four metcon formats) and more would start
+    // costing the progression tracking that rotation is known to blunt.
+    //
+    // Deliberately EASY. McGill's capacity model is sub-threshold bouts
+    // repeated, not grinding: "if you will have pain on a 40-minute walk, just
+    // walk 20 a couple of times per day." And concurrent-training interference
+    // tracks DURATION harder than frequency (r up to -0.75 vs -0.35), so a
+    // short steady piece costs the lifting nothing.
+    //
+    // Step-ups and carries only: both fail at the legs, lungs or grip with an
+    // upright torso, so a Sunday that runs long can never turn into spinal
+    // flexion. No rowing — the erg is the one "obviously safe" modality the
+    // evidence contradicts here (~4.6x bodyweight compression at L4/L5, and
+    // fatigue increases lumbar flexion at the catch).
+    blocks: [
       {
-        ex: 'single-leg-bridge',
-        mode: 'tempo',
-        sets: 2,
-        reps: 8,
-        tempo: BRIDGE_TEMPO,
-        perSide: true,
-        switchSecs: 8,
-        restSecs: 25,
-      },
-      // THE HINGE SLOT — the old Hinge Day, folded in 2026-08 so there is
-      // exactly one thing to do. When it's on, it's RDLs — his call
-      // (suitcase carries tried 2026-08, cut the same week). It sits out
-      // every other run: daily loaded hinging gives the back no recovery
-      // day, and every other run at near-daily cadence ≈ 3×/week — the
-      // evidence dose. A days go straight from bridges to the stretches.
-      {
-        rotate: [
-          null, // A — recovery run, barbell-free
-          {
-            ex: 'rdl',
-            mode: 'lift',
-            sets: 3,
-            reps: 8,
-            restSecs: 90,
-            note: 'Add load only if the last hinge day stayed quiet.',
-          },
-        ],
-      },
-      // The close he'd do extra of — both stretches, every run.
-      {
-        ex: 'hamstring-stretch',
+        ex: 'box-step-up',
         mode: 'hold',
         sets: 2,
-        holdSecs: 30,
-        perSide: true,
-        switchSecs: 8,
-        restSecs: 10,
+        holdSecs: 180,
+        phase: 'STEADY',
+        restSecs: 45,
+        note: 'Easy pace, whole foot on the box, torso tall. You should be able to hold a conversation.',
       },
       {
-        ex: 'hip-flexor-stretch',
-        mode: 'hold',
-        sets: 2,
-        holdSecs: 30,
-        perSide: true,
-        switchSecs: 8,
-        restSecs: 10,
+        mode: 'circuit',
+        rounds: 2,
+        betweenSecs: 0,
+        restSecs: 45,
+        members: [{ ex: 'farmer-carry', secs: 60, phase: 'CARRY' }],
       },
     ],
   },
   {
     id: 'power',
     name: 'Power Primer',
-    freq: '2× a week',
+    freq: 'Folded into Arms + Chest',
     blurb:
-      'The fast stuff on the days you don’t lift: bounce, leap, throw the floor away. Quiet-back days only — every rep crisp, stop while springy.',
+      'Bounce, leap, throw the floor away. Quiet-back days only — every rep crisp, stop while springy.',
     // POWER REINTRODUCTION (2026-08-03): the athletic layer his goals were
     // missing — power fades ~2× faster than strength with age, and none of
     // it lives in D40 or the rehab. Doses are deliberately tiny (quality
     // over quantity; ballistic work is never tempo-guided and never taken
-    // near fatigue). Scheduled on REHAB-ONLY days (Tue/Thu — his call
-    // 2026-08-04), right after the daily rehab warms him up. DDD gate:
-    // symptom-free days only. Upgrade path when gear arrives: med-ball
-    // rotational throws → this session; KB swings → the hinge slot, both
-    // only after a quiet month.
-    blocks: [
-      // Elasticity first — short ground contact, spine tall.
-      {
-        ex: 'pogo-hop',
-        mode: 'hold',
-        phase: 'BOUNCE',
-        sets: 2,
-        holdSecs: 15,
-        restSecs: 40,
-      },
-      // Hip power — jump far, land stuck and silent.
-      {
-        mode: 'circuit',
-        rounds: 3,
-        restSecs: 60,
-        members: [{ ex: 'broad-jump', reps: '3', logWeight: false }],
-      },
-      // Upper-body speed — the set ends when the pop fades.
-      {
-        mode: 'circuit',
-        rounds: 3,
-        restSecs: 60,
-        members: [{ ex: 'power-pushup', reps: '3–5', logWeight: false }],
-      },
-    ],
+    // near fatigue). DDD gate: symptom-free days only. Upgrade path when
+    // gear arrives: med-ball rotational throws → here; KB swings → the hinge
+    // slot, both only after a quiet month.
+    //
+    // NO LONGER ITS OWN DAY (2026-08-07, his call). POWER_BLOCKS now open
+    // d40-a2 (Tue) and d40-c2 (Sat) — both anchor-free and axially quiet, so
+    // it still lands fresh. This standalone session stays so history entries
+    // and any paused run with rehabId 'power' still resolve, and so the
+    // primer is runnable on its own if he ever wants it off-schedule. It
+    // shares POWER_BLOCKS with the halves — one definition, one dose.
+    blocks: POWER_BLOCKS,
   },
 ];
 

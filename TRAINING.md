@@ -1,38 +1,98 @@
 # TRAINING.md — Density 40 · "Armored V-Taper"
 
 > Designed 2026-07-20 by a 17-agent research → draft → audit → synthesis run.
-> Pairs with the in-app Rehab (daily 15-min block + 3x/wk Hinge Day) — never duplicates it.
+> Pairs with the in-app Rehab (daily 10-min protocol) — never duplicates it.
 
-> **2026-08 update (goals now: athletic · powerful · pain-free · visibly
-> jacked):** the rehab side was restructured in-app — ONE unified daily
-> session (cat-camel + t-spine reach openers replaced the dead hang; Big 3
-> as flat straight sets; single-leg bridges; the old Hinge Day's RDL now
-> rotates INSIDE the daily, every other completed run as its "B day") plus
-> a 2×/wk **Power Primer** (pogo hops, broad jumps, explosive push-ups —
-> ~8 min, quiet-back days only) on the rehab-only days (Tue/Thu), right
-> after the daily session. Where this doc says "Hinge Day", read: the
-> daily session's B run. Power upgrade path
-> when gear arrives: med-ball rotational throws → primer; KB swings →
-> the hinge slot, each only after a quiet month.
+> **2026-08-07 update — THE SPLIT.** Sessions were 29–32 min each, but the
+> daily rehab had quietly grown to **18:55 / 23:50** (not the 15 this doc
+> claimed), so a lift day was really **48–55 min**. He asked for a 10-minute
+> rehab and shorter sessions. Both, without touching a single rep of weekly
+> volume:
+>
+> - **Rehab → 10:12 flat, identical every day.** Kept: cat-camel, t-spine
+>   reach, McGill Big 3. Three blocks moved out rather than being cut —
+>   **stretches** to a post-lift cool-down (cold static stretching before
+>   lifting blunts force output; they were in the wrong place, not just too
+>   frequent), **glute bridges** to the leg day, **the RDL** into the lift
+>   halves, where a 90s-rest barbell lift always belonged. No A/B variant
+>   any more — one fixed thing, every day.
+> - **A/B/C → six halves, one per day, Mon–Sat.** Anchor first: each half-1
+>   is ramp + the heavy anchor + its first density block; each half-2 is the
+>   rest. The anchor now lands on a fresh body instead of after 24 minutes of
+>   rehab.
+> - **Power Primer folded in** (his call) — it opens A2 (Tue) and C2 (Sat)
+>   instead of owning a day. Both are anchor-free and axially quiet, so it
+>   still lands fresh on a quiet back.
+> - **Sunday** became a real easy day: rehab + **Open Up** (glute bridges +
+>   both stretches, ~9 min) + engine.
+>
+> Doses that changed, stated plainly: **RDL 3×/wk (unchanged)** · stretches
+> 7× → **2×/wk** · glute bridges 7× → **2×/wk**. Power upgrade path when gear
+> arrives: med-ball rotational throws → the primer; KB swings → the hinge
+> slot, each only after a quiet month.
+
+> **2026-08-07 (same day) — THE PIECES.** The split fixed the length; it didn't
+> fix the *shape*. This program was called Density 40 but its density formats
+> were supersets with rest timers — a checklist. CrossFit's day is **a strength
+> piece, then one named metcon**, and that's the difference he was actually
+> missing. So every half is now:
+>
+> **PART A — quality.** The anchor lift, or the hinge, or the power primer.
+> Straight sets, full rests, nothing on a clock.
+> **PART B — the piece.** All the accessory work, as ONE named workout with a
+> format and a score.
+>
+> **Format is a safety and accounting decision, not a flavour:**
+> - **EMOM** (the default) — reps × rounds are fixed, so weekly volume is still
+>   exactly auditable, and rest is *forced*: finish the reps, rest the rest of
+>   the minute. That rest floor makes it **safer than the supersets it
+>   replaced** — the clock caps the pace instead of fatigue deciding it.
+> - **For time, fixed rounds** — volume fixed, pace unbounded. Bodyweight/band
+>   only, never loaded unilateral or hinge work.
+> - **AMRAP** — volume is "whatever you managed", so it can never carry
+>   programmed volume. **Finishers only.** There's exactly one in the week.
+>
+> **The clock never gets:** the front squat, floor press, pull-up, RDL, or the
+> RFE split squat. Fatigue is what breaks form and form is what protects the
+> disc — those stay on straight sets with real rests, forever.
 
 ## Week at a glance
 
-| Day | Rehab (15 min, daily — his app) | Hinge Day (his app, 3×/wk) | This program |
-|---|---|---|---|
-| **Mon** | Dead hang + Big 3 + bridges | — | **Session A — Pull/Arms/Grip** (~36 min) |
-| **Tue** | Dead hang + Big 3 + bridges | RDL 3×8 + SL bridges + stretches | Stroller walk / steps only |
-| **Wed** | Dead hang + Big 3 + bridges | — | **Session B — Legs/Delts/Forearms** (~37 min) |
-| **Thu** | Dead hang + Big 3 + bridges | RDL 3×8 + SL bridges + stretches | Rest / steps |
-| **Fri** | Dead hang + Big 3 + bridges | — | **Session C — Push/Chest/Carries** (~36 min) |
-| **Sat** | Dead hang + Big 3 + bridges | RDL 3×8 + SL bridges + stretches | Optional **D — Engine** (20–30 min) |
-| **Sun** | Dead hang + Big 3 + bridges | — | Zone-2 stroller walk 25–30 min + 2-min waist/weight check-in |
+Every day: the **10-minute rehab** first, then the day's half. Nothing here
+repeats the rehab — rehab ends, first set begins.
 
-*Days are placeholders — the real schedule is the A→B→C queue triggered by "rehab ends → first set begins." Hinge Day floats with the rehab app; the only rule is it doesn't share a morning with Session B (slide B or use the split-squat swap).*
+| Day | Session | PART A — quality | PART B — the piece | All-in |
+|---|---|---|---|---|
+| **Mon** | **A1 · Pull** | Weighted pull-up 4×5–8 · RDL 3×8 | **"The Spread"** · EMOM 6 — row / lateral | **~30 min** |
+| **Tue** | **A2 · Arms** | Power primer | **"The Vice"** · EMOM 12 — pushdown / hammer / suitcase / rev wrist | **~32 min** |
+| **Wed** | **B1 · Legs** | Front squat 4×4–6 · RFE split squat 3×8–10 | *(none — see below)* + bridges & stretches | **~33 min** |
+| **Thu** | **B2 · Delts** | RDL 3×8 | **"Popeye"** · EMOM 15 — lateral / face pull / wrist / rev wrist / band lateral | **~30 min** |
+| **Fri** | **C1 · Push** | Floor press 4×6–10 · RDL 3×8 | **"The Gate"** · EMOM 6 — pulldown / elevated push-up | **~30 min** |
+| **Sat** | **C2 · Chest** | Power primer | **"The Cage"** · EMOM 9 — fly / curl / overhead tri · then **"Last Call"** AMRAP 4 farmer carry | **~33 min** |
+| **Sun** | **Open Up** | Glute bridges + hamstring/hip-flexor stretches, then Engine | | **~20 min** |
+
+**Wednesday has no metcon, deliberately.** Leg day's only accessories are
+loaded unilateral leg work (barred from the clock) and a cool-down whose whole
+dose is per-side 30s holds, which don't map onto minutes without losing half of
+it. Wednesday's piece *is* the front squat. A metcon there would be for the
+look of it, not the training.
+
+**Every EMOM minute still logs its load** — you set the weight on the same
+screen as the clock, and the minute logs itself when it runs out. Double
+progression is unchanged; only the delivery changed.
+
+*Durations are computed from the actual step queue (`estimateSessionSecs`),
+not estimated by hand — the old "~36 min" figures in this doc were wrong by
+15+ minutes once the rehab was counted. Longest day went 52 → 35.*
+
+*Days are pinned now, not a queue. Heavy axial work (Mon/Wed/Fri anchors) and
+light hinge work (Tue/Thu/Sat RDLs) alternate by design. A missed day is just
+missed — nothing is made up, and a missed week is still the deload.*
 
 ## Key rules
 
-- Rehab ends, first ramp set begins — the 15-min rehab block IS the warm-up; never duplicate it, never add another.
-- Queue, not calendar: A → B → C → repeat, whenever you train. A missed day slides the queue; a missed week IS the deload. Nothing is ever made up.
+- Rehab ends, first ramp set begins — the 10-min rehab block IS the warm-up; never duplicate it, never add another.
+- Pinned days, not a queue (since 2026-08-07): Mon A1 · Tue A2 · Wed B1 · Thu B2 · Fri C1 · Sat C2 · Sun Open Up. A missed day is missed; a missed week IS the deload. Nothing is ever made up.
 - One spine-loaded lift per session, always first, straight sets, ≥2:00 rest, front squat capped at 2–4 RIR forever. Density formats (supersets/drops/EMOMs) live only on cables, DBs, bands, and bodyweight.
 - The spine never moves under load — including pickups: DBs live at knee height on the safeties, every pickup is a braced hinge, floor-press exits are a roll to the side, and any symptom is a hard stop.
 - Double progression everywhere: all sets at the top of the range at the listed RIR → smallest jump → bottom of the range. Stall twice on a lift → that lift drops 10% and rebuilds.
@@ -44,9 +104,11 @@
 
 # DENSITY 40 — FINAL — "Armored V-Taper"
 
-**3 rotating sessions (A → B → C) + optional Engine day (D). Honest 35–39 min per session after your 15-min rehab block. Total garage time ≈ 50–55 min including rehab — plan for that, not for 40.**
+**Six half-sessions (A1 · A2 · B1 · B2 · C1 · C2), one a day Mon–Sat, plus an easy Sunday. Each is PART A (quality, full rest) + PART B (one named piece on a clock). Honest 20–23 min per half after your 10-min rehab block. Total garage time ≈ 30–33 min including rehab — plan for that.**
 
-Your daily rehab block (dead hang → McGill Big 3 → glute bridges) **is** the warm-up. **Rehab ends → first ramp set begins.** Nothing in here repeats it. No other warm-up or stretching exists.
+*Was three ~30-min sessions on Mon/Wed/Fri. Same weekly volume, same anchors, same rep schemes — split in half on 2026-08-07 because 50-minute days had stopped being something he looked forward to.*
+
+Your daily rehab block (cat-camel → t-spine reach → McGill Big 3) **is** the warm-up. **Rehab ends → first ramp set begins.** Nothing in here repeats it. The only stretching that exists is the cool-down on B1 and the Sunday Open Up session.
 
 ---
 
@@ -55,18 +117,22 @@ Your daily rehab block (dead hang → McGill Big 3 → glute bridges) **is** the
 1. **The spine transmits force; it never moves under load.** Zero loaded flexion, zero sit-ups/crunches, zero kipping (all pull-ups are STRICT — backpack loading, not DB-between-ankles), zero high-rep barbell cycling. Ever.
 2. **One spine-relevant heavy lift per session, always first, always straight sets, ≥2:00 rest, never supersetted, never ground out.** All density formats (supersets, drop sets, EMOM-style finishers) live ONLY on cables, DBs, bands, and bodyweight.
 3. **Manual-handling rule (the invisible risk):** every single pickup — DBs, plates, the bar, your son — is a mini squat/hinge with a braced neutral spine. Park the DBs on a box or the rack safeties at knee height between sets, not the floor. DB floor press: sit with DBs on thighs, roll back as one unit; to get up, lower DBs to your sides and **roll to your side** — never a loaded sit-up.
-4. **Morning rule:** no heavy axial or hinge loading within ~2 h of waking. Dawn-only window? Sessions A and C are fine straight after the full rehab block (low axial cost). If the queue serves **B** pre-dawn: swap the front squat to heavy DB split squats (zero penalty), or simply do the next upper session today and let B land on your next later-in-the-day slot.
+4. **Morning rule:** no heavy axial or hinge loading within ~2 h of waking. Dawn-only window? **A1, A2 and C1's press are fine** straight after the rehab (low axial cost). The three RDL slots (A1, B2, C1) and the **B1 front squat** want 2 h+ — pre-dawn, run B1 with the heavy DB split-squat swap (zero penalty), and take the RDL later in the day or let it go that week.
 5. **Shoe lift ON for ALL standing or split-stance loaded work — no exceptions.** Carries, laterals, curls, calf raises, band work included.
 6. **Asymmetry rule:** all unilateral work starts with the **right (smaller) side first; the left matches the right's reps** — never the reverse.
 7. **Symptoms = hard stop** on that exercise. Finish the session with walking and light supported cable work only (not carries). Retest next session. Two flare-ups in a row on the same lift → run its listed swap for the rest of the block. A flare **week** → deload protocol (below), which also swaps the front squat → split squats and drops all carries that week.
 8. **Extension guard:** "ribs down, glutes on" applies to the landmine press, overhead triceps extensions, flys, lateral-raise drop sets, and every push-up — a push-up set **ends at the first hip-sag rep**.
 9. **Log every working set.** Last session's numbers are this session's targets. Rep PRs are the scoreboard.
 
-## THE QUEUE (a queue, not a calendar)
+## THE WEEK (pinned days, since 2026-08-07)
 
-Do the **next session in the queue** whenever you train: **A → B → C → repeat.** Target 3/week; insert **D (Engine)** anywhere on a 4-day week. A missed day slides the queue — nothing is ever broken, skipped, or made up. A missed **week** counts as your deload; resume where the queue left off.
+Six halves, Mon–Sat, one a day, in order. **A1 → A2 → B1 → B2 → C1 → C2**, then Sunday's easy day. Each half is 20–25 min; with the rehab in front of it, a day is 30–35.
 
-**Hinge Day coordination (one rule):** your rehab app's Hinge Day (RDL 3×8 + single-leg bridges + stretches, 3×/wk) pairs freely with Sessions A or C or rest days. If the queue serves **B (front squat)** on a Hinge-Day morning: preferred — do the next upper session today and run B tomorrow; otherwise run B with the split-squat swap. Do Hinge-Day RDLs 2 h+ after waking too.
+The order is not arbitrary. Each **half-1** carries that block's heavy anchor and lands on Mon/Wed/Fri; each **half-2** carries the density work and the RDL, on Tue/Thu/Sat. So heavy axial days and light hinge days alternate all week, and no two anchors are ever back to back.
+
+A missed day is simply missed — no make-up, no sliding. A missed **week** counts as your deload; pick the week back up on the day you're on.
+
+**Hinge coordination (one rule, now much simpler):** the RDL lives inside A1, B2 and C1 — 3×/wk, exactly as before, but you never have to schedule it. The one thing to watch is the **morning rule**: if you're training pre-dawn, the RDL days (and the front squat on B1) want 2 h+ after waking. Pre-dawn Wednesday? Run B1 with the DB split-squat swap.
 
 ---
 
@@ -151,7 +217,7 @@ Pick one, guilt-free to skip on 3-day weeks:
 ## TIME VALVE + FALLBACKS
 
 - **Time valve:** past ~32 min entering the last block → cut it to 2 rounds. Past ~35 → 1 round. Cut ROUNDS, never whole blocks — B4 (forearms) always gets at least 2 rounds.
-- **Chaos-day bare minimum (~15 min):** heavy slot + first superset. Sleep-wrecked? Run the heavy slot at −10%. It counts, log it, the queue advances.
+- **Chaos-day bare minimum (~15 min):** on a half-1, the anchor alone; on a half-2, the first block alone. Sleep-wrecked? Run it at −10%. It counts, log it, move to tomorrow's day. *(Post-split this matters less — a whole half is only ~22 min.)*
 - **Deload (reactive only, no calendar):** triggered by a back flare OR a newborn hell-week: that week, half the sets at ~80% load (3–4 RIR), front squat → split squats, no carries. A chaos week of missed sessions already WAS the deload — no makeup, no guilt.
 
 ## BENCH-ARRIVAL UPGRADE MAP
@@ -164,9 +230,11 @@ Pick one, guilt-free to skip on 3-day weeks:
 | Kneeling wrist curls | Forearms-on-bench wrist curls |
 | — | Optional block rotation: Barbell Hip Thrust 3×8–12 may replace B2 for a 4–6-wk block (ribs down, finish with glutes, roll the bar on/off while seated against the bench — never sit up under load) |
 
-## WHERE THE VOLUME LANDS (per A→B→C pass ≈ one week at 3/wk)
+## WHERE THE VOLUME LANDS (one week = all six halves)
 
-Lats/upper back **10 sets** (+3 face pulls) · side delts **9 direct + 2 drops ≈ 11 effective** · chest **10** (interim upper-chest ≈ 6 until the bench — stated honestly) · triceps **6 direct** + all pressing · biceps **6 direct** + all pulling · **forearms 8 direct + 3 hammer + 7 carry sets + daily rehab hangs** · quads **7** (1×/pass frequency — a conscious trade) · glutes: squats + splits + Hinge Day + carries · hamstrings: Hinge Day only (**maintenance dose, on purpose**) · calves: optional 2 sets (conscious cut). Every priority muscle sits at 8–13 sets where growth-per-minute is steepest.
+**Unchanged by the split — this is the whole point.** Every set below survived; they're just spread over six days instead of three.
+
+Lats/upper back **10 sets** (+3 face pulls) · side delts **9 direct + 2 drops ≈ 11 effective** · chest **10** (interim upper-chest ≈ 6 until the bench — stated honestly) · triceps **6 direct** + all pressing · biceps **6 direct** + all pulling · **forearms 8 direct + 3 hammer + 7 carry sets** · quads **7** (1×/week frequency — a conscious trade) · glutes: squats + splits + the 3 RDL slots + carries + bridges (B1, Sun) · hamstrings: RDL 3×/wk (**maintenance dose, on purpose**) · calves: optional 2 sets (conscious cut). Every priority muscle sits at 8–13 sets where growth-per-minute is steepest.
 
 ## FAT LOSS (goal #2 is won in the kitchen)
 
@@ -177,7 +245,7 @@ Lats/upper back **10 sets** (+3 face pulls) · side delts **9 direct + 2 drops �
 - **Wk 1–2 (calibration):** find every starting load at 3–4 RIR bottom-of-range; film the front squat once and set the safety-pin depth; establish carry baselines; start Sunday check-ins. No PR chasing yet.
 - **Wk 3–4 (progression proper):** first load jumps and rep PRs; bench likely arrives → run the upgrade map (incline DB starts light and rebuilds); one RIR-calibration failure set on pushdowns around wk 4.
 - **Wk 5–6:** first stalls appear → micro-reset rule (−10%, rebuild past the wall in 3–4 sessions); first accessory-rotation window opens if you're bored — anchors stay put.
-- **Wk 7–8:** a chaos week will probably have happened — it counted as the deload; reassess at wk 8: waist trend, front-squat and pull-up PRs, photos. If RDLs have been crisp for weeks, nudge them +2.5 kg and consider mid-shin carry pickups. Then keep running the queue — the program doesn't expire.
+- **Wk 7–8:** a chaos week will probably have happened — it counted as the deload; reassess at wk 8: waist trend, front-squat and pull-up PRs, photos. If RDLs have been crisp for weeks, nudge them +2.5 kg and consider mid-shin carry pickups. Then keep running the week — the program doesn't expire.
 
 ---
 

@@ -15,7 +15,9 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "art:generate": "node scripts/generate-art.mjs",
-    "prepare": "git config core.hooksPath .githooks || true"
+    "prepare": "git config core.hooksPath .githooks || true",
+    "verify:program": "node scripts/verify-program.mjs",
+    "block:sheet": "node scripts/block-sheet.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",

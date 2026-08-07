@@ -17,6 +17,7 @@ import { initMonitoring, reportError } from './monitoring.js';
 import { buildShareData, renderShareCard } from './shareCard.js';
 import {
   allRepsMet,
+  bestE1RM,
   estimate1RM,
   repTargetTop,
   suggestNextWeight,
@@ -28,13 +29,17 @@ import {
   nextWorkLabel,
   REHAB_EXERCISES,
   REHAB_SESSIONS,
+  estimateSessionSecs,
   sessionBlocks,
   sessionOverview,
+  sessionVariantCount,
   tempoStateAt,
   variantLabel,
 } from './workout/rehab.js';
 import {
+  BENCHMARK_SESSIONS,
   DENSITY40_SESSIONS,
+  getBenchmark,
   getProgramSession,
   PROGRAM_EXERCISES,
   WEEK_PLAN,
@@ -44,6 +49,25 @@ import { mayInterject, ttsWindowMs } from './workout/voiceMic.js';
 import { FORM_CUES, pickFormCue } from './workout/formCues.js';
 import { NUM_SLUGS, tempoBeatSlug } from './workout/tempoCues.js';
 import { addCheckin, checkinStatus } from './workout/checkin.js';
+import {
+  applyFormats,
+  applyPhase,
+  BLOCK_WEEKS,
+  blockState,
+  currentWeek,
+  isDeloadCheckpoint,
+  PHASE_NAMES,
+  phaseOf,
+  phaseSwaps,
+  TEST_WEEKS,
+  testsForWeek,
+  weekStart,
+} from './workout/block.js';
+import {
+  compareBenchmark,
+  formatBenchmarkScore,
+  scoreFromRun,
+} from './workout/benchmark.js';
 import { loggedExercisesOf, resolveMuscleGroup } from './workout/muscles.js';
 import { currentStreak, longestStreak } from './workout/streak.js';
 import {
@@ -1520,18 +1544,298 @@ const GUIDED_WEIGHTS_KEY = 'kilos-guided-weights';
 // One guided player, two programs: the rehab protocol + Density 40.
 const GUIDED_EXERCISES = { ...REHAB_EXERCISES, ...PROGRAM_EXERCISES };
 const GUIDED_DEMOS = { ...REHAB_DEMOS, ...PROGRAM_DEMOS };
-const getGuidedSession = (id) => getRehabSession(id) || getProgramSession(id);
+const getGuidedSession = (id) =>
+  phased(getRehabSession(id) || getProgramSession(id) || getBenchmark(id));
 
 // Which rotation of a session runs next: one step per completed run, so A/B
 // days alternate by sessions DONE, not by calendar — a missed day never
 // swallows a variant. ('hinge' counts as legacy runs of the old split session
 // so the cadence carries over.) Non-rehab sessions resolve to 0 = fixed.
-const rehabVariantIdx = (sessionId) =>
-  (get('workoutHistory') || []).filter(
+// ── Benchmark history ───────────────────────────────────────────────────────
+// Kept in its own key rather than derived from workoutHistory: a benchmark
+// score is not a set, and the 'hr' test has no score the player can observe
+// (the athlete takes their own pulse). Newest first.
+const BENCHMARK_KEY = 'kilos-benchmarks';
+let pendingBenchmarkPrompt = null; // an 'hr' test waiting on the athlete's pulse
+let bmScoreVal = 100;
+const benchmarkRuns = (id) =>
+  (get(BENCHMARK_KEY) || [])
+    .filter((r) => r.id === id && r.score != null)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+function saveBenchmarkRun(id, score) {
+  if (score == null) return;
+  const all = get(BENCHMARK_KEY) || [];
+  all.push({ id, score, date: new Date().toISOString() });
+  set(BENCHMARK_KEY, all);
+}
+
+const benchmarkScoreLabel = (b, score) =>
+  formatBenchmarkScore(b.scoreType, score);
+
+// Only ever renders a delta the test can actually resolve — a change inside
+// the noise band shows as "=", never as an improvement.
+function benchmarkTrend(b, score, prev) {
+  const c = compareBenchmark(b.scoreType, score, prev);
+  if (!c.meaningful) return ' · =';
+  return ` · ${c.dir === 'better' ? '▲' : '▼'}${Math.abs(Math.round(c.pct * 100))}%`;
+}
+
+// ── The block banner — "where am I in the 12 weeks?" ────────────────────────
+const DELOAD_SEEN_KEY = 'kilos-deload-seen';
+function renderBlockBanner() {
+  const el = document.getElementById('block-banner');
+  if (!el) return;
+  const b = blockNow();
+  if (b.week == null) {
+    el.innerHTML = '';
+    return;
+  }
+  const done = Math.min(b.weekInBlock, BLOCK_WEEKS);
+  const pct = Math.round((done / BLOCK_WEEKS) * 100);
+  const testNames = b.tests.map((id) => getBenchmark(id)?.name).filter(Boolean);
+  el.innerHTML = `
+    <div class="blk">
+      <div class="blk-top">
+        <div class="blk-name">BLOCK 01 · ${b.complete ? 'DONE' : `WK ${done}/${BLOCK_WEEKS}`}</div>
+        <div class="blk-phase">${b.phaseName}</div>
+      </div>
+      <div class="blk-track"><div class="blk-fill" style="width:${pct}%"></div></div>
+      ${
+        testNames.length
+          ? `<div class="blk-flag">TEST WEEK — ${testNames.join(' + ').toUpperCase()}</div>`
+          : ''
+      }
+      ${b.deloadCheckpoint ? '<button class="blk-flag blk-check" type="button">DELOAD CHECKPOINT — tap to decide</button>' : ''}
+    </div>`;
+  el.querySelector('.blk-check')?.addEventListener('click', () =>
+    openDeloadCheck(done),
+  );
+  // Surface it once per block-week, unprompted — a checkpoint you have to
+  // remember to go looking for isn't a checkpoint.
+  if (b.deloadCheckpoint && get(DELOAD_SEEN_KEY) !== done) {
+    set(DELOAD_SEEN_KEY, done);
+    setTimeout(() => openDeloadCheck(done), 600);
+  }
+}
+
+// ── "Is it working?" — the reward loop ──────────────────────────────────────
+// The reason this screen exists: variety stops you getting bored THIS week,
+// but what keeps someone training in month six is watching the number go up —
+// and in a hypertrophy block that takes 4–8 weeks to become visible. If the
+// app never shows the trend, the athlete never gets the payoff the program is
+// actually built around. bestE1RM() has existed in progression.js the whole
+// time with nothing calling it for a trend; this is that caller.
+// Keyed by exercise ID, with the display name DERIVED — history entries store
+// the display name, and hardcoding it here silently broke the floor-press row
+// ('Floor Press' vs the real 'Barbell Floor Press'), which then read
+// "no sets logged yet" forever no matter how many sessions were logged.
+const ANCHOR_IDS = ['pull-up', 'front-squat', 'floor-press'];
+const anchorName = (exId) => GUIDED_EXERCISES[exId]?.name || exId;
+
+// Best estimated 1RM per block-week for one exercise, from logged sets.
+function anchorSeries(exName, startISO) {
+  const hist = get('workoutHistory') || [];
+  const byWeek = new Map();
+  for (const h of hist) {
+    const w = currentWeek(startISO, new Date(h.date));
+    if (w == null || w < 1) continue;
+    // currentWeek() deliberately keeps counting past 12; the sparkline maps x
+    // over a fixed 12-week span, so anything beyond it would plot outside the
+    // viewBox and vanish. Clamp to the last column instead of dropping it.
+    const wk = Math.min(w, BLOCK_WEEKS);
+    for (const ex of h.exercises || []) {
+      if (ex.name !== exName) continue;
+      const e = bestE1RM((ex.logs || []).filter((l) => l.done !== false));
+      if (e == null) continue;
+      byWeek.set(wk, Math.max(byWeek.get(wk) ?? 0, e));
+    }
+  }
+  return [...byWeek.entries()].sort((a, b) => a[0] - b[0]);
+}
+
+// A sparkline, not a chart library — 12 weeks of one number needs 40 lines of
+// SVG, not a dependency.
+function sparkline(series, weeks) {
+  if (series.length < 2) return '';
+  const vals = series.map(([, v]) => v);
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const span = max - min || 1;
+  const pts = series
+    .map(([w, v]) => {
+      const x = ((w - 1) / Math.max(weeks - 1, 1)) * 100;
+      const y = 26 - ((v - min) / span) * 22;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
+  const last = series.at(-1);
+  const lx = ((last[0] - 1) / Math.max(weeks - 1, 1)) * 100;
+  const ly = 26 - ((last[1] - min) / span) * 22;
+  return `<svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
+    <polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="1.6" vector-effect="non-scaling-stroke"/>
+    <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="2.2" fill="currentColor"/>
+  </svg>`;
+}
+
+function renderBlockProgress() {
+  const el = document.getElementById('block-progress');
+  if (!el) return;
+  const startISO = blockStartISO();
+  const rows = [];
+
+  for (const exId of ANCHOR_IDS) {
+    const name = anchorName(exId);
+    const series = anchorSeries(name, startISO);
+    if (!series.length) {
+      rows.push(
+        `<div class="bp-row bp-empty"><div class="bp-k">${name}</div><div class="bp-v">—</div><div class="bp-d">no sets logged yet</div></div>`,
+      );
+      continue;
+    }
+    const first = series[0][1];
+    const last = series.at(-1)[1];
+    const delta = last - first;
+    // 1RM test-retest CV is ~2–4%, so a real change has to clear ~5%. Below
+    // that it's measurement noise and saying "up" would be a lie.
+    const meaningful = first > 0 && Math.abs(delta / first) >= 0.05;
+    const dir = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
+    rows.push(`
+      <div class="bp-row">
+        <div class="bp-k">${name}</div>
+        <div class="bp-v">${toDisplayWeight(last)}${weightUnit()}<span class="bp-sub">e1RM</span></div>
+        <div class="bp-spark bp-${meaningful ? dir : 'flat'}">${sparkline(series, BLOCK_WEEKS)}</div>
+        <div class="bp-d ${meaningful ? `bp-${dir}` : ''}">${
+          series.length < 2
+            ? 'first week'
+            : meaningful
+              ? `${delta > 0 ? '+' : ''}${toDisplayWeight(delta)}${weightUnit()} since wk ${series[0][0]}`
+              : 'flat — inside the noise'
+        }</div>
+      </div>`);
+  }
+
+  for (const b of BENCHMARK_SESSIONS) {
+    const runs = benchmarkRuns(b.id).slice().reverse(); // oldest first
+    if (!runs.length) {
+      rows.push(
+        `<div class="bp-row bp-empty"><div class="bp-k">${b.name}</div><div class="bp-v">—</div><div class="bp-d">not tested yet · ${b.freq.toLowerCase()}</div></div>`,
+      );
+      continue;
+    }
+    const last = runs.at(-1).score;
+    const c =
+      runs.length > 1 ? compareBenchmark(b.scoreType, last, runs[0].score) : null;
+    rows.push(`
+      <div class="bp-row">
+        <div class="bp-k">${b.name}</div>
+        <div class="bp-v">${formatBenchmarkScore(b.scoreType, last)}</div>
+        <div class="bp-spark"></div>
+        <div class="bp-d ${c?.meaningful ? `bp-${c.dir === 'better' ? 'up' : 'down'}` : ''}">${
+          !c
+            ? `first test · ${runs.length} of ${Object.values(TEST_WEEKS).flat().filter((t) => t === b.id).length}`
+            : c.meaningful
+              ? `${c.dir === 'better' ? 'better' : 'worse'} by ${Math.abs(Math.round(c.pct * 100))}% vs first test`
+              : 'flat — inside the noise'
+        }</div>
+      </div>`);
+  }
+
+  el.innerHTML = `<div class="bp">${rows.join('')}
+    <div class="bp-note">Anchors show estimated 1RM from your logged sets. A change under
+    5% on a lift — or under this test's noise band — reads as flat, because that's
+    measurement error, not progress.</div>
+  </div>`;
+}
+
+function openDeloadCheck(week) {
+  document.getElementById('deload-week').textContent = week;
+  document.getElementById('deload-check').classList.add('open');
+}
+document.getElementById('deload-no')?.addEventListener('click', () => {
+  document.getElementById('deload-check').classList.remove('open');
+});
+document.getElementById('deload-yes')?.addEventListener('click', () => {
+  document.getElementById('deload-check').classList.remove('open');
+  document.getElementById('deload-advice')?.classList.add('open');
+});
+document.getElementById('deload-ok')?.addEventListener('click', () => {
+  document.getElementById('deload-advice')?.classList.remove('open');
+});
+
+// Two scores the app genuinely cannot observe: a pulse (it's in your fingers)
+// and AMRAP rounds (a single capped window is one step, so nothing counts the
+// laps). Both get asked for rather than guessed at.
+const BM_PROMPT = {
+  hr: {
+    title: 'RECOVERY HEART RATE',
+    sub: 'Count your pulse for 15 seconds and multiply by 4. Lower than last time is fitter.',
+    unit: 'bpm',
+    def: 100,
+    min: 30,
+    max: 220,
+  },
+  rounds: {
+    title: 'ROUNDS COMPLETED',
+    sub: 'Full rounds only — a part-round counts as the round below it.',
+    unit: 'rounds',
+    def: 10,
+    min: 0,
+    max: 60,
+  },
+};
+function openBenchmarkScorePrompt(session) {
+  pendingBenchmarkPrompt = session;
+  const cfg = BM_PROMPT[session.scoreType] || BM_PROMPT.hr;
+  bmScoreVal = benchmarkRuns(session.id)[0]?.score ?? cfg.def;
+  document.getElementById('bm-score-title').textContent = cfg.title;
+  document.getElementById('bm-score-sub').textContent = cfg.sub;
+  document.getElementById('bm-unit').textContent = cfg.unit;
+  document.getElementById('bm-val').textContent = bmScoreVal;
+  document.getElementById('bm-score').classList.add('open');
+}
+function bmScoreAdjust(d) {
+  const cfg =
+    BM_PROMPT[pendingBenchmarkPrompt?.scoreType] || BM_PROMPT.hr;
+  bmScoreVal = Math.max(cfg.min, Math.min(cfg.max, bmScoreVal + d));
+  document.getElementById('bm-val').textContent = bmScoreVal;
+}
+document.getElementById('bm-minus')?.addEventListener('click', () => bmScoreAdjust(-1));
+document.getElementById('bm-plus')?.addEventListener('click', () => bmScoreAdjust(1));
+document.getElementById('bm-score-save')?.addEventListener('click', () => {
+  if (pendingBenchmarkPrompt) saveBenchmarkRun(pendingBenchmarkPrompt.id, bmScoreVal);
+  pendingBenchmarkPrompt = null;
+  document.getElementById('bm-score').classList.remove('open');
+  renderRehabPage();
+});
+document.getElementById('bm-score-skip')?.addEventListener('click', () => {
+  pendingBenchmarkPrompt = null;
+  document.getElementById('bm-score').classList.remove('open');
+});
+
+// Which variant of a session runs today — drives every `rotate` pool.
+//
+// D40 halves carry a rotating FINISHER, and it's anchored to the BLOCK WEEK,
+// not to how many times you've completed the session. Completed-run counting
+// drifts: miss a week and the rotation desyncs from the printed plan forever,
+// so the sheet on the fridge stops matching the app. Block week can't drift.
+// Rehab sessions (no block) fall back to completed runs.
+const rehabVariantIdx = (sessionId) => {
+  if (sessionId?.startsWith('d40')) {
+    // blockStartISO(), not the raw key — it's what lazily seeds the block, so
+    // reading the key directly can return null on a first-run path and
+    // silently serve the week-1 finisher forever.
+    const w = currentWeek(blockStartISO());
+    return w == null ? 0 : w - 1;
+  }
+  // Rehab sessions only — every programId starts with 'd40' and is handled
+  // above, so this branch never needs to consider one.
+  return (get('workoutHistory') || []).filter(
     (h) =>
       h.rehabId === sessionId ||
       (sessionId === 'daily' && h.rehabId === 'hinge'),
   ).length;
+};
 const isProgramSession = (session) => !!session && session.id.startsWith('d40');
 
 const GUIDED_DEFAULT_KG = {
@@ -1561,7 +1865,35 @@ function guidedRepsFor(exId, repsRange) {
 }
 // The athlete's chosen alternates, keyed by each slot's original exercise.
 const SWAPS_KEY = 'kilos-ex-swaps';
-const getSwaps = () => get(SWAPS_KEY) || {};
+// ── Block 01 ────────────────────────────────────────────────────────────────
+// The block starts itself on first use — this Monday — so there's no setup
+// step between installing and training. Stored as the Monday's ISO date.
+const BLOCK_START_KEY = 'kilos-block-start';
+function blockStartISO() {
+  let v = get(BLOCK_START_KEY);
+  if (!v) {
+    const m = new Date();
+    m.setHours(0, 0, 0, 0);
+    m.setDate(m.getDate() - ((m.getDay() + 6) % 7));
+    v = m.toISOString();
+    set(BLOCK_START_KEY, v);
+  }
+  return v;
+}
+const blockNow = () => blockState(blockStartISO());
+// Apply the week's phase (volume step) AND its piece formats to a session.
+// Safe on anything — returns the session untouched when neither applies.
+// Order matters: phase first (it can add a member), then format (which may
+// need to compute per-round reps for every member, including the new one).
+const phased = (s) => {
+  if (!s) return s;
+  const b = blockNow();
+  return applyFormats(applyPhase(s, b.phase), b.weekInBlock);
+};
+
+// The athlete's own swaps sit ON TOP of the phase's: a deliberate choice in
+// the player always beats the programmed rotation.
+const getSwaps = () => ({ ...blockNow().swaps, ...(get(SWAPS_KEY) || {}) });
 function saveGuidedWeight(exId, kg) {
   const map = get(GUIDED_WEIGHTS_KEY) || {};
   map[exId] = kg;
@@ -1571,6 +1903,16 @@ function saveGuidedWeight(exId, kg) {
 let rhSession = null;
 let rhQueue = [];
 let rhVariant = 0; // which rotation built rhQueue — persisted, so rebuilds match
+let rhPhase = 1; // which block phase built rhQueue — persisted for the same reason
+// A benchmark's time score must measure the WORK. rhStartedAt is when the
+// player opened, which includes the 10s prep and however long the notes were
+// read for; and a crash-restore the next morning would otherwise score ~12h.
+let rhFirstWorkAt = null; // when the first working step was reached
+let rhAwayMs = 0; // time the app was closed mid-run, reconstructed on restore
+const rhWorkSecs = () =>
+  rhFirstWorkAt == null
+    ? 0
+    : Math.max(0, (Date.now() - rhFirstWorkAt - rhAwayMs) / 1000);
 let rhIdx = 0;
 let rhRemainMs = 0;
 let rhEndsAt = 0;
@@ -1578,6 +1920,10 @@ let rhRunning = false;
 let rhInterval = null;
 let rhStartedAt = null;
 let rhCounted = new Set(); // step indices whose set already counted (idempotent)
+// Mirrors rhCounted for EMOM logging: replaying a minute (tap back, let it run
+// out again) must not push the same set twice — that would inflate volume and
+// re-fire a PR toast.
+const rhLoggedEmom = new Set();
 let rhLiftSets = []; // [{weight, reps}] logged RDL sets
 // Two-stage logging for range prescriptions ("5–8"): first tap flips the
 // stepper to reps (prefilled at the range top), second tap logs the truth.
@@ -2022,6 +2368,10 @@ function rhPersist() {
     running: rhRunning,
     startedAt: rhStartedAt,
     counted: [...rhCounted],
+    loggedEmom: [...rhLoggedEmom],
+    phase: rhPhase, // the queue's shape depends on it — see openRehabPlayer
+    firstWorkAt: rhFirstWorkAt,
+    awayMs: rhAwayMs,
     liftSets: rhLiftSets,
     weightKg: rhWeightKg,
     savedAt: Date.now(),
@@ -2067,6 +2417,47 @@ function rhSessionRemainMs() {
 function rhRenderSessionRemain() {
   document.getElementById('rp-count').textContent =
     `${rhFmt(rhSessionRemainMs())} LEFT`;
+}
+
+// A for-time piece counts UP from when the piece began — that number IS the
+// score, so it has to be on screen while the work happens. Started lazily on
+// the first step of the piece and cleared when the piece ends.
+let rhPieceStartedAt = null;
+let rhPieceName = null;
+let rhPieceInterval = null;
+// The main tick loop only runs on countdown steps (rhPlay bails on manual
+// ones), so a self-paced piece needs its own repaint or the clock freezes on
+// its first frame.
+function rhStopPieceClock() {
+  if (rhPieceInterval) clearInterval(rhPieceInterval);
+  rhPieceInterval = null;
+  rhPieceName = null;
+  rhPieceStartedAt = null;
+}
+function rhRenderPieceClock() {
+  const step = rhStep();
+  if (!step) return;
+  if (rhPieceName !== step.piece) {
+    rhPieceName = step.piece;
+    rhPieceStartedAt = Date.now();
+  }
+  if (!rhPieceInterval) {
+    rhPieceInterval = setInterval(() => {
+      const st = rhStep();
+      if (st?.piece && st.manual && st.kind === 'work') rhPaintPieceClock();
+      else rhStopPieceClock();
+    }, 500);
+  }
+  rhPaintPieceClock();
+}
+function rhPaintPieceClock() {
+  if (rhPieceStartedAt == null) return;
+  const secs = Math.floor((Date.now() - rhPieceStartedAt) / 1000);
+  document.getElementById('rp-time').textContent =
+    `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+  document.getElementById('rp-phase').textContent = 'ELAPSED';
+  const bar = document.getElementById('rp-bar');
+  if (bar) bar.style.width = '100%';
 }
 
 function rhRenderClock() {
@@ -2362,9 +2753,17 @@ function rhRenderOverview() {
     .map((row, bi2) => {
       const state =
         lastIdxByBi[bi2] < rhIdx ? 'done' : bi2 === currentBi ? 'current' : '';
+      // A piece is one row by design — but a name alone can't tell you what
+      // you're about to do, so list its movements underneath.
+      const members = row.members?.length
+        ? `<div class="rpo-item-moves">${row.members
+            .map((m) => `<span>${m.name}${m.detail ? ` <b>${m.detail}</b>` : ''}</span>`)
+            .join('')}</div>`
+        : '';
       return `<div class="rpo-item ${state}" ${state === 'current' ? 'data-current' : ''}>
         <div class="rpo-item-title">${row.title}</div>
         <div class="rpo-item-detail">${row.detail}</div>
+        ${members}
         ${row.note ? `<div class="rpo-item-note">${row.note}</div>` : ''}
       </div>`;
     })
@@ -2428,10 +2827,22 @@ function rhCloseSwapSheet() {
 function rhApplySwap(chosenId) {
   const step = rhStep();
   if (!step?.baseEx) return;
+  // Persist ONLY the athlete's own choices. getSwaps() returns the phase's
+  // programmed swaps merged underneath, so writing that whole map back would
+  // freeze this phase's rotation into storage as if he'd picked it — and it
+  // would then override the program for the rest of the block and beyond.
+  const mine = get(SWAPS_KEY) || {};
+  const phase = blockNow().swaps;
+  if (chosenId === step.baseEx) {
+    // Reverting to the slot's own exercise has to STICK even when the phase
+    // programs a swap for it, so record the choice rather than deleting it.
+    if (phase[step.baseEx]) mine[step.baseEx] = step.baseEx;
+    else delete mine[step.baseEx];
+  } else {
+    mine[step.baseEx] = chosenId;
+  }
+  set(SWAPS_KEY, mine);
   const swaps = getSwaps();
-  if (chosenId === step.baseEx) delete swaps[step.baseEx];
-  else swaps[step.baseEx] = chosenId;
-  set(SWAPS_KEY, swaps);
   const rebuilt = buildStepQueue(rhSession, swaps, rhVariant);
   if (rebuilt.length === rhQueue.length) {
     rhQueue = rebuilt;
@@ -2495,13 +2906,17 @@ function rhRenderVoiceBtn() {
 function rhRenderStep() {
   const step = rhStep();
   if (!step) return;
+  if (rhFirstWorkAt == null && step.kind === 'work') rhFirstWorkAt = Date.now();
   const ex = GUIDED_EXERCISES[step.exId];
   const overlay = document.getElementById('rehab-player');
 
   overlay.classList.toggle('phase-rest', step.kind === 'rest');
   overlay.classList.toggle('phase-work', step.kind === 'work');
-  document.getElementById('rp-session-name').textContent =
-    rhSession.name.toUpperCase();
+  // Inside a metcon the header becomes the PIECE, not the session — the whole
+  // point is that these minutes are one named workout, not N separate items.
+  document.getElementById('rp-session-name').textContent = step.piece
+    ? `${step.piece.toUpperCase()} · ${step.pieceFormat}`
+    : rhSession.name.toUpperCase();
   rhRenderSessionRemain();
 
   // Demo — licensed illustration if present, else the built-in figure.
@@ -2512,10 +2927,21 @@ function rhRenderStep() {
   document.getElementById('rp-exname').textContent = ex.name;
   document.getElementById('rp-meta').textContent = step.meta || '';
   const cueEl = document.getElementById('rp-cue');
-  cueEl.textContent =
-    step.kind === 'prep'
-      ? `${ex.cue} — ${ex.why}`
-      : [ex.cue, step.cueNote].filter(Boolean).join(' — ');
+  if (step.amrapMembers) {
+    // An AMRAP is one window with a whole workout in it — the movement list IS
+    // the instruction, so it replaces the single-exercise cue.
+    cueEl.textContent = `${step.amrapMembers
+      .map(
+        (m) =>
+          `${GUIDED_EXERCISES[m.ex]?.name || m.ex} ${m.secs ? `${m.secs}s` : m.reps}`,
+      )
+      .join(' → ')} — as many rounds as you can. ${step.blockNote || ''}`.trim();
+  } else {
+    cueEl.textContent =
+      step.kind === 'prep'
+        ? `${ex.cue} — ${ex.why}`
+        : [ex.cue, step.cueNote].filter(Boolean).join(' — ');
+  }
   // Full cue always shows now (no clamp, compact type) — MORE stays hidden.
   const moreEl = document.getElementById('rp-cue-more');
   if (moreEl) moreEl.style.display = 'none';
@@ -2532,9 +2958,19 @@ function rhRenderStep() {
   }
   document.getElementById('rp-phase').textContent = step.phase;
 
-  // Countdown vs self-paced set (with or without a weight to log)
-  document.getElementById('rp-clock').style.display = step.manual ? 'none' : '';
-  document.getElementById('rp-lift').style.display = step.manual ? '' : 'none';
+  // Countdown vs self-paced set (with or without a weight to log).
+  // An EMOM minute is the one step that shows BOTH: the interval clock runs
+  // the piece, and the weight row sits under it so the load you're using is
+  // set (and logged) without ever stopping the clock.
+  const isEmomWork = !!(step.emom && step.kind === 'work');
+  // A for-time piece is self-paced, so it has no countdown — but it is SCORED
+  // IN TIME, and running one with no visible clock is not a workout. Show a
+  // count-UP from the moment the piece started.
+  const isForTimeWork = !!(step.piece && step.manual && step.kind === 'work');
+  const showLiftPanel = step.manual || (isEmomWork && step.logWeight !== false);
+  document.getElementById('rp-clock').style.display =
+    step.manual && !isForTimeWork ? 'none' : '';
+  document.getElementById('rp-lift').style.display = showLiftPanel ? '' : 'none';
   rhPendingReps = null; // arriving at any step resets the two-stage logger
   const skipBtn = document.getElementById('rp-skip');
   const isManualWork = !!(step.manual && step.kind === 'work');
@@ -2546,9 +2982,10 @@ function rhRenderStep() {
     isManualWork ? 'Log set and continue' : 'Next step',
   );
   skipBtn.classList.toggle('rp-ctrl-log', isManualWork);
-  if (step.manual) {
+  if (step.manual || isEmomWork) {
     const showWeight = step.logWeight !== false;
-    document.querySelector('.rp-weight-row').style.display = showWeight
+    // scoped to the player: the benchmark score sheet has its own dial
+    document.querySelector('#rp-lift .rp-weight-row').style.display = showWeight
       ? ''
       : 'none';
     document.getElementById('rp-set-done').style.display = 'none';
@@ -2585,9 +3022,9 @@ function rhRenderStep() {
       ctxEl.textContent = ctx;
       ctxEl.style.display = ctx ? '' : 'none';
     }
-  } else {
-    rhRenderClock();
   }
+  if (!step.manual) rhRenderClock();
+  else if (isForTimeWork) rhRenderPieceClock();
 
   // Only rests point forward — on prep/work the screen already IS the task.
   document.getElementById('rp-next').textContent =
@@ -2716,9 +3153,41 @@ function rhTick() {
 
 // A timed step ran out — count it, move on, and carry any overflow (e.g. the
 // tab was backgrounded through several steps) into the following steps.
+// An EMOM minute logs itself when the interval runs out — the clock owns the
+// pace, so asking for a tap would either stall the piece or lose the set.
+// The load is whatever the weight row showed for that minute (pre-filled from
+// last time, adjustable mid-minute without pausing anything).
+function rhLogEmomStep(step, kg, idx = rhIdx) {
+  if (!step?.emom || step.kind !== 'work' || step.logWeight === false) return;
+  if (rhLoggedEmom.has(idx)) return;
+  rhLoggedEmom.add(idx);
+  const ex = GUIDED_EXERCISES[step.exId];
+  const weight = kg ?? guidedWeightFor(step.exId);
+  rhLiftSets.push({
+    exId: step.exId,
+    name: ex?.name || step.exId,
+    weight: step.logReps ? 0 : weight,
+    reps: step.logReps ? weight : repTargetTop(step.reps) || 0,
+  });
+  saveGuidedWeight(step.exId, weight);
+  if (
+    !step.logReps &&
+    isProgramSession(rhSession) &&
+    checkAndUpdatePR(ex?.name || step.exId, weight)
+  ) {
+    newPRsThisSession.push({
+      name: ex?.name || step.exId,
+      weight,
+      reps: repTargetTop(step.reps) || 0,
+    });
+    showPRToast(ex?.name || step.exId, weight, repTargetTop(step.reps) || 0);
+  }
+}
+
 function rhComplete(overflowMs = 0) {
   const step = rhStep();
   if (step?.kind === 'work' && step.countsAsSet) rhCounted.add(rhIdx);
+  rhLogEmomStep(step, rhWeightKg);
 
   // A large overflow means the tab was backgrounded/asleep past the step's end
   // (normal tick drift is < 250ms). Don't blow through every remaining step and
@@ -2736,6 +3205,11 @@ function rhComplete(overflowMs = 0) {
       if (carry < dur) break;
       carry -= dur;
       if (next.kind === 'work' && next.countsAsSet) rhCounted.add(idx);
+      // A minute the carry rolled straight through still happened. In
+      // practice `carry` is under 2s and an interval is 60s, so this is a
+      // guard rather than a hot path — but it costs nothing and the
+      // alternative is a silently dropped set.
+      rhLogEmomStep(next, undefined, idx);
       idx++;
     }
   }
@@ -2794,10 +3268,24 @@ function openRehabPlayer(session, saved = null) {
   rhSession = session;
   // A saved run keeps the variant it was built with (its step index maps
   // onto THAT queue); a fresh run picks up wherever the rotation is.
+  // A saved run keeps the PHASE it was built with as well as the variant:
+  // applyPhase can add a member (phase 2 adds a pulldown to "The Spread"),
+  // which shifts every index after that piece. Resuming a week-4 pause on the
+  // Monday of week 5 would otherwise restore rhIdx onto a different step.
+  rhPhase = saved?.phase ?? blockNow().phase;
+  rhFirstWorkAt = saved?.firstWorkAt ?? null;
+  // the app was shut between savedAt and now — that gap was not training
+  rhAwayMs =
+    (saved?.awayMs ?? 0) +
+    (saved?.savedAt ? Math.max(0, Date.now() - saved.savedAt) : 0);
   rhVariant = saved?.variant ?? rehabVariantIdx(session.id);
-  rhQueue = buildStepQueue(session, getSwaps(), rhVariant);
+  rhQueue = buildStepQueue(applyPhase(session, rhPhase), getSwaps(), rhVariant);
   rhIdx = Math.min(saved?.idx ?? 0, rhQueue.length - 1);
   rhCounted = new Set(saved?.counted || []);
+  // mirrors rhCounted's lifetime — a fresh (or restored) run must be able to
+  // log its EMOM minutes again
+  rhLoggedEmom.clear();
+  for (const i of saved?.loggedEmom || []) rhLoggedEmom.add(i);
   rhLiftSets = saved?.liftSets || [];
   rhStartedAt = saved?.startedAt || Date.now();
   rhWeightKg = saved?.weightKg ?? get(REHAB_RDL_KEY) ?? 40;
@@ -2898,6 +3386,23 @@ function rhFinish() {
   const elapsed = Math.floor((Date.now() - rhStartedAt) / 1000);
   const durationStr = `${Math.floor(elapsed / 60)}:${(elapsed % 60).toString().padStart(2, '0')}`;
 
+  // A benchmark's score IS the point of running it, so capture it before the
+  // session state is torn down. 'time' and 'minute' the player can observe;
+  // 'hr' it cannot — the athlete takes their own pulse, so we ask.
+  if (session.benchmark) {
+    const auto = scoreFromRun(session, {
+      // WORK time, not wall-clock. rhStartedAt is when the player opened, so
+      // it includes the 10s prep, however long he read the notes for, and any
+      // pause — an overnight pause after a crash-restore would score ~12h and
+      // the 6% noise band could never survive it.
+      elapsedSecs: rhWorkSecs(),
+      stepsCompleted: rhIdx + 1,
+      queue: rhQueue,
+    });
+    if (auto != null) saveBenchmarkRun(session.id, auto);
+    else setTimeout(() => openBenchmarkScorePrompt(session), 400);
+  }
+
   rhSession = null;
   rhPersist(); // clears the crash-state key
   if (rhWallInterval) clearInterval(rhWallInterval);
@@ -2930,14 +3435,20 @@ function rhFinish() {
       const st = rhQueue[i];
       if (st?.exId) countedByEx[st.exId] = (countedByEx[st.exId] || 0) + 1;
     }
+    // sessionBlocks() resolves the rotation wrappers — a finisher slot is a
+    // bare `{rotate:[…]}` with no `ex`/`members`, so reading session.blocks
+    // raw yielded `undefined` and silently dropped every finisher's sets from
+    // the history entry. The rehab branch below always did this correctly.
     const order = [];
-    for (const b of session.blocks || []) {
+    for (const b of sessionBlocks(session, rhVariant)) {
       for (const ex of b.members ? b.members.map((m) => m.ex) : [b.ex]) {
         if (ex && !order.includes(ex)) order.push(ex);
       }
     }
-    for (const exId of byEx.keys()) {
-      if (!order.includes(exId)) order.push(exId); // swapped-in safety
+    // Anything the queue actually counted but the blocks didn't name (a
+    // swapped-in alternate, a timed carry) still has to reach the entry.
+    for (const exId of [...byEx.keys(), ...Object.keys(countedByEx)]) {
+      if (!order.includes(exId)) order.push(exId);
     }
     const exercises = [];
     for (const exId of order) {
@@ -3029,6 +3540,154 @@ function rhFinish() {
 // ── Week plan — Mon…Sun with dates; fills in as things get done ──────────────
 const WEEK_MARKS_KEY = 'kilos-week-marks';
 
+// ── The block calendar ──────────────────────────────────────────────────────
+// The whole 12 weeks, every session, laid out the way the program actually is:
+// PART A (quality — anchor, hinge, power) then PART B (the piece on a clock)
+// then the FINISHER. Built from exactly the same calls as scripts/block-sheet
+// (applyPhase → applyFormats → sessionOverview), so the app and the printed
+// sheet can never disagree.
+//
+// Only the open week computes its days. 12 weeks x 7 days of sessionOverview
+// on every render would be wasted work on a page that opens between sets.
+let calOpenWeek = null;
+
+function calDayPlan(sessionId, week, isRehab = false) {
+  const ph = phaseOf(week);
+  const base = isRehab ? getRehabSession(sessionId) : getProgramSession(sessionId);
+  if (!base) return null;
+  const s = applyFormats(applyPhase(base, ph), week);
+  const v = sessionVariantCount(s) > 1 ? week - 1 : 0;
+  const rows = sessionOverview(s, phaseSwaps(ph), v);
+  const pieces = rows.filter((r) => r.piece);
+  const hasFin = sessionVariantCount(s) > 1;
+  return {
+    id: s.id,
+    name: s.name,
+    mins: Math.round(estimateSessionSecs(s, v) / 60),
+    // the ramp is a warm-up, not prescribed work — it says "not logged" and
+    // only adds noise to a calendar you scan between sets
+    partA: rows.filter((r) => !r.piece && !/warm-up ramp/.test(r.title)),
+    partB: hasFin ? pieces.slice(0, -1) : pieces,
+    finisher: hasFin ? pieces.at(-1) : null,
+  };
+}
+
+const esc = escapeHtml;
+const calMoves = (row) =>
+  (row.members || [])
+    .map((m) => `${esc(m.name)}${m.detail ? ` <b>${esc(m.detail)}</b>` : ''}`)
+    .join(' · ');
+
+function calPartLine(tag, cls, title, detail, members) {
+  return `<div class="cal-part"><span class="cal-tag ${cls}">${tag}</span>
+    <span class="cal-part-body"><span class="cal-pt">${esc(title)}</span>${
+      detail ? `<span class="cal-pd"> · ${esc(detail)}</span>` : ''
+    }${members ? `<span class="cal-mv">${members}</span>` : ''}</span></div>`;
+}
+
+function renderBlockCalendar() {
+  const el = document.getElementById('block-calendar');
+  if (!el) return;
+  const startISO = blockStartISO();
+  const nowWeek = Math.min(currentWeek(startISO) ?? 1, BLOCK_WEEKS);
+  if (calOpenWeek == null) calOpenWeek = nowWeek;
+
+  const hist = get('workoutHistory') || [];
+  const doneOn = new Set(
+    hist.map((h) => `${dateKey(new Date(h.date))}|${h.programId || h.rehabId}`),
+  );
+  const todayK = dateKey(new Date());
+
+  const weeks = [];
+  for (let w = 1; w <= BLOCK_WEEKS; w++) {
+    const monday = weekStart(startISO, w);
+    const tests = testsForWeek(w).map((id) => getBenchmark(id)?.name).filter(Boolean);
+    const open = w === calOpenWeek;
+    const flags = [
+      tests.length ? `<span class="cal-flag">TEST · ${tests.join(' + ').toUpperCase()}</span>` : '',
+      isDeloadCheckpoint(w) ? '<span class="cal-flag">DELOAD CHECKPOINT</span>' : '',
+      w === 5 ? '<span class="cal-flag cal-flag-dim">PHASE 2 — accessories rotate, +3 lat sets</span>' : '',
+      w === 9 ? '<span class="cal-flag cal-flag-dim">PHASE 3 — accessories rotate, +2 quad sets</span>' : '',
+    ].join('');
+
+    let body = '';
+    if (open) {
+      const rows = [];
+      for (const offset of [1, 2, 3, 4, 5, 6, 0]) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + ((offset + 6) % 7));
+        const k = dateKey(d);
+        const lift = WEEK_PLAN[offset].find((i) => i.type === 'lift');
+        const plans = lift
+          ? [calDayPlan(lift.session, w)]
+          : WEEK_PLAN[offset]
+              .filter((i) => i.type === 'rehab' && i.session)
+              .map((i) => calDayPlan(i.session, w, true));
+        const mins =
+          Math.round(estimateSessionSecs(getRehabSession('daily')) / 60) +
+          plans.reduce((a, p) => a + (p?.mins || 0), 0);
+        const isDone = plans.some((p) => p && doneOn.has(`${k}|${p.id}`));
+        const parts = plans
+          .filter(Boolean)
+          .map((p) =>
+            [
+              p.partA.length
+                ? calPartLine('A', 'cal-a', p.partA.map((r) => `${r.title} ${r.detail}`).join(' · '), '', '')
+                : '',
+              ...p.partB.map((r) => calPartLine('B', 'cal-b', r.title, r.detail, calMoves(r))),
+              p.finisher
+                ? calPartLine('F', 'cal-f', p.finisher.title, p.finisher.detail, calMoves(p.finisher))
+                : '',
+            ].join(''),
+          )
+          .join('');
+        rows.push(`
+          <button class="cal-day${k === todayK ? ' cal-today' : ''}${isDone ? ' cal-done' : ''}"
+                  data-cal-session="${plans[0]?.id || ''}">
+            <div class="cal-day-top">
+              <span class="cal-dow">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][offset]}</span>
+              <span class="cal-name">${esc(plans.map((p) => p?.name).filter(Boolean).join(' + ') || 'Rest')}</span>
+              <span class="cal-mins">${isDone ? '✓ ' : ''}${mins}m</span>
+            </div>
+            ${parts}
+          </button>`);
+      }
+      body = `<div class="cal-days">${rows.join('')}</div>`;
+    }
+
+    weeks.push(`
+      <div class="cal-week${open ? ' open' : ''}${w === nowWeek ? ' cal-now' : ''}">
+        <button class="cal-week-head" data-cal-week="${w}" aria-expanded="${open}">
+          <span class="cal-wk">WK ${w}</span>
+          <span class="cal-phase">${PHASE_NAMES[phaseOf(w)]}</span>
+          <span class="cal-dates">${weekStart(startISO, w).getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][monday.getMonth()]}</span>
+          <span class="cal-caret">${open ? '−' : '+'}</span>
+        </button>
+        ${flags ? `<div class="cal-flags">${flags}</div>` : ''}
+        ${body}
+      </div>`);
+  }
+  el.innerHTML = weeks.join('');
+
+  el.querySelectorAll('[data-cal-week]').forEach((b) => {
+    b.addEventListener('click', () => {
+      const w = Number(b.dataset.calWeek);
+      calOpenWeek = calOpenWeek === w ? null : w;
+      renderBlockCalendar();
+    });
+  });
+  el.querySelectorAll('[data-cal-session]').forEach((b) => {
+    b.addEventListener('click', () => {
+      const id = b.dataset.calSession;
+      if (!id) return;
+      try {
+        localStorage.removeItem(REHAB_STATE_KEY);
+      } catch {}
+      openRehabPlayer(getGuidedSession(id));
+    });
+  });
+}
+
 function renderWeekPlan() {
   const el = document.getElementById('week-plan');
   if (!el) return;
@@ -3069,16 +3728,19 @@ function renderWeekPlan() {
         let done = false;
         let action = '';
         if (item.type === 'rehab') {
-          label = 'REHAB';
+          // Defaults to the daily protocol; Sunday pins 'open-up' (the glute
+          // + stretch work that used to run inside the rehab every day).
+          const rid = item.session || 'daily';
+          label =
+            rid === 'daily'
+              ? 'REHAB'
+              : (getRehabSession(rid)?.name || rid).toUpperCase();
           // 'hinge' = legacy entries from when the hinge was a separate session
           done = entries.some(
-            (h) => h.rehabId === 'daily' || h.rehabId === 'hinge',
+            (h) =>
+              h.rehabId === rid || (rid === 'daily' && h.rehabId === 'hinge'),
           );
-          action = 'session:daily';
-        } else if (item.type === 'power') {
-          label = 'POWER';
-          done = entries.some((h) => h.rehabId === 'power');
-          action = 'session:power';
+          action = `session:${rid}`;
         } else if (item.type === 'lift') {
           const pinned = item.session ? getProgramSession(item.session) : null;
           const doneEntry = pinned
@@ -3125,7 +3787,7 @@ function renderWeekPlan() {
     </div>`);
   }
   el.innerHTML = `${rows.join('')}
-    <div class="wp-legend">REHAB the daily back protocol (hinge rotates in) · POWER the fast primer · PULL / LEGS / PUSH the week's lifts · ENGINE conditioning</div>`;
+    <div class="wp-legend">REHAB the daily 10-min back protocol · PULL / ARMS / LEGS / DELTS / PUSH / CHEST the week's six half-sessions · OPEN UP glutes + stretches · THE LONG WAY easy conditioning</div>`;
 
   el.querySelectorAll('.wp-chip[data-action]').forEach((chip) => {
     chip.addEventListener('click', () => {
@@ -3416,20 +4078,20 @@ function renderRehabPage() {
   const cursor = get('kilos-d40-cursor') || 0;
   document.getElementById('d40-session-list').innerHTML =
     DENSITY40_SESSIONS.map(
-      (s2, i) => `
+      (raw, i) => { const s2 = phased(raw); return `
     <button class="rhs-card${i === cursor ? ' rh-resume' : ''}" data-d40="${s2.id}">
       <div class="rhs-top"><div class="rhs-name">${s2.name}</div><div class="rhs-go">${i === cursor ? 'NEXT →' : '→'}</div></div>
       <div class="rhs-meta">~${estimateSessionMins(s2)} MIN · ${s2.freq.toUpperCase()}</div>
       <div class="rhs-blurb">${s2.blurb}</div>
       ${i !== cursor ? `<span class="rhs-setnext" data-setnext="${i}" role="button">SET AS NEXT</span>` : ''}
-    </button>`,
+    </button>`; },
     ).join('');
   document.querySelectorAll('#d40-session-list [data-d40]').forEach((card) => {
     card.addEventListener('click', () => {
       try {
         localStorage.removeItem(REHAB_STATE_KEY);
       } catch {}
-      openRehabPlayer(getProgramSession(card.dataset.d40));
+      openRehabPlayer(phased(getProgramSession(card.dataset.d40)));
     });
   });
   // Queue control — every finish advances the rotation (test runs included),
@@ -3444,6 +4106,41 @@ function renderRehabPage() {
       renderMonthGrid();
     });
   });
+
+  renderBlockBanner();
+  renderBlockCalendar();
+  renderBlockProgress();
+
+  // ── Benchmarks — the "is it working?" layer ──
+  // A benchmark is only worth running if you can see the last score, so each
+  // card carries its own history. Retest cadence is on the card too, because
+  // retesting sooner than that is measuring noise, not fitness (Fight Gone
+  // Bad's SEM is 6% — the only published noise floor for a metcon).
+  document.getElementById('benchmark-list').innerHTML = BENCHMARK_SESSIONS.map(
+    (b) => {
+      const runs = benchmarkRuns(b.id);
+      const last = runs[0];
+      const prev = runs[1];
+      const trend =
+        last && prev ? benchmarkTrend(b, last.score, prev.score) : '';
+      return `
+    <button class="rhs-card" data-benchmark="${b.id}">
+      <div class="rhs-top"><div class="rhs-name">${b.name}</div><div class="rhs-go">→</div></div>
+      <div class="rhs-meta">${b.freq.toUpperCase()}${last ? ` · LAST ${benchmarkScoreLabel(b, last.score)}${trend}` : ' · NOT YET TESTED'}</div>
+      <div class="rhs-blurb">${b.blurb}</div>
+    </button>`;
+    },
+  ).join('');
+  document
+    .querySelectorAll('#benchmark-list [data-benchmark]')
+    .forEach((card) => {
+      card.addEventListener('click', () => {
+        try {
+          localStorage.removeItem(REHAB_STATE_KEY);
+        } catch {}
+        openRehabPlayer(getBenchmark(card.dataset.benchmark));
+      });
+    });
 
   // Every movement the program can serve (all rotations), in program order —
   // not the whole REHAB_EXERCISES dict, which keeps retired moves around so
@@ -3511,6 +4208,17 @@ document.getElementById('rp-skip').addEventListener('click', () => {
   const step = rhStep();
   if (step?.manual && step.kind === 'work') {
     rhLogSetDone(); // the ✓ — same control, no extra button
+    return;
+  }
+  // An EMOM minute normally logs itself when the interval expires. Tapping
+  // forward instead (finished the reps in 25s, don't want to wait) must log
+  // it too — otherwise the control quietly discards the set, and losing a
+  // logged set is the one thing this app must never do.
+  if (step?.emom && step.kind === 'work') {
+    if (step.countsAsSet) rhCounted.add(rhIdx);
+    rhLogEmomStep(step, rhWeightKg);
+    rhJump(1);
+    if (!rhStep()?.manual) rhPlay();
     return;
   }
   rhJump(1);
@@ -3741,22 +4449,15 @@ function todayPlan() {
   const marks = get(WEEK_MARKS_KEY)?.[todayK] || [];
   return WEEK_PLAN[new Date().getDay()].map((item) => {
     if (item.type === 'rehab') {
+      const rid = item.session || 'daily';
       return {
         type: 'rehab',
-        label: 'Rehab',
+        label: rid === 'daily' ? 'Rehab' : getRehabSession(rid)?.name || rid,
         // 'hinge' = legacy entries from the old split session
         done: entries.some(
-          (h) => h.rehabId === 'daily' || h.rehabId === 'hinge',
+          (h) => h.rehabId === rid || (rid === 'daily' && h.rehabId === 'hinge'),
         ),
-        sessionId: 'daily',
-      };
-    }
-    if (item.type === 'power') {
-      return {
-        type: 'power',
-        label: 'Power',
-        done: entries.some((h) => h.rehabId === 'power'),
-        sessionId: 'power',
+        sessionId: rid,
       };
     }
     if (item.type === 'lift') {
