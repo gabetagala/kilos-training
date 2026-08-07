@@ -676,6 +676,19 @@ function renderScreen(id) {
 document.querySelectorAll('.nav-btn').forEach((btn) => {
   btn.addEventListener('click', () => goScreen(btn.dataset.screen));
 });
+
+// Home's poster type is measured to fit its column (fitLineFont bakes a px
+// size in), so resizing a laptop window — or crossing the 1000px layout
+// breakpoint — leaves it fitted to a width that no longer exists. Re-fit the
+// two poster lines only; never re-render mid-session.
+let refitTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(refitTimer);
+  refitTimer = setTimeout(() => {
+    renderDayHero();
+    renderTodayCard();
+  }, 150);
+});
 for (const [btnId, listId] of [['rh-toggle-moves', 'rehab-ex-list']]) {
   document.getElementById(btnId)?.addEventListener('click', () => {
     const list = document.getElementById(listId);
@@ -751,8 +764,13 @@ function renderDayHero() {
     helloEl.innerHTML = `
       <span class="dg-line${rc}" id="dg-l1">${salut},</span>
       <span class="dg-line${rc}" id="dg-l2">${capName}.</span>`;
-    fitLineFont(document.getElementById('dg-l1'), 72, 42);
-    fitLineFont(document.getElementById('dg-l2'), 72, 42);
+    // 72px is a headline on a 390px phone; on a laptop poster it looks timid.
+    // But the poster has to fit the greeting, the month AND today's session in
+    // one fold — on a short laptop the greeting is what gives. Pairs with the
+    // max-height ladder at the end of style.css.
+    const helloMax = isLaptop() ? (window.innerHeight < 860 ? 76 : 104) : 72;
+    fitLineFont(document.getElementById('dg-l1'), helloMax, 42);
+    fitLineFont(document.getElementById('dg-l2'), helloMax, 42);
   }
   const b = (t) => `<strong>${t}</strong>`;
   const history = get('workoutHistory') || [];
@@ -4534,6 +4552,13 @@ function todayPlan() {
 }
 
 // Scale a one-line element's font so the text fills its box (poster move).
+// The laptop layout breakpoint, in one place — the poster type steps up here
+// and the CSS grid does too, so the two must agree. Keep in sync with the
+// `@media (min-width: 1000px)` block at the end of style.css.
+function isLaptop() {
+  return window.matchMedia('(min-width: 1000px)').matches;
+}
+
 function fitLineFont(el, maxPx, minPx) {
   if (!el) return;
   el.style.whiteSpace = 'nowrap';
@@ -4565,7 +4590,7 @@ function renderTodayCard() {
       <span class="tl-sub">${live.kind === 'classic' ? 'IN PROGRESS' : 'PAUSED'} · PICK UP WHERE YOU LEFT OFF</span>
       <span class="tl-arrow">→</span>`;
     card.onclick = resumeActiveSession;
-    fitLineFont(card.querySelector('.tl-text'), 82, 32);
+    fitLineFont(card.querySelector('.tl-text'), isLaptop() ? 104 : 82, 32);
     return;
   }
   if (!history.length) {
@@ -4578,7 +4603,7 @@ function renderTodayCard() {
       renderRehabPage();
       openPage('rehab-page');
     };
-    fitLineFont(card.querySelector('.tl-text'), 82, 32);
+    fitLineFont(card.querySelector('.tl-text'), isLaptop() ? 104 : 82, 32);
     return;
   }
   const plan = todayPlan();
@@ -4618,7 +4643,7 @@ function renderTodayCard() {
     <span class="tl-text">${undone.map((i) => i.label.toUpperCase()).join(' + ')}</span>
     ${moveLine ? `<span class="tl-sub">${moveLine}${mins.toUpperCase()}</span>` : ''}
     <span class="tl-arrow">→</span>`;
-  fitLineFont(card.querySelector('.tl-text'), 82, 32);
+  fitLineFont(card.querySelector('.tl-text'), isLaptop() ? 104 : 82, 32);
   card.onclick = () => {
     if (session) {
       const rest = undone.filter((i) => i.sessionId && i !== first);
@@ -8282,6 +8307,12 @@ function syncNavVisibility() {
     !!document.getElementById('rehab-player')?.classList.contains('open') ||
     !!document.getElementById('workout-summary')?.classList.contains('open');
   nav.classList.toggle('nav-hidden', onActive || overlayOpen);
+  // Why it's hidden matters on a laptop. Mid-session the nav goes away on every
+  // size — the workout owns the screen. For an overlay it only goes away
+  // because the floating pill would bleed across the page; the left rail sits
+  // BESIDE the canvas and never overlaps it, so the rail stays. See the
+  // `.nav-hidden-overlay` rule in the ≥1000px block.
+  nav.classList.toggle('nav-hidden-overlay', !onActive && overlayOpen);
 }
 function syncChrome() {
   syncThemeColor();

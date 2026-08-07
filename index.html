@@ -84,20 +84,24 @@
           <button id="today-card" class="today-line" style="display:none"></button>
         </div>
 
-        <!-- Rest-day card — injected by JS when no session today -->
-        <div id="rest-day-card" style="display:none"></div>
+        <!-- Everything after the poster. `display: contents` on a phone, so this
+             wrapper is invisible there; on a laptop it becomes the right column. -->
+        <div class="pane home-side">
+          <!-- Rest-day card — injected by JS when no session today -->
+          <div id="rest-day-card" style="display:none"></div>
 
-        <div class="recent-section">
-          <div class="section-label">Recent sessions</div>
-          <div id="recent-list"></div>
-        </div>
-
-        <!-- Data safety notice -->
-        <div class="data-notice">
-          <div class="dn-top">
-            <span class="dn-label">This device only</span>
+          <div class="recent-section">
+            <div class="section-label">Recent sessions</div>
+            <div id="recent-list"></div>
           </div>
-          <div class="dn-sub">Create an account to sync across devices — no email needed.</div>
+
+          <!-- Data safety notice -->
+          <div class="data-notice">
+            <div class="dn-top">
+              <span class="dn-label">This device only</span>
+            </div>
+            <div class="dn-sub">Create an account to sync across devices — no email needed.</div>
+          </div>
         </div>
         <!-- Hidden file input for restore (triggered from settings/profile only) -->
         <input type="file" id="import-file" accept=".json" style="display:none">
@@ -143,6 +147,10 @@
       <!-- ATHLETE — name first, then records + settings, no header band -->
       <div id="history" class="screen">
         <div class="ath-settings">
+          <!-- Three panes. `display: contents` on a phone (so the stack is
+               untouched); on a laptop A + C go left and B — the tall one —
+               goes right. One shared mapping can't serve this page. -->
+          <div class="pane ath-a">
           <div class="prof-section">
             <div class="prof-label">YOUR NAME</div>
             <input class="prof-name-input" id="prof-name-input" aria-label="Your name" type="text" placeholder="Your name" autocomplete="off" spellcheck="false">
@@ -151,6 +159,8 @@
             <div class="prof-label">WHERE DO YOU TRAIN</div>
             <div class="prof-eq-grid collapsed" id="prof-eq-grid"></div>
           </div>
+          </div>
+          <div class="pane ath-b">
           <div class="prof-section">
             <div class="pr-board-head">
               <div class="section-label history-pr-label">Personal Records</div>
@@ -167,6 +177,8 @@
             <div class="prof-label">THE LOG</div>
             <div id="history-list"></div>
           </div>
+          </div>
+          <div class="pane ath-c">
           <div class="prof-section">
             <div class="prof-label">WEIGHT UNIT</div>
             <div class="prof-unit-row">
@@ -186,6 +198,7 @@
             <button class="prof-link" id="btn-check-update">Check for update</button>
             <div class="prof-version" id="build-stamp"></div>
             <div class="prof-about-foot">KILOS — Train heavy. Free forever.<br>Your data is yours: export or delete it anytime.</div>
+          </div>
           </div>
         </div>
       </div>
@@ -348,8 +361,14 @@
 
     </div><!-- /screens -->
 
-    <!-- NAV -->
+    <!-- NAV — a floating pill on a phone, the left rail on a laptop.
+         The rail carries the wordmark and the promise; both are hidden below
+         1000px, where the pill hugs its three icons. -->
     <nav id="nav">
+      <div class="nav-mark" aria-hidden="true">
+        <span class="nm-kilos">KILOS</span>
+        <span class="nm-training">TRAINING</span>
+      </div>
       <button class="nav-btn active" data-screen="home">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5 12 5l8 6.5"/><path d="M6 10.5V19a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-8.5"/></svg>
         <span>Home</span>
@@ -362,6 +381,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.4"/><path d="M5.5 19.5a6.5 6.5 0 0 1 13 0"/></svg>
         <span>Athlete</span>
       </button>
+      <div class="nav-foot" aria-hidden="true">
+        <span class="nav-beta">Beta</span>
+        <span class="nav-promise">Train heavy.<br>Free forever.</span>
+      </div>
     </nav>
 
     <!-- ONBOARDING -->
@@ -740,6 +763,10 @@
         <div class="rp-count" id="rp-count">–</div>
       </div>
       <div class="rp-demo" id="rp-demo"></div>
+      <!-- Everything that isn't the movement. `display: contents` on a phone,
+           so the stack is exactly what it always was; on a laptop it becomes
+           the right half of the 50/50 split. -->
+      <div class="pane rp-side">
       <div class="rp-exname" id="rp-exname">—</div>
       <div class="rp-meta" id="rp-meta"></div>
       <p class="rp-cue" id="rp-cue"></p>
@@ -765,6 +792,7 @@
         <button class="rp-done" id="rp-set-done">Set done →</button>
       </div>
       <div class="rp-next" id="rp-next"></div>
+      </div>
       <!-- Session overview sheet — peek at done / current / upcoming -->
       <div class="rpo-overlay" id="rp-overview">
         <div class="rpo-sheet">
