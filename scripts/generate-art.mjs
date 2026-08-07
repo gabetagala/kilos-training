@@ -67,6 +67,7 @@ const DRY = flag('dry-run');
 // — flash failed ~half the catalog, pro passed the hardest cases first try.
 // If this preview id is ever retired, fall back with --model.
 const MODEL = opt('model', 'gemini-3-pro-image-preview');
+const SIZE = opt('size', '2K'); // 1K | 2K | 4K — see generateImage
 const REF_PATH = resolve(ROOT, opt('ref', 'public/rehab/rdl-a.webp'));
 
 // ── API key: env first, .env.local second (gitignored) ───────────────────────
@@ -129,7 +130,15 @@ async function generateImage(key, prompt, refBuffer, refMime) {
         ],
       },
     ],
-    generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },
+    // Without imageConfig the model returns 1408×768. A side-by-side pair then
+    // splits into two ~600px figures — already upscaled at 1x in the player's
+    // laptop layout, and ~3x on a retina panel. 2K returns 2816×1536, so each
+    // split figure lands ~1200-1400px and nothing is ever enlarged. 4K works
+    // too but is a 5MB JPEG per call for detail this flat art doesn't carry.
+    generationConfig: {
+      responseModalities: ['TEXT', 'IMAGE'],
+      imageConfig: { imageSize: SIZE },
+    },
   };
   for (let attempt = 1; attempt <= 3; attempt++) {
     const res = await fetch(
@@ -244,8 +253,8 @@ async function knockOut(buffer) {
       for (const p of comp) cleared[p] = 1;
     }
   }
-  // Alpha + fringe soften: near-key pixels touching background keep a
-  // proportional alpha and lose the pink tint.
+  // Alpha ramp: near-key pixels touching background keep a proportional alpha
+  // so the silhouette stays anti-aliased instead of stair-stepping.
   for (let p = 0; p < w * h; p++) {
     const i = p * 4;
     if (cleared[p]) {
@@ -265,10 +274,137 @@ async function knockOut(buffer) {
       data[i + 3] = Math.round(
         (255 * Math.max(0, d - FLOOD)) / (BLEND - FLOOD),
       );
-      data[i] = data[i + 2] = data[i + 1]; // kill the magenta fringe
     }
   }
+  // De-fringe here (the split and the trim both want clean colour); the bleed
+  // runs last, in exportRaw, because `trim` keys on fully-transparent pixels
+  // and would stop working once there's colour under them.
+  deFringe(data, w, h);
   return { data, info: { width: w, height: h, channels: 4 } };
+}
+
+// ── the two passes that keep magenta out of the finished file ────────────────
+// Between them these fix the violet halo the art carried until 2026-08.
+// It had two sources, and killing only one leaves it visible:
+//
+//   1. Gemini returns JPEG. Lossy DCT smears the #FF00FF background INTO the
+//      figure's own opaque edge pixels before the knockout ever sees them, so
+//      clearing the background can't remove it — those pixels are the figure.
+//   2. Clearing a pixel only sets alpha to 0; its RGB stayed magenta. Our own
+//      lossy webp encode then smeared that back out over the silhouette,
+//      because webp compresses colour in blocks with no regard for alpha.
+//
+// A cast toward pink is unambiguous here: the palette (skin, grey, charcoal,
+// white) contains no pink by design, so anything pink is contamination.
+
+const pinkCast = (d, i) => Math.min(d[i], d[i + 2]) - d[i + 1];
+
+// (1) Repaint contaminated figure pixels from their clean neighbours.
+function deFringe(data, w, h, tint = 10, radius = 4, rounds = 5) {
+  for (let round = 0; round < rounds; round++) {
+    const fix = [];
+    for (let p = 0; p < w * h; p++) {
+      const i = p * 4;
+      if (data[i + 3] === 0) continue;
+      if (pinkCast(data, i) > tint) fix.push(p);
+    }
+    if (!fix.length) return;
+    const patch = new Map();
+    for (const p of fix) {
+      const x = p % w;
+      const y = (p / w) | 0;
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      let n = 0;
+      for (let dy = -radius; dy <= radius; dy++) {
+        const yy = y + dy;
+        if (yy < 0 || yy >= h) continue;
+        for (let dx = -radius; dx <= radius; dx++) {
+          const xx = x + dx;
+          if (xx < 0 || xx >= w) continue;
+          const j = (yy * w + xx) * 4;
+          // only opaque, uncontaminated pixels are trustworthy sources
+          if (data[j + 3] > 200 && pinkCast(data, j) <= tint) {
+            r += data[j];
+            g += data[j + 1];
+            b += data[j + 2];
+            n++;
+          }
+        }
+      }
+      if (n) patch.set(p, [(r / n) | 0, (g / n) | 0, (b / n) | 0]);
+    }
+    if (!patch.size) return; // nothing clean left to sample — stop, don't grey it out
+    for (const [p, c] of patch) {
+      const i = p * 4;
+      data[i] = c[0];
+      data[i + 1] = c[1];
+      data[i + 2] = c[2];
+    }
+  }
+}
+
+// (2) Push the figure's edge colour outward UNDER the transparency, so the
+// webp encoder has neutral colour to smear instead of magenta. Alpha is never
+// touched — this is invisible on its own and only matters at encode time.
+// A frontier walk, not a full-image pass: cost is perimeter × depth, which
+// matters at 2K where a naive scan over 4M pixels per iteration would crawl.
+function bleedUnderAlpha(data, w, h, depth = 24) {
+  const known = new Uint8Array(w * h);
+  let frontier = [];
+  for (let p = 0; p < w * h; p++) {
+    if (data[p * 4 + 3] > 0) {
+      known[p] = 1;
+      frontier.push(p);
+    }
+  }
+  for (let step = 0; step < depth && frontier.length; step++) {
+    const next = [];
+    const patch = new Map();
+    for (const p of frontier) {
+      const x = p % w;
+      const y = (p / w) | 0;
+      for (const q of [
+        x > 0 ? p - 1 : -1,
+        x < w - 1 ? p + 1 : -1,
+        y > 0 ? p - w : -1,
+        y < h - 1 ? p + w : -1,
+      ]) {
+        if (q < 0 || known[q] || patch.has(q)) continue;
+        const qx = q % w;
+        const qy = (q / w) | 0;
+        let r = 0;
+        let g = 0;
+        let b = 0;
+        let n = 0;
+        for (const s of [
+          qx > 0 ? q - 1 : -1,
+          qx < w - 1 ? q + 1 : -1,
+          qy > 0 ? q - w : -1,
+          qy < h - 1 ? q + w : -1,
+        ]) {
+          if (s >= 0 && known[s]) {
+            const j = s * 4;
+            r += data[j];
+            g += data[j + 1];
+            b += data[j + 2];
+            n++;
+          }
+        }
+        if (n) patch.set(q, [(r / n) | 0, (g / n) | 0, (b / n) | 0]);
+      }
+    }
+    for (const [q, c] of patch) {
+      const j = q * 4;
+      data[j] = c[0];
+      data[j + 1] = c[1];
+      data[j + 2] = c[2];
+      known[q] = 1;
+      next.push(q);
+    }
+    frontier = next;
+  }
 }
 
 // ── pair split: cut at the emptiest column (or row, for stacked pairs) ───────
@@ -320,30 +456,67 @@ function splitPair({ data, info }, stack = false) {
 }
 
 // ── export: trim to content, pad, resize, webp ───────────────────────────────
+// The player's laptop layout draws the figure in a ~628px CSS box, which is
+// ~1256 device px on a retina panel. 1400 clears that without paying for
+// detail nobody sees; `withoutEnlargement` means a smaller crop stays honest.
+const EXPORT_MAX = Number(opt('max', '1400'));
 const CLEAR = { r: 0, g: 0, b: 0, alpha: 0 };
 async function exportRaw(raw, file) {
-  await sharp(raw.data, { raw: raw.info })
+  // Shape it first. sharp premultiplies alpha when resizing, so whatever sits
+  // under the transparency contributes nothing here.
+  const shaped = await sharp(raw.data, { raw: raw.info })
     .trim({ background: CLEAR })
     .extend({ top: 24, bottom: 24, left: 24, right: 24, background: CLEAR })
     .resize({
-      width: 1024,
-      height: 1280,
+      width: EXPORT_MAX,
+      height: EXPORT_MAX,
       fit: 'inside',
-      withoutEnlargement: true,
+      withoutEnlargement: true, // never fake detail the model didn't draw
     })
-    .webp({ quality: 88 })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  // Then, at final size and immediately before the encoder runs, give it
+  // neutral colour under the alpha instead of magenta.
+  const stain = magentaShare(shaped.data, shaped.info.width, shaped.info.height);
+  bleedUnderAlpha(shaped.data, shaped.info.width, shaped.info.height);
+  await sharp(shaped.data, {
+    raw: { ...shaped.info, channels: 4 },
+  })
+    .webp({ quality: 86, alphaQuality: 100, effort: 6 })
     .toFile(join(OUT_DIR, file));
+  return stain;
+}
+
+// A bad roll — the model drawing a half-formed extra figure that dissolves into
+// the chroma background — lands as a large PINK region the knockout can't
+// clear, because it isn't close enough to the key to flood and isn't saturated
+// enough to trip isPink. Nothing upstream catches it: the split still
+// "succeeds" and the file still writes, so the run reports ✓ on art that is
+// visibly broken. Measure the finished pixels and say so.
+// Purple bands and cable stacks are real artwork, hence a share threshold
+// rather than a flat count — they sit under 1.5%, a ghost figure runs 2-20%.
+const STAIN_LIMIT = 0.018;
+function magentaShare(data, w, h) {
+  let opaque = 0;
+  let pink = 0;
+  for (let p = 0; p < w * h; p++) {
+    const i = p * 4;
+    if (data[i + 3] <= 200) continue;
+    opaque++;
+    if (pinkCast(data, i) > 40) pink++;
+  }
+  return opaque ? pink / opaque : 0;
 }
 async function exportOpaque(buffer, file) {
   // knockout found no chroma key — save as-is so the review sheet shows it
   await sharp(buffer)
     .resize({
-      width: 1024,
-      height: 1280,
+      width: EXPORT_MAX,
+      height: EXPORT_MAX,
       fit: 'inside',
-      withoutEnlargement: true,
+      withoutEnlargement: true, // never fake detail the model didn't draw
     })
-    .webp({ quality: 88 })
+    .webp({ quality: 86, alphaQuality: 100, effort: 6 })
     .toFile(join(OUT_DIR, file));
 }
 
@@ -426,8 +599,15 @@ for (const id of targets) {
     continue;
   }
   if (!entry.b) {
-    await exportRaw(cut, `${id}-a.webp`);
-    console.log(`  ✓ ${id}-a.webp`);
+    const stain = await exportRaw(cut, `${id}-a.webp`);
+    if (stain > STAIN_LIMIT) {
+      failures.push(id);
+      console.warn(
+        `  ⚠ ${id}-a.webp — ${(stain * 100).toFixed(1)}% of the figure is chroma stain (bad roll, re-run)`,
+      );
+    } else {
+      console.log(`  ✓ ${id}-a.webp`);
+    }
     continue;
   }
   const pair = splitPair(cut, !!entry.stack);
@@ -439,9 +619,17 @@ for (const id of targets) {
     );
     continue;
   }
-  await exportRaw(pair.first, `${id}-a.webp`);
-  await exportRaw(pair.second, `${id}-b.webp`);
-  console.log(`  ✓ ${id}-a.webp + ${id}-b.webp`);
+  const stainA = await exportRaw(pair.first, `${id}-a.webp`);
+  const stainB = await exportRaw(pair.second, `${id}-b.webp`);
+  const stain = Math.max(stainA, stainB);
+  if (stain > STAIN_LIMIT) {
+    failures.push(id);
+    console.warn(
+      `  ⚠ ${id}-a/b.webp — ${(stain * 100).toFixed(1)}% of the figure is chroma stain (bad roll, re-run)`,
+    );
+  } else {
+    console.log(`  ✓ ${id}-a.webp + ${id}-b.webp`);
+  }
 }
 
 writeReviewSheet();

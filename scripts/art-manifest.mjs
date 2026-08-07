@@ -64,6 +64,10 @@ export const ART_MANIFEST = {
     b: 'head and shoulders lifted only a few centimeters off the floor, neck neutral, lower back flat on the floor',
     important:
       'this is NOT a sit-up or crunch — the lift is very small and the spine does not bend',
+    // A body lying flat is as wide as the frame, so two of them side by side
+    // always touch and the split fails (it did, twice). Stacked is what the
+    // flag is for — every other lying exercise here already uses it.
+    stack: true,
   },
   'side-plank': {
     scene: 'lying on his side propped on his forearm',
