@@ -27,8 +27,31 @@
 //   lift    — self-paced barbell set, athlete taps done, logs weight
 //   ramp    — unlogged self-paced warm-up sets before a heavy lift
 //   circuit — members alternate for N rounds (density formats)
+//   emom    — members alternate on a fixed interval clock (see METCONS below)
+//   fortime — fixed rounds, no prescribed rest, one running clock
+//   amrap   — a single capped window, movements listed, score = rounds
 // - secs: countdown length; null ⇒ manual step (user taps "Set done").
 // - countsAsSet: marks the step that completes one logical set (per side).
+//
+// ── METCONS (added 2026-08-07) ──────────────────────────────────────────────
+// A superset is a checklist; a metcon is a workout. Same movements, same
+// volume — but one name, one clock, one score. These three modes exist so the
+// accessory work can be delivered as a PIECE instead of a to-do list.
+//
+// FORMAT CHOICE IS A SAFETY AND ACCOUNTING DECISION, not a flavor:
+//   emom    — reps × rounds are FIXED, so weekly volume is still exactly
+//             auditable, and rest is FORCED (finish the reps, rest the
+//             remainder of the interval). That rest floor is why EMOM is the
+//             default here: the clock caps the pace instead of fatigue
+//             deciding it, which matters on a DDD spine.
+//   fortime — volume fixed, but pace is unbounded and form degrades as the
+//             clock runs. Bodyweight/band movements only; never loaded
+//             unilateral or hinge work.
+//   amrap   — volume is "whatever you managed", so it can NEVER carry
+//             programmed volume. Finishers only.
+// Blocks carry `name` (the piece's name — it's a workout, it gets one) and
+// EMOM steps carry `emom: true` so the player can run a clock AND log a load
+// on the same step.
 
 /**
  * Build an engine bound to one exercise dictionary.
@@ -269,6 +292,172 @@ export function createStepEngine(exercises = {}) {
         continue;
       }
 
+      // EMOM: one step per interval. No prep steps between members — the clock
+      // is continuous, and a 10s "GET SET" would silently eat a minute. The
+      // work/rest split lives INSIDE the step: do the reps, rest what's left.
+      if (block.mode === 'emom') {
+        const rm = block.members.map((m) => resolveSwap(m, swaps));
+        prepIfNew(rm[0].ex);
+        const interval = block.intervalSecs ?? 60;
+        const total = block.rounds * block.members.length;
+        let minute = 0;
+        for (let round = 1; round <= block.rounds; round++) {
+          block.members.forEach((m, mi) => {
+            const r = rm[mi];
+            minute += 1;
+            // Ladder ("death by"): reps climb by one each minute until the
+            // athlete can't finish inside the interval. `rounds` is only a
+            // ceiling for the queue — the real end is failure, which is the
+            // score. Self-terminating, and the only failure mode is the clock.
+            // A ladder climbs by one each minute; `repsPerRound` instead lets
+            // a format prescribe an explicit rep per round (a descending
+            // scheme, say). Either way the SET COUNT is untouched — which is
+            // what makes rotating the format free.
+            const ladderReps = m.ladderFrom
+              ? String(m.ladderFrom + minute - 1)
+              : m.repsPerRound
+                ? String(m.repsPerRound[(round - 1) % m.repsPerRound.length])
+                : null;
+            steps.push({
+              kind: 'work',
+              exId: r.ex,
+              secs: interval,
+              emom: true,
+              ladder: !!m.ladderFrom,
+              piece: block.name,
+              // A ladder has no fixed length — its end is failure — so the
+              // format line shows the rule, not a minute count.
+              pieceFormat: m.ladderFrom
+                ? `EMOM · +1 REP/MIN`
+                : `${block.formatLabel || 'EMOM'} ${Math.round((total * interval) / 60)}`,
+              logWeight: m.logWeight !== false,
+              phase: m.phase || 'GO',
+              meta: m.ladderFrom
+                ? `MIN ${minute} · ${ladderReps} REPS`
+                : `MIN ${minute} OF ${total} · ROUND ${round} OF ${block.rounds}`,
+              reps: ladderReps ?? r.reps,
+              // timed members (carries) work part of the interval, not all of it
+              workSecs: m.secs,
+              side: m.side,
+              cueNote:
+                round === block.rounds ? m.lastRoundNote || m.note : m.note,
+              countsAsSet: m.countsAsSet !== false,
+              ...guideFor(r.ex, ladderReps ?? r.reps),
+              ...swapMeta(m),
+              ...repLogged(r.ex),
+            });
+          });
+        }
+        tagBlock();
+        continue;
+      }
+
+      // FOR TIME: fixed rounds, self-paced, no prescribed rest. One clock runs
+      // for the whole piece; the athlete taps through and the score is the
+      // finish time. Bodyweight/band movements only (see the header note).
+      if (block.mode === 'fortime') {
+        const rm = block.members.map((m) => resolveSwap(m, swaps));
+        prepIfNew(rm[0].ex);
+        // `repScheme` gives descending couplets their shape: [21,15,9] means
+        // round 1 is 21 of everything, round 2 is 15, round 3 is 9. Rounds are
+        // inferred from the scheme's length when it's present.
+        const scheme = block.repScheme || null;
+        const rounds = scheme ? scheme.length : block.rounds;
+        for (let round = 1; round <= rounds; round++) {
+          const schemeReps = scheme ? String(scheme[round - 1]) : null;
+          block.members.forEach((m, mi) => {
+            const r = rm[mi];
+            const reps = schemeReps ?? r.reps;
+            steps.push({
+              kind: 'work',
+              exId: r.ex,
+              secs: m.secs ?? null,
+              manual: !m.secs,
+              piece: block.name,
+              pieceFormat: scheme
+                ? scheme.join('-')
+                : `${rounds} ROUNDS FOR TIME`,
+              logWeight: m.logWeight !== false,
+              phase: m.secs ? m.phase || 'GO' : 'GO',
+              meta: scheme
+                ? `${schemeReps} REPS · SET ${round} OF ${rounds}`
+                : `ROUND ${round} OF ${rounds}${reps ? ` · ${reps} REPS` : ''}`,
+              reps,
+              side: m.side,
+              cueNote: round === rounds ? m.lastRoundNote || m.note : m.note,
+              countsAsSet: m.countsAsSet !== false,
+              ...guideFor(r.ex, reps),
+              ...swapMeta(m),
+              ...repLogged(r.ex),
+            });
+          });
+        }
+        tagBlock();
+        continue;
+      }
+
+      // TABATA: 8 × (20s hard / 10s off) = 4 minutes, one movement. The
+      // intervals are the whole prescription, so this is just an alternating
+      // work/rest chain — but it gets its own mode because the rest is part of
+      // the piece, not a gap between sets, and the score is the WORST round
+      // (the honest one: your best round tells you nothing).
+      if (block.mode === 'tabata') {
+        const r = resolveSwap(block, swaps);
+        prepIfNew(r.ex);
+        const work = block.workSecs ?? 20;
+        const off = block.restSecs ?? 10;
+        const rounds = block.rounds ?? 8;
+        for (let i = 1; i <= rounds; i++) {
+          steps.push({
+            kind: 'work',
+            exId: r.ex,
+            secs: work,
+            piece: block.name,
+            pieceFormat: `TABATA ${rounds}×${work}/${off}`,
+            phase: block.phase || 'GO',
+            meta: `ROUND ${i} OF ${rounds} · MAX REPS`,
+            logWeight: false,
+            cueNote: block.note,
+            countsAsSet: true,
+          });
+          if (i < rounds) {
+            steps.push(restStep(r.ex, off, 'REST', `ROUND ${i + 1} NEXT`));
+          }
+        }
+        tagBlock();
+        continue;
+      }
+
+      // AMRAP: a single capped window. The queue can't know how many rounds
+      // you'll get, so this is ONE timed step with the movement list on it —
+      // the athlete scores rounds at the end. FINISHERS ONLY: nothing that
+      // carries programmed volume can live in a format whose volume is
+      // whatever you happened to manage.
+      if (block.mode === 'amrap') {
+        const rm = block.members.map((m) => resolveSwap(m, swaps));
+        prepIfNew(rm[0].ex);
+        steps.push({
+          kind: 'work',
+          exId: rm[0].ex,
+          secs: block.capSecs,
+          amrap: true,
+          piece: block.name,
+          pieceFormat: `AMRAP ${Math.round(block.capSecs / 60)}`,
+          logWeight: false,
+          phase: block.phase || 'AMRAP',
+          meta: `${Math.round(block.capSecs / 60)} MIN · SCORE = ROUNDS`,
+          amrapMembers: rm.map((r, i) => ({
+            ex: r.ex,
+            reps: r.reps,
+            secs: block.members[i]?.secs,
+          })),
+          blockNote: block.note,
+          countsAsSet: true,
+        });
+        tagBlock();
+        continue;
+      }
+
       const rb = resolveSwap(block, swaps);
       prepIfNew(rb.ex);
 
@@ -341,6 +530,70 @@ export function createStepEngine(exercises = {}) {
           title: `${name(resolveSwap(block, swaps).ex)} — warm-up ramp`,
           detail: 'not logged',
           note: block.note,
+        };
+      }
+      // A metcon is ONE row — the piece, its format, and the movement list.
+      // Listing its minutes separately is exactly the checklist feel these
+      // modes exist to remove.
+      if (block.mode === 'emom' || block.mode === 'fortime') {
+        const rm = block.members.map((m) => resolveSwap(m, swaps));
+        const interval = block.intervalSecs ?? 60;
+        // a fortime piece may be shaped by repScheme instead of `rounds`
+        // (21-15-9), in which case the scheme's length IS the round count —
+        // reading block.rounds there rendered "undefined rounds for time".
+        const rounds = block.repScheme?.length ?? block.rounds;
+        const mins = Math.round((rounds * block.members.length * interval) / 60);
+        return {
+          title: block.name || 'The Piece',
+          detail:
+            block.mode === 'emom'
+              ? `${block.formatLabel || 'EMOM'} ${mins} · ${rounds} rounds`
+              : block.repScheme
+                ? `${block.repScheme.join('-')} for time`
+                : `${rounds} rounds for time`,
+          piece: true,
+          format: block.mode.toUpperCase(),
+          rounds,
+          note: block.note,
+          members: rm.map((r, i) => ({
+            name: name(r.ex),
+            // a per-side member would otherwise render as two identical rows
+            detail: `${block.members[i]?.secs ? `${block.members[i].secs}s` : (r.reps ?? block.repScheme?.join('-') ?? '')}${
+              block.members[i]?.side
+                ? ` ${block.members[i].side.toLowerCase()}`
+                : ''
+            }`.trim(),
+          })),
+        };
+      }
+      if (block.mode === 'tabata') {
+        const r = resolveSwap(block, swaps);
+        const work = block.workSecs ?? 20;
+        const off = block.restSecs ?? 10;
+        const rounds = block.rounds ?? 8;
+        return {
+          title: block.name || 'Tabata',
+          detail: `${rounds} × ${work}s on / ${off}s off`,
+          piece: true,
+          format: 'TABATA',
+          note: block.note,
+          members: [{ name: name(r.ex), detail: 'max reps' }],
+        };
+      }
+      if (block.mode === 'amrap') {
+        const rm = block.members.map((m) => resolveSwap(m, swaps));
+        return {
+          title: block.name || 'Finisher',
+          detail: `AMRAP ${Math.round(block.capSecs / 60)} · score = rounds`,
+          piece: true,
+          format: 'AMRAP',
+          note: block.note,
+          members: rm.map((r, i) => ({
+            name: name(r.ex),
+            detail: block.members[i]?.secs
+              ? `${block.members[i].secs}s`
+              : r.reps,
+          })),
         };
       }
       if (block.mode === 'circuit') {

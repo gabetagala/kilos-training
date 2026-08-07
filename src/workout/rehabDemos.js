@@ -640,6 +640,57 @@ export const PROGRAM_DEMOS = {
         legN: { hip: 34, knee: 58, ankle: -80 },
       }),
   ),
+  // Benchmark movements. Step-up: near leg planted on the box, torso tall,
+  // rear leg trailing — the pose deliberately shows the upright torso, since a
+  // forward lean is the one thing that turns this into a flexion movement.
+  'box-step-up': svg(
+    GROUND +
+      shadow(88, 40) +
+      BOX(112, 84, 36, 20) +
+      figure({
+        root: { x: 96, y: 62, rot: 0 },
+        torso: 178,
+        head: 2,
+        armF: { at: [-3, 27], sh: 176, el: 0 },
+        armN: { at: [3, 27], sh: -176, el: 0 },
+        legF: { hip: 18, knee: -14, ankle: 80, far: true },
+        legN: { hip: -44, knee: 74, ankle: 42 },
+      }) +
+      DB(76, 92) +
+      DB(116, 92) +
+      action(swoosh('M 86 58 Q 92 46 98 40', 2.6)),
+  ),
+  // Box squat: at the bottom, backside touching the box, torso TALL. The pose
+  // deliberately shows the upright chest and the neutral low back — a tucked
+  // pelvis is the one thing this movement exists to prevent.
+  'box-squat': svg(
+    GROUND +
+      shadow(100, 44) +
+      BOX(112, 84, 34, 20) +
+      figure({
+        root: { x: 100, y: 66, rot: 0 },
+        torso: 168,
+        head: 6,
+        armF: { at: [-3, 27], sh: -118, el: -8 },
+        armN: { at: [3, 27], sh: -124, el: -4 },
+        legF: { hip: -74, knee: 96, ankle: 62, far: true },
+        legN: { hip: -70, knee: 92, ankle: 60 },
+      }) +
+      action(tick(120, 80, 132, 80, 2.6)),
+  ),
+  'push-up': svg(
+    GROUND +
+      shadow(100, 48) +
+      figure({
+        root: { x: 118, y: 84, rot: 0 },
+        torso: 100,
+        head: -6,
+        armF: { at: [-2.5, 27], sh: -100, el: 2 },
+        armN: { at: [2.5, 27], sh: -92, el: -2 },
+        legF: { hip: -80, knee: 0, ankle: -86, far: true },
+        legN: { hip: -84, knee: 0, ankle: -88 },
+      }),
+  ),
   'elevated-pushup': svg(
     GROUND +
       shadow(92, 50) +

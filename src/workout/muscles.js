@@ -35,6 +35,10 @@ export const MUSCLE_ALIASES = {
   'Reverse Wrist Curl': 'Biceps',
   'Suitcase Carry': 'Core',
   'Farmer Carry': 'Core',
+  // BLOCK-01 benchmark movements
+  'Box Step-Up': 'Legs',
+  'Box Squat': 'Legs',
+  'Push-Up': 'Chest',
   // rehab.js
   'Cat-Camel': 'Core',
   'T-Spine Reach': 'Back',
