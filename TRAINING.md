@@ -67,7 +67,7 @@ repeats the rehab — rehab ends, first set begins.
 | **Tue** | **A2 · Arms** | Power primer | **"The Vice"** · EMOM 12 — pushdown / hammer / suitcase / rev wrist | **~32 min** |
 | **Wed** | **B1 · Legs** | Front squat 4×4–6 · RFE split squat 3×8–10 | *(none — see below)* + bridges & stretches | **~33 min** |
 | **Thu** | **B2 · Delts** | RDL 3×8 | **"Popeye"** · EMOM 15 — lateral / face pull / wrist / rev wrist / band lateral | **~30 min** |
-| **Fri** | **C1 · Push** | Floor press 4×6–10 · RDL 3×8 | **"The Gate"** · EMOM 6 — pulldown / elevated push-up | **~30 min** |
+| **Fri** | **C1 · Chest + Back** | Floor press 4×6–10 · RDL 3×8 | **"The Gate"** · EMOM 6 — pulldown / elevated push-up | **~30 min** |
 | **Sat** | **C2 · Chest** | Power primer | **"The Cage"** · EMOM 9 — fly / curl / overhead tri · then **"Last Call"** AMRAP 4 farmer carry | **~33 min** |
 | **Sun** | **Open Up** | Glute bridges + hamstring/hip-flexor stretches, then Engine | | **~20 min** |
 
@@ -85,9 +85,10 @@ progression is unchanged; only the delivery changed.
 not estimated by hand — the old "~36 min" figures in this doc were wrong by
 15+ minutes once the rehab was counted. Longest day went 52 → 35.*
 
-*Days are pinned now, not a queue. Heavy axial work (Mon/Wed/Fri anchors) and
-light hinge work (Tue/Thu/Sat RDLs) alternate by design. A missed day is just
-missed — nothing is made up, and a missed week is still the deload.*
+*Days are pinned now, not a queue. The anchors land Mon/Wed/Fri; the RDL sits
+in A1, B2 and C1 (Mon/Thu/Fri), arranged so the hinge never shares a day with
+the front squat — the only genuinely axial anchor of the three. A missed day is
+just missed — nothing is made up, and a missed week is still the deload.*
 
 ## Key rules
 
@@ -128,7 +129,7 @@ Your daily rehab block (cat-camel → t-spine reach → McGill Big 3) **is** the
 
 Six halves, Mon–Sat, one a day, in order. **A1 → A2 → B1 → B2 → C1 → C2**, then Sunday's easy day. Each half is 20–25 min; with the rehab in front of it, a day is 30–35.
 
-The order is not arbitrary. Each **half-1** carries that block's heavy anchor and lands on Mon/Wed/Fri; each **half-2** carries the density work and the RDL, on Tue/Thu/Sat. So heavy axial days and light hinge days alternate all week, and no two anchors are ever back to back.
+The order is not arbitrary. Each **half-1** carries that block's heavy anchor and lands on Mon/Wed/Fri; each **half-2** carries the density work. No two anchors are ever back to back. The RDL sits in **A1, B2 and C1** (Mon/Thu/Fri) — keyed to the front squat, not to the anchors: Monday's pull-up decompresses the spine and Friday's floor press is low-axial, so the only lift day the hinge must never share is **B1, Wednesday**. It doesn't.
 
 A missed day is simply missed — no make-up, no sliding. A missed **week** counts as your deload; pick the week back up on the day you're on.
 

@@ -389,9 +389,16 @@ const BRIDGE_TEMPO = [
   ['LOWER', 2],
 ];
 
-// The hinge. Dose unchanged from the rehab (3×/week) — it lands on the three
-// halves that carry no other axial load, so heavy and light days alternate:
-// Mon anchor · Tue hinge · Wed anchor · Thu hinge · Fri anchor · Sat hinge.
+// The hinge. Dose unchanged from the rehab (3×/week) — A1 (Mon), B2 (Thu),
+// C1 (Fri). Asserted in tests/unit/rehab.test.js.
+//
+// The rule is NOT "alternate with the anchors" — an earlier comment here said
+// Tue/Thu/Sat and it was never true of A2 or C2. The rule is: the hinge never
+// shares a day with the FRONT SQUAT, which is the only genuinely axial anchor
+// in the week. Monday's pull-up decompresses the spine and Friday's floor
+// press is low-axial (TRAINING.md's morning rule says both are fine straight
+// out of bed, while "the three RDL slots (A1, B2, C1) and the B1 front squat
+// want 2 h+"). So B1 — Wednesday — is the one lift day with no RDL, on purpose.
 export const RDL_BLOCK = {
   ex: 'rdl',
   mode: 'lift',
@@ -556,7 +563,9 @@ export const DENSITY40_SESSIONS = [
   {
     id: 'd40-a1',
     name: 'Pull',
-    freq: 'Mon · width + back',
+    // Thursday's label declares its hinge; this one and Friday's didn't, which
+    // is what made the RDL look misplaced rather than scheduled.
+    freq: 'Mon · width + back + hinge',
     blurb: 'Weighted pull-ups fresh, then rows + laterals. Hinge to close.',
     blocks: [
       {
@@ -708,8 +717,11 @@ export const DENSITY40_SESSIONS = [
   },
   {
     id: 'd40-c1',
-    name: 'Push',
-    freq: 'Fri · chest + back',
+    // Was "Push", which the day isn't: The Gate is a pulldown paired with a
+    // push-up, and the RDL closes it. The pairing is deliberate (see the block
+    // comment below) — the name just never caught up.
+    name: 'Chest + Back',
+    freq: 'Fri · chest + back + hinge',
     blurb: 'Floor press fresh, then pulldowns + push-ups. Hinge to close.',
     blocks: [
       {
@@ -890,7 +902,8 @@ export const getProgramSession = (id) =>
 // the queue only survives as the fallback for an unpinned slot. Power Primer
 // no longer owns a day: it opens A2 (Tue) and C2 (Sat), which carry no anchor
 // and no axial load, so the fast work still lands fresh on a quiet back.
-// The hinge alternates with the anchors: Mon/Wed/Fri heavy, Tue/Thu/Sat RDL.
+// The hinge rides A1/B2/C1 (Mon/Thu/Fri) — see RDL_BLOCK for why it's keyed to
+// the front squat rather than to the anchors.
 // Sunday is the deliberate easy day — engine + walk, both manual marks, and
 // the one to skip guilt-free when the week has been heavy.
 export const WEEK_PLAN = [
