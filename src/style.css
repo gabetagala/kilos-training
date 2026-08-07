@@ -311,8 +311,10 @@ body {
   display: none;
 }
 
-/* ── Desktop: phone-frame shell + labels (does NOT set #app size — that comes after base #app rule) ── */
-@media (min-width: 600px) and (min-height: 501px) {
+/* ── Tablet / small window: phone-frame shell + labels (does NOT set #app size
+   — that comes after base #app rule). Above 1000px the app stops pretending to
+   be a phone and lays out for the width instead — see LAPTOP at the very end. ── */
+@media (min-width: 600px) and (max-width: 999px) and (min-height: 501px) {
   #phone-frame {
     display: flex;
     align-items: center;
@@ -451,8 +453,8 @@ body {
   display: none;
 }
 
-/* ── Desktop: #app phone shell — MUST come after base #app rule above ── */
-@media (min-width: 600px) and (min-height: 501px) {
+/* ── Tablet / small window: #app phone shell — MUST come after base #app rule above ── */
+@media (min-width: 600px) and (max-width: 999px) and (min-height: 501px) {
   #app {
     width: 390px;
     height: 844px;
@@ -4674,7 +4676,7 @@ body {
    DESKTOP POSITION OVERRIDES — must live here, after ALL base rules,
    so the cascade wins over any position:fixed defined above.
    ───────────────────────────────────────────────────────────────────────── */
-@media (min-width: 600px) and (min-height: 501px) {
+@media (min-width: 600px) and (max-width: 999px) and (min-height: 501px) {
   /* Floating pill already works inside the frame (absolute, centred) */
   /* Desktop keeps the nav as an absolute overlay inside the frame, so screens
      restore bottom clearance to scroll clear of it. */
@@ -7422,7 +7424,7 @@ body {
 /* ══════════════════════════════════════════
    DESKTOP OVERRIDES (must come last)
 ══════════════════════════════════════════ */
-@media (min-width: 600px) and (min-height: 501px) {
+@media (min-width: 600px) and (max-width: 999px) and (min-height: 501px) {
   .confirm-overlay {
     position: absolute;
   }
@@ -8935,4 +8937,667 @@ button,
 input,
 label {
   touch-action: manipulation;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LAPTOP — ≥1000px
+
+   Below this the app is a phone, and between 600–999px it's a phone in a
+   frame (see the scoped blocks above). From 1000px up it stops pretending:
+   the nav becomes a left rail carrying the wordmark, and every screen lays
+   its content out for the width instead of pouring a 390px column down the
+   middle of a 1440px canvas.
+
+   The mechanism is `.pane` — a wrapper that is `display: contents` at phone
+   widths (so the markup flows into the same single column it always did and
+   NOTHING moves there) and becomes a real grid child up here. Each screen
+   owns its own grid: one shared mapping can't serve Home, Athlete and Build.
+
+   This block is last in the file on purpose — it has to out-cascade the
+   position:fixed → absolute overlay overrides written for the phone frame.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* The pane wrapper is inert everywhere except the laptop grid. */
+.pane {
+  display: contents;
+}
+
+/* Rail furniture. The phone's nav is a pill that hugs three icons — a wordmark
+   and a tagline have no business inside it, so they only exist from 1000px up. */
+.nav-mark,
+.nav-foot {
+  display: none;
+}
+
+/* Splitting Athlete into panes made three sections `:last-child` where there
+   used to be one. Only the true final section drops its rule + takes the tail
+   padding; the others keep the hairline they've always had. (Phone fix — must
+   NOT be inside the media query.) */
+.ath-settings .pane:not(.ath-c) > .prof-section:last-child {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 4px;
+}
+
+@media (min-width: 1000px) {
+  /* ── the shell ───────────────────────────────────────────────────────── */
+  #phone-frame {
+    display: block;
+    background: var(--bg0);
+  }
+  #app {
+    width: 100%;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+    box-shadow: none;
+    flex-direction: row;
+    overflow: hidden;
+  }
+  #browser-bar,
+  #dynamic-island {
+    display: none;
+  }
+
+  /* ── the rail ────────────────────────────────────────────────────────── */
+  #nav {
+    order: -1;
+    position: static;
+    transform: none;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 2px;
+    width: 260px;
+    flex-shrink: 0;
+    height: 100%;
+    padding: 34px 20px 28px;
+    border-radius: 0;
+    border-right: 1px solid rgba(255, 255, 255, 0.09);
+    background: rgba(14, 14, 15, 0.72);
+    box-shadow: none;
+  }
+  .nav-mark {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    padding: 0 16px;
+    margin-bottom: 34px;
+  }
+  /* The same matched 20px lockup Home prints — one wordmark, one size,
+     wherever it appears. Bigger and the tracked TRAINING runs out of rail. */
+  .nm-kilos {
+    font-family: "Teko", sans-serif;
+    font-size: 20px;
+    letter-spacing: 0.03em;
+    line-height: 1;
+    color: var(--white);
+  }
+  .nm-training {
+    font-family: "Teko", sans-serif;
+    font-size: 20px;
+    letter-spacing: 0.245em;
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.34);
+  }
+  .nav-btn {
+    width: 100%;
+    justify-content: flex-start;
+    text-align: left;
+    height: 48px;
+    padding: 0 16px;
+    border-radius: var(--r-sm);
+  }
+  /* In the rail every label reads — the pill's collapse-to-icons trick is a
+     thumb-sized-bar problem, and there's no bar up here. */
+  .nav-btn span,
+  .nav-btn.active span {
+    max-width: 140px;
+    margin-left: 12px;
+    opacity: 1;
+  }
+  .nav-btn.active {
+    padding: 0 16px;
+  }
+  .nav-btn:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--white);
+  }
+  .nav-foot {
+    margin-top: auto;
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .nav-beta {
+    font-family: "Space Mono", monospace;
+    font-size: var(--type-micro);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: rgba(255, 255, 255, 0.34);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    padding: 3px 8px;
+  }
+  .nav-promise {
+    font-family: "Space Mono", monospace;
+    font-size: var(--type-micro);
+    letter-spacing: 0.08em;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.24);
+  }
+
+  /* ── the canvas ──────────────────────────────────────────────────────── */
+  #screens {
+    flex: 1;
+    min-width: 0;
+  }
+  /* The pill is gone, so the 74px of clearance every screen reserved for it is
+     dead space at the bottom of the fold. */
+  .screen {
+    padding-bottom: 0;
+  }
+
+  /* ═══ HOME — the poster holds the left edge, the log scrolls beside it ═══ */
+  #home {
+    padding: 0;
+    display: grid;
+    grid-template-columns: minmax(420px, 1fr) minmax(0, 1fr);
+    /* An explicit 1fr row, not an implicit auto one — otherwise the row is
+       sized to its tallest child and the panels overflow the fold instead of
+       being bound by it. */
+    grid-template-rows: minmax(0, 1fr);
+    overflow: hidden;
+  }
+  .home-hero {
+    margin: 0;
+    padding: 46px 46px 40px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border-bottom: none;
+    border-right: 1px solid rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+  }
+  /* The rail already carries the wordmark — printing it twice is noise. */
+  .home-hero .home-wordmark {
+    display: none;
+  }
+  .home-hero .home-header {
+    justify-content: flex-end;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+  .day-summary {
+    padding: 14px 0 26px;
+    font-size: 15px;
+    max-width: 46ch;
+  }
+  /* The month is an index, not the subject — it must not out-shout the
+     greeting or the session waiting underneath it. It is also the ONLY thing
+     in the poster allowed to give up space: on a short laptop the greeting,
+     the plan and the action line all keep their size and a calendar row gets
+     clipped instead. Losing the button off the bottom of the fold is the one
+     outcome that isn't survivable here. */
+  .month-grid {
+    padding: 2px 0 0;
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .month-grid .mg-grid {
+    max-width: 340px;
+    gap: 6px;
+  }
+  .dg-hello,
+  .day-summary,
+  .today-line {
+    flex-shrink: 0;
+  }
+  /* Today's session is the one thing she came here to press — it sits on the
+     bottom rule of the poster, not wherever the month grid happens to end. */
+  .today-line {
+    margin-top: auto;
+  }
+  .home-side {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    padding: 46px 46px 36px;
+    overflow-y: auto;
+  }
+  /* A ledger row is name-left / volume-right; past ~760px the two ends stop
+     reading as one row. Cap the measure rather than letting a wide monitor
+     stretch it. */
+  .recent-section {
+    max-width: 760px;
+  }
+  .recent-section .section-label {
+    padding-top: 0;
+  }
+  .data-notice {
+    margin-top: auto;
+    padding-top: 24px !important;
+  }
+
+  /* ═══ TRAIN — same grammar as Home: the light panel holds the left edge,
+     the ways in fill the right. A full-width band with five rows under it
+     leaves two thirds of a laptop screen empty. ═══ */
+  #train {
+    padding: 0;
+    display: grid;
+    grid-template-columns: minmax(360px, 0.78fr) minmax(0, 1.22fr);
+    grid-template-rows: minmax(0, 1fr);
+    overflow: hidden;
+  }
+  #train .build-header {
+    margin: 0;
+    padding: 46px;
+    display: flex;
+    flex-direction: column;
+    /* The word sits on the panel's baseline with its caption under it — same
+       rhythm as Home, where the thing you press lives at the bottom of the
+       poster. Anchored at the top it left a sheet of empty cream. */
+    justify-content: flex-end;
+    border-bottom: none;
+    border-right: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  #train .build-header-row {
+    justify-content: flex-start; /* the rail sets the axis; centred fights it */
+  }
+  /* The word is the panel — at 72px it read as a caption on a blank sheet. */
+  #train .build-header h1 {
+    text-align: left;
+    font-size: clamp(88px, 11vw, 150px);
+  }
+  /* Decorative — anchors the panel so TRAIN isn't one word floating on a
+     tall sheet of cream. */
+  #train .build-header::after {
+    content: "Pick a way in.";
+    margin-top: 18px;
+    font-family: "Space Mono", monospace;
+    font-size: var(--type-caption);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(0, 0, 0, 0.45);
+  }
+  #train .quick-start {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 22px 46px 30px;
+    overflow-y: auto;
+  }
+  /* The rows share the fold rather than stacking to their natural height and
+     leaving a dark void underneath. */
+  #train .quick-btns {
+    flex: 1;
+    min-height: 0;
+  }
+  #train .quick-btn {
+    flex: 1 1 auto;
+    min-height: 84px;
+    max-height: 128px;
+    align-items: center;
+  }
+  /* Every row is ruled here — Resume hides and shows, so "the last one" moves,
+     and a stray unruled row reads as unfinished. */
+  #train .quick-btn:last-child {
+    border-bottom: 1px solid var(--line);
+  }
+  .qb-title {
+    font-size: 40px;
+  }
+  .qb-arrow {
+    transition:
+      color 0.15s,
+      transform 0.15s;
+  }
+  .quick-btn:hover .qb-arrow {
+    color: var(--white);
+    transform: translateX(4px);
+  }
+
+  /* ═══ ATHLETE — you and your kit left, the record right ═══ */
+  #history {
+    padding: 40px 46px;
+    display: grid;
+    grid-template-columns: minmax(320px, 0.8fr) minmax(0, 1.2fr);
+    /* Row 2 flexes, so the tall right pane spends its extra height THERE
+       instead of inflating row 1 and knocking a gap into the left column. */
+    grid-template-rows: auto minmax(0, 1fr);
+    column-gap: 56px;
+    overflow-y: auto;
+  }
+  #history .ath-settings {
+    display: contents;
+    padding-top: 0;
+  }
+  .ath-a {
+    display: block;
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .ath-c {
+    display: block;
+    grid-column: 1;
+    grid-row: 2;
+    align-self: start;
+  }
+  .ath-b {
+    display: block;
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+  .ath-settings .prof-section {
+    padding-left: 0;
+    padding-right: 0;
+  }
+  #history-list {
+    padding: 0;
+  }
+  .coaches-card {
+    width: 100%;
+    margin: var(--s-4) 0 0;
+  }
+  /* The panes end at different heights; a trailing hairline on each column
+     would read as a broken table. */
+  .ath-settings .pane > .prof-section:last-child {
+    border-bottom: none;
+  }
+
+  /* ═══ BUILD — a form, so a measured column, centred and wider ═══ */
+  #build {
+    padding: 0 0 60px;
+  }
+  #build .build-header {
+    margin: 0;
+    padding: 34px 46px 26px;
+  }
+  #build > *:not(.build-header) {
+    display: block; /* the name field is an inline-block — auto margins are a no-op on it */
+    max-width: 860px;
+    margin-left: auto;
+    margin-right: auto;
+    width: calc(100% - 92px);
+  }
+  #build .build-header-row,
+  #build .build-header p {
+    max-width: 860px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* ═══ COACHES — the same panel-and-column grammar as Home and Train. The
+     markup already splits masthead from copy, so it just needs the grid. ═══ */
+  #coaches {
+    padding: 0;
+    display: grid;
+    grid-template-columns: minmax(360px, 0.78fr) minmax(0, 1.22fr);
+    grid-template-rows: minmax(0, 1fr);
+    overflow: hidden;
+  }
+  /* Top-anchored, unlike Train — the eyebrow ("coming soon") has to read
+     before the title, and a kicker floating at the foot of the panel doesn't. */
+  #coaches .screen-hero {
+    margin: 0;
+    padding: 46px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    border-right: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom: none;
+  }
+  .cs-title {
+    font-size: clamp(56px, 6vw, 84px);
+  }
+  .coming-soon-screen {
+    max-width: 560px;
+    padding: 52px 46px;
+    align-self: start;
+  }
+
+  /* ═══ ACTIVE — a focus screen. It stays one column and centred; a workout
+     in two columns is a worse workout. It just gets bigger. ═══ */
+  #active {
+    max-width: 820px;
+    margin: 0 auto;
+    padding-top: 12px;
+    /* The rail hides mid-session, so the column would otherwise float with no
+       explanation for where it stops. */
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+  }
+  #active.mode-strength .timer-number {
+    font-size: 64px;
+  }
+
+  /* ── full-screen pages + overlays ─────────────────────────────────────── */
+  /* The phone-frame block above pinned these to `absolute` so overflow:hidden
+     would clip them to the 390px shell. There's no shell now — put them back
+     on the viewport. */
+  .modal-overlay,
+  .np-overlay,
+  .bw-overlay,
+  .fb-overlay,
+  .feedback-float,
+  #pr-log-modal,
+  .confirm-overlay,
+  #share-modal,
+  .rp-overlay {
+    position: fixed;
+  }
+  /* Page overlays slide in over the canvas — but NOT over the rail. Losing the
+     nav to open Quick Start is a phone compromise; there's room for both here.
+     Their content is written for a phone column, so hold it to a readable
+     measure rather than letting a movement list run 1400px wide. */
+  .page-overlay {
+    left: 260px;
+  }
+  /* …which is only true if the rail is still there. It gets `.nav-hidden` for
+     a phone-pill reason that doesn't apply to a rail — put it back. */
+  #nav.nav-hidden.nav-hidden-overlay {
+    display: flex;
+  }
+  .page-header,
+  .page-content {
+    width: 100%;
+    max-width: 860px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .page-header {
+    padding: 30px 24px 20px;
+  }
+  .page-title {
+    font-size: 30px;
+  }
+  .page-content {
+    padding: 32px 24px 60px;
+  }
+  .confirm-overlay {
+    align-items: center;
+  }
+  .confirm-sheet {
+    max-width: 460px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}
+
+@media (min-width: 1600px) {
+  .home-hero,
+  .home-side {
+    padding: 60px 64px 48px;
+  }
+  #train .build-header,
+  #build .build-header {
+    padding: 44px 64px 30px;
+  }
+  #train .quick-start {
+    padding: 0 64px;
+  }
+  #history {
+    padding: 52px 64px;
+    column-gap: 72px;
+  }
+}
+
+/* ── Short laptops (a 13" MacBook once the browser chrome is on it, or any
+   1366×768 machine) still get the full poster; it just runs at a smaller
+   scale so nothing has to be clipped to fit. The height ladder below pairs
+   with the JS cap on the greeting in renderDayHero. ── */
+@media (min-width: 1000px) and (max-height: 860px) {
+  .home-hero {
+    padding: 34px 46px 30px;
+  }
+  .day-summary {
+    padding: 10px 0 18px;
+  }
+  .month-grid .mg-grid {
+    max-width: 260px;
+    gap: 5px;
+  }
+  #train .build-header,
+  #coaches .screen-hero {
+    padding: 34px 46px;
+  }
+  .home-side {
+    padding: 34px 46px 28px;
+  }
+}
+@media (min-width: 1000px) and (max-height: 720px) {
+  .home-hero {
+    padding: 26px 46px 24px;
+  }
+  .month-grid .mg-grid {
+    max-width: 200px;
+    gap: 4px;
+  }
+}
+
+/* ── The guided player at ≥1000px: 50/50 ────────────────────────────────────
+   On a phone the movement is a slab at the top and everything else stacks
+   under it. On a laptop that band eats a third of the screen and leaves the
+   timer stranded below, so split the screen down the middle: the movement
+   owns the left half at full height, the details / clock / controls own the
+   right. `.rp-side` is a `display: contents` pane below this width, so the
+   phone stack is untouched. ── */
+@media (min-width: 1000px) {
+  #rehab-player.rp-overlay {
+    display: none;
+    padding: 0;
+  }
+  #rehab-player.rp-overlay.open {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  /* Chrome stays over the paper half — it's ink-coloured, and ink on the dark
+     right half would be unreadable. Close stays top-left where it belongs. */
+  #rehab-player .rp-top {
+    left: 34px;
+    right: calc(50% + 34px);
+    padding-top: 26px;
+  }
+
+  /* ── left: the movement, full height ── */
+  #rehab-player .rp-demo {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    margin: 0;
+    max-height: none;
+    min-height: 0;
+    height: 100%;
+    padding: 92px 46px 46px;
+  }
+  /* The 5:3 stage is a phone constraint — here the column IS the stage, and
+     object-fit keeps the figure's own proportions inside it. */
+  #rehab-player .rp-art {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+  }
+
+  /* ── right: the details, the clock, the controls ── */
+  .rp-side {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    padding: 46px 46px 0;
+    overflow: hidden;
+  }
+  #rehab-player .rp-controls {
+    grid-column: 2;
+    grid-row: 2;
+    margin: 0 46px 34px;
+    padding-top: 18px;
+  }
+
+  /* ── type at this size ── */
+  #rehab-player .rp-exname {
+    font-size: clamp(48px, 4.4vw, 68px);
+  }
+  #rehab-player .rp-meta,
+  #rehab-player .rp-coach-k {
+    font-size: 11px;
+  }
+  #rehab-player .rp-cue,
+  #rehab-player .rp-coach-v {
+    font-size: 14px;
+  }
+  /* The phone truncates AVOID to protect a fixed-height slot; the column here
+     has the room, and a half-read "don't do X" is worse than a second line. */
+  #rehab-player .rp-coach-v {
+    white-space: normal;
+    overflow: visible;
+    line-height: 1.4;
+  }
+  #rehab-player .rp-time {
+    font-size: clamp(96px, 9vw, 140px);
+  }
+  /* On a phone the clock is pinned to the bottom of the stack. In a half-screen
+     column that leaves a 350px void under the coaching lines, so centre it in
+     whatever space is left instead — and that also pulls the progress bar clear
+     of the controls' rule, which otherwise read as one doubled hairline. */
+  #rehab-player .rp-clock,
+  #rehab-player .rp-lift {
+    min-height: 200px;
+    margin-top: auto;
+    margin-bottom: 0;
+    justify-content: center;
+  }
+  /* The free space splits above the clock and below "up next", so the two
+     stay a single centred group instead of drifting apart. */
+  #rehab-player .rp-next {
+    margin-bottom: auto;
+  }
+  #rehab-player .rp-weight {
+    font-size: 68px;
+  }
+  /* Full-bleed across half a laptop reads as a banner, not a button. */
+  #rehab-player .rp-done {
+    width: min(100%, 420px);
+    margin-left: auto;
+    margin-right: auto;
+    height: 62px;
+    font-size: 22px;
+  }
+  #rehab-player .rp-ctrl {
+    width: 60px;
+    height: 60px;
+  }
+  #rehab-player .rp-ctrl.main {
+    width: 84px;
+    height: 84px;
+  }
+  /* The sheets belong to the whole player, not to one half. */
+  #rehab-player .rpo-overlay {
+    grid-column: 1 / -1;
+    grid-row: 1 / -1;
+  }
 }
