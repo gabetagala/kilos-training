@@ -127,6 +127,9 @@ async function a1Overview(page, blockWeek) {
     m.setHours(0, 0, 0, 0);
     m.setDate(m.getDate() - ((m.getDay() + 6) % 7) - weeks * 7);
     localStorage.setItem('kilos-block-start', JSON.stringify(m.toISOString()));
+    // already migrated — the one-time v1->v2 correction must not move a date
+    // this test deliberately sets
+    localStorage.setItem('kilos-block-seed-v2', 'true');
   }, blockWeek - 1);
   await page.goto('/');
   await dismissOnboarding(page);
