@@ -8874,3 +8874,65 @@ button.blk-flag {
 .cal-pd { font-size: 11.5px; color: #9a9a9a; }
 .cal-mv { display: block; font-size: 10.5px; color: #7d7d7d; }
 .cal-mv b { color: #a8a8a8; font-weight: 600; }
+
+/* The rehab is on EVERY day and has to be visible on every day — the calendar
+   replaced the old week chips, which used to show it. Both it and the day's
+   session are tappable, so the day card is a container, not a button. */
+.cal-part-btn,
+.cal-part-group {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+}
+.cal-part-btn {
+  display: flex;
+  gap: 7px;
+  padding: 4px 0 5px;
+  border-bottom: 1px solid #242424;
+  margin-bottom: 3px;
+  min-height: 30px;
+}
+.cal-part-btn.cal-part-done { opacity: 0.5; }
+.cal-r { background: #6f6f6f; }
+
+/* Before the block starts: the program is fully usable, it just isn't
+   counting yet. Say that, rather than showing a week number that would be a
+   lie or an empty space that reads as broken. */
+.blk-pre { border-style: dashed; }
+.blk-pre-note {
+  margin-top: 9px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #9a9a9a;
+}
+
+/* ── No accidental zoom ──────────────────────────────────────────────────────
+   Mid-set, one-handed, with sweaty hands, a stray double-tap used to zoom the
+   whole app and the next tap would land on the wrong control.
+
+   `touch-action: manipulation` removes the double-tap-to-zoom gesture (and the
+   300ms click delay that comes with it) while LEAVING deliberate pinch-zoom
+   working — which matters, because disabling zoom outright fails WCAG 1.4.4
+   and this app is read in bright gym light by people who may need to enlarge
+   it. Accidental zoom is a double-tap problem; this kills exactly that. */
+html {
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%; /* iOS must not reflow type on rotate */
+}
+button,
+.nav-btn,
+.rhs-card,
+.cal-day,
+.cal-part-btn,
+.cal-part-group,
+.wp-chip,
+.quick-btn,
+input,
+label {
+  touch-action: manipulation;
+}
