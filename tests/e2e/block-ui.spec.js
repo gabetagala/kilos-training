@@ -168,3 +168,47 @@ test('the block calendar shows all 12 weeks and every part of a session', async 
   expect(errors).toEqual([]);
   expect(overflow).toEqual([]);
 });
+
+// The block starts on a MONDAY — never mid-week, because week 1 has to be a
+// real week for week 12 to be comparable to it. Before it starts the program
+// is fully usable, it just isn't counting.
+
+test('pre-block state + rehab visible on every calendar day', async ({ page }) => {
+  const errors=[]; page.on('console',m=>m.type()==='error'&&errors.push(m.text()));
+  page.on('pageerror',e=>errors.push(String(e)));
+  await page.goto('/');
+  await dismissOnboarding(page);
+  await page.locator('.nav-btn[data-screen="train"]').click();
+  await page.locator('#btn-rehab-open').click();
+  console.log('BANNER:', (await page.locator('#block-banner').textContent())?.replace(/\s+/g,' ').trim());
+  console.log('START:', await page.evaluate(()=>localStorage.getItem('kilos-block-start')));
+  console.log('IS MONDAY?', await page.evaluate(()=>new Date(JSON.parse(localStorage.getItem('kilos-block-start'))).getDay()));
+  // every open-week day must show the rehab
+  const rehabLines = await page.locator('.cal-week.open .cal-part-btn').count();
+  console.log('REHAB LINES IN OPEN WEEK:', rehabLines);
+  expect(rehabLines).toBe(7);
+  console.log('ERRORS:', JSON.stringify(errors));
+  expect(errors).toEqual([]);
+});
+
+test('tapping the rehab line on a calendar day opens the rehab', async ({ page }) => {
+  await page.goto('/');
+  await dismissOnboarding(page);
+  await page.locator('.nav-btn[data-screen="train"]').click();
+  await page.locator('#btn-rehab-open').click();
+  await page.locator('.cal-week.open .cal-part-btn').first().click();
+  await expect(page.locator('#rehab-player')).toHaveClass(/open/);
+  await expect(page.locator('#rp-session-name')).toContainText('DAILY RESET');
+  await expect(page.locator('#rp-exname')).toHaveText('Cat-Camel');
+});
+
+test('double-tap does not zoom', async ({ page }) => {
+  await page.goto('/');
+  await dismissOnboarding(page);
+  const ta = await page.evaluate(() => getComputedStyle(document.documentElement).touchAction);
+  console.log('html touch-action:', ta);
+  expect(ta).toBe('manipulation');
+  const vp = await page.evaluate(() => document.querySelector('meta[name=viewport]').content);
+  console.log('viewport:', vp);
+  expect(vp).toContain('maximum-scale=1.0');
+});

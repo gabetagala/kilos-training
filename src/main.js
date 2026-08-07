@@ -1588,7 +1588,22 @@ function renderBlockBanner() {
   if (!el) return;
   const b = blockNow();
   if (b.week == null) {
-    el.innerHTML = '';
+    // Not started yet — say so, and say plainly that nothing is being missed.
+    const start = new Date(blockStartISO());
+    const days = Math.max(
+      0,
+      Math.round((start - new Date().setHours(0, 0, 0, 0)) / 86400000),
+    );
+    el.innerHTML = `
+      <div class="blk blk-pre">
+        <div class="blk-top">
+          <div class="blk-name">BLOCK 01 · STARTS MONDAY</div>
+          <div class="blk-phase">${days === 0 ? 'TODAY' : `IN ${days} DAY${days === 1 ? '' : 'S'}`}</div>
+        </div>
+        <div class="blk-pre-note">Until then, train whatever you feel like — the
+        whole program is here and nothing counts as missed. Week 1 begins
+        ${start.getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][start.getMonth()]}.</div>
+      </div>`;
     return;
   }
   const done = Math.min(b.weekInBlock, BLOCK_WEEKS);
@@ -1869,17 +1884,43 @@ const SWAPS_KEY = 'kilos-ex-swaps';
 // The block starts itself on first use — this Monday — so there's no setup
 // step between installing and training. Stored as the Monday's ISO date.
 const BLOCK_START_KEY = 'kilos-block-start';
+
+// The block begins on a MONDAY — the upcoming one, not the current week's.
+// Starting mid-week would make week 1 a stub, and the point of the block is
+// that week 1 is a real week you can compare week 12 against. Until it starts
+// the program is fully usable, it just isn't counting: train whatever you feel
+// like, nothing is "missed".
+function upcomingMondayISO(from = new Date()) {
+  const m = new Date(from);
+  m.setHours(0, 0, 0, 0);
+  const daysToMonday = (8 - m.getDay()) % 7; // 0 when today IS Monday
+  m.setDate(m.getDate() + daysToMonday);
+  return m.toISOString();
+}
+
 function blockStartISO() {
   let v = get(BLOCK_START_KEY);
   if (!v) {
-    const m = new Date();
-    m.setHours(0, 0, 0, 0);
-    m.setDate(m.getDate() - ((m.getDay() + 6) % 7));
-    v = m.toISOString();
+    v = upcomingMondayISO();
     set(BLOCK_START_KEY, v);
+  } else {
+    // Self-correcting migration, deliberately NARROW: an earlier build seeded
+    // the CURRENT week's Monday, so a fresh install landed mid-week-1 with a
+    // stub week. Only that exact state is corrected — a start inside the last
+    // 7 days with nothing trained against it. Anything older is a real block
+    // (or a deliberately back-dated one) and must be left alone.
+    const started = new Date(v);
+    const ageDays = (Date.now() - started) / 86400000;
+    if (ageDays > 0 && ageDays < 7 && !hasTrainedSince(started)) {
+      v = upcomingMondayISO();
+      set(BLOCK_START_KEY, v);
+    }
   }
   return v;
 }
+
+const hasTrainedSince = (d) =>
+  (get('workoutHistory') || []).some((h) => new Date(h.date) >= d);
 const blockNow = () => blockState(blockStartISO());
 // Apply the week's phase (volume step) AND its piece formats to a session.
 // Safe on anything — returns the session untouched when neither applies.
@@ -3641,16 +3682,20 @@ function renderBlockCalendar() {
             ].join(''),
           )
           .join('');
+        const rehabDone = doneOn.has(`${k}|daily`);
         rows.push(`
-          <button class="cal-day${k === todayK ? ' cal-today' : ''}${isDone ? ' cal-done' : ''}"
-                  data-cal-session="${plans[0]?.id || ''}">
+          <div class="cal-day${k === todayK ? ' cal-today' : ''}${isDone ? ' cal-done' : ''}">
             <div class="cal-day-top">
               <span class="cal-dow">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][offset]}</span>
               <span class="cal-name">${esc(plans.map((p) => p?.name).filter(Boolean).join(' + ') || 'Rest')}</span>
               <span class="cal-mins">${isDone ? '✓ ' : ''}${mins}m</span>
             </div>
-            ${parts}
-          </button>`);
+            <button class="cal-part cal-part-btn${rehabDone ? ' cal-part-done' : ''}" data-cal-session="daily">
+              <span class="cal-tag cal-r">R</span>
+              <span class="cal-part-body"><span class="cal-pt">Daily Reset</span><span class="cal-pd"> · 10 min, every day</span></span>
+            </button>
+            <button class="cal-part-group" data-cal-session="${plans[0]?.id || ''}">${parts}</button>
+          </div>`);
       }
       body = `<div class="cal-days">${rows.join('')}</div>`;
     }

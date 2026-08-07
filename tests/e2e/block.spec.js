@@ -11,7 +11,13 @@ async function openProgram(page, { startWeeksAgo = 0, history = [] } = {}) {
       m.setHours(0, 0, 0, 0);
       m.setDate(m.getDate() - ((m.getDay() + 6) % 7) - weeks * 7);
       localStorage.setItem('kilos-block-start', JSON.stringify(m.toISOString()));
-      if (hist.length) localStorage.setItem('workoutHistory', JSON.stringify(hist));
+      // A block only counts as begun once something has been trained against
+      // it — otherwise the app assumes the start date was never really used
+      // and moves it to the next Monday. Seed one session on the start date.
+      const seed = { name: 'Pull', type: 'strength', programId: 'd40-a1',
+        date: new Date(m.getTime() + 36e5).toISOString(), duration: '30 min',
+        totalWeight: 0, sets: 4, newPRs: [], exercises: [] };
+      localStorage.setItem('workoutHistory', JSON.stringify(hist.length ? hist : [seed]));
     },
     { weeks: startWeeksAgo, hist: history },
   );
