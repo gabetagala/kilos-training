@@ -14,6 +14,9 @@ async function setup(page, weeksAgo = 0, extra = () => {}) {
     const m = new Date(); m.setHours(0,0,0,0);
     m.setDate(m.getDate() - ((m.getDay()+6)%7) - w*7);
     localStorage.setItem('kilos-block-start', JSON.stringify(m.toISOString()));
+    // mark the one-time v1->v2 start-date migration as already done, so it
+    // can't move the date these tests deliberately set
+    localStorage.setItem('kilos-block-seed-v2', 'true');
     localStorage.setItem('kilos-benchmarks', JSON.stringify([
       {id:'bm-descent',score:400,date:'2026-07-01T08:00:00.000Z'},
       {id:'bm-descent',score:330,date:'2026-08-01T08:00:00.000Z'},
@@ -211,4 +214,50 @@ test('double-tap does not zoom', async ({ page }) => {
   const vp = await page.evaluate(() => document.querySelector('meta[name=viewport]').content);
   console.log('viewport:', vp);
   expect(vp).toContain('maximum-scale=1.0');
+});
+
+
+// Reproduces Gabe's exact device state: the first build seeded THIS week's
+// Monday, and he has trained every day this week. The old heuristic read that
+// history as "the block is live" and refused to move the date.
+test('corrects a device seeded by the old build, even with history', async ({ page }) => {
+  await page.addInitScript(() => {
+    const m = new Date(); m.setHours(0,0,0,0);
+    m.setDate(m.getDate() - ((m.getDay()+6)%7));           // THIS week's Monday
+    localStorage.setItem('kilos-block-start', JSON.stringify(m.toISOString()));
+    // trained every day since — which says nothing about the block
+    const hist = [0,1,2,3].map(i => {
+      const d = new Date(m); d.setDate(m.getDate()+i);
+      return { name:'Pull', type:'strength', programId:'d40-a1', date:d.toISOString(),
+               duration:'30 min', totalWeight:0, sets:4, newPRs:[], exercises:[] };
+    });
+    localStorage.setItem('workoutHistory', JSON.stringify(hist));
+  });
+  await page.goto('/');
+  await dismissOnboarding(page);
+  await page.locator('.nav-btn[data-screen="train"]').click();
+  await page.locator('#btn-rehab-open').click();
+  const start = await page.evaluate(() => JSON.parse(localStorage.getItem('kilos-block-start')));
+  const d = new Date(start);
+  console.log('CORRECTED START:', start, '| weekday', d.getDay(), '| future?', d > new Date());
+  expect(d.getDay()).toBe(1);          // a Monday
+  expect(d.getTime()).toBeGreaterThan(Date.now()); // in the future
+  await expect(page.locator('.blk-name')).toContainText('STARTS MONDAY');
+  console.log('WK1 HEADER:', await page.locator('.cal-week').first().textContent());
+});
+
+// The heuristic version of this reset the block EVERY WEEK once it was live.
+test('never re-fires once the block is actually running', async ({ page }) => {
+  await page.addInitScript(() => {
+    const m = new Date(); m.setHours(0,0,0,0);
+    m.setDate(m.getDate() - ((m.getDay()+6)%7) - 7*3);  // week 4, genuinely live
+    localStorage.setItem('kilos-block-start', JSON.stringify(m.toISOString()));
+    localStorage.setItem('kilos-block-seed-v2', 'true'); // already migrated
+  });
+  await page.goto('/');
+  await dismissOnboarding(page);
+  await page.locator('.nav-btn[data-screen="train"]').click();
+  await page.locator('#btn-rehab-open').click();
+  await expect(page.locator('.blk-name')).toContainText('WK 4/12');
+  console.log('LIVE BLOCK PRESERVED:', await page.locator('.blk-name').textContent());
 });

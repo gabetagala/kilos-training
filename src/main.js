@@ -1898,29 +1898,33 @@ function upcomingMondayISO(from = new Date()) {
   return m.toISOString();
 }
 
+// One-time correction for devices seeded by the first build, which used the
+// CURRENT week's Monday. It must be a ONE-TIME flag, not a heuristic: an
+// age-based rule ("start is less than a week old") would re-fire every single
+// week once the block is actually running and reset it forever, and a
+// "has he trained since?" rule is simply wrong — he trains every day, which
+// says nothing about whether the BLOCK began.
+const BLOCK_SEED_V2_KEY = 'kilos-block-seed-v2';
+
 function blockStartISO() {
   let v = get(BLOCK_START_KEY);
-  if (!v) {
-    v = upcomingMondayISO();
-    set(BLOCK_START_KEY, v);
-  } else {
-    // Self-correcting migration, deliberately NARROW: an earlier build seeded
-    // the CURRENT week's Monday, so a fresh install landed mid-week-1 with a
-    // stub week. Only that exact state is corrected — a start inside the last
-    // 7 days with nothing trained against it. Anything older is a real block
-    // (or a deliberately back-dated one) and must be left alone.
-    const started = new Date(v);
-    const ageDays = (Date.now() - started) / 86400000;
-    if (ageDays > 0 && ageDays < 7 && !hasTrainedSince(started)) {
+  if (!get(BLOCK_SEED_V2_KEY)) {
+    set(BLOCK_SEED_V2_KEY, true);
+    // Nobody has ever chosen a start date — the feature shipped with this
+    // build — so any stored value is the old auto-seed. Move it to the
+    // upcoming Monday, once, and never touch it again.
+    if (!v || new Date(v) <= new Date()) {
       v = upcomingMondayISO();
       set(BLOCK_START_KEY, v);
     }
   }
+  if (!v) {
+    v = upcomingMondayISO();
+    set(BLOCK_START_KEY, v);
+  }
   return v;
 }
 
-const hasTrainedSince = (d) =>
-  (get('workoutHistory') || []).some((h) => new Date(h.date) >= d);
 const blockNow = () => blockState(blockStartISO());
 // Apply the week's phase (volume step) AND its piece formats to a session.
 // Safe on anything — returns the session untouched when neither applies.
