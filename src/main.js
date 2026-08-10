@@ -6,6 +6,7 @@ import {
   MUSCLES,
   SHUFFLE_PLANS,
 } from './data.js';
+import { initMonitoring, reportError } from './monitoring.js';
 import {
   EQUIPMENT_TIERS,
   getActiveProfile,
@@ -13,42 +14,24 @@ import {
   resolveExercise,
   saveProfile,
 } from './personalization.js';
-import { initMonitoring, reportError } from './monitoring.js';
 import { buildShareData, renderShareCard } from './shareCard.js';
 import {
-  allRepsMet,
-  bestE1RM,
-  estimate1RM,
-  repTargetTop,
-  suggestNextWeight,
-} from './workout/progression.js';
+  deleteAccount,
+  getSession,
+  hasPendingSync,
+  isConfigured,
+  pullAndMerge,
+  pushData,
+  signInWithPassword,
+  signOut,
+  signUpWithPassword,
+  supabase,
+} from './supabase.js';
 import {
-  buildStepQueue,
-  estimateSessionMins,
-  getRehabSession,
-  nextWorkLabel,
-  REHAB_EXERCISES,
-  REHAB_SESSIONS,
-  estimateSessionSecs,
-  sessionBlocks,
-  sessionOverview,
-  sessionVariantCount,
-  tempoStateAt,
-  variantLabel,
-} from './workout/rehab.js';
-import {
-  BENCHMARK_SESSIONS,
-  DENSITY40_SESSIONS,
-  getBenchmark,
-  getProgramSession,
-  PROGRAM_EXERCISES,
-  WEEK_PLAN,
-} from './workout/program.js';
-import { PROGRAM_DEMOS, REHAB_DEMOS } from './workout/rehabDemos.js';
-import { mayInterject, ttsWindowMs } from './workout/voiceMic.js';
-import { FORM_CUES, pickFormCue } from './workout/formCues.js';
-import { NUM_SLUGS, tempoBeatSlug } from './workout/tempoCues.js';
-import { addCheckin, checkinStatus } from './workout/checkin.js';
+  compareBenchmark,
+  formatBenchmarkScore,
+  scoreFromRun,
+} from './workout/benchmark.js';
 import {
   applyFormats,
   applyPhase,
@@ -63,25 +46,42 @@ import {
   testsForWeek,
   weekStart,
 } from './workout/block.js';
-import {
-  compareBenchmark,
-  formatBenchmarkScore,
-  scoreFromRun,
-} from './workout/benchmark.js';
+import { addCheckin, checkinStatus } from './workout/checkin.js';
+import { FORM_CUES, pickFormCue } from './workout/formCues.js';
 import { loggedExercisesOf, resolveMuscleGroup } from './workout/muscles.js';
-import { currentStreak, longestStreak } from './workout/streak.js';
 import {
-  deleteAccount,
-  getSession,
-  hasPendingSync,
-  isConfigured,
-  pullAndMerge,
-  pushData,
-  signInWithPassword,
-  signOut,
-  signUpWithPassword,
-  supabase,
-} from './supabase.js';
+  BENCHMARK_SESSIONS,
+  DENSITY40_SESSIONS,
+  getBenchmark,
+  getProgramSession,
+  PROGRAM_EXERCISES,
+  WEEK_PLAN,
+} from './workout/program.js';
+import {
+  allRepsMet,
+  bestE1RM,
+  estimate1RM,
+  repTargetTop,
+  suggestNextWeight,
+} from './workout/progression.js';
+import {
+  buildStepQueue,
+  estimateSessionMins,
+  estimateSessionSecs,
+  getRehabSession,
+  nextWorkLabel,
+  REHAB_EXERCISES,
+  REHAB_SESSIONS,
+  sessionBlocks,
+  sessionOverview,
+  sessionVariantCount,
+  tempoStateAt,
+  variantLabel,
+} from './workout/rehab.js';
+import { PROGRAM_DEMOS, REHAB_DEMOS } from './workout/rehabDemos.js';
+import { currentStreak, longestStreak } from './workout/streak.js';
+import { NUM_SLUGS, tempoBeatSlug } from './workout/tempoCues.js';
+import { mayInterject, ttsWindowMs } from './workout/voiceMic.js';
 
 // ─── STORAGE ──────────────────────────────────────────────────────────────────
 const get = (k) => {
@@ -109,7 +109,14 @@ const PR_SHORT_NAMES = {
   '30° Incline DB Press': 'INCLINE DB',
 };
 const PR_AMBIGUOUS = new Set([
-  'squat', 'press', 'deadlift', 'row', 'curl', 'raise', 'pulldown', 'bridge',
+  'squat',
+  'press',
+  'deadlift',
+  'row',
+  'curl',
+  'raise',
+  'pulldown',
+  'bridge',
 ]);
 function prShortName(name) {
   if (PR_SHORT_NAMES[name]) return PR_SHORT_NAMES[name];
@@ -448,7 +455,7 @@ function countUp(el, target, duration = 720) {
     return;
   }
   const start = performance.now();
-  const ease = (t) => 1 - Math.pow(1 - t, 4); // easeOutQuart — confident, no bounce
+  const ease = (t) => 1 - (1 - t) ** 4; // easeOutQuart — confident, no bounce
   requestAnimationFrame(function tick(now) {
     const p = Math.min((now - start) / duration, 1);
     el.textContent = fmt(target * ease(p));
@@ -708,10 +715,17 @@ function activeSessionInfo() {
   if (activeWorkout) {
     return { kind: 'classic', name: activeWorkout.name };
   }
-  const saved = get(REHAB_STATE_KEY);
-  if (saved?.sessionId) {
-    const session = getGuidedSession(saved.sessionId);
-    if (session) return { kind: 'guided', name: session.name, session, saved };
+  // rhRestorable is the one gate for paused guided runs: a save whose queue
+  // no longer matches the program is salvaged into history here rather than
+  // offered as a Resume that would land mid-way through a different workout.
+  const restorable = rhRestorable();
+  if (restorable) {
+    return {
+      kind: 'guided',
+      name: restorable.session.name,
+      session: restorable.session,
+      saved: restorable.saved,
+    };
   }
   return null;
 }
@@ -740,7 +754,6 @@ function renderTrain() {
 // The day-glance hero replaced the rotating one-liner: the date is the
 // headline, the sentence is data-driven (done / next / week standing) —
 // same quiet-confidence rules: earned, never loud, never guilt.
-
 
 // Day-glance hero: the date as the headline, the day as a sentence.
 function renderDayHero() {
@@ -781,7 +794,9 @@ function renderDayHero() {
     const plan = todayPlan().filter((i) => i.sessionId);
     const mins = plan.reduce((sum, i) => {
       const sess = getGuidedSession(i.sessionId);
-      return sum + (sess ? estimateSessionMins(sess, rehabVariantIdx(sess.id)) : 0);
+      return (
+        sum + (sess ? estimateSessionMins(sess, rehabVariantIdx(sess.id)) : 0)
+      );
     }, 0);
     const labels = plan.map((i) => b(i.label)).join(' + ');
     line = plan.length
@@ -815,7 +830,8 @@ function renderMonthGrid() {
   }
   let trained = 0;
   const cells = [];
-  for (let i = 0; i < offset; i++) cells.push('<span class="mg-cell ghost"></span>');
+  for (let i = 0; i < offset; i++)
+    cells.push('<span class="mg-cell ghost"></span>');
   for (let d = 1; d <= daysIn; d++) {
     const k = dateKey(new Date(year, month, d));
     let cls = 'ahead';
@@ -923,10 +939,7 @@ function renderHome() {
   updateStreak();
   renderRestDayCard();
   renderDataNotice();
-
-
 }
-
 
 function updateStreak() {
   const history = get('workoutHistory') || [];
@@ -1109,7 +1122,11 @@ function heroExpandPage(pageEl, originEl) {
   // an !important inline write; page-overlays take a plain one.
   const setX = (sw, px) => {
     if (sw.kind === 'active') {
-      sw.target.style.setProperty('transform', `translateX(${px}px)`, 'important');
+      sw.target.style.setProperty(
+        'transform',
+        `translateX(${px}px)`,
+        'important',
+      );
     } else {
       sw.target.style.transform = `translateX(${px}px)`;
     }
@@ -1192,10 +1209,19 @@ const NAV_TABS = ['home', 'train', 'history'];
     if (el) el.style.transition = tr;
     if (incoming) incoming.style.transition = tr;
     if (complete && incoming) {
-      el.style.setProperty('transform', `translate3d(${dir * w}px,0,0)`, 'important');
-      incoming.style.setProperty('transform', 'translate3d(0,0,0)', 'important');
+      el.style.setProperty(
+        'transform',
+        `translate3d(${dir * w}px,0,0)`,
+        'important',
+      );
+      incoming.style.setProperty(
+        'transform',
+        'translate3d(0,0,0)',
+        'important',
+      );
     } else {
-      if (el) el.style.setProperty('transform', 'translate3d(0,0,0)', 'important');
+      if (el)
+        el.style.setProperty('transform', 'translate3d(0,0,0)', 'important');
       if (incoming)
         incoming.style.setProperty(
           'transform',
@@ -1620,7 +1646,7 @@ function renderBlockBanner() {
         </div>
         <div class="blk-pre-note">Until then, train whatever you feel like — the
         whole program is here and nothing counts as missed. Week 1 begins
-        ${start.getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][start.getMonth()]}.</div>
+        ${start.getDate()} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][start.getMonth()]}.</div>
       </div>`;
     return;
   }
@@ -1648,7 +1674,15 @@ function renderBlockBanner() {
   // remember to go looking for isn't a checkpoint.
   if (b.deloadCheckpoint && get(DELOAD_SEEN_KEY) !== done) {
     set(DELOAD_SEEN_KEY, done);
-    setTimeout(() => openDeloadCheck(done), 600);
+    setTimeout(() => {
+      // …but never by stealing the screen from a live session: if he tapped
+      // into the player during the 600ms, re-arm and ask on the next visit.
+      if (document.getElementById('rehab-player')?.classList.contains('open')) {
+        set(DELOAD_SEEN_KEY, null);
+        return;
+      }
+      openDeloadCheck(done);
+    }, 600);
   }
 }
 
@@ -1758,7 +1792,9 @@ function renderBlockProgress() {
     }
     const last = runs.at(-1).score;
     const c =
-      runs.length > 1 ? compareBenchmark(b.scoreType, last, runs[0].score) : null;
+      runs.length > 1
+        ? compareBenchmark(b.scoreType, last, runs[0].score)
+        : null;
     rows.push(`
       <div class="bp-row">
         <div class="bp-k">${b.name}</div>
@@ -1766,7 +1802,11 @@ function renderBlockProgress() {
         <div class="bp-spark"></div>
         <div class="bp-d ${c?.meaningful ? `bp-${c.dir === 'better' ? 'up' : 'down'}` : ''}">${
           !c
-            ? `first test · ${runs.length} of ${Object.values(TEST_WEEKS).flat().filter((t) => t === b.id).length}`
+            ? `first test · ${runs.length} of ${
+                Object.values(TEST_WEEKS)
+                  .flat()
+                  .filter((t) => t === b.id).length
+              }`
             : c.meaningful
               ? `${c.dir === 'better' ? 'better' : 'worse'} by ${Math.abs(Math.round(c.pct * 100))}% vs first test`
               : 'flat — inside the noise'
@@ -1828,15 +1868,19 @@ function openBenchmarkScorePrompt(session) {
   document.getElementById('bm-score').classList.add('open');
 }
 function bmScoreAdjust(d) {
-  const cfg =
-    BM_PROMPT[pendingBenchmarkPrompt?.scoreType] || BM_PROMPT.hr;
+  const cfg = BM_PROMPT[pendingBenchmarkPrompt?.scoreType] || BM_PROMPT.hr;
   bmScoreVal = Math.max(cfg.min, Math.min(cfg.max, bmScoreVal + d));
   document.getElementById('bm-val').textContent = bmScoreVal;
 }
-document.getElementById('bm-minus')?.addEventListener('click', () => bmScoreAdjust(-1));
-document.getElementById('bm-plus')?.addEventListener('click', () => bmScoreAdjust(1));
+document
+  .getElementById('bm-minus')
+  ?.addEventListener('click', () => bmScoreAdjust(-1));
+document
+  .getElementById('bm-plus')
+  ?.addEventListener('click', () => bmScoreAdjust(1));
 document.getElementById('bm-score-save')?.addEventListener('click', () => {
-  if (pendingBenchmarkPrompt) saveBenchmarkRun(pendingBenchmarkPrompt.id, bmScoreVal);
+  if (pendingBenchmarkPrompt)
+    saveBenchmarkRun(pendingBenchmarkPrompt.id, bmScoreVal);
   pendingBenchmarkPrompt = null;
   document.getElementById('bm-score').classList.remove('open');
   renderRehabPage();
@@ -1848,7 +1892,7 @@ document.getElementById('bm-score-skip')?.addEventListener('click', () => {
 
 // Which variant of a session runs today — drives every `rotate` pool.
 //
-// D40 halves carry a rotating FINISHER, and it's anchored to the BLOCK WEEK,
+// D40 rotation (every anchor and piece slot) is anchored to the BLOCK WEEK,
 // not to how many times you've completed the session. Completed-run counting
 // drifts: miss a week and the rotation desyncs from the printed plan forever,
 // so the sheet on the fridge stops matching the app. Block week can't drift.
@@ -1857,16 +1901,19 @@ const rehabVariantIdx = (sessionId) => {
   if (sessionId?.startsWith('d40')) {
     // blockStartISO(), not the raw key — it's what lazily seeds the block, so
     // reading the key directly can return null on a first-run path and
-    // silently serve the week-1 finisher forever.
+    // silently serve the week-1 variants forever.
     const w = currentWeek(blockStartISO());
     return w == null ? 0 : w - 1;
   }
   // Rehab sessions only — every programId starts with 'd40' and is handled
-  // above, so this branch never needs to consider one.
+  // above, so this branch never needs to consider one. Salvaged partial runs
+  // ('interrupted' entries) don't count: the rotation advances per COMPLETED
+  // run, and a pause the program retired was not one.
   return (get('workoutHistory') || []).filter(
     (h) =>
-      h.rehabId === sessionId ||
-      (sessionId === 'daily' && h.rehabId === 'hinge'),
+      !h.interrupted &&
+      (h.rehabId === sessionId ||
+        (sessionId === 'daily' && h.rehabId === 'hinge')),
   ).length;
 };
 const isProgramSession = (session) => !!session && session.id.startsWith('d40');
@@ -2134,7 +2181,10 @@ function rhStopTts() {
 // Is anyone talking (or holding the window)? Coach lines are polite — they
 // only take a FREE mic, unlike announcements, which seize it.
 const rhMicFree = () =>
-  !rhAnnounceActive() && !rhAnnSrc && !rhTtsActive() && Date.now() >= rhBufUntil;
+  !rhAnnounceActive() &&
+  !rhAnnSrc &&
+  !rhTtsActive() &&
+  Date.now() >= rhBufUntil;
 function rhPlayBuf(slug, opts = {}) {
   const buf = rhClipBuffers.get(slug);
   if (!buf) return false;
@@ -2200,9 +2250,7 @@ function rhPlayClipSeq(slugs) {
     }
     // re-anchor the mic window each hop — onended latency accumulates, and an
     // undershot window lets a tempo count talk over the announcement's tail
-    const remaining = bufs
-      .slice(i)
-      .reduce((sum, b) => sum + b.duration, 0);
+    const remaining = bufs.slice(i).reduce((sum, b) => sum + b.duration, 0);
     rhAnnounceUntil = Date.now() + remaining * 1000 + 400;
     const src = ctx.createBufferSource();
     src.buffer = bufs[i];
@@ -2293,6 +2341,20 @@ function rhSay(text) {
   } catch {}
 }
 
+// ── HOW MUCH THE COACH TALKS (2026-08-10) ──────────────────────────────────
+// MINIMAL is the default and it is the whole spec he asked for: the 3-2-1
+// count-in, the name of what is coming next, and the tone that ends the step.
+// No form lines, no "halfway", no tempo phase words, no rep numbers. The
+// reason is the program, not taste — every piece is an EMOM now, so the clock
+// is already talking and a coach on top of it is noise.
+//
+// The lines themselves are NOT deleted: FORM_CUES still exists, the recorded
+// clips still generate, and flipping this key to 'full' brings all of it back
+// — which matters because the rehab's 2–4 minute holds are the one place a
+// spoken cue still earns its slot.
+const COACH_LEVEL_KEY = 'kilos-coach-level';
+const rhCoachMinimal = () => (get(COACH_LEVEL_KEY) || 'minimal') === 'minimal';
+
 // A coach line: speaks only when nobody else is (or is about to), and burns
 // this step's one quiet-window slot so a session never turns chatty.
 function rhCoachLine(parts, ttsText) {
@@ -2304,6 +2366,7 @@ function rhCoachLine(parts, ttsText) {
 // The exercise's form reminder ("lower back stays on the floor"), rotating
 // through its lines so consecutive sets and consecutive days differ.
 function rhFormCue(exId) {
+  if (rhCoachMinimal()) return false;
   const cue = pickFormCue(exId, rhVariant + (rhCueRot.get(exId) || 0));
   if (!cue) return false;
   if (!rhCoachLine([cue.slug], cue.text)) return false;
@@ -2338,8 +2401,7 @@ function rhCue(kind) {
 function rhIsFinalSet(step) {
   const same = (st) => st.kind === 'work' && st.manual && st.exId === step.exId;
   return (
-    rhQueue.slice(0, rhIdx).some(same) &&
-    !rhQueue.slice(rhIdx + 1).some(same)
+    rhQueue.slice(0, rhIdx).some(same) && !rhQueue.slice(rhIdx + 1).some(same)
   );
 }
 
@@ -2363,6 +2425,28 @@ function rhAnnounceStep(step) {
 
   const ex = GUIDED_EXERCISES[step.exId];
   const NUMS = NUM_SLUGS;
+  if (rhCoachMinimal()) {
+    // Name what is coming, and nothing else. A work step says nothing at all:
+    // its long GO tone already landed, and the name was spoken on the prep or
+    // the rest that led into it.
+    if (step.kind === 'prep') {
+      rhCueSay([`name-${step.exId}`], ex.name);
+    } else if (step.phase === 'SWITCH SIDES') {
+      // navigation, not coaching — a beep cannot carry which side is next
+      rhCueSay(['switch-sides'], 'Switch sides');
+    } else if (step.phase === 'REST') {
+      const next = rhQueue.slice(rhIdx + 1).find((st) => st.kind === 'work');
+      if (next && next.exId !== step.exId) {
+        const parts = ['next', `name-${next.exId}`];
+        if (next.side) parts.push(`${next.side.toLowerCase()}-side`);
+        rhCueSay(
+          parts,
+          `Next — ${nextWorkLabel(rhQueue, rhIdx).replace('·', ',')}`,
+        );
+      }
+    }
+    return;
+  }
   if (step.kind === 'prep') {
     rhCueSay(['get-set', `name-${step.exId}`], `Get set — ${ex.name}`);
   } else if (step.kind === 'work') {
@@ -2378,7 +2462,10 @@ function rhAnnounceStep(step) {
           `Last set — ${speakReps(step.reps)} reps, your pace`,
         );
       } else {
-        rhCueSay(['your-pace'], `Set — ${speakReps(step.reps)} reps, your pace`);
+        rhCueSay(
+          ['your-pace'],
+          `Set — ${speakReps(step.reps)} reps, your pace`,
+        );
       }
     } else if (step.tempo) {
       rhCueSay(
@@ -2390,7 +2477,12 @@ function rhAnnounceStep(step) {
     } else if (step.holdSet && step.setTotal > 1) {
       // "know what I'm expecting": position in the hold sets, spoken
       const parts = step.side ? [`${step.side.toLowerCase()}-side`] : [];
-      parts.push('hold', NUMS[step.setNum] || 'go', 'of', NUMS[step.setTotal] || 'go');
+      parts.push(
+        'hold',
+        NUMS[step.setNum] || 'go',
+        'of',
+        NUMS[step.setTotal] || 'go',
+      );
       const sideBit = step.side ? `${step.side.toLowerCase()} side — ` : '';
       rhCueSay(parts, `${sideBit}hold. ${step.setNum} of ${step.setTotal}.`);
     } else {
@@ -2426,6 +2518,14 @@ function rhPersist() {
   set(REHAB_STATE_KEY, {
     sessionId: rhSession.id,
     variant: rhVariant,
+    // The queue FINGERPRINT is what makes resuming safe across program edits:
+    // a saved index only means anything on the exact queue it was built
+    // against, and that queue's shape depends on four files (session data,
+    // block.js phases/formats, the engine, the swap map). A hand-bumped
+    // version constant can't see a reshape in a file nobody remembered to
+    // bump — the fingerprint sees every one. Mismatch on restore → the run
+    // is salvaged into history instead of resumed onto the wrong steps.
+    queueSig: rhQueueSig(rhQueue),
     idx: rhIdx,
     remainMs: rhRunning ? Math.max(0, rhEndsAt - Date.now()) : rhRemainMs,
     running: rhRunning,
@@ -2440,6 +2540,128 @@ function rhPersist() {
     savedAt: Date.now(),
   });
   rhLastSave = Date.now();
+}
+
+const rhQueueSig = (q) =>
+  (q || [])
+    .map((s) => `${s.kind}:${s.exId}:${s.secs || 0}:${s.reps || ''}`)
+    .join('|');
+
+// A paused run that can no longer resume must still reach history — losing a
+// logged set is the one thing this app must never do. Built ONLY from the
+// saved state (never from session lookups): the sessions it exists for are
+// exactly the ones that no longer exist. Runs in a try/catch because it is
+// reachable from the boot path, where a throw is a white screen.
+function rhSalvageStale(saved) {
+  try {
+    localStorage.removeItem(REHAB_STATE_KEY);
+  } catch {}
+  try {
+    const lifts = saved.liftSets || [];
+    const setsDone = Math.max(saved.counted?.length || 0, lifts.length);
+    const notice = (text) => {
+      const note = document.createElement('div');
+      note.className = 'save-fail-note';
+      note.setAttribute('role', 'alert');
+      note.textContent = text;
+      document.body.appendChild(note);
+      setTimeout(() => note.remove(), 6000);
+    };
+    if (!setsDone) {
+      notice('The program changed — your paused session was retired.');
+      return;
+    }
+    const isLift = String(saved.sessionId || '').startsWith('d40');
+    const label = getGuidedSession(saved.sessionId)?.name || saved.sessionId;
+    const name = `${isLift ? 'Density 40' : 'Rehab'} · ${label} (interrupted)`;
+    // Dated when the work HAPPENED, not when it was salvaged — a stale date
+    // keeps today's plan honest, marks the right calendar day, and doubles as
+    // the dedupe key (same one the cloud merge uses), so a second tab
+    // re-salvaging the same run is a no-op.
+    const when = new Date(saved.savedAt || saved.startedAt || Date.now());
+    const date = when.toISOString();
+    const rawMs =
+      (saved.savedAt || 0) -
+      (saved.startedAt || saved.savedAt || 0) -
+      (saved.awayMs || 0);
+    const secs = Math.max(0, Math.round(rawMs / 1000));
+    const duration = `${Math.floor(secs / 60)}:${(secs % 60).toString().padStart(2, '0')}`;
+    const byEx = new Map();
+    for (const l of lifts) {
+      const k = l.name || l.exId || 'Unknown';
+      if (!byEx.has(k)) byEx.set(k, []);
+      byEx.get(k).push({ weight: l.weight, reps: l.reps, done: true });
+    }
+    const entry = {
+      name,
+      type: isLift ? 'strength' : 'rehab',
+      ...(isLift
+        ? { programId: saved.sessionId }
+        : { rehabId: saved.sessionId }),
+      // a retired partial: the calendar still counts the day as trained, but
+      // variant rotation ignores it — only COMPLETED runs advance a pool
+      interrupted: true,
+      date,
+      duration,
+      totalWeight: Math.round(
+        lifts.reduce(
+          (s, l) => s + (l.weight || 0) * (parseInt(l.reps, 10) || 0),
+          0,
+        ),
+      ),
+      sets: setsDone,
+      newPRs: [],
+      exercises: [...byEx.entries()].map(([n, logs]) => ({
+        name: n,
+        sets: logs.length,
+        logs,
+      })),
+    };
+    // The key is already gone (synchronous, so every caller in this render
+    // pass agrees); the write and the re-render wait for the pass to finish.
+    queueMicrotask(() => {
+      const hist = get('workoutHistory') || [];
+      if (!hist.some((h) => h.date === date && h.name === name)) {
+        hist.push(entry);
+        set('workoutHistory', hist);
+        pushData();
+      }
+      notice(
+        `The program changed — ${setsDone} logged set${setsDone === 1 ? '' : 's'} moved to history.`,
+      );
+      renderHome();
+    });
+  } catch {}
+}
+
+// THE one gate every resume path goes through. Returns { session, saved } only
+// when the saved run can restore onto the exact queue it was paused on;
+// anything else is salvaged (and the state cleared) so a resume can never land
+// mid-way through a DIFFERENT workout.
+function rhRestorable() {
+  // A LIVE run is never salvaged — its queue is in memory and rhPersist keeps
+  // the save current; the fingerprint is only meaningful for a run that
+  // isn't. Without this, a Home re-render during a session that straddled a
+  // week boundary would retire the session out from under the open player.
+  if (rhSession) {
+    const saved = get(REHAB_STATE_KEY);
+    return saved ? { session: rhSession, saved } : null;
+  }
+  const saved = get(REHAB_STATE_KEY);
+  if (!saved?.sessionId) return null;
+  const session = getGuidedSession(saved.sessionId);
+  if (session && saved.queueSig) {
+    try {
+      const q = buildStepQueue(
+        applyPhase(session, saved.phase ?? blockNow().phase),
+        getSwaps(),
+        saved.variant ?? rehabVariantIdx(session.id),
+      );
+      if (rhQueueSig(q) === saved.queueSig) return { session, saved };
+    } catch {}
+  }
+  rhSalvageStale(saved);
+  return null;
 }
 
 async function rhAcquireWakeLock() {
@@ -2664,7 +2886,10 @@ function rhTempoTick(st, mem, tempo) {
   // when the set ends), phase words on the other boundaries, pacing counts
   // inside long phases. Decision logic is pure + unit-tested in tempoCues.js.
   const slug = tempoBeatSlug(st, tempo);
-  const wantVoice = rhVoiceOn && (scheme === 'coach' || scheme === 'voice');
+  const wantVoice =
+    rhVoiceOn &&
+    !rhCoachMinimal() &&
+    (scheme === 'coach' || scheme === 'voice');
   let spoke = false;
   if (wantVoice && slug) {
     // on-the-beat words may cut a lingering count; in-phase counts never talk over
@@ -2812,7 +3037,11 @@ function rhRenderOverview() {
   rhQueue.forEach((st, i) => {
     lastIdxByBi[st.bi] = i;
   });
-  document.getElementById('rpo-list').innerHTML = sessionOverview(rhSession, getSwaps(), rhVariant)
+  document.getElementById('rpo-list').innerHTML = sessionOverview(
+    rhSession,
+    getSwaps(),
+    rhVariant,
+  )
     .map((row, bi2) => {
       const state =
         lastIdxByBi[bi2] < rhIdx ? 'done' : bi2 === currentBi ? 'current' : '';
@@ -2820,7 +3049,10 @@ function rhRenderOverview() {
       // you're about to do, so list its movements underneath.
       const members = row.members?.length
         ? `<div class="rpo-item-moves">${row.members
-            .map((m) => `<span>${m.name}${m.detail ? ` <b>${m.detail}</b>` : ''}</span>`)
+            .map(
+              (m) =>
+                `<span>${m.name}${m.detail ? ` <b>${m.detail}</b>` : ''}</span>`,
+            )
             .join('')}</div>`
         : '';
       return `<div class="rpo-item ${state}" ${state === 'current' ? 'data-current' : ''}>
@@ -2906,7 +3138,14 @@ function rhApplySwap(chosenId) {
   }
   set(SWAPS_KEY, mine);
   const swaps = getSwaps();
-  const rebuilt = buildStepQueue(rhSession, swaps, rhVariant);
+  // The SAME expression the queue was originally built with (openRehabPlayer)
+  // — without applyPhase, a phase-2+ session rebuilt shorter and fell into
+  // the lossy fallback below, which can't carry an alt's flags.
+  const rebuilt = buildStepQueue(
+    applyPhase(rhSession, rhPhase),
+    swaps,
+    rhVariant,
+  );
   if (rebuilt.length === rhQueue.length) {
     rhQueue = rebuilt;
   } else {
@@ -2916,6 +3155,7 @@ function rhApplySwap(chosenId) {
         const spec = st.altSpecs?.find((a) => a.ex === chosenId);
         st.exId = chosenId;
         if (spec?.reps) st.reps = spec.reps;
+        if (spec) st.logWeight = spec.logWeight !== false;
       }
     }
   }
@@ -2955,15 +3195,32 @@ document.getElementById('rp-swap-sheet').addEventListener('click', (e) => {
 });
 
 function rhRenderVoiceBtn() {
+  const btn = document.getElementById('rp-voice');
   document.getElementById('rp-voice-on').style.display = rhVoiceOn
     ? ''
     : 'none';
   document.getElementById('rp-voice-off').style.display = rhVoiceOn
     ? 'none'
     : '';
-  document
-    .getElementById('rp-voice')
-    .setAttribute('aria-pressed', String(rhVoiceOn));
+  btn.setAttribute('aria-pressed', String(rhVoiceOn));
+  // The button cycles OFF → MIN → FULL, so it has to SAY which it is — a
+  // mute icon alone can't show three states.
+  let lvl = document.getElementById('rp-voice-lvl');
+  if (!lvl) {
+    lvl = document.createElement('span');
+    lvl.id = 'rp-voice-lvl';
+    lvl.className = 'rp-voice-lvl';
+    btn.appendChild(lvl);
+  }
+  lvl.textContent = rhVoiceOn ? (rhCoachMinimal() ? 'MIN' : 'FULL') : '';
+  btn.setAttribute(
+    'aria-label',
+    !rhVoiceOn
+      ? 'Voice off — tap for the minimal count-in'
+      : rhCoachMinimal()
+        ? 'Voice minimal — tap for full coaching cues'
+        : 'Voice full — tap to mute',
+  );
 }
 
 function rhRenderStep() {
@@ -2998,7 +3255,9 @@ function rhRenderStep() {
         (m) =>
           `${GUIDED_EXERCISES[m.ex]?.name || m.ex} ${m.secs ? `${m.secs}s` : m.reps}`,
       )
-      .join(' → ')} — as many rounds as you can. ${step.blockNote || ''}`.trim();
+      .join(
+        ' → ',
+      )} — as many rounds as you can. ${step.blockNote || ''}`.trim();
   } else {
     cueEl.textContent =
       step.kind === 'prep'
@@ -3033,7 +3292,9 @@ function rhRenderStep() {
   const showLiftPanel = step.manual || (isEmomWork && step.logWeight !== false);
   document.getElementById('rp-clock').style.display =
     step.manual && !isForTimeWork ? 'none' : '';
-  document.getElementById('rp-lift').style.display = showLiftPanel ? '' : 'none';
+  document.getElementById('rp-lift').style.display = showLiftPanel
+    ? ''
+    : 'none';
   rhPendingReps = null; // arriving at any step resets the two-stage logger
   const skipBtn = document.getElementById('rp-skip');
   const isManualWork = !!(step.manual && step.kind === 'work');
@@ -3074,7 +3335,15 @@ function rhRenderStep() {
           if (step.logReps) {
             ctx = `LAST ${top.reps || '—'} REPS`;
           } else {
-            const sugg = suggestNextWeight(lastLogs, step.reps);
+            // The +2.5 target only makes sense on the ANCHOR. With single-
+            // number prescriptions an EMOM auto-logs exactly the prescribed
+            // reps, so "hit every rep" carries no information — a station
+            // that shows a target would suggest +2.5 every exposure, up to
+            // three times a week on the rotating slots. The anchor comes
+            // round ~monthly per variant, where +2.5 per exposure is sane.
+            const sugg = step.anchor
+              ? suggestNextWeight(lastLogs, step.reps)
+              : null;
             ctx = `LAST ${toDisplayWeight(top.weight)}×${top.reps || '—'}`;
             if (sugg) {
               ctx += ` · TARGET ${toDisplayWeight(sugg)}${weightUnit()}`;
@@ -3104,7 +3373,12 @@ function rhRenderStep() {
   }
   const swapEl = document.getElementById('rp-swap');
   if (swapEl) {
-    swapEl.style.display = step.manual && step.altSpecs ? '' : 'none';
+    // EMOM stations carry altSpecs too (2026-08-10) — the whole program runs
+    // on a clock now, so gating the chooser on `manual` hid it everywhere
+    swapEl.style.display =
+      (step.manual || (step.emom && step.kind === 'work')) && step.altSpecs
+        ? ''
+        : 'none';
   }
   document.getElementById('rp-prev').disabled = rhIdx === 0;
   const playBtn = document.getElementById('rp-play');
@@ -3197,7 +3471,11 @@ function rhTick() {
   // not chatter. Never both: rhStepSpoke burns the slot.
   if (step.kind === 'work' && !step.tempo && !step.manual && !rhStepSpoke) {
     if (step.secs >= 15 && sec === step.secs - 4) rhFormCue(step.exId);
-    else if (step.secs >= 20 && sec === Math.ceil(step.secs / 2))
+    else if (
+      !rhCoachMinimal() &&
+      step.secs >= 20 &&
+      sec === Math.ceil(step.secs / 2)
+    )
       rhCoachLine(['halfway'], 'Halfway');
   }
 
@@ -3332,8 +3610,8 @@ function openRehabPlayer(session, saved = null) {
   // A saved run keeps the variant it was built with (its step index maps
   // onto THAT queue); a fresh run picks up wherever the rotation is.
   // A saved run keeps the PHASE it was built with as well as the variant:
-  // applyPhase can add a member (phase 2 adds a pulldown to "The Spread"),
-  // which shifts every index after that piece. Resuming a week-4 pause on the
+  // applyPhase can add anchor rounds (phase 2 steps the pull anchor to 5),
+  // which shifts every index after that block. Resuming a week-4 pause on the
   // Monday of week 5 would otherwise restore rhIdx onto a different step.
   rhPhase = saved?.phase ?? blockNow().phase;
   rhFirstWorkAt = saved?.firstWorkAt ?? null;
@@ -3605,8 +3883,8 @@ const WEEK_MARKS_KEY = 'kilos-week-marks';
 
 // ── The block calendar ──────────────────────────────────────────────────────
 // The whole 12 weeks, every session, laid out the way the program actually is:
-// PART A (quality — anchor, hinge, power) then PART B (the piece on a clock)
-// then the FINISHER. Built from exactly the same calls as scripts/block-sheet
+// PART A (anything off the clock) then PART B (the anchor and the piece).
+// Built from exactly the same calls as scripts/block-sheet
 // (applyPhase → applyFormats → sessionOverview), so the app and the printed
 // sheet can never disagree.
 //
@@ -3616,13 +3894,16 @@ let calOpenWeek = null;
 
 function calDayPlan(sessionId, week, isRehab = false) {
   const ph = phaseOf(week);
-  const base = isRehab ? getRehabSession(sessionId) : getProgramSession(sessionId);
+  const base = isRehab
+    ? getRehabSession(sessionId)
+    : getProgramSession(sessionId);
   if (!base) return null;
   const s = applyFormats(applyPhase(base, ph), week);
   const v = sessionVariantCount(s) > 1 ? week - 1 : 0;
   const rows = sessionOverview(s, phaseSwaps(ph), v);
-  const pieces = rows.filter((r) => r.piece);
-  const hasFin = sessionVariantCount(s) > 1;
+  // No finisher any more (2026-08-10) — the last round of every piece carries
+  // the empty-the-tank note instead of a second clock, so a piece row is just
+  // a piece row.
   return {
     id: s.id,
     name: s.name,
@@ -3630,8 +3911,7 @@ function calDayPlan(sessionId, week, isRehab = false) {
     // the ramp is a warm-up, not prescribed work — it says "not logged" and
     // only adds noise to a calendar you scan between sets
     partA: rows.filter((r) => !r.piece && !/warm-up ramp/.test(r.title)),
-    partB: hasFin ? pieces.slice(0, -1) : pieces,
-    finisher: hasFin ? pieces.at(-1) : null,
+    partB: rows.filter((r) => r.piece),
   };
 }
 
@@ -3664,13 +3944,23 @@ function renderBlockCalendar() {
   const weeks = [];
   for (let w = 1; w <= BLOCK_WEEKS; w++) {
     const monday = weekStart(startISO, w);
-    const tests = testsForWeek(w).map((id) => getBenchmark(id)?.name).filter(Boolean);
+    const tests = testsForWeek(w)
+      .map((id) => getBenchmark(id)?.name)
+      .filter(Boolean);
     const open = w === calOpenWeek;
     const flags = [
-      tests.length ? `<span class="cal-flag">TEST · ${tests.join(' + ').toUpperCase()}</span>` : '',
-      isDeloadCheckpoint(w) ? '<span class="cal-flag">DELOAD CHECKPOINT</span>' : '',
-      w === 5 ? '<span class="cal-flag cal-flag-dim">PHASE 2 — accessories rotate, +3 lat sets</span>' : '',
-      w === 9 ? '<span class="cal-flag cal-flag-dim">PHASE 3 — accessories rotate, +2 quad sets</span>' : '',
+      tests.length
+        ? `<span class="cal-flag">TEST · ${tests.join(' + ').toUpperCase()}</span>`
+        : '',
+      isDeloadCheckpoint(w)
+        ? '<span class="cal-flag">DELOAD CHECKPOINT</span>'
+        : '',
+      w === 5
+        ? '<span class="cal-flag cal-flag-dim">PHASE 2 — pull anchor steps to 5 rounds</span>'
+        : '',
+      w === 9
+        ? '<span class="cal-flag cal-flag-dim">PHASE 3 — squat anchor steps to 5 rounds</span>'
+        : '',
     ].join('');
 
     let body = '';
@@ -3686,37 +3976,67 @@ function renderBlockCalendar() {
           : WEEK_PLAN[offset]
               .filter((i) => i.type === 'rehab' && i.session)
               .map((i) => calDayPlan(i.session, w, true));
-        const mins =
-          Math.round(estimateSessionSecs(getRehabSession('daily')) / 60) +
-          plans.reduce((a, p) => a + (p?.mins || 0), 0);
-        const isDone = plans.some((p) => p && doneOn.has(`${k}|${p.id}`));
+        // The 48-min rehab only runs on the days that carry it (2026-08-10) —
+        // it no longer stacks on a lift day, so it can't be added to every row.
+        const hasRehab = WEEK_PLAN[offset].some(
+          (i) => i.type === 'rehab' && !i.session,
+        );
+        const rehabMins = hasRehab
+          ? Math.round(estimateSessionSecs(getRehabSession('daily')) / 60)
+          : 0;
+        const mins = rehabMins + plans.reduce((a, p) => a + (p?.mins || 0), 0);
+        const rehabDone = doneOn.has(`${k}|daily`);
+        // A day is done when its REQUIRED work is done: the lift on lift days,
+        // the daily back program on rehab days. Judging rehab days by `plans`
+        // meant Tue/Thu/Sat could never show the tick (plans is empty there)
+        // and Sunday's tick tracked the optional extras instead.
+        const isDone = hasRehab
+          ? rehabDone
+          : plans.some((p) => p && doneOn.has(`${k}|${p.id}`));
         const parts = plans
           .filter(Boolean)
           .map((p) =>
             [
               p.partA.length
-                ? calPartLine('A', 'cal-a', p.partA.map((r) => `${r.title} ${r.detail}`).join(' · '), '', '')
+                ? calPartLine(
+                    'A',
+                    'cal-a',
+                    p.partA.map((r) => `${r.title} ${r.detail}`).join(' · '),
+                    '',
+                    '',
+                  )
                 : '',
-              ...p.partB.map((r) => calPartLine('B', 'cal-b', r.title, r.detail, calMoves(r))),
-              p.finisher
-                ? calPartLine('F', 'cal-f', p.finisher.title, p.finisher.detail, calMoves(p.finisher))
-                : '',
+              ...p.partB.map((r) =>
+                calPartLine('B', 'cal-b', r.title, r.detail, calMoves(r)),
+              ),
             ].join(''),
           )
           .join('');
-        const rehabDone = doneOn.has(`${k}|daily`);
+        const dayName =
+          plans
+            .map((p) => p?.name)
+            .filter(Boolean)
+            .join(' + ') || (hasRehab ? 'Lower Back & Hips' : 'Rest');
         rows.push(`
           <div class="cal-day${k === todayK ? ' cal-today' : ''}${isDone ? ' cal-done' : ''}">
             <div class="cal-day-top">
-              <span class="cal-dow">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][offset]}</span>
-              <span class="cal-name">${esc(plans.map((p) => p?.name).filter(Boolean).join(' + ') || 'Rest')}</span>
+              <span class="cal-dow">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][offset]}</span>
+              <span class="cal-name">${esc(dayName)}</span>
               <span class="cal-mins">${isDone ? '✓ ' : ''}${mins}m</span>
             </div>
-            <button class="cal-part cal-part-btn${rehabDone ? ' cal-part-done' : ''}" data-cal-session="daily">
+            ${
+              hasRehab
+                ? `<button class="cal-part cal-part-btn${rehabDone ? ' cal-part-done' : ''}" data-cal-session="daily">
               <span class="cal-tag cal-r">R</span>
-              <span class="cal-part-body"><span class="cal-pt">Daily Reset</span><span class="cal-pd"> · 10 min, every day</span></span>
-            </button>
-            <button class="cal-part-group" data-cal-session="${plans[0]?.id || ''}">${parts}</button>
+              <span class="cal-part-body"><span class="cal-pt">Lower Back &amp; Hips</span><span class="cal-pd"> · ${rehabMins} min</span></span>
+            </button>`
+                : ''
+            }
+            ${
+              parts
+                ? `<button class="cal-part-group" data-cal-session="${plans[0]?.id || ''}">${parts}</button>`
+                : ''
+            }
           </div>`);
       }
       body = `<div class="cal-days">${rows.join('')}</div>`;
@@ -3727,7 +4047,7 @@ function renderBlockCalendar() {
         <button class="cal-week-head" data-cal-week="${w}" aria-expanded="${open}">
           <span class="cal-wk">WK ${w}</span>
           <span class="cal-phase">${PHASE_NAMES[phaseOf(w)]}</span>
-          <span class="cal-dates">${weekStart(startISO, w).getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][monday.getMonth()]}</span>
+          <span class="cal-dates">${weekStart(startISO, w).getDate()} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][monday.getMonth()]}</span>
           <span class="cal-caret">${open ? '−' : '+'}</span>
         </button>
         ${flags ? `<div class="cal-flags">${flags}</div>` : ''}
@@ -3854,16 +4174,18 @@ function renderWeekPlan() {
     </div>`);
   }
   el.innerHTML = `${rows.join('')}
-    <div class="wp-legend">REHAB the daily 10-min back protocol · PULL / ARMS / LEGS / DELTS / PUSH / CHEST the week's six half-sessions · OPEN UP glutes + stretches · THE LONG WAY easy conditioning</div>`;
+    <div class="wp-legend">REHAB the 48-min Lower Back &amp; Hips program, four days a week · PULL / SQUAT / PRESS the three full-body lift days · OPEN UP glutes + stretches · THE LONG WAY easy conditioning</div>`;
 
   el.querySelectorAll('.wp-chip[data-action]').forEach((chip) => {
     chip.addEventListener('click', () => {
       const [kind, id] = chip.dataset.action.split(':');
       if (kind === 'session') {
-        const saved = get(REHAB_STATE_KEY);
-        if (saved?.sessionId === id) {
+        // rhRestorable salvages a stale save (program changed underneath it)
+        // instead of resuming into the wrong queue
+        const restorable = rhRestorable();
+        if (restorable && restorable.saved.sessionId === id) {
           // unfinished = continue where it paused
-          openRehabPlayer(getGuidedSession(id), saved);
+          openRehabPlayer(restorable.session, restorable.saved);
           return;
         }
         try {
@@ -3952,7 +4274,8 @@ function renderCheckin() {
   const delta = (a, b, unit) => {
     if (a == null || b == null) return '';
     const d = +(a - b).toFixed(1);
-    if (Math.abs(d) < 0.05) return `<span class="ci-delta">— flat / 2 wks</span>`;
+    if (Math.abs(d) < 0.05)
+      return `<span class="ci-delta">— flat / 2 wks</span>`;
     return `<span class="ci-delta">${d < 0 ? '▾' : '▴'} ${Math.abs(d)} ${unit} / 2 wks</span>`;
   };
   const STATUS = {
@@ -4088,13 +4411,20 @@ function renderRehabToday() {
 function renderRehabPage() {
   renderWeekPlan();
   renderCheckin();
+  // The gate runs FIRST: a stale save is salvaged and cleared here, so
+  // renderRehabToday's existence check below can trust the raw key — a page
+  // that suppressed the Today card for a save it then refused to offer as
+  // Resume would have no above-the-fold action at all.
+  const restorable = rhRestorable();
   renderRehabToday();
-  const saved = get(REHAB_STATE_KEY);
-  const savedSession = saved ? getGuidedSession(saved.sessionId) : null;
+  const saved = restorable?.saved;
+  const savedSession = restorable?.session;
   const resumeSlot = document.getElementById('rehab-resume-slot');
   if (savedSession) {
+    // the same expression rhRestorable verified the fingerprint against, so
+    // the "STEP x OF y" it promises is the queue the resume will serve
     const queueLen = buildStepQueue(
-      savedSession,
+      applyPhase(savedSession, saved.phase ?? blockNow().phase),
       getSwaps(),
       saved.variant ?? rehabVariantIdx(savedSession.id),
     ).length;
@@ -4105,7 +4435,15 @@ function renderRehabPage() {
       </button>
       <button class="rh-discard" id="rh-discard-btn">Discard paused session</button>`;
     document.getElementById('rh-resume-btn').addEventListener('click', () => {
-      openRehabPlayer(savedSession, saved);
+      // Re-validate at tap time: another render may have salvaged this save
+      // while the page sat open, and resuming an already-salvaged run would
+      // log its sets twice.
+      const now = rhRestorable();
+      if (!now) {
+        renderRehabPage();
+        return;
+      }
+      openRehabPlayer(now.session, now.saved);
     });
     document.getElementById('rh-discard-btn').addEventListener('click', () => {
       const n = saved?.liftSets?.length || 0;
@@ -4144,15 +4482,16 @@ function renderRehabPage() {
   // ── Density 40 — the lifting program queue ──
   const cursor = get('kilos-d40-cursor') || 0;
   document.getElementById('d40-session-list').innerHTML =
-    DENSITY40_SESSIONS.map(
-      (raw, i) => { const s2 = phased(raw); return `
+    DENSITY40_SESSIONS.map((raw, i) => {
+      const s2 = phased(raw);
+      return `
     <button class="rhs-card${i === cursor ? ' rh-resume' : ''}" data-d40="${s2.id}">
       <div class="rhs-top"><div class="rhs-name">${s2.name}</div><div class="rhs-go">${i === cursor ? 'NEXT →' : '→'}</div></div>
       <div class="rhs-meta">~${estimateSessionMins(s2)} MIN · ${s2.freq.toUpperCase()}</div>
       <div class="rhs-blurb">${s2.blurb}</div>
       ${i !== cursor ? `<span class="rhs-setnext" data-setnext="${i}" role="button">SET AS NEXT</span>` : ''}
-    </button>`; },
-    ).join('');
+    </button>`;
+    }).join('');
   document.querySelectorAll('#d40-session-list [data-d40]').forEach((card) => {
     card.addEventListener('click', () => {
       try {
@@ -4163,16 +4502,18 @@ function renderRehabPage() {
   });
   // Queue control — every finish advances the rotation (test runs included),
   // so the athlete can point it back at the session they actually owe.
-  document.querySelectorAll('#d40-session-list [data-setnext]').forEach((el) => {
-    el.addEventListener('click', (e) => {
-      e.stopPropagation();
-      set('kilos-d40-cursor', Number(el.dataset.setnext));
-      renderRehabPage();
-      renderDayHero();
-      renderTodayCard();
-      renderMonthGrid();
+  document
+    .querySelectorAll('#d40-session-list [data-setnext]')
+    .forEach((el) => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        set('kilos-d40-cursor', Number(el.dataset.setnext));
+        renderRehabPage();
+        renderDayHero();
+        renderTodayCard();
+        renderMonthGrid();
+      });
     });
-  });
 
   renderBlockBanner();
   renderBlockCalendar();
@@ -4232,6 +4573,7 @@ function renderRehabPage() {
       <div>
         <div class="rh-ex-name">${ex.name}</div>
         <div class="rh-ex-cue">${ex.why}</div>
+        ${ex.scale ? `<div class="rh-ex-scale">${ex.scale}</div>` : ''}
       </div>
       <a class="rh-ex-yt" href="https://www.youtube.com/results?search_query=${encodeURIComponent(ex.yt)}"
          target="_blank" rel="noopener" aria-label="Watch ${ex.name} on YouTube">Video ↗</a>
@@ -4291,8 +4633,14 @@ document.getElementById('rp-skip').addEventListener('click', () => {
   rhJump(1);
 });
 document.getElementById('rp-voice').addEventListener('click', () => {
-  rhVoiceOn = !rhVoiceOn;
+  // Three states, one button: OFF → MINIMAL (3-2-1, the next movement's name,
+  // the end tone) → FULL (adds the recorded form cues, halfway calls and
+  // tempo words). This is the ONLY writer of the coach level — without it,
+  // 'minimal' was permanent and every recorded cue was unreachable.
+  const mode = !rhVoiceOn ? 'minimal' : rhCoachMinimal() ? 'full' : 'off';
+  rhVoiceOn = mode !== 'off';
   set(REHAB_VOICE_KEY, rhVoiceOn);
+  if (mode !== 'off') set(COACH_LEVEL_KEY, mode);
   if (!rhVoiceOn) {
     // Mute means NOW — silence every channel, not just the synthesizer.
     rhStopBuf();
@@ -4401,11 +4749,13 @@ function rhHoldRepeat(el, dir) {
 rhHoldRepeat(document.getElementById('rp-w-minus'), -1);
 rhHoldRepeat(document.getElementById('rp-w-plus'), 1);
 
-document.getElementById('btn-startover-resume').addEventListener('click', () => {
-  document.getElementById('startover-confirm').classList.remove('open');
-  pendingBegin = null;
-  resumeActiveSession();
-});
+document
+  .getElementById('btn-startover-resume')
+  .addEventListener('click', () => {
+    document.getElementById('startover-confirm').classList.remove('open');
+    pendingBegin = null;
+    resumeActiveSession();
+  });
 document.getElementById('btn-startover-new').addEventListener('click', () => {
   document.getElementById('startover-confirm').classList.remove('open');
   activeWorkout = null;
@@ -4432,14 +4782,15 @@ document.getElementById('btn-discard-no').addEventListener('click', () => {
 
 // Crash / refresh recovery: a session that was live in the last 30 minutes
 // reopens exactly where it was (paused). Older ones wait on the Rehab page
-// as a Resume card.
+// as a Resume card. Goes through the rhRestorable gate: a save whose queue no
+// longer matches the program (or whose session no longer exists) is salvaged
+// into history instead of silently ignored — this path is exactly where the
+// 2026-08-10 rebuild would otherwise have discarded a paused run's sets.
 (() => {
-  const saved = get(REHAB_STATE_KEY);
-  if (!saved) return;
-  const session = getGuidedSession(saved.sessionId);
-  if (!session) return;
-  if (Date.now() - (saved.savedAt || 0) < 30 * 60 * 1000) {
-    openRehabPlayer(session, saved);
+  const restorable = rhRestorable();
+  if (!restorable) return;
+  if (Date.now() - (restorable.saved.savedAt || 0) < 30 * 60 * 1000) {
+    openRehabPlayer(restorable.session, restorable.saved);
   }
 })();
 
@@ -4502,7 +4853,6 @@ document
   .getElementById('terms-back')
   ?.addEventListener('click', () => closePage('terms-page'));
 
-
 // ─── REST-DAY CARD ────────────────────────────────────────────────────────────
 // Shows on home screen when no workout has been logged today.
 // Surfaces: most-recovered muscle (best next session suggestion) + weekly volume.
@@ -4522,7 +4872,8 @@ function todayPlan() {
         label: rid === 'daily' ? 'Rehab' : getRehabSession(rid)?.name || rid,
         // 'hinge' = legacy entries from the old split session
         done: entries.some(
-          (h) => h.rehabId === rid || (rid === 'daily' && h.rehabId === 'hinge'),
+          (h) =>
+            h.rehabId === rid || (rid === 'daily' && h.rehabId === 'hinge'),
         ),
         sessionId: rid,
       };
@@ -4628,7 +4979,9 @@ function renderTodayCard() {
         if (ex && !ids.includes(ex)) ids.push(ex);
       }
     }
-    const names = ids.map((id) => prShortName(GUIDED_EXERCISES[id]?.name || id));
+    const names = ids.map((id) =>
+      prShortName(GUIDED_EXERCISES[id]?.name || id),
+    );
     const out = [];
     let len = 0;
     for (const n of names) {
@@ -4772,11 +5125,12 @@ function quickStartWorkout(muscle) {
 document
   .getElementById('btn-custom')
   .addEventListener('click', () => goScreen('build'));
-document.getElementById('btn-resume').addEventListener('click', resumeActiveSession);
+document
+  .getElementById('btn-resume')
+  .addEventListener('click', resumeActiveSession);
 document
   .getElementById('active-exit')
   ?.addEventListener('click', exitActiveScreen);
-
 
 // ─── COACHES ──────────────────────────────────────────────────────────────────
 function renderCoaches() {
@@ -6169,9 +6523,18 @@ function renderCurrentExercise() {
     const wSets =
       topW > 0
         ? [
-            { w: `${toDisplayWeight(Math.round((topW * 0.4) / 2.5) * 2.5)}${weightUnit()}`, r: 10 },
-            { w: `${toDisplayWeight(Math.round((topW * 0.6) / 2.5) * 2.5)}${weightUnit()}`, r: 5 },
-            { w: `${toDisplayWeight(Math.round((topW * 0.8) / 2.5) * 2.5)}${weightUnit()}`, r: 2 },
+            {
+              w: `${toDisplayWeight(Math.round((topW * 0.4) / 2.5) * 2.5)}${weightUnit()}`,
+              r: 10,
+            },
+            {
+              w: `${toDisplayWeight(Math.round((topW * 0.6) / 2.5) * 2.5)}${weightUnit()}`,
+              r: 5,
+            },
+            {
+              w: `${toDisplayWeight(Math.round((topW * 0.8) / 2.5) * 2.5)}${weightUnit()}`,
+              r: 2,
+            },
           ]
         : [
             { w: '40%', r: 10 },
@@ -7926,7 +8289,6 @@ function renderProfilePane() {
   } else {
     syncSection.innerHTML = '';
   }
-
 }
 
 // Name saves as you leave the field — there's no sheet to close anymore.
@@ -8019,10 +8381,7 @@ function renderProfileBtn() {
   if (el && !el.value) el.value = get(NAME_KEY) || '';
 }
 
-
-
 // Profile button on home screen → open profile sheet
-
 
 // ─── BETA WELCOME ─────────────────────────────────────────────────────────────
 // Fires once on first ever visit, before name prompt + onboarding.

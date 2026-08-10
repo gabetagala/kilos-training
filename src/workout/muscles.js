@@ -35,6 +35,17 @@ export const MUSCLE_ALIASES = {
   'Reverse Wrist Curl': 'Biceps',
   'Suitcase Carry': 'Core',
   'Farmer Carry': 'Core',
+  // CrossFit movements + cardio stations (2026-08-10). The cardio ones all
+  // display as Legs except the crawl — nobody thinks of a bear crawl as a leg
+  // day, and the muscle row should agree with them.
+  'DB Push Press': 'Shoulders',
+  'DB Hang Power Snatch': 'Shoulders',
+  'DB Front-Rack Reverse Lunge': 'Legs',
+  'Bear Crawl': 'Core',
+  'Jumping Jack': 'Legs',
+  'Reverse Lunge': 'Legs',
+  'High Knees': 'Legs',
+  'Skater Bound': 'Legs',
   // BLOCK-01 benchmark movements
   'Box Step-Up': 'Legs',
   'Box Squat': 'Legs',
@@ -55,6 +66,20 @@ export const MUSCLE_ALIASES = {
   'Bird Dog': 'Core',
   'Hamstring Stretch': 'Legs',
   'Hip Flexor Stretch': 'Legs',
+  // rehab.js — Lower Back & Hips. The hip work all displays as Legs; only the
+  // three trunk movements are Core/Back, which is what the muscle row wants.
+  'Hip Internal Rotation': 'Legs',
+  'Hip Airplane': 'Legs',
+  'Side Hip Abduction': 'Legs',
+  'Side Hip Adduction': 'Legs',
+  'Hip Flexor Lift': 'Legs',
+  'QL Plank': 'Core',
+  Plank: 'Core',
+  'Back Extension': 'Back',
+  'Wall Groin Stretch': 'Legs',
+  '90/90 Push Up': 'Legs',
+  'Couch Stretch': 'Legs',
+  'Elephant Walk': 'Legs',
 };
 
 const norm = (s) =>

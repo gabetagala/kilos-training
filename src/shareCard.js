@@ -95,10 +95,7 @@ export function buildShareData({
       else if (reps.length > 1)
         repStr = `×${Math.min(...reps)}–${Math.max(...reps)}`;
       else if (ex.reps) repStr = `×${ex.reps}`;
-      const top = Math.max(
-        0,
-        ...done.map((l) => parseFloat(l.weight) || 0),
-      );
+      const top = Math.max(0, ...done.map((l) => parseFloat(l.weight) || 0));
       return {
         name: ex.name,
         detail: `${sets}${repStr}`,
@@ -319,7 +316,6 @@ function drawMinimal(ctx, data, color) {
   ctx.restore();
 }
 
-
 // ─── STYLE D · DOTS — dot matrix + vertical type ────────────────────────────
 function drawDots(ctx, data, color) {
   const c = color;
@@ -349,7 +345,13 @@ function drawDots(ctx, data, color) {
   ctx.save();
   ctx.translate(W * 0.62, H * 0.3);
   ctx.rotate(Math.PI / 2);
-  const nameSize = fitText(ctx, data.workoutName.toUpperCase(), H * 0.62, 44, BEBAS);
+  const nameSize = fitText(
+    ctx,
+    data.workoutName.toUpperCase(),
+    H * 0.62,
+    44,
+    BEBAS,
+  );
   ctx.font = `${nameSize}px ${BEBAS}`;
   ctx.fillStyle = c;
   ctx.textAlign = 'left';
@@ -357,7 +359,11 @@ function drawDots(ctx, data, color) {
   ctx.font = `700 11px ${MONO}`;
   let vy = 22;
   for (const m of data.movements.slice(0, 4)) {
-    ctx.fillText(`${m.name.toUpperCase().slice(0, 26)}  ${m.detail}`.trim(), 0, vy);
+    ctx.fillText(
+      `${m.name.toUpperCase().slice(0, 26)}  ${m.detail}`.trim(),
+      0,
+      vy,
+    );
     vy += 18;
   }
   if (data.movements.length > 4) {
@@ -403,7 +409,11 @@ function drawHeadline(ctx, data, color) {
   let my = H - 232;
   for (const m of data.movements.slice(0, 3)) {
     ctx.fillStyle = withAlpha(c, 0.9);
-    ctx.fillText(`${m.name.toUpperCase().slice(0, 28)}  ${m.detail}`.trim(), W / 2, my);
+    ctx.fillText(
+      `${m.name.toUpperCase().slice(0, 28)}  ${m.detail}`.trim(),
+      W / 2,
+      my,
+    );
     my += 16;
   }
   if (data.movements.length > 3) {
@@ -441,7 +451,11 @@ function drawSpec(ctx, data, color) {
   y += 16;
   for (const m of data.movements.slice(0, 4)) {
     ctx.fillStyle = withAlpha(c, 0.92);
-    ctx.fillText(`${m.name.toUpperCase().slice(0, 24)} · ${m.detail}`.trim(), PAD, y);
+    ctx.fillText(
+      `${m.name.toUpperCase().slice(0, 24)} · ${m.detail}`.trim(),
+      PAD,
+      y,
+    );
     y += 15;
   }
   if (data.movements.length > 4) {
@@ -453,7 +467,11 @@ function drawSpec(ctx, data, color) {
   ctx.fillText(`ELAPSED: ${data.duration}`, W - PAD, ry);
   ry += 16;
   ctx.fillStyle = withAlpha(c, 0.92);
-  ctx.fillText(`${data.isCF ? 'ROUNDS' : 'SETS'}: ${data.totalSets || '—'}`, W - PAD, ry);
+  ctx.fillText(
+    `${data.isCF ? 'ROUNDS' : 'SETS'}: ${data.totalSets || '—'}`,
+    W - PAD,
+    ry,
+  );
   ry += 15;
   ctx.fillText(`DATE: ${data.dateStr}`, W - PAD, ry);
   ry += 15;
@@ -471,11 +489,19 @@ function drawGrain(ctx, data, color) {
   ctx.fillStyle = c;
   ctx.textAlign = 'left';
   ctx.fillText('TRAINING LOG', W * 0.2, y);
-  ctx.fillText(`${data.workoutName.toUpperCase().slice(0, 24)} ●●`, W * 0.2, y + 16);
+  ctx.fillText(
+    `${data.workoutName.toUpperCase().slice(0, 24)} ●●`,
+    W * 0.2,
+    y + 16,
+  );
 
   y += 56;
   for (const m of data.movements.slice(0, 3)) {
-    ctx.fillText(`${m.name.toUpperCase().slice(0, 24)} ${m.detail}`.trim(), W * 0.32, y);
+    ctx.fillText(
+      `${m.name.toUpperCase().slice(0, 24)} ${m.detail}`.trim(),
+      W * 0.32,
+      y,
+    );
     y += 16;
   }
   if (data.movements.length > 3) {
@@ -501,19 +527,28 @@ function drawArchive(ctx, data, color) {
     ctx.fillText(wrd, PAD, 58 + i * 17);
   });
   ctx.textAlign = 'center';
-  const nameWords = data.workoutName.toUpperCase().split(/\s+·?\s*/).slice(0, 3);
+  const nameWords = data.workoutName
+    .toUpperCase()
+    .split(/\s+·?\s*/)
+    .slice(0, 3);
   nameWords.forEach((wrd, i) => {
     ctx.fillText(wrd.slice(0, 14), W / 2, 58 + i * 17);
   });
   ctx.textAlign = 'right';
-  [data.dateStr.split(',')[0], `${data.duration}`, 'ELAPSED'].forEach((wrd, i) => {
-    ctx.fillText(wrd, W - PAD, 58 + i * 17);
-  });
+  [data.dateStr.split(',')[0], `${data.duration}`, 'ELAPSED'].forEach(
+    (wrd, i) => {
+      ctx.fillText(wrd, W - PAD, 58 + i * 17);
+    },
+  );
 
   // mid row
   const midY = H * 0.52;
   ctx.textAlign = 'left';
-  ctx.fillText(`${data.isCF ? 'RND' : 'SETS'} ${data.totalSets || '—'}`, PAD, midY);
+  ctx.fillText(
+    `${data.isCF ? 'RND' : 'SETS'} ${data.totalSets || '—'}`,
+    PAD,
+    midY,
+  );
   ctx.textAlign = 'center';
   ctx.fillText('©', W / 2, midY);
   ctx.textAlign = 'right';
@@ -525,7 +560,11 @@ function drawArchive(ctx, data, color) {
   let y = H - 96;
   for (const m of data.movements.slice(0, 3)) {
     ctx.fillStyle = withAlpha(c, 0.92);
-    ctx.fillText(`${m.name.toUpperCase().slice(0, 26)}  ${m.detail}`.trim(), PAD, y);
+    ctx.fillText(
+      `${m.name.toUpperCase().slice(0, 26)}  ${m.detail}`.trim(),
+      PAD,
+      y,
+    );
     y += 15;
   }
   if (data.movements.length > 3) {
@@ -533,14 +572,19 @@ function drawArchive(ctx, data, color) {
   }
 }
 
-
 // ─── STYLE I · MONOGRAM — scattered giant letters + the one huge number ─────
 function drawMonogram(ctx, data, color) {
   const c = color;
   ctx.textBaseline = 'alphabetic';
   // three initials of the session, scattered like a city code
-  const words = data.workoutName.toUpperCase().replace(/[^A-Z0-9 ]/g, ' ').split(/\s+/).filter(Boolean);
-  const letters = (words.length >= 3 ? words.slice(0, 3) : ['K', 'L', 'S']).map((w) => w[0]);
+  const words = data.workoutName
+    .toUpperCase()
+    .replace(/[^A-Z0-9 ]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+  const letters = (words.length >= 3 ? words.slice(0, 3) : ['K', 'L', 'S']).map(
+    (w) => w[0],
+  );
   ctx.fillStyle = c;
   ctx.font = `150px ${BEBAS}`;
   ctx.textAlign = 'right';
@@ -557,10 +601,15 @@ function drawMonogram(ctx, data, color) {
   ctx.fillText('KILOS — TRAINING LOG', PAD, y);
   y += 16;
   for (const m of data.movements.slice(0, 4)) {
-    ctx.fillText(`${m.name.toUpperCase().slice(0, 22)} ${m.detail}`.trim(), PAD, y);
+    ctx.fillText(
+      `${m.name.toUpperCase().slice(0, 22)} ${m.detail}`.trim(),
+      PAD,
+      y,
+    );
     y += 14;
   }
-  if (data.movements.length > 4) ctx.fillText(`+ ${data.movements.length - 4} MORE`, PAD, y);
+  if (data.movements.length > 4)
+    ctx.fillText(`+ ${data.movements.length - 4} MORE`, PAD, y);
   // the one huge number — elapsed time
   ctx.fillStyle = c;
   ctx.textAlign = 'left';
@@ -650,7 +699,11 @@ function drawTicket(ctx, data, color) {
   const nm = data.workoutName.toUpperCase().slice(0, 24);
   ctx.fillText(nm, -topLight - 14, 44);
   ctx.font = `700 10px ${MONO}`;
-  ctx.fillText(`* ${String(data.totalSets).padStart(4, '0')} / SETS *`, -topLight - 16, 66);
+  ctx.fillText(
+    `* ${String(data.totalSets).padStart(4, '0')} / SETS *`,
+    -topLight - 16,
+    66,
+  );
   ctx.fillText(`${data.duration} ELAPSED`, -topLight - 16, 84);
   ctx.restore();
   // movements, small, bottom-right over the photo
@@ -659,10 +712,15 @@ function drawTicket(ctx, data, color) {
   ctx.fillStyle = withAlpha('#FFFFFF', 0.92);
   let y = H - 70 - Math.min(data.movements.length, 4) * 14;
   for (const m of data.movements.slice(0, 4)) {
-    ctx.fillText(`${m.name.toUpperCase().slice(0, 24)} ${m.detail}`.trim(), W - PAD, y);
+    ctx.fillText(
+      `${m.name.toUpperCase().slice(0, 24)} ${m.detail}`.trim(),
+      W - PAD,
+      y,
+    );
     y += 14;
   }
-  if (data.movements.length > 4) ctx.fillText(`+ ${data.movements.length - 4} MORE`, W - PAD, y);
+  if (data.movements.length > 4)
+    ctx.fillText(`+ ${data.movements.length - 4} MORE`, W - PAD, y);
 }
 
 // ─── STYLE L · BADGE — one centered capsule mark, nothing else ──────────────

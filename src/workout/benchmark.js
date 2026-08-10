@@ -82,7 +82,10 @@ export function scoreFromRun(session, { elapsedSecs, stepsCompleted, queue }) {
     // stepsCompleted counts every step including the prep; the score is how
     // many ladder minutes were finished, capped at what the queue held.
     const done = Math.min(
-      Math.max(0, (stepsCompleted || 0) - ((queue?.length || 0) - ladder.length)),
+      Math.max(
+        0,
+        (stepsCompleted || 0) - ((queue?.length || 0) - ladder.length),
+      ),
       ladder.length,
     );
     return done || null;

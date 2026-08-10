@@ -176,7 +176,7 @@ test('the block calendar shows all 12 weeks and every part of a session', async 
 // real week for week 12 to be comparable to it. Before it starts the program
 // is fully usable, it just isn't counting.
 
-test('pre-block state + rehab visible on every calendar day', async ({ page }) => {
+test('pre-block state + rehab on the four days that carry it', async ({ page }) => {
   const errors=[]; page.on('console',m=>m.type()==='error'&&errors.push(m.text()));
   page.on('pageerror',e=>errors.push(String(e)));
   await page.goto('/');
@@ -186,10 +186,11 @@ test('pre-block state + rehab visible on every calendar day', async ({ page }) =
   console.log('BANNER:', (await page.locator('#block-banner').textContent())?.replace(/\s+/g,' ').trim());
   console.log('START:', await page.evaluate(()=>localStorage.getItem('kilos-block-start')));
   console.log('IS MONDAY?', await page.evaluate(()=>new Date(JSON.parse(localStorage.getItem('kilos-block-start'))).getDay()));
-  // every open-week day must show the rehab
+  // The 48-min rehab runs Sun/Tue/Thu/Sat (2026-08-10) — it no longer stacks
+  // on the three lift days, so four rows, not seven.
   const rehabLines = await page.locator('.cal-week.open .cal-part-btn').count();
   console.log('REHAB LINES IN OPEN WEEK:', rehabLines);
-  expect(rehabLines).toBe(7);
+  expect(rehabLines).toBe(4);
   console.log('ERRORS:', JSON.stringify(errors));
   expect(errors).toEqual([]);
 });
@@ -201,8 +202,8 @@ test('tapping the rehab line on a calendar day opens the rehab', async ({ page }
   await page.locator('#btn-rehab-open').click();
   await page.locator('.cal-week.open .cal-part-btn').first().click();
   await expect(page.locator('#rehab-player')).toHaveClass(/open/);
-  await expect(page.locator('#rp-session-name')).toContainText('DAILY RESET');
-  await expect(page.locator('#rp-exname')).toHaveText('Cat-Camel');
+  await expect(page.locator('#rp-session-name')).toContainText('LOWER BACK & HIPS');
+  await expect(page.locator('#rp-exname')).toHaveText('Hip Internal Rotation');
 });
 
 test('double-tap does not zoom', async ({ page }) => {

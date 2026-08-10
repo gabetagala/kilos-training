@@ -140,6 +140,174 @@ export const ART_MANIFEST = {
     a: 'torso tall and upright, hips shifted slightly forward, both hands resting on the front knee',
   },
 
+  // ── Lower Back & Hips (Movementgems) ───────────────────────────────────────
+  // Every one of these is a single long set, so the `b` pose is the working
+  // end of the movement, not a separate rep phase. Floor work is `stack: true`
+  // — side by side, the model reliably invents a standing second figure.
+  'hip-internal-rotation': {
+    scene:
+      'sitting on the floor, torso tall and upright, both knees bent with the feet planted wider than the knees, hands resting on the floor behind his hips for support',
+    a: 'both feet flat on the floor, both knees pointing up',
+    b: 'one knee dropped inward toward the floor and that same foot LIFTED clear of the floor, the other foot still planted',
+    important:
+      'the lifted foot is off the floor while that knee stays dropped inward — the torso stays tall, it must not lean back',
+    stack: true,
+  },
+  'hip-airplane': {
+    scene:
+      'balancing on one leg with the torso hinged forward until it is level with the floor, the other leg extended straight out behind him at the same height as his back',
+    a: 'hips level and square to the floor, arms stretched straight out in front of him',
+    b: 'the pelvis rotated OPEN — the back hip lifted high and turned toward the ceiling, the same arms still stretched forward',
+    important:
+      'the standing knee stays soft and the standing foot stays flat — the whole rotation happens at the hip, not the low back',
+  },
+  'side-hip-abduction': {
+    scene:
+      'lying on his side on the floor, body in one straight line, the bottom arm stretched out flat on the floor under his head, the top hand planted on the floor in front of his chest',
+    a: 'both legs stacked and straight, resting on the floor',
+    b: 'the top leg raised high, straight, and slightly behind the line of his body, foot level',
+    important:
+      'the hips stay stacked vertically and do not roll backward, and the raised leg stays straight with the toes pointing forward, not up',
+    stack: true,
+  },
+  'side-hip-adduction': {
+    scene:
+      'lying on his side on the floor, the bottom arm stretched out flat on the floor under his head, the TOP leg crossed over the bottom one with that knee bent high and that foot planted flat on the floor in front of his thighs',
+    a: 'the bottom leg straight and resting on the floor',
+    b: 'the bottom leg raised straight up off the floor toward the underside of the crossed top leg',
+    important:
+      'the working leg is the BOTTOM one and it stays perfectly straight as it lifts — the top foot stays planted on the floor',
+    stack: true,
+  },
+  'hip-flexor-lift': {
+    scene:
+      'sitting on the floor with the torso tall and upright and both legs stretched out straight in front of him, hands resting on the floor beside his hips',
+    a: 'both legs straight and resting on the floor',
+    b: 'one straight leg lifted as high as it will go, the other still resting on the floor, hands NOT touching the raised leg',
+    important:
+      'the raised leg stays completely straight and the torso stays tall and vertical — he must not lean back to lift higher',
+    stack: true,
+  },
+  'ql-plank': {
+    scene:
+      'a side plank on the floor: the bottom forearm flat on the floor with the elbow directly under the shoulder, legs stacked and straight, the top hand resting on his top hip',
+    a: 'hips lifted so the body forms one straight line from ear to ankle',
+    b: 'the hips driven even HIGHER than the straight line, the waist clearly lifted toward the ceiling',
+    important:
+      'the bottom shoulder stays packed and pushed away from the floor — it must not collapse, and the hips must never sag',
+  },
+  plank: {
+    scene:
+      'a front plank on the floor: both forearms flat on the floor with the elbows directly under the shoulders, toes tucked under',
+    a: 'the body held in one perfectly straight line from head to heels, hips level with the shoulders',
+    important:
+      'the hips are exactly in line — not sagging toward the floor and not piked up toward the ceiling',
+    stack: true,
+  },
+  'back-extension': {
+    scene:
+      'set up in a 45-degree Roman chair back extension bench, hips resting on the angled pad and both ankles hooked under the ankle rollers, arms hanging relaxed toward the floor',
+    a: 'the torso hinged all the way DOWN toward the floor from the hips, spine long',
+    b: 'the torso lifted UP until the body is one straight line from head to heels, arms still hanging',
+    important:
+      'the top position is exactly straight — the back must NOT arch backward past the line of the legs',
+  },
+  'wall-groin-stretch': {
+    scene:
+      'lying on his back on the floor with his hips right up against a plain wall and both legs extended straight up the wall, arms resting on the floor out to his sides',
+    a: 'both legs straight up the wall and together',
+    b: 'both straight legs fallen wide apart into a broad V against the wall, heels still touching the wall surface',
+    important:
+      'the low back and both shoulders stay flat on the floor, and both legs stay straight — this is a relaxed stretch, not a strain',
+    stack: true,
+  },
+  '90-90-pushup': {
+    scene:
+      'sitting on the floor in the 90/90 position: the front leg bent 90 degrees with the shin across in front of him, the back leg bent 90 degrees out to his other side, both shins flat on the floor',
+    a: 'sitting down on the floor with one hand planted on the floor beside him',
+    b: 'pushed up so his hips are OFF the floor and he is up tall over the front hip, both shins still on the floor in the same 90/90 shape',
+    important:
+      'both shins stay pinned in the 90/90 position while the hips lift — the spine stays long, it must not round',
+  },
+  'couch-stretch': {
+    scene:
+      'in a half-kneeling lunge with his back foot and shin propped up against the front face of a couch behind him, the front foot planted flat on the floor with the knee bent at 90 degrees',
+    a: 'one hand resting lightly on the front knee, torso upright',
+    b: 'the torso fully tall and vertical, tailbone tucked under, the back glute visibly squeezed, both hands off the knee',
+    important:
+      'the low back stays FLAT with the pelvis tucked — no arching backward to fake depth',
+  },
+  'elephant-walk': {
+    scene:
+      'hinged forward at the hips with both hands flat on the floor in front of his feet and both legs nearly straight, head hanging relaxed',
+    a: 'both knees nearly straight, both heels down',
+    b: 'one knee bent with that heel lifted while the OTHER leg is pushed completely straight with its heel pressed down',
+    important:
+      'the back stays long and flat throughout — he does not round his spine to reach the floor',
+    stack: true,
+  },
+
+  // ── CrossFit movements + cardio stations (2026-08-10) ─────────────────────
+  'db-push-press': {
+    scene:
+      'standing tall holding a dumbbell in each hand racked at his shoulders, elbows in front of him',
+    a: 'a short shallow dip — knees bent slightly, torso perfectly vertical, dumbbells still at the shoulders',
+    b: 'both dumbbells punched straight overhead with the arms locked out, legs straight, biceps beside his ears',
+    important:
+      'the dip is entirely in the KNEES — the torso stays vertical and the low back never arches, even at lockout',
+  },
+  'db-hang-snatch': {
+    scene:
+      'holding ONE dumbbell in one hand, arm hanging straight down in front of his thigh, feet hip width',
+    a: 'hinged forward at the hips with the dumbbell just ABOVE his knee, back flat, shoulders over the weight',
+    b: 'standing fully upright with that same dumbbell punched straight overhead in one hand, arm locked, other arm out for balance',
+    important:
+      'the start is a shallow hinge with the dumbbell ABOVE the knee — never at the floor — and the back stays flat, never rounded',
+  },
+  'db-front-rack-lunge': {
+    scene:
+      'holding a dumbbell in each hand racked at his shoulders with the elbows up, torso vertical',
+    a: 'standing tall with both feet together, dumbbells at the shoulders',
+    b: 'in a deep reverse lunge — one leg stepped far BACK with that knee just above the floor, front shin vertical, torso still perfectly upright and elbows still high',
+    important:
+      'the torso is bolt upright the whole time and the step goes BACKWARD, not forward',
+  },
+  'bear-crawl': {
+    scene:
+      'on all fours on the floor with his knees hovering just above the ground, hands under his shoulders, back flat and level',
+    a: 'both hands planted, knees hovering an inch off the floor, hips level with the shoulders',
+    b: 'mid-crawl — one hand and the OPPOSITE knee lifted and moving forward, the other hand and knee supporting, back still flat and level',
+    important:
+      'the knees hover barely off the floor and the back stays flat as a table — the hips must not swing side to side or pike up',
+    stack: true,
+  },
+  'jumping-jack': {
+    scene: 'standing on a flat floor with no equipment at all',
+    a: 'feet together, arms straight down at his sides',
+    b: 'mid-jack — feet jumped wide apart and both arms swung straight overhead, hands nearly touching above his head',
+    important: 'both poses are the same person mid-exercise, landing softly on the whole foot',
+  },
+  'reverse-lunge': {
+    scene: 'standing on a flat floor with no equipment, hands relaxed at his sides',
+    a: 'standing tall with both feet together',
+    b: 'in a deep reverse lunge — one leg stepped far BACK with that knee just above the floor, front shin vertical, torso upright',
+    important: 'the step goes BACKWARD and the torso stays vertical — no forward lean',
+  },
+  'high-knees': {
+    scene: 'running on the spot on a flat floor with no equipment',
+    a: 'standing tall on one leg, the other foot just leaving the floor, arms bent at his sides',
+    b: 'one knee driven UP to hip height with that shin hanging down, up on the ball of the standing foot, opposite arm driven forward',
+    important:
+      'the torso stays vertical — he must not lean back as the knee comes up',
+  },
+  'skater-bound': {
+    scene: 'bounding sideways on a flat floor with no equipment',
+    a: 'loaded on one leg with the knee bent, ready to push off sideways, the other foot off the floor',
+    b: 'landing on the opposite single leg with that knee softly bent and the trail leg swept BEHIND him, chest tall, arms counterbalancing',
+    important:
+      'he lands on ONE leg with the knee tracking over the toes — the feet never cross in front of each other',
+  },
+
   // ── Density 40 ─────────────────────────────────────────────────────────────
   'pull-up': {
     scene:

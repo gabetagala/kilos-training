@@ -21,8 +21,10 @@ async function skipTo(page, pred, max) {
   }
 }
 
-const atPopeye = (page) => async () =>
-  !!(await page.locator('#rp-session-name').textContent())?.includes('POPEYE');
+const atGate = (page) => async () =>
+  !!(await page.locator('#rp-session-name').textContent())?.includes('THE GATE');
+const atForge = (page) => async () =>
+  !!(await page.locator('#rp-session-name').textContent())?.includes('THE FORGE');
 
 test('an EMOM minute shows the piece, a running clock AND a weight row', async ({
   page,
@@ -32,14 +34,14 @@ test('an EMOM minute shows the piece, a running clock AND a weight row', async (
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('/');
   await dismissOnboarding(page);
-  await openHalf(page, 'd40-b2');
-  await skipTo(page, atPopeye(page), 14);
+  await openHalf(page, 'd40-b1');
+  await skipTo(page, atForge(page), 40);
 
-  // the header becomes the PIECE — these minutes are one workout, not 15 items
+  // the header becomes the PIECE — these minutes are one workout, not 12 items
   await expect(page.locator('#rp-session-name')).toContainText(
-    'POPEYE · EMOM 15',
+    'THE FORGE · EMOM 35',
   );
-  await expect(page.locator('#rp-meta')).toContainText('MIN 1 OF 15');
+  await expect(page.locator('#rp-meta')).toContainText('MIN 1 OF 32');
   // both at once: the clock runs the piece, the weight row sets the load
   await expect(page.locator('#rp-clock')).toBeVisible();
   await expect(page.locator('#rp-lift .rp-weight-row')).toBeVisible();
@@ -47,42 +49,16 @@ test('an EMOM minute shows the piece, a running clock AND a weight row', async (
   expect(errors).toEqual([]);
 });
 
-// C2's finisher slot rotates; on a fresh history it serves "The Grip".
-test('the AMRAP finisher lists its movements and is scored in rounds', async ({
-  page,
-}) => {
-  await page.goto('/');
-  await dismissOnboarding(page);
-  await openHalf(page, 'd40-c2');
-  await skipTo(
-    page,
-    async () =>
-      !!(await page.locator('#rp-session-name').textContent())?.includes(
-        'THE GRIP',
-      ),
-    30,
-  );
-  await expect(page.locator('#rp-session-name')).toContainText(
-    'THE GRIP · AMRAP 3',
-  );
-  await expect(page.locator('#rp-meta')).toContainText('SCORE = ROUNDS');
-  await expect(page.locator('#rp-time')).toHaveText('3:00');
-  // a finisher is scored in rounds, so there is no load to log
-  await expect(page.locator('#rp-lift .rp-weight-row')).toBeHidden();
-  await expect(page.locator('#rp-cue')).toContainText('Farmer Carry 30s');
-  await expect(page.locator('#rp-cue')).toContainText('as many rounds');
-});
-
 test('the overview lists a piece as one row, not as its minutes', async ({
   page,
 }) => {
   await page.goto('/');
   await dismissOnboarding(page);
-  await openHalf(page, 'd40-b2');
+  await openHalf(page, 'd40-c1');
   await page.locator('#rp-overview-btn').click();
   const rows = page.locator('#rpo-list');
-  await expect(rows).toContainText('Popeye');
-  await expect(rows).toContainText('EMOM 15');
+  await expect(rows).toContainText('The Gate');
+  await expect(rows).toContainText('EMOM 35');
   await expect(rows).toContainText('Romanian Deadlift'); // Part A still listed
 });
 
@@ -98,22 +74,22 @@ test('an EMOM minute logs itself when the interval runs out', async ({
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto('/');
   await dismissOnboarding(page);
-  await openHalf(page, 'd40-b2');
-  await skipTo(page, atPopeye(page), 14);
-  await expect(page.locator('#rp-meta')).toContainText('MIN 1 OF 15');
+  await openHalf(page, 'd40-b1');
+  await skipTo(page, atForge(page), 40);
+  await expect(page.locator('#rp-meta')).toContainText('MIN 1 OF 32');
 
   await page.evaluate(() => localStorage.removeItem('kilos-guided-weights'));
   // rp-play TOGGLES — clicking an already-running clock would pause it
   if (await page.locator('#rp-play-icon').isVisible()) {
     await page.locator('#rp-play').click();
   }
-  await expect(page.locator('#rp-meta')).toContainText('MIN 2 OF 15', {
+  await expect(page.locator('#rp-meta')).toContainText('MIN 2 OF 32', {
     timeout: 70000,
   });
 
   const saved = await page.evaluate(() =>
     JSON.parse(localStorage.getItem('kilos-guided-weights') || '{}'),
   );
-  expect(Object.keys(saved)).toContain('db-lateral-raise');
+  expect(Object.keys(saved)).toContain('cable-row-1arm');
   expect(errors).toEqual([]);
 });

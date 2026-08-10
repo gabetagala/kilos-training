@@ -12,6 +12,34 @@ import { createStepEngine } from './stepEngine.js';
 // The program is Gabe's DDD back protocol, dosed per the published protocols
 // (researched 2026-07 — see PROTOCOL notes on each block).
 //
+// ── LOWER BACK & HIPS (2026-08-10) ──────────────────────────────────────────
+// The daily session IS NOW the Movementgems [Lower Back & Hips] Home Program,
+// straight off the source PDF: twelve movements, one set each, 2 minutes per
+// side or 4 minutes straight = 48 minutes of work (~52 with changeovers).
+// It targets exactly his stack — herniated disc / sciatica, anterior pelvic
+// tilt, SI discomfort, hip impingement, hamstring and hip flexor tightness.
+//
+// DOSED DAILY, NOT 3×/WEEK — his call, made knowing the source prescribes 3.
+// Stacked on a ~30-min D40 half that is a ~78-minute day, seven days a week.
+// If it starts eating the week, the dial to turn FIRST is frequency (drop to
+// the published 3×), never the durations: the long single set is the entire
+// mechanism here, and a 1-minute version of this program is a different,
+// worse program.
+//
+// The method, from the PDF, and it governs everything below:
+//   - Every exercise except the stretches chases a 10/10 BURN and 0/10 PAIN.
+//     Never work through pain — find today's pain-free level instead.
+//   - Breaking mid-set at a true 10/10 burn is expected. Rest, then continue.
+//   - The progression trigger is ENDURANCE, not load: hold the full duration
+//     unbroken, then take the next step on that movement's ladder and start
+//     over. Ladders live on each exercise as `scale`.
+// Back Extension wants a Roman chair; floor-lying isometrics are the stated
+// regression until one exists.
+//
+// The old 10-minute McGill core survives as its own session ('reset') for a
+// day the long program will not happen, and so paused sessions and history
+// still resolve. Everything below about the trim describes THAT session.
+//
 // TRIMMED 2026-08-07 to the 10-minute core. It had grown to 18:55 (A) /
 // 23:50 (B) — against a doc that claimed 15 — and stacked on top of a ~30-min
 // lift it made his Wednesday 52 minutes. He asked for 10 max. Nothing was
@@ -189,6 +217,127 @@ export const REHAB_EXERCISES = {
     why: 'Tight hip flexors tilt the pelvis and cramp the hinge.',
     yt: 'half kneeling hip flexor stretch',
   },
+
+  // ── Lower Back & Hips (Movementgems) ──────────────────────────────────────
+  // The twelve movements of the home program, in program order. Every one is
+  // ONE long set — 2 minutes a side, or 4 minutes straight. `scale` carries the
+  // published regression → progression ladder, because on this program the
+  // ladder IS the programming: you stay on a level until you can hold the full
+  // duration unbroken, then you move up and start over.
+  'hip-internal-rotation': {
+    name: 'Hip Internal Rotation',
+    feel: 'A deep burn on the outside and front of the working hip',
+    avoid: 'Leaning back or letting the low back round to lift higher',
+    cue: 'Sit tall, knees bent, feet wide. Drop one knee inward, then lift that foot off the floor — small lifts, the hip does all of it.',
+    why: 'The rotation a hip loses first. Without it the spine turns instead.',
+    scale: 'Easier: body weight · Harder: ankle weight',
+    yt: 'seated hip internal rotation lift off',
+  },
+  'hip-airplane': {
+    name: 'Hip Airplane',
+    feel: 'The standing glute fighting to control the turn',
+    avoid: 'Twisting from the low back, or hopping to save your balance',
+    cue: 'Stand on one leg, hinge over, back leg long behind you. Rotate the pelvis open, then closed — slow, the standing hip steers.',
+    why: 'Teaches the hip to rotate under load so the low back stops doing it.',
+    scale:
+      'Easier: body weight, less bend · Harder: ankle weight, more bend over',
+    yt: 'hip airplane exercise',
+  },
+  'side-hip-abduction': {
+    name: 'Side Hip Abduction',
+    feel: 'Burn on the outside of the top hip',
+    avoid: 'Rolling the hips back, or leading with the toes',
+    cue: 'Lie on your side, body in one line. Lift the top leg up and slightly back, toes level. No rolling.',
+    why: 'Glute-med endurance — the muscle that keeps the pelvis level every step you take.',
+    scale: 'Easier: body weight · Harder: ankle weight',
+    yt: 'side lying hip abduction form',
+  },
+  'side-hip-adduction': {
+    name: 'Side Hip Adduction',
+    feel: 'Inner thigh of the bottom leg, burning',
+    avoid: 'Rolling backward — stay stacked',
+    cue: 'Same side-lying stack. Cross the top leg over in front, then lift the BOTTOM leg off the floor and keep it there.',
+    why: 'Adductors hold up more of the pelvis than anyone trains — weak ones surface as groin and SI pain.',
+    scale: 'Easier: body weight · Harder: ankle weight',
+    yt: 'side lying hip adduction exercise',
+  },
+  'hip-flexor-lift': {
+    name: 'Hip Flexor Lift',
+    feel: 'The front of the hip close to cramping — that is the point',
+    avoid: 'Leaning back to buy height',
+    cue: 'Sit on the floor, legs long, sit tall. Lift one straight leg as high as it will go and hold it there — hands off it.',
+    why: 'Trains the hip flexor short and strong so it stops yanking the pelvis into a tilt.',
+    scale: 'Easier: body weight · Harder: ankle weight, or swap in an L-sit',
+    yt: 'seated straight leg hip flexor lift',
+  },
+  'ql-plank': {
+    name: 'QL Plank',
+    feel: 'The side of the low back and the top of the hip',
+    avoid: 'Hips sagging, or the bottom shoulder collapsing',
+    cue: 'On your side, elbow under the shoulder, legs stacked. Drive the hips high and hold — the burn belongs in the side of your low back.',
+    why: 'The QL hikes the hip. Even and strong on both sides, the pelvis stops sitting crooked.',
+    scale: 'Easier: body weight · Harder: weighted vest',
+    yt: 'QL plank exercise',
+  },
+  plank: {
+    name: 'Plank',
+    feel: 'The whole front holding one straight line',
+    avoid: 'Hips sagging, or piking up to rest',
+    cue: 'Elbows under shoulders, ribs down, glutes on. One line from ear to ankle. Break when you must, then get straight back on.',
+    why: 'Four minutes of front-core endurance — the thing that stops the spine borrowing range under load.',
+    scale: 'Easier: body weight · Harder: weighted vest',
+    yt: 'plank form',
+  },
+  'back-extension': {
+    name: 'Back Extension',
+    feel: 'Low back and glutes working together, all the way through',
+    avoid: 'Hyperextending past straight at the top',
+    cue: 'Hips at the pad, spine long. Lower under control, lift to straight — never past it. No chair? Lie face down and hold.',
+    why: 'The single biggest lever on a back that hurts: extensors with real endurance.',
+    scale:
+      'Easier: isometric hold · Harder: reps → + vest → single-leg hold → single-leg reps',
+    yt: 'roman chair back extension form',
+  },
+  'wall-groin-stretch': {
+    name: 'Wall Groin Stretch',
+    feel: 'A long, slow opening through both inner thighs',
+    avoid: 'Bouncing or forcing — let gravity do the work',
+    cue: 'On your back, hips close to the wall, legs straight up. Let them fall wide and breathe. Four minutes, no pushing.',
+    why: 'Four unhurried minutes is what actually changes adductor length. Thirty seconds never did.',
+    scale:
+      'Easier: hips further from the wall · Harder: hips closer, legs lower',
+    yt: 'wall straddle groin stretch',
+  },
+  '90-90-pushup': {
+    name: '90/90 Push Up',
+    feel: 'Deep in the front hip as you come up over it',
+    avoid: 'Letting the back knee flare open or the spine round',
+    cue: 'Sit in 90/90, both shins square. Push the floor away and come up tall over the front hip, then sit back down. Slow both ways.',
+    why: 'Strength at end-range rotation — the hip position everyone stretches and nobody trains.',
+    scale: 'Easier: two hands down · Harder: one hand, then none',
+    yt: '90 90 hip lift off push up',
+  },
+  'couch-stretch': {
+    name: 'Couch Stretch',
+    feel: 'Front of the rear hip and quad, long and hot',
+    avoid: 'Arching the low back to fake depth',
+    cue: 'Back foot up the wall or couch, front foot planted. Tuck the tail, squeeze the back glute, then come tall.',
+    why: 'Unwinds the hip flexor a day of sitting shortens — the one the pelvis pays for.',
+    scale:
+      'Easier: hold a counter · Harder: hands off, glute squeezed, lunge forward with a neutral pelvis',
+    yt: 'couch stretch form',
+  },
+  'elephant-walk': {
+    name: 'Elephant Walk',
+    feel: 'Hamstrings taking turns, one long pull at a time',
+    avoid:
+      'Rounding the low back to reach the floor — raise your hands instead',
+    cue: 'Hinge over, hands on the floor or a box, legs near-straight. Bend one knee and straighten the other, then swap. Keep walking.',
+    why: 'Hamstring length earned through movement, without one second of spinal flexion.',
+    scale:
+      'Easier: hands on a higher surface · Harder: hands lower, then floor',
+    yt: 'elephant walk hamstring exercise',
+  },
 };
 
 // Cat-camel cycle: exhale into the round, inhale into the arch — breath-paced.
@@ -203,12 +352,61 @@ const TSPINE_TEMPO = [
   ['RETURN', 2],
 ];
 
+// One long set per movement: 2 minutes a side, or 4 minutes straight. That
+// duration is the whole prescription — see the LOWER BACK & HIPS note in the
+// file header. `hold` mode is just "one timed set"; the phase label says what
+// kind of minute it is (WORK = burn to failure and back, HOLD = isometric,
+// BREATHE = a stretch you are not fighting).
+const MINS = (n) => n * 60;
+
+// Per-side blocks: 2 minutes each side, a real changeover between them (some
+// of these need you to get up and reset the whole position, not just roll over).
+const perSide = (ex, phase, switchSecs = 15) => ({
+  ex,
+  mode: 'hold',
+  sets: 1,
+  holdSecs: MINS(2),
+  perSide: true,
+  switchSecs,
+  phase,
+});
+
+const straight = (ex, phase) => ({
+  ex,
+  mode: 'hold',
+  sets: 1,
+  holdSecs: MINS(4),
+  phase,
+});
+
 export const REHAB_SESSIONS = [
   {
     id: 'daily',
-    name: 'Daily Reset',
+    name: 'Lower Back & Hips',
     freq: 'Every day',
-    blurb: 'Wake the spine, then brace it. Ten minutes, the same every day.',
+    blurb:
+      'Twelve movements, one long set each. Chase a 10/10 burn and 0/10 pain — break when you have to, then keep going. When you can hold the full time unbroken, take the next progression.',
+    blocks: [
+      perSide('hip-internal-rotation', 'WORK'),
+      perSide('hip-airplane', 'WORK', 20),
+      perSide('side-hip-abduction', 'WORK', 12),
+      perSide('side-hip-adduction', 'WORK', 12),
+      perSide('hip-flexor-lift', 'WORK'),
+      perSide('ql-plank', 'HOLD', 12),
+      straight('plank', 'HOLD'),
+      straight('back-extension', 'WORK'),
+      straight('wall-groin-stretch', 'BREATHE'),
+      perSide('90-90-pushup', 'WORK', 20),
+      perSide('couch-stretch', 'BREATHE', 20),
+      straight('elephant-walk', 'WORK'),
+    ],
+  },
+  {
+    id: 'reset',
+    name: 'Daily Reset',
+    freq: 'Short days',
+    blurb:
+      'The ten-minute version. Wake the spine, then brace it — for a day the long program is not going to happen.',
     blocks: [
       // Opener — McGill's warm-up. Slow breath-paced cycles, nothing forced.
       {
@@ -341,12 +539,13 @@ export const REHAB_SESSIONS = [
     // gear arrives: med-ball rotational throws → here; KB swings → the hinge
     // slot, both only after a quiet month.
     //
-    // NO LONGER ITS OWN DAY (2026-08-07, his call). POWER_BLOCKS now open
-    // d40-a2 (Tue) and d40-c2 (Sat) — both anchor-free and axially quiet, so
-    // it still lands fresh. This standalone session stays so history entries
-    // and any paused run with rehabId 'power' still resolve, and so the
-    // primer is runnable on its own if he ever wants it off-schedule. It
-    // shares POWER_BLOCKS with the halves — one definition, one dose.
+    // NO LONGER ITS OWN DAY, and no longer shared with the lift days either
+    // (2026-08-10): the full-body pieces now carry their own POWER() stations
+    // inside the EMOM — a per-round micro-dose on a different clock, so the
+    // doses are deliberately separate definitions now. This standalone
+    // session stays so history entries and any paused run with rehabId
+    // 'power' still resolve, and so the primer is runnable on its own if he
+    // ever wants it off-schedule.
     blocks: POWER_BLOCKS,
   },
 ];

@@ -243,8 +243,11 @@ export async function pushData() {
   const allEmpty = SYNC_KEYS.every((k) => {
     const v = data[k];
     return (
-      v == null || (Array.isArray(v) && v.length === 0) ||
-      (typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0)
+      v == null ||
+      (Array.isArray(v) && v.length === 0) ||
+      (typeof v === 'object' &&
+        !Array.isArray(v) &&
+        Object.keys(v).length === 0)
     );
   });
   if (allEmpty) {

@@ -42,12 +42,14 @@ test('the app knows what week and phase it is in', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test('week 6 is phase 2 and serves the phase-2 accessories', async ({ page }) => {
+test('week 6 is phase 2 and serves that week of the rotation', async ({ page }) => {
   await openProgram(page, { startWeeksAgo: 5 });
   await expect(page.locator('.blk-name')).toContainText('WK 6/12');
   await expect(page.locator('.blk-phase')).toContainText('PRESS');
-  // phase 2 swaps the DB lateral raise to the cable version
-  await page.locator('[data-d40="d40-b2"]').click();
+  // PHASE_SWAPS is retired (2026-08-10) — weekly rotation superseded it. Week
+  // 6 resolves to variant 1 of every pool, where the side-delt slot serves
+  // the cable raise, so the assertion holds through the rotation itself.
+  await page.locator('[data-d40="d40-c1"]').click();
   await page.locator('#rp-overview-btn').click();
   const rows = (await page.locator('#rpo-list').textContent())?.replace(/\s+/g, ' ');
   console.log('WK6 b2 overview:', rows?.slice(0, 180));
@@ -55,23 +57,26 @@ test('week 6 is phase 2 and serves the phase-2 accessories', async ({ page }) =>
   expect(rows).not.toContain('DB Lateral Raise');
 });
 
-test('phase 2 adds the lat sets that close the audit gap', async ({ page }) => {
+// The phase step is a fifth ANCHOR set now (2026-08-10), not an extra piece
+// member — see block.js for why it moved.
+test('phase 2 steps the pull anchor to five working rounds', async ({ page }) => {
   await openProgram(page, { startWeeksAgo: 5 });
   await page.locator('[data-d40="d40-a1"]').click();
   await page.locator('#rp-overview-btn').click();
   const rows = (await page.locator('#rpo-list').textContent())?.replace(/\s+/g, ' ');
-  console.log('WK6 a1 overview:', rows?.slice(-160));
-  expect(rows).toContain('Lat Pulldown');
+  console.log('WK6 a1 overview:', rows?.slice(0, 220));
+  // bodyweight pull-ups: two-minute clock, no build rounds
+  expect(rows).toContain('E2M 10 · 5 rounds');
 });
 
-test('phase 3 adds the quad sets', async ({ page }) => {
+test('phase 3 steps the squat anchor to five working rounds', async ({ page }) => {
   await openProgram(page, { startWeeksAgo: 9 }); // week 10
   await expect(page.locator('.blk-phase')).toContainText('PEAK');
   await page.locator('[data-d40="d40-b1"]').click();
   await page.locator('#rp-overview-btn').click();
   const rows = (await page.locator('#rpo-list').textContent())?.replace(/\s+/g, ' ');
   console.log('WK10 b1 overview:', rows?.slice(0, 200));
-  expect(rows).toContain('5 × 8–10/leg');
+  expect(rows).toContain('E3M 18 · 6 rounds (1 to build)');
 });
 
 test('the deload checkpoint asks at week 4 and does not impose', async ({ page }) => {
@@ -133,48 +138,62 @@ test('Sunday now has a real engine session, not a checkbox', async ({ page }) =>
 });
 
 // Same movements, same sets, different delivery — the only week-to-week
-// variety that costs nothing. Popeye rotates EMOM → EMOM↓ → for time.
-async function popeyeOverview(page, week) {
+// variety that costs nothing. The Gate rotates EMOM → EMOM↓ → for time.
+async function gateOverview(page, week) {
   await openProgram(page, { startWeeksAgo: week - 1 });
-  await page.locator('[data-d40="d40-b2"]').click();
+  await page.locator('[data-d40="d40-c1"]').click();
   await page.locator('#rp-overview-btn').click();
   return (await page.locator('#rpo-list').textContent())?.replace(/\s+/g, ' ');
 }
-const POPEYE_MOVES = [
-  'DB Lateral Raise',
-  'Rope Face Pull',
-  'DB Wrist Curl',
-  'Band Lateral Raise',
+// The piece is named per week of the rotation, so the overview assertions
+// match the pool, not one name.
+const PRESS_PIECE_NAMES = /The (Gate|Cage|Bellows|Furnace)/;
+// The Gate's slot pattern is [chest · side delt · rear delt · lungs]. Which
+// MOVEMENT fills each slot depends on the variant, so the test asserts the
+// pattern survived the format change, not one particular week's line-up.
+const GATE_SLOTS = [
+  /Romanian Deadlift/,
+  /Band Fly|Cable Fly|Push-Up/,
+  /Lateral Raise/,
+  /Face Pull|Pull-Apart/,
+  /Jumping Jack|High Knees|Skater Bound|Reverse Lunge/,
 ];
 
-test('week 1 runs Popeye as an EMOM', async ({ page }) => {
-  const t = await popeyeOverview(page, 1);
-  console.log('POPEYE wk1:', t?.slice(-150));
-  expect(t).toContain('Popeye');
-  expect(t).toContain('EMOM 15');
+test('week 1 runs The Gate as an EMOM', async ({ page }) => {
+  const t = await gateOverview(page, 1);
+  console.log('GATE wk1:', t?.slice(-200));
+  expect(t).toMatch(PRESS_PIECE_NAMES);
+  expect(t).toContain('EMOM 35');
+  for (const slot of GATE_SLOTS) expect(t, String(slot)).toMatch(slot);
 });
 
-test('week 3 runs the same piece for time — movements untouched', async ({ page }) => {
-  const t = await popeyeOverview(page, 3);
-  console.log('POPEYE wk3:', t?.slice(-170));
-  expect(t).toContain('3 rounds for time');
-  expect(t).not.toContain('EMOM 15');
-  for (const m of POPEYE_MOVES) expect(t, m).toContain(m);
+// Consolidating the day into one piece put the hinge inside it, so every piece
+// now runs on forced rest — the rotation is EMOM → EMOM ↓ → EMOM. A self-paced
+// clock has no rest floor, and the hinge needs one.
+test('week 3 comes back round to the EMOM — never self-paced', async ({ page }) => {
+  const t = await gateOverview(page, 3);
+  console.log('GATE wk3:', t?.slice(-200));
+  expect(t).toContain('EMOM 35');
+  expect(t).not.toContain('for time');
+  for (const slot of GATE_SLOTS) expect(t, String(slot)).toMatch(slot);
 });
 
-test('week 2 runs it descending — top of the range down, same 3 sets', async ({ page }) => {
+// The press day's piece is a DIFFERENT NAMED WORKOUT each week of the rotation
+// — Gate, Cage, Bellows, Furnace — so the test matches the day's name pool
+// rather than one name. Which one comes up depends on completed runs.
+const PRESS_PIECES = /THE (GATE|CAGE|BELLOWS|FURNACE)/;
+
+test('week 2 runs it descending — top of the range down, same 4 sets', async ({ page }) => {
   await openProgram(page, { startWeeksAgo: 1 }); // week 2
-  await page.locator('[data-d40="d40-b2"]').click();
-  for (let i = 0; i < 12; i++) {
-    if ((await page.locator('#rp-session-name').textContent())?.includes('POPEYE')) break;
+  await page.locator('[data-d40="d40-c1"]').click();
+  for (let i = 0; i < 40; i++) {
+    if (PRESS_PIECES.test((await page.locator('#rp-session-name').textContent()) || '')) break;
     await page.locator('#rp-skip').click();
     await page.waitForTimeout(60);
   }
-  await expect(page.locator('#rp-session-name')).toContainText('POPEYE');
+  await expect(page.locator('#rp-session-name')).toHaveText(PRESS_PIECES);
   await expect(page.locator('#rp-session-name')).toContainText('EMOM ↓');
-  // lateral raise is prescribed 12-20, so a descending scheme opens at 20
-  await expect(page.locator('#rp-exname')).toHaveText('DB Lateral Raise');
   const meta = await page.locator('#rp-meta').textContent();
-  console.log('POPEYE wk2 first minute:', meta);
-  await expect(page.locator('#rp-meta')).toContainText('MIN 1 OF 15');
+  console.log('GATE wk2 first minute:', meta);
+  await expect(page.locator('#rp-meta')).toContainText('MIN 1 OF 32');
 });

@@ -805,8 +805,462 @@ REHAB_DEMOS['power-pushup'] = svg(
       rootAnim: { a: '0 0', b: '0 -7', dur: '1.1s', kt: '0;.3;.5;.85;1' },
     }) +
     action(
-      swoosh('M 88 66 Q 84 54 88 44', 2.6) + swoosh('M 104 64 Q 100 52 104 42', 2.6),
+      swoosh('M 88 66 Q 84 54 88 44', 2.6) +
+        swoosh('M 104 64 Q 100 52 104 42', 2.6),
     ),
+);
+
+// ── Lower Back & Hips (Movementgems) ────────────────────────────────────────
+// The twelve movements of the daily program. Same rig, same 200×120 frame.
+// Most of these are ONE long set, so the figure holds the working position and
+// the motion is a small loop (a lift, a fall, a walk) rather than a full rep.
+// Side-lying and seated poses sit at y≈92–96 with the ground line at 104 —
+// the established convention for floor work on this rig (see hamstring-stretch).
+// Own stroke rather than `${PROP} stroke-width="4"`: a repeated attribute is
+// dropped by the HTML parser, so that older pattern silently keeps PROP's 3.
+const WALL = (x) =>
+  `<line x1="${x}" y1="10" x2="${x}" y2="104" stroke="currentColor" stroke-width="4" stroke-linecap="round" fill="none" opacity=".22"/>`;
+
+// Seated on the floor, knees bent, feet wide — one foot lifts as the hip
+// rotates in. The lift reads as the near shin swinging back and up.
+REHAB_DEMOS['hip-internal-rotation'] = svg(
+  GROUND +
+    shadow(96, 40) +
+    figure({
+      root: { x: 106, y: 90 },
+      torso: 174,
+      head: 4,
+      // hands planted behind the hips, propping the tall spine
+      armF: { at: SH, sh: -196, el: -16 },
+      armN: { at: [0, L.torso - 6], sh: -200, el: -18 },
+      legF: { hip: 112, knee: -108, ankle: 88, far: true },
+      legN: {
+        hip: 106,
+        knee: -104,
+        ankle: 84,
+        kneeAnim: { a: -104, b: -148 },
+      },
+    }) +
+    action(swoosh('M 82 100 Q 74 92 78 82') + tick(74, 88, 78, 82)),
+);
+
+// One-leg stance, hinged over, back leg long — the pelvis rotates open and
+// closed over the standing hip (rd-rock carries the rotation).
+REHAB_DEMOS['hip-airplane'] = svg(
+  GROUND +
+    shadow(100, 30) +
+    figure({
+      wrap: 'rd-rock',
+      wrapStyle: 'transform-origin:60% 55%',
+      root: { x: 108, y: 68 },
+      torso: 95,
+      head: -8,
+      // arms straight out in front, horizontal — keeps this off all-fours,
+      // which is what a hanging arm reads as at this torso angle
+      armF: { at: SH, sh: -8, el: 4 },
+      armN: { at: [0, L.torso - 6], sh: -2, el: -4 },
+      legF: { hip: -95, knee: -4, ankle: -58, far: true },
+      legN: { hip: -4, knee: -2, ankle: -86 },
+    }) +
+    action(swoosh('M 118 52 Q 130 60 126 72') + tick(120, 70, 126, 72)),
+);
+
+// Side-lying, stacked — the top leg lifts up and slightly back.
+REHAB_DEMOS['side-hip-abduction'] = svg(
+  GROUND +
+    shadow(108, 54) +
+    figure({
+      root: { x: 108, y: 94 },
+      torso: 91,
+      head: -4,
+      // bottom arm long overhead along the floor, top hand braced in front
+      armF: { at: SH, sh: -4, el: 2 },
+      armN: { at: [0, L.torso - 6], sh: -68, el: 44 },
+      legF: { hip: -89, knee: -2, ankle: -88, far: true },
+      legN: {
+        hip: -112,
+        knee: -2,
+        ankle: -66,
+        anim: { a: -89, b: -112 },
+      },
+    }) +
+    action(swoosh('M 140 78 Q 152 72 162 76') + tick(156, 70, 162, 76)),
+);
+
+// Same stack, top leg crossed over in front — now the BOTTOM leg lifts.
+REHAB_DEMOS['side-hip-adduction'] = svg(
+  GROUND +
+    shadow(108, 54) +
+    figure({
+      root: { x: 108, y: 94 },
+      torso: 91,
+      head: -4,
+      armF: { at: SH, sh: -4, el: 2 },
+      armN: { at: [0, L.torso - 6], sh: -68, el: 44 },
+      // bottom (far) leg is the working one — it lifts toward the top leg
+      legF: {
+        hip: -104,
+        knee: -2,
+        ankle: -74,
+        far: true,
+        anim: { a: -89, b: -104 },
+      },
+      // top leg crossed over: knee high, shin dropping to the floor in front
+      legN: { hip: -140, knee: 150, ankle: 80 },
+    }) +
+    action(swoosh('M 138 92 Q 148 86 156 88') + tick(150, 82, 156, 88)),
+);
+
+// Seated tall, legs long, one straight leg lifted and held.
+REHAB_DEMOS['hip-flexor-lift'] = svg(
+  GROUND +
+    shadow(92, 46) +
+    figure({
+      root: { x: 108, y: 92 },
+      torso: 176,
+      head: 4,
+      armF: { at: SH, sh: -178, el: -6 },
+      armN: { at: [0, L.torso - 6], sh: -182, el: -8 },
+      legF: { hip: 92, knee: -2, ankle: -32, far: true },
+      legN: {
+        hip: 116,
+        knee: -2,
+        ankle: -30,
+        anim: { a: 94, b: 116 },
+      },
+    }) +
+    action(swoosh('M 70 78 Q 62 68 66 58') + tick(62, 64, 66, 58)),
+);
+
+// Side plank driven high — the burn belongs in the side of the low back, so
+// the emphasis ticks sit at the waist, not the shoulder.
+REHAB_DEMOS['ql-plank'] = svg(
+  GROUND +
+    shadow(102, 56) +
+    figure({
+      wrap: 'rd-pulse',
+      wrapStyle: 'transform-origin:78% 92%',
+      root: { x: 104, y: 82 },
+      torso: 104,
+      head: -8,
+      armF: { at: SH, sh: -99, el: 88 },
+      armN: { at: [0, L.torso - 7], sh: -58, el: -18 },
+      legF: { hip: -64, knee: 0, ankle: -26, far: true },
+      legN: { hip: -68, knee: 0, ankle: -28 },
+    }) +
+    action(tick(104, 74, 106, 62) + tick(112, 76, 115, 64, 2.6)),
+);
+
+// Front plank on the elbows — one line, held.
+REHAB_DEMOS.plank = svg(
+  GROUND +
+    shadow(106, 58) +
+    figure({
+      wrap: 'rd-pulse',
+      wrapStyle: 'transform-origin:80% 30%',
+      root: { x: 112, y: 84 },
+      torso: 94,
+      head: -12,
+      armF: { at: SH, sh: -94, el: 90 },
+      armN: { at: [0, L.torso - 6], sh: -90, el: 88 },
+      legF: { hip: -86, knee: -4, ankle: 98, far: true },
+      legN: { hip: -90, knee: -4, ankle: 96 },
+    }) +
+    action(tick(96, 76, 96, 66, 2.6) + tick(120, 76, 120, 66, 2.6)),
+);
+
+// Roman chair: hips on the pad, ankles under the rollers, lift to straight and
+// never past it. Static pose holds the top (straight) position.
+const ROMAN_PAD =
+  `<g transform="translate(112 76) rotate(-45)">
+  <rect x="-15" y="-8" width="30" height="16" rx="4" fill="#2e2e2e" ${SEP}/></g>` +
+  `<line x1="112" y1="80" x2="136" y2="102" ${PROP}/>` +
+  `<circle cx="138" cy="99" r="5" fill="#2e2e2e" ${SEP}/>` +
+  `<circle cx="138" cy="88" r="5" fill="#2e2e2e" ${SEP}/>`;
+REHAB_DEMOS['back-extension'] = svg(
+  GROUND +
+    ROMAN_PAD +
+    figure({
+      root: { x: 112, y: 72 },
+      torso: 135,
+      torsoAnim: { a: 78, b: 135, dur: '5s' },
+      head: 6,
+      // arms simply hanging — crossed arms at this angle read as a hook
+      armF: { at: SH, sh: -135, el: 2 },
+      armN: { at: [0, L.torso - 6], sh: -131, el: -2 },
+      legF: { hip: -47, knee: -2, ankle: 62, far: true },
+      legN: { hip: -43, knee: -2, ankle: 58 },
+    }) +
+    action(swoosh('M 74 84 Q 74 66 86 54') + tick(80, 58, 86, 54)),
+);
+
+// On your back, hips to the wall, legs straight up and falling wide. The
+// figure is the far leg splayed away and the near leg riding the wall.
+REHAB_DEMOS['wall-groin-stretch'] = svg(
+  GROUND +
+    WALL(168) +
+    shadow(128, 44) +
+    figure({
+      root: { x: 150, y: 94 },
+      torso: 92,
+      head: 2,
+      armF: { at: SH, sh: -92, el: 4 },
+      armN: { at: [0, L.torso - 6], sh: -88, el: -4 },
+      legF: { hip: 156, knee: 2, ankle: 26, far: true },
+      legN: { hip: 202, knee: -2, ankle: -26 },
+    }) +
+    action(tick(140, 74, 132, 70) + tick(160, 74, 168, 70)),
+);
+
+// Sitting in 90/90 — push the floor away and come up tall over the front hip.
+REHAB_DEMOS['90-90-pushup'] = svg(
+  GROUND +
+    shadow(104, 50) +
+    figure({
+      root: { x: 108, y: 84 },
+      rootAnim: { a: '0 9', b: '0 0', dur: '5s' },
+      torso: 172,
+      torsoAnim: { a: 158, b: 172, dur: '5s' },
+      head: 4,
+      // front hand planted on the floor, back arm free
+      armF: { at: SH, sh: -186, el: -10 },
+      armN: { at: [0, L.torso - 6], sh: -158, el: -22 },
+      // front leg: thigh across, shin folded back — 90 at the hip and knee
+      legN: { hip: 96, knee: -80, ankle: 66 },
+      // back leg: thigh behind, shin folded away
+      legF: { hip: -72, knee: 86, ankle: -60, far: true },
+    }) +
+    action(swoosh('M 88 62 Q 86 48 96 40') + tick(90, 44, 96, 40)),
+);
+
+// Back foot up the couch, front foot planted, tail tucked and chest tall.
+REHAB_DEMOS['couch-stretch'] = svg(
+  GROUND +
+    BOX(146, 68, 48, 36) +
+    shadow(112, 40) +
+    figure({
+      root: { x: 114, y: 72 },
+      torso: 176,
+      head: 2,
+      armF: { at: SH, sh: -172, el: -14 },
+      // near hand rests on the front thigh
+      armN: { at: [0, L.torso - 6], sh: -142, el: -46 },
+      // back shin runs up to the couch, foot flat along its top edge
+      legF: { hip: -62, knee: -62, ankle: 34, far: true },
+      legN: { hip: 56, knee: -56, ankle: 88 },
+    }) +
+    action(tick(122, 78, 130, 76) + tick(120, 86, 128, 84, 2.6)),
+);
+
+// Hinged over, hands down, legs near-straight — one knee bends as the other
+// straightens, and you keep walking.
+REHAB_DEMOS['elephant-walk'] = svg(
+  GROUND +
+    shadow(96, 44) +
+    figure({
+      // deep hinge so the hands actually reach the floor — with a level torso
+      // the arms stop short and the figure reads as hovering
+      root: { x: 110, y: 68 },
+      torso: 82,
+      head: -18,
+      armF: { at: SH, sh: -82, el: 2 },
+      armN: { at: [0, L.torso - 6], sh: -78, el: -2 },
+      legF: {
+        hip: 4,
+        knee: 2,
+        ankle: 86,
+        far: true,
+        kneeAnim: { a: 2, b: 38, dur: '3s' },
+      },
+      legN: {
+        hip: -4,
+        knee: 36,
+        ankle: -84,
+        kneeAnim: { a: 36, b: 0, dur: '3s' },
+      },
+    }) +
+    action(
+      swoosh('M 128 76 Q 136 84 132 94', 2.6) +
+        swoosh('M 96 96 Q 88 90 90 82', 2.6),
+    ),
+);
+
+// ── CrossFit movements + the cardio stations (2026-08-10) ───────────────────
+// All standing except the crawl, so they hang off the shared `standing` rig.
+// Static attributes hold the working end of each movement (reduced motion
+// freezes there); the loop is the small part that repeats.
+const RACKED = { sh: -180, el: 120 };
+
+PROGRAM_DEMOS['db-push-press'] = svg(
+  GROUND +
+    shadow(100, 30) +
+    figure(
+      standing({
+        head: 2,
+        // near arm punched overhead, far arm still racked at the shoulder
+        armN: {
+          at: [2.5, 27],
+          sh: 0,
+          el: 0,
+          hand: DB(0, L.farm),
+          anim: { a: -180, b: 0 },
+        },
+        armF: { at: [-2.5, 27], ...RACKED, hand: DB(0, L.farm) },
+        // the dip lives in the knees — the spine never moves
+        legF: { hip: 6, knee: 6, ankle: 82, far: true },
+        legN: { hip: -6, knee: -6, ankle: -82 },
+      }),
+    ) +
+    action(swoosh('M 118 34 Q 116 22 120 12') + tick(114, 18, 120, 12)),
+);
+
+PROGRAM_DEMOS['db-hang-snatch'] = svg(
+  GROUND +
+    shadow(100, 34) +
+    figure({
+      ...standing({
+        root: { x: 102, y: 68 },
+        head: -6,
+        armF: { at: [-2.5, 27], sh: -152, el: 4 },
+        legF: { hip: 12, knee: -10, ankle: 84, far: true },
+        legN: { hip: -8, knee: -8, ankle: -80 },
+      }),
+      // The hang: hinged only to just above the knee, caught mid-pull as the
+      // hips snap. A deeper hinge here reads as a bent-over row, which is the
+      // wrong movement AND the wrong depth to be teaching.
+      torso: 166,
+      armN: {
+        at: [2.5, 27],
+        sh: -166,
+        el: 4,
+        hand: DB(0, L.farm),
+        anim: { a: -166, b: -150 },
+      },
+    }) +
+    action(
+      swoosh('M 84 76 Q 70 48 80 22', 3.4) +
+        tick(72, 32, 80, 22) +
+        tick(88, 32, 80, 22, 2.6),
+    ),
+);
+
+PROGRAM_DEMOS['db-front-rack-lunge'] = svg(
+  GROUND +
+    shadow(102, 44) +
+    figure(
+      standing({
+        root: { x: 106, y: 70 },
+        head: 2,
+        armF: { at: [-2.5, 27], ...RACKED, hand: DB(0, L.farm) },
+        armN: { at: [2.5, 27], ...RACKED, hand: DB(0, L.farm) },
+        // front leg loaded and vertical-shinned, back knee dropped under
+        legN: { hip: 42, knee: -42, ankle: 88 },
+        legF: { hip: -20, knee: -84, ankle: -58, far: true },
+      }),
+    ) +
+    action(tick(92, 96, 86, 96) + tick(92, 88, 86, 88, 2.6)),
+);
+PROGRAM_DEMOS['reverse-lunge'] = svg(
+  GROUND +
+    shadow(102, 44) +
+    figure(
+      standing({
+        root: { x: 106, y: 70 },
+        head: 2,
+        armF: { at: [-2.5, 27], sh: 168, el: -14 },
+        armN: { at: [2.5, 27], sh: -172, el: 16 },
+        legN: { hip: 42, knee: -42, ankle: 88 },
+        legF: { hip: -20, knee: -84, ankle: -58, far: true },
+      }),
+    ) +
+    action(swoosh('M 128 74 Q 140 78 138 90', 2.6) + tick(134, 86, 138, 90)),
+);
+
+PROGRAM_DEMOS['jumping-jack'] = svg(
+  GROUND +
+    shadow(100, 40) +
+    figure({
+      ...standing({
+        head: 2,
+        // arms overhead, split fore/aft so the profile still reads as "wide"
+        armF: { at: [-2.5, 27], sh: 18, el: 6, anim: { a: 168, b: 18 } },
+        armN: { at: [2.5, 27], sh: -14, el: -6, anim: { a: -172, b: -14 } },
+        legF: { hip: 22, knee: 4, ankle: 68, far: true },
+        legN: { hip: -22, knee: -4, ankle: -68 },
+      }),
+      rootAnim: { a: '0 3', b: '0 0', dur: '1s', kt: '0;.35;.5;.85;1' },
+    }) +
+    action(
+      swoosh('M 70 40 Q 66 26 74 16', 2.6) +
+        swoosh('M 130 40 Q 134 26 126 16', 2.6),
+    ),
+);
+
+PROGRAM_DEMOS['high-knees'] = svg(
+  GROUND +
+    shadow(100, 30) +
+    figure({
+      ...standing({
+        head: 0,
+        armF: { at: [-2.5, 27], sh: 140, el: -70 },
+        armN: { at: [2.5, 27], sh: -140, el: 70 },
+        // stance leg tall, drive leg at hip height with the shin hanging
+        legF: { hip: 4, knee: 2, ankle: 86, far: true },
+        legN: {
+          hip: -95,
+          knee: -75,
+          ankle: -40,
+          anim: { a: -20, b: -95 },
+          kneeAnim: { a: -10, b: -75 },
+        },
+      }),
+      rootAnim: { a: '0 2', b: '0 0', dur: '0.9s', kt: '0;.35;.5;.85;1' },
+    }) +
+    action(swoosh('M 76 62 Q 70 52 76 44', 2.6)),
+);
+
+PROGRAM_DEMOS['skater-bound'] = svg(
+  GROUND +
+    shadow(96, 40) +
+    figure(
+      standing({
+        root: { x: 104, y: 70, rot: -6 },
+        head: 6,
+        armF: { at: [-2.5, 27], sh: 150, el: -40 },
+        armN: { at: [2.5, 27], sh: -132, el: -30 },
+        // landing leg loaded and slightly bent, trail leg swept behind
+        legN: { hip: 6, knee: -14, ankle: 82 },
+        legF: { hip: -46, knee: -34, ankle: -50, far: true },
+      }),
+    ) +
+    action(swoosh('M 140 62 Q 156 66 152 80') + tick(148, 76, 152, 80)),
+);
+
+PROGRAM_DEMOS['bear-crawl'] = svg(
+  GROUND +
+    shadow(100, 56) +
+    figure({
+      root: { x: 118, y: 74 },
+      torso: 90,
+      head: -16,
+      // hands under shoulders, one arm stepping through
+      armF: { at: SH, sh: -90, el: 2 },
+      armN: {
+        at: [0, L.torso - 6],
+        sh: -72,
+        el: -14,
+        anim: { a: -90, b: -72 },
+      },
+      // knees an inch off the floor — the whole point of the movement
+      legF: { hip: 4, knee: -78, ankle: 66, far: true },
+      legN: {
+        hip: -14,
+        knee: -70,
+        ankle: 60,
+        anim: { a: 4, b: -14 },
+      },
+    }) +
+    action(tick(126, 98, 126, 92, 2.6) + tick(112, 98, 112, 92, 2.6)),
 );
 
 PROGRAM_DEMOS['supinated-curl'] = PROGRAM_DEMOS['hammer-curl'];

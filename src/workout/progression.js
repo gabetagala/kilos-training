@@ -1,9 +1,18 @@
 // Progression math — pure, no DOM, no storage. Unit-tested in
 // tests/unit/progression.test.js. Extracted from main.js per STANDARDS.md §4.
 
-// Rep prescriptions are ranges ("5–8", "8–12/side") — double progression
-// gates on the TOP of the range: every set at the top → add load. Gating on
-// the bottom made +2.5kg fire on every session regardless of performance.
+// Classic-loop prescriptions are ranges ("5–8", "8–12/side") — double
+// progression gates on the TOP of the range: every set at the top → add load.
+// Gating on the bottom made +2.5kg fire on every session regardless of
+// performance.
+//
+// THE GUIDED PROGRAM IS DIFFERENT (2026-08-10): its prescriptions are single
+// numbers and its EMOM sets auto-log exactly the prescribed reps, so "hit the
+// top" is structurally always true there and carries no information. The
+// guided player therefore only asks for a suggestion on ANCHOR steps
+// (step.anchor) — the heavy slot, which a rotating variant serves about once
+// a month, where +2.5 per exposure is a sane default. Piece stations show
+// last weight only; their load moves when the athlete decides.
 export function repTargetTop(targetRepsStr) {
   const nums = String(targetRepsStr ?? '').match(/\d+/g);
   return nums?.length ? Number.parseInt(nums[nums.length - 1], 10) : null;

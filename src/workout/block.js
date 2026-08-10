@@ -82,28 +82,15 @@ export function weekStart(startISO, week) {
 // muscle. And Fonseca 2014 found varied-exercise groups grew all four
 // quadriceps heads where constant groups missed some. So: rotate what you
 // don't measure, never rotate what you do. The three anchors never appear here.
-const PHASE_SWAPS = {
-  1: {},
-  2: {
-    'db-lateral-raise': 'cable-lateral-raise',
-    'cable-row-1arm': 'chest-supported-row',
-    'hammer-curl': 'supinated-curl',
-    'supinated-curl': 'hammer-curl',
-    'rope-pushdown': 'overhead-triceps',
-    'band-fly': 'cable-fly-low',
-  },
-  3: {
-    // NO lateral-raise swap here, deliberately. Mapping db-lateral-raise →
-    // band-lateral-raise collided with "Popeye", which already carries a band
-    // lateral as a separate member: the piece served the same movement twice
-    // per round, dropped the only LOADED (weight-logged) side-delt movement
-    // for the last third of the block, and left the "drop the weight ~30%"
-    // cue pointing at a band. Side delts are a stated V-taper priority, so
-    // phase 3 keeps the DB version. The rotation is still DB → cable → DB.
-    'hammer-curl': 'reverse-curl',
-    'supinated-curl': 'reverse-curl',
-  },
-};
+// RETIRED 2026-08-10, deliberately empty. Phase-boundary accessory swaps made
+// sense when sessions were fixed; every slot is now a 4-deep pool that rotates
+// WEEKLY — strictly more variety than a swap at week 5 ever delivered. Worse,
+// a swap keyed on one exercise only half-applied: 'db-lateral-raise → cable'
+// hit the weeks the pool happened to serve the DB version and missed the rest,
+// so a phase changed some weeks of a rotation and not others. The map's shape
+// (and phaseSwaps()) survives because the same channel carries the athlete's
+// own persisted swap choices — see getSwaps() in main.js.
+const PHASE_SWAPS = { 1: {}, 2: {}, 3: {} };
 
 export const phaseSwaps = (phase) => ({ ...(PHASE_SWAPS[phase] || {}) });
 
@@ -115,9 +102,38 @@ export const phaseSwaps = (phase) => ({ ...(PHASE_SWAPS[phase] || {}) });
 // Set progression is the least-evidenced part of the plan — Enes 2024, the only
 // direct 12-week test, found stepped increases neutral for hypertrophy and
 // better for strength. So the steps are deliberately small and targeted.
-const LAT_STEP_MEMBER = {
-  ex: 'lat-pulldown',
-  reps: '8–12',
+// REWRITTEN 2026-08-10 for the quartet sessions. The old steps bolted an extra
+// member onto a named piece and added sets to a fixed split-squat block. Both
+// assumed a block was a plain object; every varying slot is now a
+// `{ rotate: [...] }` pool, so a step has to reach THROUGH the pool and land on
+// all four variants — otherwise it silently applies in week 5 and vanishes in
+// week 6, which is worse than not stepping at all.
+//
+// The step is a fifth WORKING anchor round — one more three-minute interval of
+// real work. Build rounds are not touched: warming up more is not a volume step. Two reasons it lands there rather
+// than on a quartet: a quartet round costs five minutes (four stations plus the
+// rest minute) and would push the day past its ceiling, while an anchor set
+// costs about two and a half; and the anchor is the one slot with a continuous
+// load history, so adding sets there is the step whose effect is measurable.
+// Set progression is the least-evidenced part of the plan — Enes 2024, the only
+// direct 12-week test, found stepped increases neutral for hypertrophy and
+// better for strength — so the step stays small and lands where strength lives.
+// `working` is the target number of WORKING rounds — build rounds sit on top,
+// and they differ per lift, so the step has to be expressed in the thing it
+// actually means rather than in a total that would silently vary by day.
+const steppedAnchor = (block, working) => {
+  const bump = (spec) =>
+    spec?.anchor
+      ? // IDEMPOTENT: the player phases a session the session list may already
+        // have phased, and a second bump would desync the printed plan.
+        {
+          ...spec,
+          rounds: Math.max(spec.rounds, (spec.warmupRounds || 0) + working),
+        }
+      : spec;
+  return block.rotate
+    ? { ...block, rotate: block.rotate.map(bump) }
+    : bump(block);
 };
 
 /**
@@ -127,33 +143,21 @@ const LAT_STEP_MEMBER = {
 export function applyPhase(session, phase) {
   if (!session || phase < 2) return session;
 
-  // Phase 2+ — lats 7 → 10. A third movement in "The Spread" (the Monday
-  // piece), which is where a pulldown belongs anyway.
+  // Phase 2+ — the pull day's anchor goes to 5 sets. Every variant of that
+  // slot is a vertical pull or a row, so this is the lat step.
   if (session.id === 'd40-a1') {
     return {
       ...session,
-      blocks: session.blocks.map((b) => {
-        if (b.mode !== 'emom' || b.name !== 'The Spread') return b;
-        // IDEMPOTENT: the player applies the phase to a session the session
-        // list may already have phased. Adding the member twice would double
-        // the lat step and desync the printed plan.
-        if (b.members.some((m) => m.ex === LAT_STEP_MEMBER.ex)) return b;
-        return { ...b, members: [...b.members, LAT_STEP_MEMBER] };
-      }),
+      blocks: session.blocks.map((b) => steppedAnchor(b, 5)),
     };
   }
 
-  // Phase 3 — quads 7 → 9. Two more split-squat sets rather than a new
-  // movement: it's the slot already carrying the single-leg quad work, and
-  // adding sets keeps the load history continuous.
+  // Phase 3 — the squat day's anchor goes to 5 sets. Every variant of that
+  // slot is a squat or a split squat, so this is the quad step.
   if (phase >= 3 && session.id === 'd40-b1') {
     return {
       ...session,
-      blocks: session.blocks.map((b) =>
-        b.ex === 'rfe-split-squat' && b.mode === 'lift'
-          ? { ...b, sets: 5 }
-          : b,
-      ),
+      blocks: session.blocks.map((b) => steppedAnchor(b, 5)),
     };
   }
 
@@ -200,37 +204,58 @@ export const OPEN_PACE_BANNED = [
   'rfe-split-squat',
   'floor-press',
   'pull-up',
+  // Added 2026-08-10 with the CrossFit movements. All three are loaded and
+  // overhead or unilateral; EMOM's forced rest is exactly what keeps them
+  // honest, and an open clock is exactly what would not.
+  'db-push-press',
+  'db-hang-snatch', // the hang range only survives while the pace is capped
+  'db-front-rack-lunge',
 ];
 
 /** Formats this piece may legally rotate through, safety applied. */
 export function formatsFor(block) {
   const declared = block.formats?.length ? block.formats : ['emom'];
   const members = block.members || [];
-  const openOk = !members.some((m) => OPEN_PACE_BANNED.includes(m.ex));
+  // A banned ALT closes the door too: the athlete's swap choices persist
+  // across weeks, so an open-pace week must be impossible for every movement
+  // the slot could legally be serving, not just the one it serves by default.
+  const pool = members.flatMap((m) => [m, ...(m.alts || [])]);
+  const openOk = !pool.some((m) => OPEN_PACE_BANNED.includes(m.ex));
   return declared.filter(
     (f) => PIECE_FORMATS[f] && (PIECE_FORMATS[f].pace === 'forced' || openOk),
   );
 }
 
-// Rep ranges are strings ("12–20", "8–12/side"). Pull the numbers out so a
-// descending scheme can walk from the top of the range to the bottom.
-const repBounds = (reps) => {
-  const n = String(reps ?? '').match(/\d+/g);
-  if (!n) return null;
-  const lo = Number.parseInt(n[0], 10);
-  const hi = Number.parseInt(n[n.length - 1], 10);
-  return hi > lo ? [lo, hi] : [lo, lo];
-};
-
-/** Reps for each round of a descending scheme: top of range down to bottom. */
+// REP RANGES ARE GONE (2026-08-10, his call): every slot prescribes ONE number,
+// because "8–12" makes you decide mid-set and the decision is always the low
+// end. So a descending piece can no longer walk a range — it steps down one
+// rep per round CENTERED ON the prescription: "10" over five rounds runs
+// 12, 11, 10, 9, 8. Hardest set while freshest, same intent as before.
+//
+// Centered, not starting AT the number, because a descent from N delivers
+// 19–30% fewer reps than N-every-round — a silent dose cut every other week
+// that no set-counting audit could see. Centering keeps odd round-counts
+// volume-EXACT and even ones within 2 reps. The top round is N + lead, which
+// is why the verifier budgets every station's minute at the DESCENDING top,
+// not just the prescription.
+//
+// The suffix is preserved, so "6/side" descends as "7/side, 6/side, 5/side".
+// A member with `fixedReps: true` (the ballistic primer, the snatch, the
+// hinge) never descends — its dose is quality- or symptom-capped, and
+// "hardest set while freshest" is exactly the wrong idea there.
 export function descendingReps(reps, rounds) {
-  const b = repBounds(reps);
-  if (!b || rounds < 2) return null;
-  const [lo, hi] = b;
-  if (hi === lo) return null;
-  return Array.from({ length: rounds }, (_, i) =>
-    Math.round(hi - ((hi - lo) * i) / (rounds - 1)),
-  );
+  const str = String(reps ?? '');
+  const nums = str.match(/\d+/g);
+  if (!nums || rounds < 2) return null;
+  const n = Number.parseInt(nums[nums.length - 1], 10);
+  const at = str.lastIndexOf(nums[nums.length - 1]);
+  const suffix = str.slice(at + nums[nums.length - 1].length);
+  const lead = Math.floor((rounds - 1) / 2);
+  const top = n + lead;
+  // A prescription smaller than the round count can't fall one per round and
+  // still look like the same workout — it runs flat instead.
+  if (n < rounds || top - (rounds - 1) < 1) return null;
+  return Array.from({ length: rounds }, (_, i) => `${top - i}${suffix}`);
 }
 
 /**
@@ -246,7 +271,8 @@ export function applyPieceFormat(block, formatId) {
       ...block,
       formatLabel: 'EMOM ↓',
       members: block.members.map((m) => {
-        const per = m.secs ? null : descendingReps(m.reps, block.rounds);
+        const per =
+          m.secs || m.fixedReps ? null : descendingReps(m.reps, block.rounds);
         return per ? { ...m, repsPerRound: per } : m;
       }),
     };
@@ -265,13 +291,25 @@ export function pieceFormatFor(block, week) {
   return opts[(week - 1) % opts.length];
 }
 
-/** Apply the week's format to every piece in a session. */
+/**
+ * Apply the week's format to every piece in a session.
+ *
+ * MUST REACH THROUGH `rotate` POOLS. Every quartet became a pool on 2026-08-10
+ * and a pool wrapper carries no `formats` of its own, so a version of this that
+ * only looked at the top-level block found nothing to rewrite and silently
+ * served plain EMOM in all 12 weeks — with the safety tests still passing,
+ * because "no self-paced piece contains a banned movement" is trivially true
+ * when no piece is ever self-paced. Caught by an e2e that read the week-3
+ * overview and found EMOM where FOR TIME should have been.
+ */
 export function applyFormats(session, week) {
   if (!session?.blocks || week == null) return session;
+  const shape = (b) =>
+    b?.formats?.length ? applyPieceFormat(b, pieceFormatFor(b, week)) : b;
   return {
     ...session,
     blocks: session.blocks.map((b) =>
-      b.formats?.length ? applyPieceFormat(b, pieceFormatFor(b, week)) : b,
+      b.rotate ? { ...b, rotate: b.rotate.map(shape) } : shape(b),
     ),
   };
 }
