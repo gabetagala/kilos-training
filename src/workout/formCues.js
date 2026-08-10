@@ -55,6 +55,108 @@ export const FORM_CUES = {
     { slug: 'cue-hip-flexor-stretch-1', text: 'Tall torso, hips forward' },
   ],
 
+  // ── Lower Back & Hips (Movementgems) ───────────────────────────────────────
+  // These sets run 2 to 4 minutes, so each movement carries three lines — the
+  // player has a lot of quiet minutes to fill. Burn is the target, pain never
+  // is, and breaking mid-set is expected: several lines say exactly that.
+  'hip-internal-rotation': [
+    { slug: 'cue-hip-internal-rotation-1', text: 'Sit tall — chest stays up' },
+    {
+      slug: 'cue-hip-internal-rotation-2',
+      text: 'Small lift, all from the hip',
+    },
+    { slug: 'cue-hip-internal-rotation-3', text: 'Burn yes, pain no' },
+  ],
+  'hip-airplane': [
+    { slug: 'cue-hip-airplane-1', text: 'Rotate the hip, not the back' },
+    { slug: 'cue-hip-airplane-2', text: 'Slow — own the balance' },
+    { slug: 'cue-hip-airplane-3', text: 'Back leg long behind you' },
+  ],
+  'side-hip-abduction': [
+    {
+      slug: 'cue-side-hip-abduction-1',
+      text: 'Hips stacked — do not roll back',
+    },
+    { slug: 'cue-side-hip-abduction-2', text: 'Up and slightly behind' },
+    { slug: 'cue-side-hip-abduction-3', text: 'Toes level, leg straight' },
+  ],
+  'side-hip-adduction': [
+    { slug: 'cue-side-hip-adduction-1', text: 'Bottom leg does the work' },
+    { slug: 'cue-side-hip-adduction-2', text: 'Straight leg, lift and hold' },
+    { slug: 'cue-side-hip-adduction-3', text: 'Stay stacked on your side' },
+  ],
+  'hip-flexor-lift': [
+    { slug: 'cue-hip-flexor-lift-1', text: 'Tall spine — no leaning back' },
+    { slug: 'cue-hip-flexor-lift-2', text: 'Hands off — hold it up there' },
+    { slug: 'cue-hip-flexor-lift-3', text: 'Keep the knee locked long' },
+  ],
+  'ql-plank': [
+    { slug: 'cue-ql-plank-1', text: 'Hips high — drive them up' },
+    { slug: 'cue-ql-plank-2', text: 'Push the floor away' },
+    { slug: 'cue-ql-plank-3', text: 'Break if you must, then back on' },
+  ],
+  plank: [
+    { slug: 'cue-plank-1', text: 'Ribs down, glutes on' },
+    { slug: 'cue-plank-2', text: 'One line — no sagging' },
+    { slug: 'cue-plank-3', text: 'Breathe. Rest and restart if needed' },
+  ],
+  'back-extension': [
+    { slug: 'cue-back-extension-1', text: 'Lift to straight — never past' },
+    { slug: 'cue-back-extension-2', text: 'Long spine, slow down' },
+    { slug: 'cue-back-extension-3', text: 'Stop at pain, not at burn' },
+  ],
+  'wall-groin-stretch': [
+    { slug: 'cue-wall-groin-stretch-1', text: 'Let gravity do it' },
+    { slug: 'cue-wall-groin-stretch-2', text: 'Long breaths — stop pushing' },
+  ],
+  '90-90-pushup': [
+    { slug: 'cue-90-90-pushup-1', text: 'Both shins stay square' },
+    { slug: 'cue-90-90-pushup-2', text: 'Up over the front hip' },
+    { slug: 'cue-90-90-pushup-3', text: 'Spine long — do not round' },
+  ],
+  'couch-stretch': [
+    { slug: 'cue-couch-stretch-1', text: 'Tuck the tail, squeeze the glute' },
+    { slug: 'cue-couch-stretch-2', text: 'Tall chest — no arching' },
+  ],
+  'elephant-walk': [
+    { slug: 'cue-elephant-walk-1', text: 'Flat back — raise the hands' },
+    { slug: 'cue-elephant-walk-2', text: 'One knee bends, one straightens' },
+    { slug: 'cue-elephant-walk-3', text: 'Keep walking — easy rhythm' },
+  ],
+
+  // ── CrossFit movements + cardio stations (2026-08-10) ─────────────────────
+  // A cardio station runs 40–45s inside its minute, so one line each is plenty
+  // — the coach should be quiet while he is breathing hard.
+  'db-push-press': [
+    { slug: 'cue-db-push-press-1', text: 'Dip from the knees, ribs down' },
+    { slug: 'cue-db-push-press-2', text: 'Punch it — finish overhead' },
+  ],
+  'db-hang-snatch': [
+    { slug: 'cue-db-hang-snatch-1', text: 'From the hang — never the floor' },
+    { slug: 'cue-db-hang-snatch-2', text: 'Snap the hips, stay light' },
+    { slug: 'cue-db-hang-snatch-3', text: 'Back rounds, set ends' },
+  ],
+  'db-front-rack-lunge': [
+    { slug: 'cue-db-front-rack-lunge-1', text: 'Elbows up, chest tall' },
+    { slug: 'cue-db-front-rack-lunge-2', text: 'Step back, knee down light' },
+  ],
+  'bear-crawl': [
+    { slug: 'cue-bear-crawl-1', text: 'Hips low and level' },
+    { slug: 'cue-bear-crawl-2', text: 'Short steps — no swinging' },
+  ],
+  'jumping-jack': [
+    { slug: 'cue-jumping-jack-1', text: 'Land soft, arms all the way up' },
+  ],
+  'reverse-lunge': [
+    { slug: 'cue-reverse-lunge-1', text: 'Step back — chest stays tall' },
+  ],
+  'high-knees': [
+    { slug: 'cue-high-knees-1', text: 'Run tall — knees to the hips' },
+  ],
+  'skater-bound': [
+    { slug: 'cue-skater-bound-1', text: 'Land on one leg and stick it' },
+  ],
+
   // ── Density 40 ─────────────────────────────────────────────────────────────
   'pull-up': [
     { slug: 'cue-pull-up-1', text: 'Full hang at the bottom' },

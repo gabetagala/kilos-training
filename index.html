@@ -780,9 +780,12 @@
         <div class="rp-time" id="rp-time">0:10</div>
         <div class="rp-bar-track"><div class="rp-bar" id="rp-bar"></div></div>
       </div>
+      <!-- The swap chooser lives OUTSIDE the lift panel: a band station or an
+           anchor build round hides #rp-lift entirely, and those steps still
+           need their equipment fallback reachable. -->
+      <button class="rp-swap" id="rp-swap" style="display:none">⇄ Swap exercise</button>
       <div class="rp-lift" id="rp-lift" style="display:none">
         <div class="rp-context" id="rp-context" style="display:none"></div>
-        <button class="rp-swap" id="rp-swap" style="display:none">⇄ Swap exercise</button>
         <button class="rp-guide" id="rp-guide" style="display:none">TAP ▶ FOR TEMPO GUIDE</button>
         <div class="rp-weight-row">
           <button class="rp-wbtn" id="rp-w-minus" aria-label="Less weight">−</button>

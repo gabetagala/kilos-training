@@ -5,10 +5,10 @@
 //
 // Defaults: next Monday, ~/Downloads.
 //
-// Everything here is DERIVED, never retyped: the phase swaps, the volume
-// steps, the finisher rotation and the test calendar all come from
-// src/workout/block.js and the session data. If the program changes, rerun
-// this and the sheet is correct again.
+// Everything here is DERIVED, never retyped: the volume steps, the rotation
+// and the test calendar all come from src/workout/block.js and the session
+// data; the muscle map comes from src/workout/volume.js — the SAME map the
+// verifier audits against, so the sheet can never drift from the audit.
 //
 // Volume is counted FRACTIONALLY (direct set 1.0, indirect 0.5) per Pelland
 // et al. 2025 — the same accounting BLOCK-01.md is audited against.
@@ -32,6 +32,14 @@ import {
   testsForWeek,
 } from '../src/workout/block.js';
 import {
+  EXPECTED_LOW,
+  HYPERTROPHY_EXEMPT,
+  MEV,
+  MUSCLE_MAP as MAP,
+  OPTIONAL_SESSIONS,
+  WASTEFUL,
+} from '../src/workout/volume.js';
+import {
   buildStepQueue,
   estimateSessionSecs,
   getRehabSession,
@@ -39,52 +47,9 @@ import {
   sessionVariantCount,
 } from '../src/workout/rehab.js';
 
-// ── Fractional muscle attribution (see BLOCK-01.md §1) ──────────────────────
-const MAP = {
-  'pull-up': { lats: 1, biceps: 0.5, forearm: 0.5 },
-  'pull-up-bw': { lats: 1, biceps: 0.5, forearm: 0.5 },
-  'lat-pulldown': { lats: 1, biceps: 0.5 },
-  'cable-row-1arm': { upperback: 1, biceps: 0.5, reardelt: 0.5 },
-  'chest-supported-row': { upperback: 1, biceps: 0.5, reardelt: 0.5 },
-  'db-lateral-raise': { sidedelt: 1 },
-  'band-lateral-raise': { sidedelt: 1 },
-  'cable-lateral-raise': { sidedelt: 1 },
-  'band-pull-apart': { reardelt: 1, upperback: 0.5 },
-  'face-pull': { reardelt: 1, upperback: 0.5 },
-  'floor-press': { chest: 1, triceps: 0.5, frontdelt: 0.5 },
-  'db-floor-press': { chest: 1, triceps: 0.5, frontdelt: 0.5 },
-  'incline-db-press': { chest: 1, triceps: 0.5, frontdelt: 0.5 },
-  'elevated-pushup': { chest: 1, triceps: 0.5 },
-  'push-up': { chest: 1, triceps: 0.5 },
-  'band-fly': { chest: 1 },
-  'cable-fly-low': { chest: 1 },
-  'rope-pushdown': { triceps: 1 },
-  'overhead-triceps': { triceps: 1 },
-  'hammer-curl': { biceps: 1, forearm: 0.5 },
-  'supinated-curl': { biceps: 1 },
-  'reverse-curl': { biceps: 1, forearm: 0.5 },
-  'front-squat': { quads: 1, glutes: 0.5 },
-  'db-split-squat': { quads: 1, glutes: 1 },
-  'rfe-split-squat': { quads: 1, glutes: 1 },
-  'box-squat': { quads: 1, glutes: 0.5 },
-  'box-step-up': { quads: 1, glutes: 0.5 },
-  rdl: { hams: 1, glutes: 1, upperback: 0.5 },
-  'single-leg-bridge': { glutes: 1, hams: 0.5 },
-  'suitcase-carry': { obliques: 1, forearm: 1, sidedelt: 0.5 },
-  'farmer-carry': { forearm: 1, upperback: 0.5 },
-  'wrist-curl': { forearm: 1 },
-  'reverse-wrist-curl': { forearm: 1 },
-  'side-plank': { obliques: 1 },
-};
-
 // Pelland efficiency tiers for hypertrophy (smallest detectable effect 2.05%).
-const MEV = 4;
-const WASTEFUL = 30;
 const tier = (v) =>
   v < MEV ? 'under' : v <= 10 ? 'high' : v <= 18 ? 'mid' : v < WASTEFUL ? 'low' : 'waste';
-// Front delts are intentionally unserved — their MEV is ~0 because every press
-// saturates them. Flagging them red twelve times would be noise, not signal.
-const EXPECTED_LOW = new Set(['frontdelt']);
 
 const MUSCLES = [
   ['lats', 'Lats'],
@@ -104,15 +69,15 @@ const MUSCLES = [
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-// The finisher is anchored to the BLOCK WEEK (main.js does the same), so this
+// Rotation is anchored to the BLOCK WEEK (main.js does the same), so this
 // sheet stays correct even if a week gets missed.
 const variantFor = (session, week) =>
   sessionVariantCount(session) > 1 ? week - 1 : 0;
 
 // Everything a day serves, split the way the session is actually structured:
-// PART A is the quality work (anchor, hinge, power — straight sets, full
-// rests) and PART B is the piece(s) on a clock. On a finisher day the last
-// piece is the finisher.
+// PART A is the quality work off the clock and PART B is the piece(s) on it.
+// (There is no finisher any more — the last round of every piece carries the
+// empty-the-tank note instead of a second clock.)
 function dayPlan(sessionId, week, isRehabSession = false) {
   const phase = phaseOf(week);
   const base = isRehabSession
@@ -121,19 +86,19 @@ function dayPlan(sessionId, week, isRehabSession = false) {
   const s = applyFormats(applyPhase(base, phase), week);
   const v = variantFor(s, week);
   const rows = sessionOverview(s, phaseSwaps(phase), v);
-  const pieces = rows.filter((r) => r.piece);
-  const partA = rows.filter((r) => !r.piece);
-  const hasFinisher = sessionVariantCount(s) > 1;
   return {
     name: s.name,
     focus: (s.freq || '').split('·')[1]?.trim() || '',
     mins: Math.round(estimateSessionSecs(s, v) / 60),
-    partA,
-    partB: hasFinisher ? pieces.slice(0, -1) : pieces,
-    finisher: hasFinisher ? pieces.at(-1) : null,
+    partA: rows.filter((r) => !r.piece),
+    partB: rows.filter((r) => r.piece),
   };
 }
 
+// The volume table is the FLOOR — required days only, matching the verifier.
+// Sunday's optional extras (Open Up, The Long Way) are shown on the day rows
+// but never counted here, because counting them describes a week he might
+// not train.
 function weekVolume(week) {
   const phase = phaseOf(week);
   const swaps = phaseSwaps(phase);
@@ -150,7 +115,12 @@ function weekVolume(week) {
     if (item.type === 'lift') {
       const s = applyFormats(applyPhase(getProgramSession(item.session), phase), week);
       add(buildStepQueue(s, swaps, variantFor(s, week)));
-    } else if (item.type === 'rehab' && item.session) {
+    } else if (
+      item.type === 'rehab' &&
+      item.session &&
+      !OPTIONAL_SESSIONS.has(item.session) &&
+      !HYPERTROPHY_EXEMPT.has(item.session)
+    ) {
       add(buildStepQueue(getRehabSession(item.session), swaps));
     }
   }
@@ -172,8 +142,6 @@ const outDir = process.argv[3] || join(homedir(), 'Downloads');
 const start = mondayOf(startArg ? new Date(startArg) : new Date());
 if (!startArg) start.setDate(start.getDate() + 7); // next Monday
 
-const rehabSecs = estimateSessionSecs(getRehabSession('daily'));
-
 const weeks = [];
 for (let w = 1; w <= BLOCK_WEEKS; w++) {
   const monday = new Date(start);
@@ -185,21 +153,26 @@ for (let w = 1; w <= BLOCK_WEEKS; w++) {
     const items = WEEK_PLAN[offset];
     const lift = items.find((i) => i.type === 'lift');
     if (lift) {
-      const p = dayPlan(lift.session, w);
-      days.push({ day: DAY_NAMES[offset], date: d, ...p, mins: p.mins + Math.round(rehabSecs / 60) });
+      // A lift day is a lift day. Nothing is stacked on it any more, so its
+      // minutes are its own — adding the rehab here overstated every one.
+      days.push({ day: DAY_NAMES[offset], date: d, ...dayPlan(lift.session, w) });
     } else {
-      // Sunday: the easy day — Open Up then the engine piece
-      const extras = items.filter((i) => i.type === 'rehab' && i.session);
-      const plans = extras.map((i) => dayPlan(i.session, w, true));
+      // A rehab day: the 48-minute back program. Sunday additionally offers
+      // Open Up and The Long Way, both explicitly optional.
+      const p = dayPlan('daily', w, true);
+      const extras = items
+        .filter((i) => i.type === 'rehab' && i.session)
+        .map((i) => dayPlan(i.session, w, true));
       days.push({
         day: DAY_NAMES[offset],
         date: d,
-        name: 'Open Up + The Long Way',
-        focus: 'the easy day',
-        partA: plans[0]?.partA || [],
-        partB: plans[1] ? [{ title: plans[1].name, detail: 'steady, conversational', members: plans[1].partA.map((r) => ({ name: r.title, detail: r.detail })) }] : [],
-        finisher: null,
-        mins: Math.round(rehabSecs / 60) + plans.reduce((a, p) => a + p.mins, 0),
+        ...p,
+        focus: extras.length ? 'the back program + the easy day' : 'the back program',
+        partB: extras.map((e) => ({
+          title: `${e.name} — optional`,
+          detail: `${e.mins} min`,
+          members: e.partA.map((r) => ({ name: r.title, detail: r.detail })),
+        })),
       });
     }
   }
@@ -214,9 +187,9 @@ const movesOf = (row) =>
 const q = (s) => `"${String(s).replace(/"/g, '""')}"`;
 const csv = [];
 csv.push(q('KILOS — BLOCK 01 · 12 weeks · Armored V-Taper'));
-csv.push(q(`Starts ${fmtDate(start)} ${start.getFullYear()}. Every day = 10-min rehab, then the session below.`));
+csv.push(q(`Starts ${fmtDate(start)} ${start.getFullYear()}. Mon/Wed/Fri lift — one continuous clock per day. The other four days are the 48-min Lower Back & Hips program. Nothing is stacked.`));
 csv.push('');
-csv.push(['Week', 'Phase', 'Day', 'Date', 'Session', 'Part A — quality', 'Part B — the piece', 'Finisher', 'Min', 'Test'].map(q).join(','));
+csv.push(['Week', 'Phase', 'Day', 'Date', 'Session', 'Part A — quality', 'Part B — the piece', 'Min', 'Test'].map(q).join(','));
 for (const wk of weeks) {
   for (const d of wk.days) {
     csv.push(
@@ -228,7 +201,6 @@ for (const wk of weeks) {
         d.name,
         d.partA.map((r) => `${r.title} ${r.detail}`).join(' | '),
         d.partB.map((r) => `${r.title} (${r.detail}): ${movesOf(r)}`).join(' | '),
-        d.finisher ? `${d.finisher.title} (${d.finisher.detail})` : '',
         d.mins,
         d.day === 'Sun' && wk.tests.length ? wk.tests.map(testName).join(' + ') : '',
       ]
@@ -283,13 +255,6 @@ const dayCell = (d) => `
           }</div>`,
       )
       .join('')}
-    ${
-      d.finisher
-        ? `<div class="part"><span class="tag tagf">F</span><span class="pc fin">${esc(d.finisher.title)} · ${esc(d.finisher.detail)}</span>${
-            d.finisher.members?.length ? `<span class="mvs">${d.finisher.members.map((m) => `${esc(m.name)}${m.detail ? ` <b>${esc(m.detail)}</b>` : ''}`).join(' · ')}</span>` : ''
-          }</div>`
-        : ''
-    }
   </td>`;
 
 const html = `<!doctype html>
@@ -297,7 +262,7 @@ const html = `<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>KILOS · Block 01</title>
 <style>
-  :root{--ink:#191919;--mute:#6b6b6b;--line:#e4e4e4;--accent:#c8442a;--b:#2f6fb2;--f:#8a5cc4}
+  :root{--ink:#191919;--mute:#6b6b6b;--line:#e4e4e4;--accent:#c8442a;--b:#2f6fb2}
   *{box-sizing:border-box}
   body{margin:0;padding:30px;font:13.5px/1.45 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--ink);background:#fff}
   h1{font-size:22px;letter-spacing:.14em;margin:0 0 3px;text-transform:uppercase}
@@ -315,11 +280,10 @@ const html = `<!doctype html>
   .sess-min{float:right;color:var(--mute);font-weight:400;font-size:11px}
   .part{margin:2px 0 0;padding-left:20px;position:relative;line-height:1.5}
   .tag{position:absolute;left:0;top:1px;display:inline-block;width:15px;height:15px;line-height:15px;text-align:center;border-radius:3px;font-size:9.5px;font-weight:700;color:#fff;background:#777}
-  .tagb{background:var(--b)}.tagf{background:var(--f)}
+  .tagb{background:var(--b)}
   .mv{display:inline-block;margin-right:12px;color:#333}
   .mv b{font-weight:600;color:#000}
   .pc{font-weight:600;color:var(--b)}
-  .pc.fin{color:var(--f)}
   .mvs{display:block;color:#666;font-size:11px}
   .mvs b{color:#333}
   .test{color:var(--accent);font-weight:700}
@@ -332,11 +296,11 @@ const html = `<!doctype html>
 
 <h1>Kilos · Block 01</h1>
 <p class="sub"><strong>12 weeks · “Armored V-Taper”.</strong> ${fmtDate(start)} ${start.getFullYear()} → ${fmtDate(new Date(start.getTime() + 83 * 864e5))}.</p>
-<p class="sub">Every day: the <strong>10-minute rehab</strong> first, then this. Times are all-in.</p>
+<p class="sub"><strong>Mon / Wed / Fri</strong> lift — full body, on a clock. <strong>Tue / Thu / Sat / Sun</strong> are the 48-minute Lower Back &amp; Hips program. Nothing is stacked on anything; times are all-in.</p>
+<p class="sub">Each lift day is <strong>two clocks</strong>, read top to bottom. THE ANCHOR runs <strong>E2M or E3M</strong> (a heavy set per interval — the interval is the rest, and the build rounds ride the same clock); THE PIECE is <strong>one EMOM to the end</strong>: a minute per station, a minute off between trips, hinge and cardio inside it. Every slot rotates on a four-week cycle, so no session repeats inside a month, and every other week the piece runs its reps descending.</p>
 <p class="legend" style="margin-top:10px">
-<span><i class="tag" style="position:static">A</i> quality — straight sets, full rests</span>
-<span><i class="tag tagb" style="position:static">B</i> the piece — on a clock</span>
-<span><i class="tag tagf" style="position:static">F</i> finisher — rotates weekly</span>
+<span><i class="tag" style="position:static">A</i> the rehab days — positional holds, no clock pressure</span>
+<span><i class="tag tagb" style="position:static">B</i> on the clock — read top to bottom, it is one running session</span>
 </p>
 
 <h2>The 12 weeks — exact sessions</h2>
@@ -348,8 +312,8 @@ ${weeks
       `<tr class="wk"><td colspan="3">WEEK ${wk.w} · ${PHASE_NAMES[phaseOf(wk.w)]} (phase ${phaseOf(wk.w)}) · w/c ${fmtDate(wk.monday)}${
         wk.tests.length ? ` · <span class="test">TEST WEEK: ${wk.tests.map(testName).join(' + ')}</span>` : ''
       }${isDeloadCheckpoint(wk.w) ? ' · <span class="test">DELOAD CHECKPOINT</span>' : ''}${
-        wk.w === 5 ? ' · phase 2 begins: accessories rotate, +3 lat sets' : ''
-      }${wk.w === 9 ? ' · phase 3 begins: accessories rotate, +2 quad sets' : ''}</td></tr>` +
+        wk.w === 5 ? ' · phase 2 begins: the pull anchor steps to 5 rounds' : ''
+      }${wk.w === 9 ? ' · phase 3 begins: the squat anchor steps to 5 rounds' : ''}</td></tr>` +
       wk.days
         .map((d) => `<tr><td class="day">${d.day}</td><td class="dt">${fmtDate(d.date)}</td>${dayCell(d)}</tr>`)
         .join(''),
@@ -383,13 +347,17 @@ ${weeks
 <strong>Front delt sits low every week by design</strong> — its MEV is ~0 because every
 press saturates it. It's the only muscle under MEV, and that's intentional.
 <br><br>
-<strong>Phase 2 (week 5) adds 3 lat sets</strong> and <strong>phase 3 (week 9) adds 2 quad
-sets</strong> — the two gaps the audit found. The app applies these automatically; you
-don't have to do anything.
+<strong>Phase 2 (week 5) steps the pull anchor to 5 working rounds</strong> and
+<strong>phase 3 (week 9) steps the squat anchor to 5</strong> — one more heavy interval,
+nothing else changes. The app applies these automatically; you don't have to do anything.
+<br><br>
+<strong>The volume table is the floor</strong> — Sunday's optional Open Up and The Long Way
+are listed on the day rows but never counted, so these numbers describe the week you'll
+actually train, not the best case.
 </div>
 
 <div class="note">
-<strong>The finisher is anchored to the block week, not to how many sessions you've
+<strong>Rotation is anchored to the block week, not to how many sessions you've
 done</strong> — so a missed week can't desync this sheet from the app. Everything above is
 generated from the live program data by <code>scripts/block-sheet.mjs</code>; rerun it
 after any change and it's correct again.
@@ -403,4 +371,3 @@ const w1 = weeks[0];
 console.log(`\nWeek 1 Monday — ${w1.days[0].name}:`);
 console.log(`  A: ${w1.days[0].partA.map((r) => `${r.title} ${r.detail}`).join(' | ')}`);
 console.log(`  B: ${w1.days[0].partB.map((r) => `${r.title} (${r.detail}) ${movesOf(r)}`).join(' | ')}`);
-console.log(`  F: ${w1.days[0].finisher ? `${w1.days[0].finisher.title} (${w1.days[0].finisher.detail})` : '—'}`);

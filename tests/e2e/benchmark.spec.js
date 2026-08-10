@@ -140,16 +140,25 @@ async function a1Overview(page, blockWeek) {
   return (await page.locator('#rpo-list').textContent())?.replace(/\s+/g, ' ');
 }
 
-test('week 1 opens on the first finisher in the pool', async ({ page }) => {
+// The separate finisher block is gone (2026-08-10) — the day is two clocks and
+// a finisher was a third. What these guard now is that the day still resolves
+// to its two pieces, and that the piece is a NAMED workout from the day's pool.
+const PULL_PIECES = /The (Spread|Winch|Quarry|Draw)/;
+
+test('a lift day is the anchor and one named piece, nothing else timed', async ({ page }) => {
   const txt = await a1Overview(page, 1);
-  console.log('A1 wk1:', txt?.slice(-110));
-  expect(txt).toContain('Tabata Push-Up');
-  expect(txt).toContain('The Spread'); // the graded EMOM is still there
+  console.log('A1 wk1:', txt?.slice(-200));
+  expect(txt).toContain('The Anchor');
+  expect(txt).toMatch(PULL_PIECES);
+  // the pull anchor is bodyweight, so it has nothing to build up to
+  expect(txt).toContain('E2M');
+  expect(txt).not.toContain('to build');
+  expect(txt).not.toContain('Tabata'); // no second clock after the clock
 });
 
-test('week 4 serves a different finisher — rotation follows the calendar', async ({ page }) => {
+test('the piece is a different named workout as the rotation advances', async ({ page }) => {
   const txt = await a1Overview(page, 4);
-  console.log('A1 wk4:', txt?.slice(-110));
-  expect(txt).toContain('The Grip');
-  expect(txt).not.toContain('Tabata Push-Up');
+  console.log('A1 wk4:', txt?.slice(-200));
+  expect(txt).toMatch(PULL_PIECES);
+  expect(txt).toContain('Romanian Deadlift'); // the hinge rides inside it
 });
