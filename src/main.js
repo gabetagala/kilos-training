@@ -681,7 +681,15 @@ function renderScreen(id) {
   else if (id === 'active') renderActiveScreen();
 }
 document.querySelectorAll('.nav-btn').forEach((btn) => {
-  btn.addEventListener('click', () => goScreen(btn.dataset.screen));
+  btn.addEventListener('click', () => {
+    // A page-overlay (the program page, previews, pickers) sits ABOVE the
+    // screens — on laptop, tapping HOME/TRAIN/ATHLETE switched the screen
+    // underneath and nothing visibly changed (his catch, 2026-08-12).
+    for (const pg of document.querySelectorAll('.page-overlay.open')) {
+      pg.classList.remove('open');
+    }
+    goScreen(btn.dataset.screen);
+  });
 });
 
 // Home's poster type is measured to fit its column (fitLineFont bakes a px
@@ -1675,9 +1683,13 @@ function renderBlockBanner() {
   if (b.deloadCheckpoint && get(DELOAD_SEEN_KEY) !== done) {
     set(DELOAD_SEEN_KEY, done);
     setTimeout(() => {
-      // …but never by stealing the screen from a live session: if he tapped
-      // into the player during the 600ms, re-arm and ask on the next visit.
-      if (document.getElementById('rehab-player')?.classList.contains('open')) {
+      // …but never by stealing the screen from a live session OR a preview
+      // he is reading — if either opened during the 600ms, re-arm and ask on
+      // the next visit instead.
+      if (
+        document.getElementById('rehab-player')?.classList.contains('open') ||
+        document.getElementById('session-preview')?.classList.contains('open')
+      ) {
         set(DELOAD_SEEN_KEY, null);
         return;
       }
@@ -2413,6 +2425,49 @@ function rhIsFinalSet(step) {
   );
 }
 
+// The PRESCRIPTION, spoken (2026-08-12, his ask): a station opens with its
+// number — "ten reps — go", "forty-five seconds — go" — so the start needs
+// zero glancing. Clips cover the program's numbers; anything else rides the
+// TTS fallback (an unknown slug in `parts` forces rhCueSay to speak `text`).
+const REP_WORD_SLUGS = {
+  1: 'one',
+  2: 'two',
+  3: 'three',
+  4: 'four',
+  5: 'five',
+  6: 'six',
+  7: 'seven',
+  8: 'eight',
+  9: 'nine',
+  10: 'ten',
+  12: 'twelve',
+  14: 'fourteen',
+  15: 'fifteen',
+  20: 'twenty',
+};
+const SECS_WORD_SLUGS = { 40: ['forty'], 45: ['forty-five'] };
+function rhRxCue(step) {
+  if (step.workSecs) {
+    const slugs = SECS_WORD_SLUGS[step.workSecs];
+    return {
+      parts: slugs ? [...slugs, 'seconds'] : ['tts-fallback'],
+      text: `${step.workSecs} seconds`,
+    };
+  }
+  const n = Number.parseInt(
+    String(step.reps ?? '').match(/\d+/)?.[0] ?? '',
+    10,
+  );
+  if (!n || step.reps === 'build') return null;
+  const side = /\/(side|leg|arm)/.test(String(step.reps));
+  return {
+    parts: REP_WORD_SLUGS[n]
+      ? [REP_WORD_SLUGS[n], 'reps', ...(side ? ['each-side'] : [])]
+      : ['tts-fallback'],
+    text: `${n} reps${side ? ' each side' : ''}`,
+  };
+}
+
 // Arriving at a step: distinct tone + spoken cue, so ears alone carry you.
 function rhAnnounceStep(step) {
   rhAnnouncedIdx = rhIdx;
@@ -2439,6 +2494,12 @@ function rhAnnounceStep(step) {
     // the rest that led into it.
     if (step.kind === 'prep') {
       rhCueSay([`name-${step.exId}`], ex.name);
+    } else if (step.kind === 'work' && !step.manual && step.phase !== 'RAMP') {
+      // AMENDED 2026-08-12 (his ask): the prescription is navigation, not
+      // coaching — a clocked minute opens with its number. The GO tone has
+      // already landed; the number rides right behind it.
+      const rx = rhRxCue(step);
+      if (rx) rhCueSay(rx.parts, rx.text);
     } else if (step.phase === 'SWITCH SIDES') {
       // navigation, not coaching — a beep cannot carry which side is next
       rhCueSay(['switch-sides'], 'Switch sides');
@@ -2494,19 +2555,17 @@ function rhAnnounceStep(step) {
       const sideBit = step.side ? `${step.side.toLowerCase()} side — ` : '';
       rhCueSay(parts, `${sideBit}hold. ${step.setNum} of ${step.setTotal}.`);
     } else {
-      // SAY WHAT THE MINUTE IS (2026-08-11, his catch): a burn set or an
-      // EMOM station starts with GO; only true isometrics (HOLD) and
-      // stretches (BREATHE) start with HOLD. Every timed step used to say
-      // "hold" — wrong the moment the daily gained WORK-phase burn sets.
+      // SAY WHAT THE MINUTE IS (2026-08-11) + ITS NUMBER (2026-08-12, his
+      // ask): "ten reps — go". GO for work and cardio minutes; HOLD only for
+      // true isometrics and stretches (which carry no rep number).
       const word =
         step.phase === 'HOLD' || step.phase === 'BREATHE' ? 'hold' : 'go';
+      const rx = word === 'go' ? rhRxCue(step) : null;
+      const sideParts = step.side ? [`${step.side.toLowerCase()}-side`] : [];
+      const sideText = step.side ? `${step.side.toLowerCase()} side — ` : '';
       rhCueSay(
-        step.side ? [`${step.side.toLowerCase()}-side`, word] : [word],
-        step.side
-          ? `${step.side.toLowerCase()} side — ${word}`
-          : word === 'go'
-            ? 'Go'
-            : 'Hold',
+        [...sideParts, ...(rx ? rx.parts : []), word],
+        `${sideText}${rx ? `${rx.text} — ` : ''}${word === 'go' ? 'Go' : 'Hold'}`,
       );
     }
   } else if (step.phase === 'SWITCH SIDES') {
@@ -3768,6 +3827,17 @@ function openRehabPlayer(session, saved = null) {
     'eight',
     'nine',
     'ten',
+    'twelve',
+    'fourteen',
+    'fifteen',
+    'twenty',
+    'reps',
+    'seconds',
+    'forty',
+    'forty-five',
+    'each-side',
+    'nine',
+    'ten',
     'of',
     'next',
     'last-three',
@@ -4148,10 +4218,10 @@ function renderBlockCalendar() {
     b.addEventListener('click', () => {
       const id = b.dataset.calSession;
       if (!id) return;
-      try {
-        localStorage.removeItem(REHAB_STATE_KEY);
-      } catch {}
-      openRehabPlayer(getGuidedSession(id));
+      // Preview first (his ask, 2026-08-12): see the overview, then Start.
+      // The pause-state clear moved to Start — browsing must never kill a
+      // paused session.
+      openSessionPreview(getGuidedSession(id), null, b);
     });
   });
 }
@@ -4484,10 +4554,7 @@ function renderRehabToday() {
       <div class="rhs-meta">${doneStr}~${estimateSessionMins(session, rehabVariantIdx(session.id))} MIN · START NOW</div>
     </button>`;
   document.getElementById('rh-today-btn').addEventListener('click', () => {
-    try {
-      localStorage.removeItem(REHAB_STATE_KEY);
-    } catch {}
-    openRehabPlayer(session);
+    openSessionPreview(session, null, document.getElementById('rh-today-btn'));
   });
 }
 function renderRehabPage() {
@@ -4554,10 +4621,7 @@ function renderRehabPage() {
     .querySelectorAll('#rehab-session-list [data-rehab]')
     .forEach((card) => {
       card.addEventListener('click', () => {
-        try {
-          localStorage.removeItem(REHAB_STATE_KEY); // fresh start replaces a stale pause
-        } catch {}
-        openRehabPlayer(getRehabSession(card.dataset.rehab));
+        openSessionPreview(getRehabSession(card.dataset.rehab), null, card);
       });
     });
 
@@ -4578,10 +4642,11 @@ function renderRehabPage() {
     }).join('');
   document.querySelectorAll('#d40-session-list [data-d40]').forEach((card) => {
     card.addEventListener('click', () => {
-      try {
-        localStorage.removeItem(REHAB_STATE_KEY);
-      } catch {}
-      openRehabPlayer(phased(getProgramSession(card.dataset.d40)));
+      openSessionPreview(
+        phased(getProgramSession(card.dataset.d40)),
+        null,
+        card,
+      );
     });
   });
   // Queue control — every finish advances the rotation (test runs included),

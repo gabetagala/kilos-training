@@ -136,6 +136,7 @@ async function a1Overview(page, blockWeek) {
   await page.locator('.nav-btn[data-screen="train"]').click();
   await page.locator('#btn-rehab-open').click();
   await page.locator('[data-d40="d40-a1"]').click();
+  await page.locator('#sp-start').click();
   await page.locator('#rp-overview-btn').click();
   return (await page.locator('#rpo-list').textContent())?.replace(/\s+/g, ' ');
 }

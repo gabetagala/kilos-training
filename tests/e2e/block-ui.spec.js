@@ -70,6 +70,7 @@ test('the player weight row still shows the right unit (class collision guard)',
   await page.locator('.nav-btn[data-screen="train"]').click();
   await page.locator('#btn-rehab-open').click();
   await page.locator('[data-d40="d40-a1"]').click();
+  await page.locator('#sp-start').click();
   for (let i=0;i<3;i++){ if(await page.locator('#rp-lift').isVisible() && await page.locator('#rp-w-val').isVisible()) break;
     await page.locator('#rp-skip').click(); await page.waitForTimeout(80); }
   const unit = await page.locator('#rp-lift .rp-w-unit').textContent();
@@ -201,6 +202,7 @@ test('tapping the rehab line on a calendar day opens the rehab', async ({ page }
   await page.locator('.nav-btn[data-screen="train"]').click();
   await page.locator('#btn-rehab-open').click();
   await page.locator('.cal-week.open .cal-part-btn').first().click();
+  await page.locator('#sp-start').click();
   await expect(page.locator('#rehab-player')).toHaveClass(/open/);
   await expect(page.locator('#rp-session-name')).toContainText('BACK & HIPS');
   await expect(page.locator('#rp-exname')).toHaveText('T-Spine Reach');

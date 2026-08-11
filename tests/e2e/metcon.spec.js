@@ -10,6 +10,7 @@ async function openHalf(page, id) {
   await page.locator('.nav-btn[data-screen="train"]').click();
   await page.locator('#btn-rehab-open').click();
   await page.locator(`[data-d40="${id}"]`).click();
+  await page.locator('#sp-start').click(); // preview first, then Start
   await expect(page.locator('#rehab-player')).toHaveClass(/open/);
 }
 

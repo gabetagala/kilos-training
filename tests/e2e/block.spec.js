@@ -51,6 +51,7 @@ test('week 6 is phase 2 and serves that week of the rotation', async ({ page }) 
   // the band raise (DB ↔ band since the one-pulley rule, 2026-08-11), so the
   // assertion holds through the rotation itself.
   await page.locator('[data-d40="d40-c1"]').click();
+  await page.locator('#sp-start').click();
   await page.locator('#rp-overview-btn').click();
   const rows = (await page.locator('#rpo-list').textContent())?.replace(/\s+/g, ' ');
   console.log('WK6 c1 overview:', rows?.slice(0, 180));
@@ -63,6 +64,7 @@ test('week 6 is phase 2 and serves that week of the rotation', async ({ page }) 
 test('phases leave the pull anchor at four rounds (EMOM40)', async ({ page }) => {
   await openProgram(page, { startWeeksAgo: 5 });
   await page.locator('[data-d40="d40-a1"]').click();
+  await page.locator('#sp-start').click();
   await page.locator('#rp-overview-btn').click();
   const rows = (await page.locator('#rpo-list').textContent())?.replace(/\s+/g, ' ');
   console.log('WK6 a1 overview:', rows?.slice(0, 220));
@@ -75,6 +77,7 @@ test('phases leave the squat anchor at five total rounds (EMOM40)', async ({ pag
   await openProgram(page, { startWeeksAgo: 9 }); // week 10
   await expect(page.locator('.blk-phase')).toContainText('PEAK');
   await page.locator('[data-d40="d40-b1"]').click();
+  await page.locator('#sp-start').click();
   await page.locator('#rp-overview-btn').click();
   const rows = (await page.locator('#rpo-list').textContent())?.replace(/\s+/g, ' ');
   console.log('WK10 b1 overview:', rows?.slice(0, 200));
@@ -135,6 +138,7 @@ test('Sunday now has a real engine session, not a checkbox', async ({ page }) =>
   const card = page.locator('[data-rehab="engine"]');
   await expect(card).toContainText('The Long Way');
   await card.click();
+  await page.locator('#sp-start').click();
   await expect(page.locator('#rehab-player')).toHaveClass(/open/);
   await expect(page.locator('#rp-exname')).toHaveText('Box Step-Up');
 });
@@ -144,6 +148,7 @@ test('Sunday now has a real engine session, not a checkbox', async ({ page }) =>
 async function gateOverview(page, week) {
   await openProgram(page, { startWeeksAgo: week - 1 });
   await page.locator('[data-d40="d40-c1"]').click();
+  await page.locator('#sp-start').click();
   await page.locator('#rp-overview-btn').click();
   return (await page.locator('#rpo-list').textContent())?.replace(/\s+/g, ' ');
 }
@@ -191,6 +196,7 @@ const PRESS_PIECES = /THE (GATE|CAGE|BELLOWS|FURNACE)/;
 test('week 2 runs it descending — top of the range down, same 4 sets', async ({ page }) => {
   await openProgram(page, { startWeeksAgo: 1 }); // week 2
   await page.locator('[data-d40="d40-c1"]').click();
+  await page.locator('#sp-start').click();
   for (let i = 0; i < 40; i++) {
     if (PRESS_PIECES.test((await page.locator('#rp-session-name').textContent()) || '')) break;
     await page.locator('#rp-skip').click();
