@@ -449,15 +449,16 @@ describe('rotation (the mechanism outlives the hinge)', () => {
     // WALL CLOCK: 32 work minutes + 3 rest rounds = 35. The label must match
     // what the clock actually runs, or the athlete catches it at minute 33.
     expect(piece.detail).toBe('EMOM 35 · 4 rounds');
-    // power opens the cycle, then the hinge — the whole day is in here
-    // the whole day is in here — and it is weighted to the triangle
+    // power opens the cycle, then the hinge — the whole day is in here,
+    // weighted to the triangle, and touching the pulley exactly once
+    // (the triceps rope; lats are strict pull-ups on the fixed bar)
     expect(piece.members.map((m) => m.name)).toEqual([
       'Broad Jump',
       'Romanian Deadlift',
       'Low-to-High Band Fly',
-      'Lat Pulldown',
+      'Strict Pull-Up',
       'DB Lateral Raise',
-      'Rope Face Pull',
+      'Band Pull-Apart',
       'Overhead Rope Extension',
       'Skater Bound',
     ]);
@@ -858,21 +859,21 @@ describe('exercise swaps (sanctioned alternates)', () => {
   it('a swapped alt runs FLAT at its own reps on descending weeks', () => {
     // The desc rep ladder is computed from the PRIMARY's prescription before
     // swaps resolve; serving it to an alt would prescribe 12,11,10,… strict
-    // pull-ups onto a 5-rep fallback. resolveSwap drops the ladder instead.
-    const c1 = getProgramSession('d40-c1');
-    const shaped = applyFormats(c1, 2); // week 2 = emom-desc
+    // pull-ups onto a 3-rep fallback. resolveSwap drops the ladder instead.
+    const a1 = getProgramSession('d40-a1');
+    const shaped = applyFormats(a1, 2); // week 2 = emom-desc
     const q = buildStepQueue(shaped, { 'lat-pulldown': 'pull-up-bw' });
     const pulls = q.filter(
-      (s) => s.exId === 'pull-up-bw' && s.piece && s.countsAsSet,
+      (s) => s.exId === 'pull-up-bw' && s.piece !== 'The Anchor' && s.countsAsSet,
     );
     expect(pulls.length).toBeGreaterThan(0);
-    for (const s of pulls) expect(s.reps).toBe('5');
-    // …and the un-swapped station still descends
+    for (const s of pulls) expect(s.reps).toBe('3');
+    // …and the un-swapped station still descends (R=5 → centered on 10)
     const unswapped = buildStepQueue(shaped, {});
     const pd = unswapped.filter(
       (s) => s.exId === 'lat-pulldown' && s.piece && s.countsAsSet,
     );
-    expect(pd.map((s) => s.reps)).toEqual(['11', '10', '9', '8']);
+    expect(pd.map((s) => s.reps)).toEqual(['12', '11', '10', '9', '8']);
   });
 
   it('a swapped alt carries its own flags (bodyweight never logs kilograms)', () => {

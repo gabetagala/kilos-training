@@ -26,6 +26,7 @@ export const PROGRAM_EXERCISES = {
       ['DOWN', 2],
     ],
     name: '1-Arm Cable Row',
+    pulley: true,
     feel: 'Lat + mid-back on the working side',
     avoid: 'Torso twisting to yank the stack',
     cue: 'Split stance, hips hinged, spine long, free hand braced. Right side first.',
@@ -50,6 +51,7 @@ export const PROGRAM_EXERCISES = {
       ['DOWN', 2],
     ],
     name: 'Rope Pushdown',
+    pulley: true,
     feel: 'Triceps only — elbows pinned still',
     avoid: 'Shoulders rolling in to press',
     cue: 'Elbows pinned, split the rope at the bottom, slow return.',
@@ -154,6 +156,7 @@ export const PROGRAM_EXERCISES = {
       ['DOWN', 1],
     ],
     name: 'Rope Face Pull',
+    pulley: true,
     feel: 'Rear delts pulling the rope apart',
     avoid: 'Turning it into a row — thumbs back',
     cue: 'Pull to the eyebrows, elbows high, thumbs back. Light and strict.',
@@ -202,6 +205,7 @@ export const PROGRAM_EXERCISES = {
       ['DOWN', 3],
     ],
     name: 'Lat Pulldown',
+    pulley: true,
     feel: 'Lats — chest tall, bar to collarbone',
     avoid: 'Leaning back to heave it down',
     cue: 'Overhand, just outside shoulders, full stretch + 1-s pause at the top.',
@@ -250,6 +254,7 @@ export const PROGRAM_EXERCISES = {
       ['DOWN', 3],
     ],
     name: 'Overhead Rope Extension',
+    pulley: true,
     feel: 'Triceps long head, arms overhead',
     avoid: 'Ribs flaring — stay stacked',
     cue: 'Facing away from the low pulley, elbows by the ears. Ribs down, glutes on — no arch.',
@@ -333,6 +338,7 @@ export const PROGRAM_EXERCISES = {
       ['DOWN', 2],
     ],
     name: 'Cable Lateral Raise',
+    pulley: true,
     feel: 'Constant tension on the side delt',
     avoid: 'Leaning away to cheat the start',
     cue: 'Cable behind the body, lean slightly away, lead with the knuckles.',
@@ -357,6 +363,7 @@ export const PROGRAM_EXERCISES = {
       ['DOWN', 2],
     ],
     name: '1-Arm Low-Cable Fly',
+    pulley: true,
     feel: 'Chest sweeping across the body',
     avoid: 'Pressing instead of hugging',
     cue: 'Low pulley, step forward, sweep low-to-high. Ribs down, no lean-back.',
@@ -742,10 +749,9 @@ export const DENSITY40_SESSIONS = [
       ),
       // [power · hinge · vertical pull · horizontal push · side delt ·
       // rear delt · biceps · lungs]
-      // The pull station is always the counterpart of that week's anchor —
-      // anchor on the bar means pulldowns here, anchor on the machine means
-      // pull-ups here. Lats are a stated V-taper priority; this is what keeps
-      // them fed every week whichever anchor came up.
+      // The anchor is strict pull-ups every week and this station is
+      // pulldowns every week — lats get the bar AND the machine every Monday
+      // by construction. Lats are a stated V-taper priority.
       //
       // REP COUNTS ARE BUDGETED AGAINST THE MINUTE (2026-08-10): prescribed
       // reps × the movement's own tempo must fit 75% of the interval, so
@@ -766,10 +772,11 @@ export const DENSITY40_SESSIONS = [
         ]),
         [0, 1, 2, 3].map(HINGE),
         // the anchor is pull-ups every week, so this is its volume counterpart
+        // — and Monday's ONE pulley station (lat bar, set before the piece)
         [0, 1, 2, 3].map(() => ({
           ex: 'lat-pulldown',
           reps: '10',
-          alts: [{ ex: 'pull-up-bw', reps: '5' }],
+          alts: [{ ex: 'pull-up-bw', reps: '3' }],
         })),
         [
           {
@@ -792,23 +799,14 @@ export const DENSITY40_SESSIONS = [
             alts: [{ ex: 'push-up', reps: '15', logWeight: false }],
           },
         ],
+        // DB ↔ band only — the pulley is spoken for (pulldowns) and a second
+        // attachment change mid-cycle is exactly what a 60s window can't buy
         [
           {
             ex: 'db-lateral-raise',
             reps: '12',
             note: 'Heavier than the old 20-rep weight — 12 should burn by the last rep.',
-            alts: [
-              { ex: 'cable-lateral-raise', reps: '12' },
-              { ex: 'band-lateral-raise', reps: '12', logWeight: false },
-            ],
-          },
-          {
-            ex: 'cable-lateral-raise',
-            reps: '12',
-            alts: [
-              { ex: 'db-lateral-raise', reps: '12' },
-              { ex: 'band-lateral-raise', reps: '12', logWeight: false },
-            ],
+            alts: [{ ex: 'band-lateral-raise', reps: '12', logWeight: false }],
           },
           {
             ex: 'band-lateral-raise',
@@ -820,36 +818,25 @@ export const DENSITY40_SESSIONS = [
             ex: 'db-lateral-raise',
             reps: '12',
             note: 'Heavier than the old 20-rep weight — 12 should burn by the last rep.',
-            alts: [
-              { ex: 'cable-lateral-raise', reps: '12' },
-              { ex: 'band-lateral-raise', reps: '12', logWeight: false },
-            ],
+            alts: [{ ex: 'band-lateral-raise', reps: '12', logWeight: false }],
+          },
+          {
+            ex: 'band-lateral-raise',
+            reps: '12',
+            logWeight: false,
+            alts: [{ ex: 'db-lateral-raise', reps: '12' }],
           },
         ],
-        [
-          {
-            ex: 'face-pull',
-            reps: '20',
-            alts: [{ ex: 'band-pull-apart', reps: '14', logWeight: false }],
-          },
-          {
-            ex: 'band-pull-apart',
-            reps: '14',
-            logWeight: false,
-            alts: [{ ex: 'face-pull', reps: '20' }],
-          },
-          {
-            ex: 'face-pull',
-            reps: '20',
-            alts: [{ ex: 'band-pull-apart', reps: '14', logWeight: false }],
-          },
-          {
-            ex: 'band-pull-apart',
-            reps: '14',
-            logWeight: false,
-            alts: [{ ex: 'face-pull', reps: '20' }],
-          },
-        ],
+        // Band pull-aparts every week: the only non-pulley rear-delt movement
+        // in the palette, and the band lives in a gym bag — zero setup, which
+        // is what a station between pulldowns and curls needs to be. The reps
+        // can't rise (the minute is budgeted), so the BAND is the load knob.
+        [0, 1, 2, 3].map(() => ({
+          ex: 'band-pull-apart',
+          reps: '14',
+          logWeight: false,
+          note: 'When the last rep is smooth, shorten your grip a hand-width — the band is the load knob.',
+        })),
         [
           {
             ex: 'hammer-curl',
@@ -937,28 +924,12 @@ export const DENSITY40_SESSIONS = [
       // is the MORE spine-expensive carry — 30kg in one hand = 2874 N at L4/L5
       // vs 2339 N for 30kg in EACH hand. Keep it light.
       PIECE(['The Forge', 'The Anvil', 'The Mill', 'The Kiln'], 4, [
-        [
-          {
-            ex: 'cable-row-1arm',
-            reps: '6/side',
-            alts: [{ ex: 'chest-supported-row', reps: '10' }],
-          },
-          {
-            ex: 'chest-supported-row',
-            reps: '10',
-            alts: [{ ex: 'cable-row-1arm', reps: '6/side' }],
-          },
-          {
-            ex: 'cable-row-1arm',
-            reps: '6/side',
-            alts: [{ ex: 'chest-supported-row', reps: '10' }],
-          },
-          {
-            ex: 'chest-supported-row',
-            reps: '10',
-            alts: [{ ex: 'cable-row-1arm', reps: '6/side' }],
-          },
-        ],
+        // Chest-supported DB row EVERY week (2026-08-11, one-pulley rule):
+        // the 1-arm cable row wanted the low pulley on the same weeks the
+        // triceps station holds the rope, and one pulling station can't wear
+        // two attachments mid-cycle. The DB row is the spine-safest row in
+        // the palette anyway — chest on the bench, spine fully unloaded.
+        [0, 1, 2, 3].map(() => ({ ex: 'chest-supported-row', reps: '10' })),
         [
           { ex: 'db-push-press', reps: '8' },
           // the snatch's dose is quality-capped exactly like the ballistic
@@ -972,40 +943,24 @@ export const DENSITY40_SESSIONS = [
         // train a muscle leaner, so "more cuts" is a body-fat outcome, not a
         // volume one. The heavy squat anchor holds what he has; this slot went
         // to the width instead, which is what he IS chasing.
-        [
-          {
-            ex: 'db-lateral-raise',
-            reps: '12',
-            note: 'Heavier than the old 20-rep weight — 12 should burn by the last rep.',
-            alts: [
-              { ex: 'cable-lateral-raise', reps: '12' },
-              { ex: 'band-lateral-raise', reps: '12', logWeight: false },
-            ],
-          },
-          {
-            ex: 'band-lateral-raise',
-            reps: '12',
-            logWeight: false,
-            alts: [{ ex: 'db-lateral-raise', reps: '12' }],
-          },
-          {
-            ex: 'cable-lateral-raise',
-            reps: '12',
-            alts: [
-              { ex: 'db-lateral-raise', reps: '12' },
-              { ex: 'band-lateral-raise', reps: '12', logWeight: false },
-            ],
-          },
-          {
-            ex: 'db-lateral-raise',
-            reps: '12',
-            note: 'Heavier than the old 20-rep weight — 12 should burn by the last rep.',
-            alts: [
-              { ex: 'cable-lateral-raise', reps: '12' },
-              { ex: 'band-lateral-raise', reps: '12', logWeight: false },
-            ],
-          },
-        ],
+        // BAND laterals every week on THIS day (2026-08-11): the row and the
+        // push press are back-to-back DB stations already — one re-dial with
+        // the DBs in hand. A DB lateral third in the chain meant a second
+        // double-DB re-dial inside a 60s window, which is the same cost class
+        // as the mid-piece attachment change this day just banned. TRAINING.md
+        // has always said it: "if you rotate in the DB row, pair it with BAND
+        // laterals". The DB version stays as the alt — a pre-clock choice.
+        [0, 1, 2, 3].map(() => ({
+          ex: 'band-lateral-raise',
+          reps: '12',
+          logWeight: false,
+          alts: [{ ex: 'db-lateral-raise', reps: '12' }],
+        })),
+        // THE pulley station (2026-08-11): triceps has no DB movement in the
+        // palette, so the week's one attachment lives here — rope high on
+        // pushdown weeks, rope low on overhead weeks, rigged before the piece
+        // and never touched mid-cycle. The alt swaps the exercise AND the
+        // rig, which is a choice made before the clock, not during it.
         [
           {
             ex: 'rope-pushdown',
@@ -1138,7 +1093,23 @@ export const DENSITY40_SESSIONS = [
           { ex: 'pogo-hop', secs: 15, phase: 'BOUNCE' },
           { ex: 'power-pushup', reps: '3' },
         ]),
-        [0, 1, 2, 3].map(HINGE),
+        // On the barbell-press week the hinge shares THE bar with the anchor —
+        // the strip-and-move happens in the power minute, not mid-set. The DB
+        // anchor weeks need no note; the bar was never racked.
+        [
+          {
+            ...HINGE(),
+            // covers both cases: the anchor's alts are DB presses, and a
+            // persisted swap would leave a barbell instruction pointing at
+            // a bar that was never racked
+            note: 'Barbell press week: same bar — strip to hinge weight during the power minute. DB press week: stage the bar loaded before the session. Add load only if the last hinge day stayed quiet.',
+          },
+          HINGE(),
+          HINGE(),
+          HINGE(),
+        ],
+        // band / bodyweight only — Friday's pulley belongs to the triceps
+        // station (one attachment per piece, rigged before the clock)
         [
           {
             ex: 'band-fly',
@@ -1147,11 +1118,17 @@ export const DENSITY40_SESSIONS = [
             alts: [{ ex: 'push-up', reps: '15', logWeight: false }],
           },
           {
-            ex: 'cable-fly-low',
-            reps: '12',
+            ex: 'push-up',
+            reps: '15',
+            logWeight: false,
             alts: [{ ex: 'band-fly', reps: '12', logWeight: false }],
           },
-          { ex: 'push-up', reps: '15', logWeight: false },
+          {
+            ex: 'elevated-pushup',
+            reps: '12',
+            logWeight: false,
+            alts: [{ ex: 'push-up', reps: '15', logWeight: false }],
+          },
           {
             ex: 'band-fly',
             reps: '12',
@@ -1159,30 +1136,22 @@ export const DENSITY40_SESSIONS = [
             alts: [{ ex: 'push-up', reps: '15', logWeight: false }],
           },
         ],
-        // lats on a second day — the triangle's other side
-        [0, 1, 2, 3].map(() => ({
-          ex: 'lat-pulldown',
-          reps: '10',
-          alts: [{ ex: 'pull-up-bw', reps: '5' }],
-        })),
+        // lats on a second day — the triangle's other side. STRICT PULL-UPS,
+        // not pulldowns (2026-08-11): Friday's pulley is rigged for triceps,
+        // and the pull-up bar needs nothing. Three crisp reps a minute is a
+        // real dose at his ~5-rep max — and it STEPS WITH THE PHASES (4 in
+        // phase 2, 5 in phase 3, via applyPhase) so it stays a real dose as
+        // the Monday anchor drives his pull-up strength up. A fixed 3 would
+        // decay into warm-up grade while the audit kept crediting full sets.
+        [0, 1, 2, 3].map(() => ({ ex: 'pull-up-bw', reps: '3' })),
+        // DB ↔ band only — same one-pulley rule as the other days
         [
           {
             ex: 'db-lateral-raise',
             reps: '12',
             note: 'Heavier than the old 20-rep weight — 12 should burn by the last rep.',
             lastRoundNote: 'LAST ROUND: drop the weight ~30% and rep out once.',
-            alts: [
-              { ex: 'cable-lateral-raise', reps: '12' },
-              { ex: 'band-lateral-raise', reps: '12', logWeight: false },
-            ],
-          },
-          {
-            ex: 'cable-lateral-raise',
-            reps: '12',
-            alts: [
-              { ex: 'db-lateral-raise', reps: '12' },
-              { ex: 'band-lateral-raise', reps: '12', logWeight: false },
-            ],
+            alts: [{ ex: 'band-lateral-raise', reps: '12', logWeight: false }],
           },
           {
             ex: 'band-lateral-raise',
@@ -1195,36 +1164,21 @@ export const DENSITY40_SESSIONS = [
             reps: '12',
             note: 'Heavier than the old 20-rep weight — 12 should burn by the last rep.',
             lastRoundNote: 'LAST ROUND: drop the weight ~30% and rep out once.',
-            alts: [
-              { ex: 'cable-lateral-raise', reps: '12' },
-              { ex: 'band-lateral-raise', reps: '12', logWeight: false },
-            ],
+            alts: [{ ex: 'band-lateral-raise', reps: '12', logWeight: false }],
+          },
+          {
+            ex: 'band-lateral-raise',
+            reps: '12',
+            logWeight: false,
+            alts: [{ ex: 'db-lateral-raise', reps: '12' }],
           },
         ],
-        [
-          {
-            ex: 'face-pull',
-            reps: '20',
-            alts: [{ ex: 'band-pull-apart', reps: '15', logWeight: false }],
-          },
-          {
-            ex: 'band-pull-apart',
-            reps: '15',
-            logWeight: false,
-            alts: [{ ex: 'face-pull', reps: '20' }],
-          },
-          {
-            ex: 'face-pull',
-            reps: '20',
-            alts: [{ ex: 'band-pull-apart', reps: '15', logWeight: false }],
-          },
-          {
-            ex: 'band-pull-apart',
-            reps: '15',
-            logWeight: false,
-            alts: [{ ex: 'face-pull', reps: '20' }],
-          },
-        ],
+        [0, 1, 2, 3].map(() => ({
+          ex: 'band-pull-apart',
+          reps: '15',
+          logWeight: false,
+          note: 'When the last rep is smooth, shorten your grip a hand-width — the band is the load knob.',
+        })),
         [
           {
             ex: 'overhead-triceps',

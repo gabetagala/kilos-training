@@ -48,12 +48,13 @@ test('week 6 is phase 2 and serves that week of the rotation', async ({ page }) 
   await expect(page.locator('.blk-phase')).toContainText('PRESS');
   // PHASE_SWAPS is retired (2026-08-10) — weekly rotation superseded it. Week
   // 6 resolves to variant 1 of every pool, where the side-delt slot serves
-  // the cable raise, so the assertion holds through the rotation itself.
+  // the band raise (DB ↔ band since the one-pulley rule, 2026-08-11), so the
+  // assertion holds through the rotation itself.
   await page.locator('[data-d40="d40-c1"]').click();
   await page.locator('#rp-overview-btn').click();
   const rows = (await page.locator('#rpo-list').textContent())?.replace(/\s+/g, ' ');
-  console.log('WK6 b2 overview:', rows?.slice(0, 180));
-  expect(rows).toContain('Cable Lateral Raise');
+  console.log('WK6 c1 overview:', rows?.slice(0, 180));
+  expect(rows).toContain('Band Lateral Raise');
   expect(rows).not.toContain('DB Lateral Raise');
 });
 
@@ -148,14 +149,17 @@ async function gateOverview(page, week) {
 // The piece is named per week of the rotation, so the overview assertions
 // match the pool, not one name.
 const PRESS_PIECE_NAMES = /The (Gate|Cage|Bellows|Furnace)/;
-// The Gate's slot pattern is [chest · side delt · rear delt · lungs]. Which
-// MOVEMENT fills each slot depends on the variant, so the test asserts the
-// pattern survived the format change, not one particular week's line-up.
+// The Gate's slot pattern asserts five of the eight stations: [hinge ·
+// chest · side delt · rear delt · lungs]. Which MOVEMENT fills each slot
+// depends on the variant, so the test asserts the pattern survived the
+// format change, not one particular week's line-up. The alternations are
+// deliberately the AS-BUILT palette (no cable movements — the one-pulley
+// rule lives in verify-program.mjs; this just keeps the UI honest).
 const GATE_SLOTS = [
   /Romanian Deadlift/,
-  /Band Fly|Cable Fly|Push-Up/,
+  /Band Fly|Push-Up/,
   /Lateral Raise/,
-  /Face Pull|Pull-Apart/,
+  /Pull-Apart/,
   /Jumping Jack|High Knees|Skater Bound|Reverse Lunge/,
 ];
 

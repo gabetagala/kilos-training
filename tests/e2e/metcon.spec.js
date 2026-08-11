@@ -90,6 +90,8 @@ test('an EMOM minute logs itself when the interval runs out', async ({
   const saved = await page.evaluate(() =>
     JSON.parse(localStorage.getItem('kilos-guided-weights') || '{}'),
   );
-  expect(Object.keys(saved)).toContain('cable-row-1arm');
+  // The Forge's first station is the chest-supported row (the 1-arm cable
+  // row left the pieces with the one-pulley rule, 2026-08-11)
+  expect(Object.keys(saved)).toContain('chest-supported-row');
   expect(errors).toEqual([]);
 });

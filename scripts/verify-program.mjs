@@ -336,6 +336,76 @@ const ANCHOR_IDS = new Set(anchorSpecs().map(({ b }) => b.members[0].ex));
   check('RESTRICTIONS', 'every station fits inside its minute, descending weeks included', bad.length === 0, bad.slice(0, 3).join(', '));
 }
 
+// ONE PULLEY, ONE ATTACHMENT (2026-08-11, his gym). The cable stack and the
+// pulldown share the rack — a single pulling station. A 60-second window
+// cannot absorb an attachment change, so per piece AT MOST ONE station may
+// touch the pulley — counting alts, because a persisted swap must never force
+// a second station onto it — and that station's rig is set before the clock
+// starts. The pull-up bar is fixed and assumed usable with an attachment
+// rigged (unconfirmed on his actual rack — if the pulldown seat or a hanging
+// rope blocks the dead-hang, the exemption below needs revisiting).
+//
+// Membership comes from the `pulley: true` tag on the exercise defs, with the
+// rig names here; the completeness cross-check below makes a missing tag or a
+// missing rig entry a build failure — the same drift-guard pattern as the
+// volume map, and for the same reason: an untagged cable exercise would slide
+// past this rule unseen.
+const CABLE_SETUP = {
+  'lat-pulldown': 'high bar + seat',
+  'face-pull': 'high rope',
+  'rope-pushdown': 'high rope',
+  'overhead-triceps': 'low rope',
+  'cable-row-1arm': 'low handle',
+  'cable-lateral-raise': 'low handle',
+  'cable-fly-low': 'low handle',
+};
+{
+  const bad = [];
+  const tagged = Object.entries(PROGRAM_EXERCISES)
+    .filter(([, e]) => e.pulley)
+    .map(([id]) => id);
+  for (const id of tagged) {
+    if (!CABLE_SETUP[id]) bad.push(`${id} tagged pulley but has no rig entry`);
+  }
+  for (const id of Object.keys(CABLE_SETUP)) {
+    if (!PROGRAM_EXERCISES[id]?.pulley) bad.push(`${id} has a rig entry but no pulley tag`);
+  }
+  for (const s of [...DENSITY40_SESSIONS, ...BENCHMARK_SESSIONS]) {
+    let anchorRig = null;
+    let pieceRig = null;
+    for (const b of s.blocks) {
+      for (const v of b.rotate || [b]) {
+        if (!v?.members) continue;
+        const rigs = new Set(
+          v.members
+            .flatMap((m) => [m, ...(m.alts || [])])
+            .map((c) => CABLE_SETUP[c.ex])
+            .filter(Boolean),
+        );
+        // an anchor is one station and re-rigging BETWEEN blocks (its own
+        // clock) costs nothing — but if BOTH the anchor and the piece want
+        // the pulley on the same day, their rigs must match, or the piece's
+        // pre-set rig gets torn down by the anchor that runs first
+        if (v.members.length < 2) {
+          for (const r of rigs) anchorRig = r;
+          continue;
+        }
+        const pulley = v.members.filter((m) =>
+          [m, ...(m.alts || [])].some((c) => CABLE_SETUP[c.ex]),
+        );
+        if (pulley.length > 1) {
+          bad.push(`${s.id} ${v.name}: ${pulley.length} pulley stations`);
+        }
+        for (const r of rigs) pieceRig = r;
+      }
+    }
+    if (anchorRig && pieceRig && anchorRig !== pieceRig) {
+      bad.push(`${s.id}: anchor rig (${anchorRig}) ≠ piece rig (${pieceRig})`);
+    }
+  }
+  check('RESTRICTIONS', 'each piece touches the pulley at most once, rig set before the clock', bad.length === 0, bad.slice(0, 3).join(', '));
+}
+
 // OPEN PACE IS UNREACHABLE for any slot that could serve a banned movement —
 // including via a persisted swap. This is the property that makes the
 // db-hang-snatch carve-out from the NEVER list safe: its EMOM-only claim is

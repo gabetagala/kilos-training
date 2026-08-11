@@ -1,5 +1,18 @@
 # BLOCK 01 — 12 weeks · "Armored V-Taper"
 
+> ⚠️ **2026-08-11 — PARTIALLY HISTORICAL.** The sessions were rebuilt
+> 2026-08-10/11 (full-body EMOM days, one-pulley rule, single-number reps) —
+> [src/workout/program.js](src/workout/program.js) is the source of truth,
+> audited by `scripts/verify-program.mjs` and printed by
+> `scripts/block-sheet.mjs`. In particular the **Phase 1/2/3 rotation table
+> below is superseded**: accessories rotate WEEKLY via 4-deep pools (DB ↔
+> band laterals, chest-supported DB row every week, band flies, band
+> pull-aparts, the triceps rope as each Wed/Fri piece's single pulley
+> station), phase steps are anchor rounds (pull → 5 at wk 5, squat → 5 at
+> wk 9) plus Friday's pull-up reps (3 → 4 → 5), and formats rotate
+> EMOM ↔ EMOM-descending. The evidence rationale, test-week cadence and
+> deload-checkpoint sections below still stand.
+
 > Planned 2026-08-07 off a three-agent research run (CrossFit programming
 > practice · concurrent-training and volume evidence · spine-safe conditioning
 > for DDD). Sources are cited inline where a number is doing real work.
