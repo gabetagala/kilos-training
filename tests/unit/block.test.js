@@ -121,6 +121,30 @@ describe('phases', () => {
     }
   });
 
+  // Friday's strict-pull-up station steps REPS with the phases (3 → 4 → 5):
+  // the Monday anchor drives pull-up strength up all block, and a fixed 3
+  // would decay into warm-up grade while still counting as full lat sets.
+  it('phases step the Friday pull-up station 3 → 4 → 5 reps, sets unchanged', () => {
+    for (const v of [0, 1, 2, 3]) {
+      for (const [phase, reps] of [
+        [1, '3'],
+        [2, '4'],
+        [3, '5'],
+      ]) {
+        const q = buildStepQueue(
+          applyPhase(getProgramSession('d40-c1'), phase),
+          {},
+          v,
+        );
+        const pulls = q.filter(
+          (s) => s.exId === 'pull-up-bw' && s.piece && s.countsAsSet,
+        );
+        expect(pulls, `p${phase} v${v}`).toHaveLength(4);
+        for (const s of pulls) expect(s.reps, `p${phase} v${v}`).toBe(reps);
+      }
+    }
+  });
+
   it('applyPhase is safe on every session and benchmark', () => {
     for (const s of [...DENSITY40_SESSIONS, ...BENCHMARK_SESSIONS]) {
       for (const p of [1, 2, 3]) {

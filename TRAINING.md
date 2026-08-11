@@ -1,5 +1,29 @@
 # TRAINING.md — Density 40 · "Armored V-Taper"
 
+> ⚠️ **2026-08-11 — THIS DOCUMENT IS HISTORICAL.** The program was rebuilt
+> 2026-08-10/11 and the source of truth is now **`src/workout/program.js`**,
+> audited by **`scripts/verify-program.mjs`** (23 machine checks) and printed
+> by **`scripts/block-sheet.mjs`** → `~/Downloads/kilos-block-01.html`. The
+> as-built shape: three full-body days (Mon/Wed/Fri), each TWO CLOCKS — the
+> anchor (E2M/E3M) then ONE multi-station EMOM piece — with the 48-min Lower
+> Back & Hips program on the other four days. Two rules in this doc are
+> SUPERSEDED and following them would now be wrong:
+>
+> - **One pulley, one attachment (2026-08-11).** His box has a single
+>   pulling station. Each piece touches the pulley AT MOST ONCE (Mon: lat
+>   pulldown · Wed/Fri: the triceps rope), rigged before the clock starts.
+>   The old swap families "laterals DB ↔ cable ↔ band", "row 1-arm cable ↔
+>   chest-supported DB", "fly band ↔ single-arm cable" and "face pull (or
+>   band pull-apart)" are gone: laterals are DB ↔ band, the row is the
+>   chest-supported DB row every week, flies are band/bodyweight, rear delts
+>   are band pull-aparts (the band is the load knob).
+> - **Single-number prescriptions** replaced every rep range (2026-08-10);
+>   double progression as described below applies only to the classic loop.
+>
+> The principles below (spine rules, effort tiers, stall handling, RIR
+> calibration) still hold. The session layouts, supersets, halves and the
+> phase rotation table do not.
+
 > Designed 2026-07-20 by a 17-agent research → draft → audit → synthesis run.
 > Pairs with the in-app Rehab (daily 10-min protocol) — never duplicates it.
 

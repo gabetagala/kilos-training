@@ -161,6 +161,30 @@ export function applyPhase(session, phase) {
     };
   }
 
+  // Phase 2+ — Friday's strict-pull-up station steps 3 → 4 → 5 reps. The
+  // Monday anchor drives his pull-up strength up all block; a fixed 3 would
+  // decay into warm-up grade while the volume audit kept crediting full lat
+  // sets. Reps, not rounds: the station's minute has room (5 reps ≈ 20s) and
+  // the piece's length must not move. IDEMPOTENT: the target is absolute.
+  if (session.id === 'd40-c1') {
+    const reps = phase >= 3 ? '5' : '4';
+    const step = (v) =>
+      v?.members && v.members.length > 1
+        ? {
+            ...v,
+            members: v.members.map((m) =>
+              m.ex === 'pull-up-bw' ? { ...m, reps } : m,
+            ),
+          }
+        : v;
+    return {
+      ...session,
+      blocks: session.blocks.map((b) =>
+        b.rotate ? { ...b, rotate: b.rotate.map(step) } : step(b),
+      ),
+    };
+  }
+
   return session;
 }
 
