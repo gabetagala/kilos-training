@@ -12,19 +12,18 @@ import { createStepEngine } from './stepEngine.js';
 // The program is Gabe's DDD back protocol, dosed per the published protocols
 // (researched 2026-07 — see PROTOCOL notes on each block).
 //
-// ── LOWER BACK & HIPS (2026-08-10) ──────────────────────────────────────────
-// The daily session IS NOW the Movementgems [Lower Back & Hips] Home Program,
-// straight off the source PDF: twelve movements, one set each, 2 minutes per
-// side or 4 minutes straight = 48 minutes of work (~52 with changeovers).
-// It targets exactly his stack — herniated disc / sciatica, anterior pelvic
-// tilt, SI discomfort, hip impingement, hamstring and hip flexor tightness.
-//
-// DOSED DAILY, NOT 3×/WEEK — his call, made knowing the source prescribes 3.
-// Stacked on a ~30-min D40 half that is a ~78-minute day, seven days a week.
-// If it starts eating the week, the dial to turn FIRST is frequency (drop to
-// the published 3×), never the durations: the long single set is the entire
-// mechanism here, and a 1-minute version of this program is a different,
-// worse program.
+// ── BACK & HIPS + TOPPER (2026-08-11) ───────────────────────────────────────
+// The daily session is the DISTILLATE of the Movementgems [Lower Back & Hips]
+// Home Program (2026-08-10) — rebuilt a day later at his call because 48
+// minutes of holds was a session he'd quit. Six fixed blocks he loves and the
+// biggest levers (thoracic, back-extension, hip IR, couch, elephant walk,
+// seated good morning), ONE rotating supporting-cast slot (8-deep — the other
+// seven source movements, each ~once per two weeks), then a 12-minute topper
+// EMOM (4-deep pool, axially quiet, ends on core). ~25 min of holds + 12 of
+// topper; runs Tue/Thu/Sat/Sun, calendar-pinned. Stated plainly: the
+// supporting cast went from 4×/wk to ~0.5×/wk — a real dose cut, traded
+// knowingly for a session he'll do forever. The long-set mechanism is
+// untouched: durations were never trimmed, movements were.
 //
 // The method, from the PDF, and it governs everything below:
 //   - Every exercise except the stretches chases a 10/10 BURN and 0/10 PAIN.
@@ -70,11 +69,11 @@ import { createStepEngine } from './stepEngine.js';
 //   rep per set, never hold length. (Squat University's McGill write-up;
 //   backfitpro.) These stay untouched: the repetition IS the protocol.
 //
-// VARIETY: a block may be a rotation wrapper { rotate: [specA, specB, …] } —
-// the app advances the active spec once per completed run of the session.
-// A spec may be null: that variant simply skips the block. The daily session
-// no longer uses one (the hinge slot was its only rotation); the mechanism
-// stays for HOTMUM and future use.
+// VARIETY: a block may be a rotation wrapper { rotate: [specA, specB, …] }.
+// The daily session uses TWO (2026-08-11): the supporting-cast slot and the
+// topper pool, both calendar-pinned via rehabVariantIdx in main.js — the k-th
+// rehab day of block week w serves variant (w−1)·4+k, so a full week always
+// serves each topper exactly once and the printed sheet can never drift.
 //
 // A session is a list of BLOCKS; buildStepQueue() expands blocks into a flat
 // queue of STEPS the player walks through one at a time:
@@ -338,6 +337,20 @@ export const REHAB_EXERCISES = {
       'Easier: hands on a higher surface · Harder: hands lower, then floor',
     yt: 'elephant walk hamstring exercise',
   },
+  // Added 2026-08-11 at his ask — his favorite feel from the source coach's
+  // library, and it wasn't among the twelve extracted movements. Kept because
+  // it TEACHES the exact pattern his lifting depends on: fold at the hips,
+  // never the back.
+  'seated-good-morning': {
+    name: 'Seated Good Morning',
+    feel: 'Hamstrings and glutes lengthening while the back stays long',
+    avoid: 'Rounding forward to get lower — depth comes from the hips only',
+    cue: 'Sit on the bench, feet planted wide, arms crossed on your chest. Hinge forward from the hips with a LONG spine to where the stretch bites, and breathe there. Stop the moment the back wants to round.',
+    why: 'The hip hinge, learned unloaded — the pattern every lift in this program depends on, stretched into the hamstrings from a dead-safe seat.',
+    scale:
+      'Easier: hands on thighs, smaller fold · Harder: deeper fold, arms crossed',
+    yt: 'seated good morning stretch',
+  },
 };
 
 // Cat-camel cycle: exhale into the round, inhale into the arch — breath-paced.
@@ -379,26 +392,110 @@ const straight = (ex, phase) => ({
   phase,
 });
 
+// ── THE TOPPER (2026-08-11) ─────────────────────────────────────────────────
+// Twelve minutes of fun after the holds — the volume the EMOM40 cap trimmed
+// from the lift days comes back HERE, on the light days, as a short EMOM.
+// Four pools, one per rehab day, calendar-pinned so a full week always serves
+// each exactly once. AXIALLY QUIET by rule (verifier-enforced): bands, light
+// DBs, bodyweight — the barbell and the pulley stay untouched, because these
+// days sit between the heavy ones on purpose. Every pool ENDS ON CORE (his
+// ask): the McGill endurance work, at real frequency, delivered as a minute.
+const TOPPER = (name, members) => ({
+  mode: 'emom',
+  name,
+  formatLabel: 'EMOM',
+  rounds: 3,
+  members,
+});
+
+const TOPPERS = [
+  TOPPER('The Pump', [
+    { ex: 'band-lateral-raise', reps: '12', logWeight: false },
+    { ex: 'hammer-curl', reps: '10' },
+    { ex: 'band-pull-apart', reps: '14', logWeight: false },
+    { ex: 'plank', secs: 40, phase: 'HOLD', logWeight: false },
+  ]),
+  // the light wrist pair shares one dial (TRAINING.md's own pairing); the
+  // single re-dial lands before the curl, and core needs no DB at all
+  TOPPER('The Popeye', [
+    { ex: 'wrist-curl', reps: '20', logWeight: false },
+    { ex: 'reverse-wrist-curl', reps: '20', logWeight: false },
+    { ex: 'reverse-curl', reps: '10' },
+    {
+      ex: 'side-plank',
+      secs: 40,
+      phase: 'HOLD',
+      logWeight: false,
+      note: 'Right side first — switch at 20 seconds.',
+    },
+  ]),
+  TOPPER('The Engine', [
+    { ex: 'jumping-jack', secs: 45, phase: 'GO', logWeight: false },
+    { ex: 'high-knees', secs: 45, phase: 'GO', logWeight: false },
+    { ex: 'skater-bound', secs: 40, phase: 'GO', logWeight: false },
+    { ex: 'bear-crawl', secs: 40, phase: 'GO', logWeight: false },
+  ]),
+  TOPPER('The Wing', [
+    { ex: 'band-pull-apart', reps: '14', logWeight: false },
+    { ex: 'supinated-curl', reps: '10' },
+    { ex: 'band-lateral-raise', reps: '12', logWeight: false },
+    { ex: 'bird-dog', reps: '6/side', logWeight: false },
+  ]),
+];
+
 export const REHAB_SESSIONS = [
   {
+    // REBUILT 2026-08-11 (his call): the 48-minute twelve-movement program
+    // became a ~25-minute DISTILLATE of the pieces he loves and the levers
+    // that matter most, plus the topper. What stays daily (4×/wk): thoracic
+    // rotation, back-extension endurance, hip internal rotation, the couch
+    // stretch, the elephant walk, and the seated good morning. The other
+    // SEVEN source movements share one rotating slot — each comes up about
+    // once every two weeks instead of four times a week. Stated plainly:
+    // that is a real dose cut to the supporting cast, traded for a session
+    // he'll actually do forever. The long-hold mechanism is untouched — one
+    // unbroken set per movement, burn to 10/10, pain at 0/10.
     id: 'daily',
-    name: 'Lower Back & Hips',
-    freq: 'Every day',
+    name: 'Back & Hips',
+    freq: 'Tue · Thu · Sat · Sun',
     blurb:
-      'Twelve movements, one long set each. Chase a 10/10 burn and 0/10 pain — break when you have to, then keep going. When you can hold the full time unbroken, take the next progression.',
+      'The holds that matter, ~25 minutes — then a twelve-minute topper EMOM to finish. Chase a 10/10 burn and 0/10 pain on the holds; when one goes unbroken, take its next progression.',
     blocks: [
-      perSide('hip-internal-rotation', 'WORK'),
-      perSide('hip-airplane', 'WORK', 20),
-      perSide('side-hip-abduction', 'WORK', 12),
-      perSide('side-hip-adduction', 'WORK', 12),
-      perSide('hip-flexor-lift', 'WORK'),
-      perSide('ql-plank', 'HOLD', 12),
-      straight('plank', 'HOLD'),
+      // his thoracic ask — 12 slow reaches a side is a real two minutes
+      {
+        ex: 't-spine-reach',
+        mode: 'tempo',
+        sets: 1,
+        reps: 12,
+        perSide: true,
+        tempo: TSPINE_TEMPO,
+      },
       straight('back-extension', 'WORK'),
-      straight('wall-groin-stretch', 'BREATHE'),
-      perSide('90-90-pushup', 'WORK', 20),
+      perSide('hip-internal-rotation', 'WORK'),
       perSide('couch-stretch', 'BREATHE', 20),
       straight('elephant-walk', 'WORK'),
+      {
+        ex: 'seated-good-morning',
+        mode: 'hold',
+        sets: 1,
+        holdSecs: MINS(2),
+        phase: 'BREATHE',
+      },
+      // the supporting cast, one per day, rotating — nothing dies, everything
+      // thins: ~1 exposure per two weeks each
+      {
+        rotate: [
+          perSide('ql-plank', 'HOLD', 12),
+          perSide('side-hip-abduction', 'WORK', 12),
+          perSide('90-90-pushup', 'WORK', 20),
+          perSide('hip-flexor-lift', 'WORK'),
+          perSide('hip-airplane', 'WORK', 20),
+          straight('plank', 'HOLD'),
+          straight('wall-groin-stretch', 'BREATHE'),
+          perSide('side-hip-adduction', 'WORK', 12),
+        ],
+      },
+      { rotate: TOPPERS },
     ],
   },
   {

@@ -542,10 +542,12 @@ export const STRETCH_BLOCKS = [
 //
 // THE TRADEOFF, STATED: the rule for this work is "crisp, and stop while
 // you're still springy — never near fatigue". As a station it now runs with
-// some fatigue on board. What keeps it defensible is the shape of the cycle:
-// a full minute off between trips, tiny doses, and a movement whose own cue is
-// "stop when the pop fades". The weekly dose is unchanged from the primer it
-// replaced. If the jumps ever start landing heavy, THIS is the station to cut.
+// some fatigue on board — and since EMOM40 (2026-08-11) with no full rest
+// minute on Monday. What keeps it defensible: tiny doses, the cardio minute
+// parked MID-cycle so the wrap into the ballistic opener comes off a light
+// curl minute (b1/c1 keep 20s breathers), and a movement whose own cue is
+// "stop when the pop fades". If the jumps ever start landing heavy, THIS is
+// the station to cut — that instruction survives every redesign.
 const POWER = (specs) =>
   specs.map((m) => ({
     ...m,
@@ -583,21 +585,20 @@ export const POWER_BLOCKS = [
 // genuinely does not need to be auditable.
 
 // ── The three days ──────────────────────────────────────────────────────────
-// REBUILT 2026-08-10. Was six ~25-min halves, one every day Mon–Sat, each with
-// the 10-minute rehab stacked on it. The rehab is now the 48-minute Lower Back
-// & Hips program (rehab.js), and a 48-minute rehab cannot ride on top of a lift
-// six days a week. So the week went back to THREE lift days — Mon/Wed/Fri, no
-// rehab stacked — and the other four days are rehab. His back is the priority;
-// this is the shape that lets it be one.
+// REBUILT 2026-08-10 (three lift days + four rehab days), then capped
+// 2026-08-11: EMOM40 — every day in the week fits 40 minutes of clock work,
+// verifier-enforced. The rehab days run the Back & Hips distillate + topper
+// (rehab.js); nothing stacks on anything.
 //
 // ── TWO CLOCKS, AND THE SECOND ONE RUNS TO THE END ──────────────────────────
 // "Start the timer, work, then end." A day is:
 //
 //   warm-up (taps, no clock)  →  THE ANCHOR (E3M)  →  THE PIECE (one EMOM)
 //
-// Everything that is not the heavy lift lives in ONE continuous piece: the
-// hinge, three movement slots, a cardio slot, and a minute off between trips.
-// No stopping to set up the next block, no second header, no third timer.
+// Everything that is not the heavy lift lives in ONE continuous piece —
+// six to eight stations, a minute each, straight through (b1/c1 keep a
+// 20-second breather between trips; the full rest minute died for the
+// EMOM40 cap, 2026-08-11). No second header, no third timer.
 //
 // WHY THE ANCHOR KEEPS ITS OWN CLOCK, and why that isn't negotiable: a heavy
 // set at 2–4 RIR needs unrack, setup, five hard reps and a re-rack. Sixty
@@ -676,12 +677,24 @@ const ANCHOR = (specs, { warmupRounds = 1, intervalSecs = 180 } = {}) => ({
 // station, read down the column to get that week's session. Written this way on
 // purpose: the shape of the data is the invariant, so a movement can't land in
 // the wrong job and a pool can't quietly end up three deep.
-const PIECE = (names, rounds, slots, formats = ['emom', 'emom-desc']) => ({
+// EMOM40 (2026-08-11, his call): the piece runs STRAIGHT THROUGH — the full
+// rest minute between trips died for the 40-minute cap, traded knowingly
+// against his original "a minute for rest" spec (he chose stations over
+// breathers after feeling the format). Where a day has headroom (b1/c1 at
+// 39:00), `roundRestSecs: 20` buys three 20-second breathers between trips
+// and lands the clock at exactly 40:00. The spine never needed the rest
+// rounds — a 6-8 station cycle puts 6+ minutes between same-movement sets.
+const PIECE = (
+  names,
+  rounds,
+  slots,
+  { formats = ['emom', 'emom-desc'], roundRestSecs = 0 } = {},
+) => ({
   rotate: names.map((name, v) => ({
     mode: 'emom',
     name,
     rounds,
-    roundRestSecs: 60, // a minute off between trips — still the same clock
+    ...(roundRestSecs ? { roundRestSecs } : {}),
     formats,
     members: slots.map((pool) => pool[v]),
   })),
@@ -727,7 +740,7 @@ export const DENSITY40_SESSIONS = [
     name: 'Full Body I',
     freq: 'Mon · pull anchor',
     blurb:
-      'Two clocks. Pull on a two-minute one, then a single piece to the end — power, hinge, pull, push, both delts, arms, lungs — a minute each, a minute off, go again.',
+      'Forty minutes flat. Pull on a two-minute clock, then one EMOM straight to the end — power, hinge, pull, push, lungs, delts, arms.',
     blocks: [
       // ONE MOVEMENT, NO ROTATION, NO BUILD-UP (2026-08-10, his call): "we can
       // only do regular pull ups". Weighted pull-ups leave the program until he
@@ -747,8 +760,9 @@ export const DENSITY40_SESSIONS = [
         ],
         { warmupRounds: 0 },
       ),
-      // [power · hinge · vertical pull · horizontal push · side delt ·
-      // rear delt · biceps · lungs]
+      // [power · hinge · vertical pull · horizontal push · lungs ·
+      // side delt · rear delt · biceps] — cardio mid-cycle (2026-08-11), so
+      // the round-wrap never lands it before the ballistic opener.
       // The anchor is strict pull-ups every week and this station is
       // pulldowns every week — lats get the bar AND the machine every Monday
       // by construction. Lats are a stated V-taper priority.
@@ -762,7 +776,7 @@ export const DENSITY40_SESSIONS = [
       //
       // The REAR-DELT station was added 2026-08-10: at 6 fractional sets/week
       // the 3-D part of "big shoulders" was the thinnest thing in the program.
-      PIECE(['The Spread', 'The Winch', 'The Quarry', 'The Draw'], 5, [
+      PIECE(['The Spread', 'The Winch', 'The Quarry', 'The Draw'], 4, [
         // power opens each trip round — the freshest point in the cycle
         POWER([
           { ex: 'pogo-hop', secs: 15, phase: 'BOUNCE' },
@@ -799,6 +813,14 @@ export const DENSITY40_SESSIONS = [
             alts: [{ ex: 'push-up', reps: '15', logWeight: false }],
           },
         ],
+        // the cardio minute sits MID-cycle (2026-08-11): with the rest rounds
+        // gone, the wrap runs station 8 → station 1, and cardio straight into
+        // the ballistic opener is the one adjacency the deleted rest minute
+        // used to break
+        LUNGS_FROM(0).map((c) => ({
+          ...c,
+          lastRoundNote: 'LAST ROUND — empty the tank.',
+        })),
         // DB ↔ band only — the pulley is spoken for (pulldowns) and a second
         // attachment change mid-cycle is exactly what a 60s window can't buy
         [
@@ -871,10 +893,6 @@ export const DENSITY40_SESSIONS = [
             ],
           },
         ],
-        LUNGS_FROM(0).map((c) => ({
-          ...c,
-          lastRoundNote: 'LAST ROUND — empty the tank. This is the finish.',
-        })),
       ]),
     ],
   },
@@ -883,7 +901,7 @@ export const DENSITY40_SESSIONS = [
     name: 'Full Body II',
     freq: 'Wed · squat anchor',
     blurb:
-      'Two clocks. Build and squat on a three-minute one, then a single piece to the end — pull, press, side delts, arms, grip, a carry and a crawl.',
+      'Forty minutes flat. Build and squat on a three-minute clock, then one EMOM to the end — pull, press, delts, arms, a carry — twenty seconds of air between trips.',
     blocks: [
       ANCHOR([
         {
@@ -915,126 +933,123 @@ export const DENSITY40_SESSIONS = [
       // — so the RDL rides Mon and Fri, twice a week.
       //
       // [horizontal pull · overhead press · side delt · triceps · biceps ·
-      // forearms · carry · crawl]. The press slot is the CrossFit slot: push press or hang snatch,
-      // both of which put load overhead through a stacked spine, never a bent
-      // one. The carry and the crawl hold BOTH slots in every variant on
-      // purpose — between them they are the only oblique work in the week, and
-      // rotating either out drops the midline under MEV in the weeks it is
-      // missing. Load note (McGill, Marshall & Andersen 2013): a one-hand carry
-      // is the MORE spine-expensive carry — 30kg in one hand = 2874 N at L4/L5
-      // vs 2339 N for 30kg in EACH hand. Keep it light.
-      PIECE(['The Forge', 'The Anvil', 'The Mill', 'The Kiln'], 4, [
-        // Chest-supported DB row EVERY week (2026-08-11, one-pulley rule):
-        // the 1-arm cable row wanted the low pulley on the same weeks the
-        // triceps station holds the rope, and one pulling station can't wear
-        // two attachments mid-cycle. The DB row is the spine-safest row in
-        // the palette anyway — chest on the bench, spine fully unloaded.
-        [0, 1, 2, 3].map(() => ({ ex: 'chest-supported-row', reps: '10' })),
+      // carry] — six stations since EMOM40 (2026-08-11; forearms live in The
+      // Popeye topper, the crawl in The Engine). The press slot is the
+      // CrossFit slot: push press or hang snatch, both of which put load
+      // overhead through a stacked spine, never a bent one. The carry holds
+      // its slot in every variant — obliques now come from it (Wed) plus the
+      // Engine topper's crawl, and the audit checks the sum weekly. Load note
+      // (McGill, Marshall & Andersen 2013): a one-hand carry is the MORE
+      // spine-expensive carry — 30kg in one hand = 2874 N at L4/L5 vs 2339 N
+      // for 30kg in EACH hand. Keep it light.
+      PIECE(
+        ['The Forge', 'The Anvil', 'The Mill', 'The Kiln'],
+        4,
         [
-          { ex: 'db-push-press', reps: '8' },
-          // the snatch's dose is quality-capped exactly like the ballistic
-          // primer — the descending format never touches it
-          { ex: 'db-hang-snatch', reps: '5/side', fixedReps: true },
-          { ex: 'db-push-press', reps: '8' },
-          { ex: 'db-hang-snatch', reps: '5/side', fixedReps: true },
-        ],
-        // WAS a second quad station. His legs are already where he wants them
-        // (2026-08-10) and he asked for maintenance, not growth — you cannot
-        // train a muscle leaner, so "more cuts" is a body-fat outcome, not a
-        // volume one. The heavy squat anchor holds what he has; this slot went
-        // to the width instead, which is what he IS chasing.
-        // BAND laterals every week on THIS day (2026-08-11): the row and the
-        // push press are back-to-back DB stations already — one re-dial with
-        // the DBs in hand. A DB lateral third in the chain meant a second
-        // double-DB re-dial inside a 60s window, which is the same cost class
-        // as the mid-piece attachment change this day just banned. TRAINING.md
-        // has always said it: "if you rotate in the DB row, pair it with BAND
-        // laterals". The DB version stays as the alt — a pre-clock choice.
-        [0, 1, 2, 3].map(() => ({
-          ex: 'band-lateral-raise',
-          reps: '12',
-          logWeight: false,
-          alts: [{ ex: 'db-lateral-raise', reps: '12' }],
-        })),
-        // THE pulley station (2026-08-11): triceps has no DB movement in the
-        // palette, so the week's one attachment lives here — rope high on
-        // pushdown weeks, rope low on overhead weeks, rigged before the piece
-        // and never touched mid-cycle. The alt swaps the exercise AND the
-        // rig, which is a choice made before the clock, not during it.
-        [
-          {
-            ex: 'rope-pushdown',
+          // Chest-supported DB row EVERY week (2026-08-11, one-pulley rule):
+          // the 1-arm cable row wanted the low pulley on the same weeks the
+          // triceps station holds the rope, and one pulling station can't wear
+          // two attachments mid-cycle. The DB row is the spine-safest row in
+          // the palette anyway — chest on the bench, spine fully unloaded.
+          [0, 1, 2, 3].map(() => ({ ex: 'chest-supported-row', reps: '10' })),
+          [
+            { ex: 'db-push-press', reps: '8' },
+            // the snatch's dose is quality-capped exactly like the ballistic
+            // primer — the descending format never touches it
+            { ex: 'db-hang-snatch', reps: '5/side', fixedReps: true },
+            { ex: 'db-push-press', reps: '8' },
+            { ex: 'db-hang-snatch', reps: '5/side', fixedReps: true },
+          ],
+          // WAS a second quad station. His legs are already where he wants them
+          // (2026-08-10) and he asked for maintenance, not growth — you cannot
+          // train a muscle leaner, so "more cuts" is a body-fat outcome, not a
+          // volume one. The heavy squat anchor holds what he has; this slot went
+          // to the width instead, which is what he IS chasing.
+          // BAND laterals every week on THIS day (2026-08-11): the row and the
+          // push press are back-to-back DB stations already — one re-dial with
+          // the DBs in hand. A DB lateral third in the chain meant a second
+          // double-DB re-dial inside a 60s window, which is the same cost class
+          // as the mid-piece attachment change this day just banned. TRAINING.md
+          // has always said it: "if you rotate in the DB row, pair it with BAND
+          // laterals". The DB version stays as the alt — a pre-clock choice.
+          [0, 1, 2, 3].map(() => ({
+            ex: 'band-lateral-raise',
             reps: '12',
-            alts: [{ ex: 'overhead-triceps', reps: '10' }],
-          },
-          {
-            ex: 'overhead-triceps',
-            reps: '10',
-            alts: [{ ex: 'rope-pushdown', reps: '12' }],
-          },
-          {
-            ex: 'rope-pushdown',
-            reps: '12',
-            alts: [{ ex: 'overhead-triceps', reps: '10' }],
-          },
-          {
-            ex: 'overhead-triceps',
-            reps: '10',
-            alts: [{ ex: 'rope-pushdown', reps: '12' }],
-          },
+            logWeight: false,
+            alts: [{ ex: 'db-lateral-raise', reps: '12' }],
+          })),
+          // THE pulley station (2026-08-11): triceps has no DB movement in the
+          // palette, so the week's one attachment lives here — rope high on
+          // pushdown weeks, rope low on overhead weeks, rigged before the piece
+          // and never touched mid-cycle. The alt swaps the exercise AND the
+          // rig, which is a choice made before the clock, not during it.
+          [
+            {
+              ex: 'rope-pushdown',
+              reps: '12',
+              alts: [{ ex: 'overhead-triceps', reps: '10' }],
+            },
+            {
+              ex: 'overhead-triceps',
+              reps: '10',
+              alts: [{ ex: 'rope-pushdown', reps: '12' }],
+            },
+            {
+              ex: 'rope-pushdown',
+              reps: '12',
+              alts: [{ ex: 'overhead-triceps', reps: '10' }],
+            },
+            {
+              ex: 'overhead-triceps',
+              reps: '10',
+              alts: [{ ex: 'rope-pushdown', reps: '12' }],
+            },
+          ],
+          [
+            {
+              ex: 'supinated-curl',
+              reps: '10',
+              alts: [
+                { ex: 'hammer-curl', reps: '10' },
+                { ex: 'reverse-curl', reps: '10' },
+              ],
+            },
+            {
+              ex: 'hammer-curl',
+              reps: '10',
+              alts: [
+                { ex: 'supinated-curl', reps: '10' },
+                { ex: 'reverse-curl', reps: '10' },
+              ],
+            },
+            {
+              ex: 'supinated-curl',
+              reps: '10',
+              alts: [
+                { ex: 'hammer-curl', reps: '10' },
+                { ex: 'reverse-curl', reps: '10' },
+              ],
+            },
+            {
+              ex: 'reverse-curl',
+              reps: '10',
+              alts: [
+                { ex: 'hammer-curl', reps: '10' },
+                { ex: 'supinated-curl', reps: '10' },
+              ],
+            },
+          ],
+          // forearms moved to The Popeye topper (2026-08-11, EMOM40 cap) — the
+          // look is still fed, just on the light days
+          [0, 1, 2, 3].map(() => ({
+            ex: 'suitcase-carry',
+            secs: 45,
+            phase: 'CARRY',
+            note: 'Right side first, swap at halfway. Tall and level — set it down the moment the hips tip.',
+          })),
         ],
-        [
-          {
-            ex: 'supinated-curl',
-            reps: '10',
-            alts: [
-              { ex: 'hammer-curl', reps: '10' },
-              { ex: 'reverse-curl', reps: '10' },
-            ],
-          },
-          {
-            ex: 'hammer-curl',
-            reps: '10',
-            alts: [
-              { ex: 'supinated-curl', reps: '10' },
-              { ex: 'reverse-curl', reps: '10' },
-            ],
-          },
-          {
-            ex: 'supinated-curl',
-            reps: '10',
-            alts: [
-              { ex: 'hammer-curl', reps: '10' },
-              { ex: 'reverse-curl', reps: '10' },
-            ],
-          },
-          {
-            ex: 'reverse-curl',
-            reps: '10',
-            alts: [
-              { ex: 'hammer-curl', reps: '10' },
-              { ex: 'supinated-curl', reps: '10' },
-            ],
-          },
-        ],
-        // forearms are a stated part of the look, not an afterthought
-        [
-          { ex: 'wrist-curl', reps: '20', logWeight: false },
-          { ex: 'reverse-wrist-curl', reps: '20', logWeight: false },
-          { ex: 'wrist-curl', reps: '20', logWeight: false },
-          { ex: 'reverse-wrist-curl', reps: '20', logWeight: false },
-        ],
-        [0, 1, 2, 3].map(() => ({
-          ex: 'suitcase-carry',
-          secs: 45,
-          phase: 'CARRY',
-          note: 'Right side first, swap at halfway. Tall and level — set it down the moment the hips tip.',
-        })),
-        [0, 1, 2, 3].map(() => ({
-          ...CARDIO('bear-crawl'),
-          lastRoundNote: 'LAST ROUND — empty the tank. This is the finish.',
-        })),
-      ]),
+        { roundRestSecs: 20 },
+      ),
       // NO COOL-DOWN CLOCK. It was a third timer at the end of a session that
       // wants two, and it is not load-bearing any more: the hamstring and hip
       // flexor stretches still run on Sunday's Open Up, and the four rehab days
@@ -1047,7 +1062,7 @@ export const DENSITY40_SESSIONS = [
     name: 'Full Body III',
     freq: 'Fri · press anchor',
     blurb:
-      'Two clocks. Build and press heavy first, then a single piece to the end — power, hinge, chest, lats, both delts, triceps, lungs.',
+      'Forty minutes flat. Build and press heavy first, then one EMOM to the end — power, hinge, chest, pull-ups, delts, triceps — twenty seconds of air between trips.',
     blocks: [
       ANCHOR([
         {
@@ -1081,131 +1096,141 @@ export const DENSITY40_SESSIONS = [
           alts: [{ ex: 'push-up', reps: '15', logWeight: false }],
         },
       ]),
-      // [power · hinge · chest · vertical pull · side delt · rear delt ·
-      // triceps · lungs]. Both delt slots stay in every variant — side delts
-      // are the V-taper's width and rear delts were the thinnest thing in the
-      // program before this — so only the implement changes.
-      PIECE(['The Gate', 'The Cage', 'The Bellows', 'The Furnace'], 4, [
-        // offset from Monday's pool so the two days never open the same way
-        POWER([
-          { ex: 'broad-jump', reps: '3' },
-          { ex: 'power-pushup', reps: '3' },
-          { ex: 'pogo-hop', secs: 15, phase: 'BOUNCE' },
-          { ex: 'power-pushup', reps: '3' },
-        ]),
-        // On the barbell-press week the hinge shares THE bar with the anchor —
-        // the strip-and-move happens in the power minute, not mid-set. The DB
-        // anchor weeks need no note; the bar was never racked.
+      // [power · hinge · chest · strict pull-up · side delt · triceps] —
+      // six stations since EMOM40 (2026-08-11). Rear delts and the lungs
+      // minute moved to the rehab-day toppers; side delts stay in every
+      // variant because they are the V-taper's width.
+      PIECE(
+        ['The Gate', 'The Cage', 'The Bellows', 'The Furnace'],
+        4,
         [
-          {
-            ...HINGE(),
-            // covers both cases: the anchor's alts are DB presses, and a
-            // persisted swap would leave a barbell instruction pointing at
-            // a bar that was never racked
-            note: 'Barbell press week: same bar — strip to hinge weight during the power minute. DB press week: stage the bar loaded before the session. Add load only if the last hinge day stayed quiet.',
-          },
-          HINGE(),
-          HINGE(),
-          HINGE(),
+          // offset from Monday's pool so the two days never open the same way
+          POWER([
+            { ex: 'broad-jump', reps: '3' },
+            { ex: 'power-pushup', reps: '3' },
+            { ex: 'pogo-hop', secs: 15, phase: 'BOUNCE' },
+            { ex: 'power-pushup', reps: '3' },
+          ]),
+          // On the barbell-press week the hinge shares THE bar with the anchor —
+          // the strip-and-move happens in the power minute, not mid-set. The DB
+          // anchor weeks need no note; the bar was never racked.
+          [
+            {
+              ...HINGE(),
+              // covers both cases: the anchor's alts are DB presses, and a
+              // persisted swap would leave a barbell instruction pointing at
+              // a bar that was never racked
+              note: 'Barbell press week: same bar — strip to hinge weight during the power minute. DB press week: stage the bar loaded before the session. Add load only if the last hinge day stayed quiet.',
+            },
+            HINGE(),
+            HINGE(),
+            HINGE(),
+          ],
+          // band / bodyweight only — Friday's pulley belongs to the triceps
+          // station (one attachment per piece, rigged before the clock)
+          [
+            {
+              ex: 'band-fly',
+              reps: '12',
+              logWeight: false,
+              alts: [{ ex: 'push-up', reps: '15', logWeight: false }],
+            },
+            {
+              ex: 'push-up',
+              reps: '15',
+              logWeight: false,
+              alts: [{ ex: 'band-fly', reps: '12', logWeight: false }],
+            },
+            {
+              ex: 'elevated-pushup',
+              reps: '12',
+              logWeight: false,
+              alts: [{ ex: 'push-up', reps: '15', logWeight: false }],
+            },
+            {
+              ex: 'band-fly',
+              reps: '12',
+              logWeight: false,
+              alts: [{ ex: 'push-up', reps: '15', logWeight: false }],
+            },
+          ],
+          // lats on a second day — the triangle's other side. STRICT PULL-UPS,
+          // not pulldowns (2026-08-11): Friday's pulley is rigged for triceps,
+          // and the pull-up bar needs nothing. Three crisp reps a minute is a
+          // real dose at his ~5-rep max — and it STEPS WITH THE PHASES (4 in
+          // phase 2, 5 in phase 3, via applyPhase) so it stays a real dose as
+          // the Monday anchor drives his pull-up strength up. A fixed 3 would
+          // decay into warm-up grade while the audit kept crediting full sets.
+          // fixedReps: the descending format must never manufacture a 6-rep
+          // opening minute at his ~5-rep max — the phase step (3 → 4 → 5) IS
+          // this station's progression
+          [0, 1, 2, 3].map(() => ({
+            ex: 'pull-up-bw',
+            reps: '3',
+            fixedReps: true,
+          })),
+          // DB ↔ band only — same one-pulley rule as the other days
+          [
+            {
+              ex: 'db-lateral-raise',
+              reps: '12',
+              note: 'Heavier than the old 20-rep weight — 12 should burn by the last rep.',
+              lastRoundNote:
+                'LAST ROUND: drop the weight ~30% and rep out once.',
+              alts: [
+                { ex: 'band-lateral-raise', reps: '12', logWeight: false },
+              ],
+            },
+            {
+              ex: 'band-lateral-raise',
+              reps: '12',
+              logWeight: false,
+              alts: [{ ex: 'db-lateral-raise', reps: '12' }],
+            },
+            {
+              ex: 'db-lateral-raise',
+              reps: '12',
+              note: 'Heavier than the old 20-rep weight — 12 should burn by the last rep.',
+              lastRoundNote:
+                'LAST ROUND: drop the weight ~30% and rep out once.',
+              alts: [
+                { ex: 'band-lateral-raise', reps: '12', logWeight: false },
+              ],
+            },
+            {
+              ex: 'band-lateral-raise',
+              reps: '12',
+              logWeight: false,
+              alts: [{ ex: 'db-lateral-raise', reps: '12' }],
+            },
+          ],
+          // rear delts moved to the toppers (2026-08-11, EMOM40 cap) — band
+          // pull-aparts now land on the light days instead
+          [
+            {
+              ex: 'overhead-triceps',
+              reps: '10',
+              alts: [{ ex: 'rope-pushdown', reps: '12' }],
+            },
+            {
+              ex: 'rope-pushdown',
+              reps: '12',
+              alts: [{ ex: 'overhead-triceps', reps: '10' }],
+            },
+            {
+              ex: 'overhead-triceps',
+              reps: '10',
+              alts: [{ ex: 'rope-pushdown', reps: '12' }],
+            },
+            {
+              ex: 'rope-pushdown',
+              reps: '12',
+              alts: [{ ex: 'overhead-triceps', reps: '10' }],
+            },
+          ],
         ],
-        // band / bodyweight only — Friday's pulley belongs to the triceps
-        // station (one attachment per piece, rigged before the clock)
-        [
-          {
-            ex: 'band-fly',
-            reps: '12',
-            logWeight: false,
-            alts: [{ ex: 'push-up', reps: '15', logWeight: false }],
-          },
-          {
-            ex: 'push-up',
-            reps: '15',
-            logWeight: false,
-            alts: [{ ex: 'band-fly', reps: '12', logWeight: false }],
-          },
-          {
-            ex: 'elevated-pushup',
-            reps: '12',
-            logWeight: false,
-            alts: [{ ex: 'push-up', reps: '15', logWeight: false }],
-          },
-          {
-            ex: 'band-fly',
-            reps: '12',
-            logWeight: false,
-            alts: [{ ex: 'push-up', reps: '15', logWeight: false }],
-          },
-        ],
-        // lats on a second day — the triangle's other side. STRICT PULL-UPS,
-        // not pulldowns (2026-08-11): Friday's pulley is rigged for triceps,
-        // and the pull-up bar needs nothing. Three crisp reps a minute is a
-        // real dose at his ~5-rep max — and it STEPS WITH THE PHASES (4 in
-        // phase 2, 5 in phase 3, via applyPhase) so it stays a real dose as
-        // the Monday anchor drives his pull-up strength up. A fixed 3 would
-        // decay into warm-up grade while the audit kept crediting full sets.
-        [0, 1, 2, 3].map(() => ({ ex: 'pull-up-bw', reps: '3' })),
-        // DB ↔ band only — same one-pulley rule as the other days
-        [
-          {
-            ex: 'db-lateral-raise',
-            reps: '12',
-            note: 'Heavier than the old 20-rep weight — 12 should burn by the last rep.',
-            lastRoundNote: 'LAST ROUND: drop the weight ~30% and rep out once.',
-            alts: [{ ex: 'band-lateral-raise', reps: '12', logWeight: false }],
-          },
-          {
-            ex: 'band-lateral-raise',
-            reps: '12',
-            logWeight: false,
-            alts: [{ ex: 'db-lateral-raise', reps: '12' }],
-          },
-          {
-            ex: 'db-lateral-raise',
-            reps: '12',
-            note: 'Heavier than the old 20-rep weight — 12 should burn by the last rep.',
-            lastRoundNote: 'LAST ROUND: drop the weight ~30% and rep out once.',
-            alts: [{ ex: 'band-lateral-raise', reps: '12', logWeight: false }],
-          },
-          {
-            ex: 'band-lateral-raise',
-            reps: '12',
-            logWeight: false,
-            alts: [{ ex: 'db-lateral-raise', reps: '12' }],
-          },
-        ],
-        [0, 1, 2, 3].map(() => ({
-          ex: 'band-pull-apart',
-          reps: '15',
-          logWeight: false,
-          note: 'When the last rep is smooth, shorten your grip a hand-width — the band is the load knob.',
-        })),
-        [
-          {
-            ex: 'overhead-triceps',
-            reps: '10',
-            alts: [{ ex: 'rope-pushdown', reps: '12' }],
-          },
-          {
-            ex: 'rope-pushdown',
-            reps: '12',
-            alts: [{ ex: 'overhead-triceps', reps: '10' }],
-          },
-          {
-            ex: 'overhead-triceps',
-            reps: '10',
-            alts: [{ ex: 'rope-pushdown', reps: '12' }],
-          },
-          {
-            ex: 'rope-pushdown',
-            reps: '12',
-            alts: [{ ex: 'overhead-triceps', reps: '10' }],
-          },
-        ],
-        LUNGS_FROM(2).map((c) => ({
-          ...c,
-          lastRoundNote: 'LAST ROUND — empty the tank. This is the finish.',
-        })),
-      ]),
+        { roundRestSecs: 20 },
+      ),
     ],
   },
 ];
@@ -1331,11 +1356,10 @@ export const getProgramSession = (id) =>
 //
 // REWRITTEN 2026-08-10 — three lift days, four rehab days, nothing doubled up.
 //
-// The rehab is now the 48-minute Lower Back & Hips program, and it cannot ride
-// on top of a lift: 48 + 45 is a 93-minute day and he'd stop doing both. So
-// the two alternate. Mon/Wed/Fri are the full-body lift days with NO rehab
-// stacked; Tue/Thu/Sat/Sun are rehab days. Every day in the week is now 45–52
-// minutes, which is the first time it has had one shape.
+// The rehab days run Back & Hips (~25 min of holds) + the 12-minute topper
+// EMOM; Mon/Wed/Fri are the EMOM40 lift days with NO rehab stacked. Every
+// day in the week lands 35–40 minutes (2026-08-11) — one shape, one press
+// of start.
 //
 // THE BACK STILL WINS THE ARGUMENT: 4×/week beats the source program's own
 // 3×/week prescription, and the hardest lift days are the ones with a full

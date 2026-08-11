@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0b">
+<title>KILOS — Motion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800;900&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  *{scrollbar-width:none;}*::-webkit-scrollbar{display:none;}
+  :root{
+    --bg:#0b0b0b; --surf:#161616; --surf2:#1e1e1e;
+    --text:#f4f3f1; --text2:#86868a; --faint:#48484c;
+    --line:rgba(255,255,255,.08);
+    --volt:#d8ff36; --volt-ink:#101400;
+    --g:"Hanken Grotesk",-apple-system,sans-serif; --m:"Space Mono",monospace;
+    --in:cubic-bezier(.2,0,0,1);          /* enter — decelerate */
+    --out:cubic-bezier(.4,0,1,1);         /* exit — accelerate */
+    --spring:cubic-bezier(.34,1.5,.5,1);  /* earned bounce */
+  }
+  html,body{height:100%;}
+  body{background:var(--bg);color:var(--text);font-family:var(--g);overflow:hidden;-webkit-font-smoothing:antialiased;user-select:none;letter-spacing:-.01em;}
+  .num{font-variant-numeric:tabular-nums;}
+  .mono{font-family:var(--m);}
+
+  #app{position:relative;height:100dvh;max-width:440px;margin:0 auto;overflow:hidden;background:var(--bg);}
+  .screen{position:absolute;inset:0;overflow-y:auto;padding:0 22px 40px;display:none;}
+  .screen.active{display:block;}
+
+  /* ── staggered reveal on entry ── */
+  .screen.active .rv{opacity:0;transform:translateY(16px);animation:rv .5s var(--in) forwards;}
+  .screen.active .rv:nth-child(1){animation-delay:.04s}
+  .screen.active .rv:nth-child(2){animation-delay:.09s}
+  .screen.active .rv:nth-child(3){animation-delay:.14s}
+  .screen.active .rv:nth-child(4){animation-delay:.19s}
+  .screen.active .rv:nth-child(5){animation-delay:.24s}
+  .screen.active .rv:nth-child(6){animation-delay:.29s}
+  .screen.active .rv:nth-child(7){animation-delay:.34s}
+  @keyframes rv{to{opacity:1;transform:none;}}
+  @media(prefers-reduced-motion:reduce){.screen.active .rv{animation:none;opacity:1;transform:none;}}
+
+  /* ── top bar ── */
+  .top{display:flex;align-items:center;justify-content:space-between;padding:50px 2px 6px;}
+  .wm{font-weight:900;font-size:18px;letter-spacing:-.02em;}
+  .wm i{font-style:normal;color:var(--volt);}
+  .ic{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--text2);cursor:pointer;}
+  .ic svg{width:16px;height:16px;}
+  .ic:active{transform:scale(.9);}
+
+  /* ── HERO ── */
+  .eyebrow{font-family:var(--m);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text2);display:flex;align-items:center;gap:9px;}
+  .eyebrow .d{width:7px;height:7px;border-radius:50%;background:var(--volt);box-shadow:0 0 9px var(--volt);}
+  .hero-wrap{padding:30px 0 4px;}
+  .hero{font-weight:900;line-height:.82;letter-spacing:-.045em;white-space:nowrap;font-size:96px;margin:14px 0 0;}
+  .hero-sub{margin-top:18px;font-size:14px;color:var(--text2);font-weight:500;}
+  .hero-sub b{color:var(--text);font-weight:700;}
+  .cta{margin-top:24px;width:100%;height:64px;border:none;border-radius:16px;background:var(--volt);color:var(--volt-ink);
+    font-weight:800;font-size:19px;letter-spacing:-.01em;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:0 24px;
+    transition:transform .14s var(--spring);}
+  .cta:active{transform:scale(.97);}
+  .cta .a{font-weight:900;font-size:22px;}
+
+  /* week dots */
+  .sec-h{display:flex;align-items:baseline;justify-content:space-between;padding:26px 2px 14px;}
+  .sec-h h2{font-weight:700;font-size:15px;letter-spacing:-.02em;}
+  .sec-h span{font-family:var(--m);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);}
+  .week{display:flex;justify-content:space-between;padding:0 2px;}
+  .wd{display:flex;flex-direction:column;align-items:center;gap:9px;}
+  .wd .o{width:28px;height:28px;border-radius:50%;background:var(--surf2);}
+  .wd.on .o{background:var(--text);}
+  .wd.now .o{background:var(--volt);}
+  .wd .l{font-family:var(--m);font-size:9px;color:var(--faint);}
+  .wd.now .l{color:var(--volt);}
+
+  /* recent cards */
+  .card{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surf);border:1px solid var(--line);
+    border-radius:16px;padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:transform .12s var(--in);}
+  .card:active{transform:scale(.985);}
+  .card .nm{font-weight:800;font-size:17px;letter-spacing:-.02em;}
+  .card .mt{font-family:var(--m);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--text2);margin-top:5px;}
+  .card .v{font-weight:800;font-size:24px;letter-spacing:-.03em;}
+  .card .u{font-family:var(--m);font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);text-align:right;}
+
+  /* ══ ACTIVE ══ */
+  .a-top{display:flex;align-items:center;gap:14px;padding:50px 2px 6px;}
+  .back{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--text);cursor:pointer;}
+  .back:active{transform:scale(.9);}
+  .back svg{width:18px;height:18px;}
+  .a-head{padding:22px 0 0;}
+  .a-ex{font-family:var(--m);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--text2);margin-bottom:8px;}
+  .a-name{font-weight:900;font-size:54px;letter-spacing:-.04em;line-height:.86;}
+
+  /* volume readout */
+  .vol{display:flex;align-items:baseline;gap:10px;margin:26px 0 6px;}
+  .vol .n{font-weight:900;font-size:60px;letter-spacing:-.04em;line-height:1;}
+  .vol .u{font-family:var(--m);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);}
+  .vol-lbl{font-family:var(--m);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--text2);}
+
+  /* set list */
+  .sets{margin-top:24px;}
+  .set{display:flex;align-items:center;gap:14px;padding:15px 16px;border-radius:14px;background:var(--surf);border:1px solid var(--line);margin-bottom:8px;
+    transition:background .25s,border-color .25s,opacity .25s,transform .3s var(--spring);}
+  .set .i{font-family:var(--m);font-size:11px;color:var(--text2);width:46px;}
+  .set .wr{flex:1;font-weight:700;font-size:17px;}
+  .set .wr small{color:var(--text2);font-weight:500;}
+  .set .chk{width:24px;height:24px;border-radius:50%;border:2px solid var(--faint);display:flex;align-items:center;justify-content:center;color:var(--volt-ink);}
+  .set.done{opacity:.5;}
+  .set.done .chk{background:var(--volt);border-color:var(--volt);}
+  .set.done .chk svg{width:13px;height:13px;}
+  .set.cur{border-color:var(--volt);background:var(--surf2);opacity:1;}
+  .set.flash{animation:flash .5s var(--in);}
+  @keyframes flash{0%{box-shadow:0 0 0 0 rgba(216,255,54,.5);}100%{box-shadow:0 0 0 14px rgba(216,255,54,0);}}
+
+  .log{margin-top:18px;width:100%;height:66px;border:none;border-radius:16px;background:var(--volt);color:var(--volt-ink);
+    font-weight:900;font-size:20px;letter-spacing:-.01em;cursor:pointer;transition:transform .14s var(--spring);}
+  .log:active{transform:scale(.97);}
+  .log.dim{background:var(--surf2);color:var(--text2);}
+
+  /* ── rest sheet ── */
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .3s var(--in);z-index:20;}
+  .scrim.up{opacity:1;pointer-events:auto;}
+  .sheet{position:absolute;left:0;right:0;bottom:0;max-width:440px;margin:0 auto;z-index:21;
+    background:var(--surf);border-top:1px solid var(--line);border-radius:24px 24px 0 0;padding:14px 24px 40px;
+    transform:translateY(110%);transition:transform .42s var(--spring);box-shadow:0 -20px 60px rgba(0,0,0,.6);}
+  .sheet.up{transform:translateY(0);}
+  .grab{width:36px;height:4px;border-radius:2px;background:var(--faint);margin:0 auto 18px;}
+  .sheet .rlbl{font-family:var(--m);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--text2);text-align:center;}
+  .sheet .rt{font-weight:900;font-size:88px;letter-spacing:-.04em;text-align:center;line-height:1;margin:6px 0 4px;}
+  .sheet .rsub{font-family:var(--m);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--volt);text-align:center;}
+  .sheet .skip{margin-top:22px;width:100%;height:54px;border:1px solid var(--line);background:none;color:var(--text);border-radius:14px;font-weight:700;font-size:15px;cursor:pointer;}
+  .sheet .skip:active{transform:scale(.98);}
+</style>
+</head>
+<body>
+  <div id="app">
+
+    <!-- ══════ HOME ══════ -->
+    <section id="home" class="screen active">
+      <div class="top rv">
+        <div class="wm">KILOS<i>°</i></div>
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+      </div>
+
+      <div class="hero-wrap rv">
+        <div class="eyebrow"><span class="d"></span>Today · Most recovered</div>
+        <div class="hero" id="hero" style="view-transition-name:session-title">CHEST</div>
+        <div class="hero-sub"><b>5 exercises</b> · ~48 min · 6 days recovered</div>
+        <button class="cta" id="start">Start session <span class="a">→</span></button>
+      </div>
+
+      <div class="rv">
+        <div class="sec-h"><h2>This week</h2><span>4 / 5</span></div>
+        <div class="week">
+          <div class="wd on"><div class="o"></div><div class="l">S</div></div>
+          <div class="wd on"><div class="o"></div><div class="l">M</div></div>
+          <div class="wd now"><div class="o"></div><div class="l">T</div></div>
+          <div class="wd"><div class="o"></div><div class="l">W</div></div>
+          <div class="wd on"><div class="o"></div><div class="l">T</div></div>
+          <div class="wd on"><div class="o"></div><div class="l">F</div></div>
+          <div class="wd"><div class="o"></div><div class="l">S</div></div>
+        </div>
+      </div>
+
+      <div class="rv">
+        <div class="sec-h"><h2>Recent</h2><span>All →</span></div>
+        <div class="card"><div><div class="nm">Push Day</div><div class="mt">Yesterday · 14 sets</div></div><div><div class="v num">8,420</div><div class="u">kg vol</div></div></div>
+        <div class="card"><div><div class="nm">Leg Day</div><div class="mt">3 days ago · 18 sets</div></div><div><div class="v num">12,100</div><div class="u">kg vol</div></div></div>
+      </div>
+    </section>
+
+    <!-- ══════ ACTIVE ══════ -->
+    <section id="active" class="screen">
+      <div class="a-top rv">
+        <div class="back" id="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="15 18 9 12 15 6"/></svg></div>
+        <div class="wm">KILOS<i>°</i></div>
+      </div>
+
+      <div class="a-head rv">
+        <div class="a-ex">Chest day · Exercise 1 / 5</div>
+        <div class="a-name" style="view-transition-name:session-title">BENCH PRESS</div>
+      </div>
+
+      <div class="rv">
+        <div class="vol-lbl">Session volume</div>
+        <div class="vol"><span class="n num" id="vol">0</span><span class="u">kg moved</span></div>
+      </div>
+
+      <div class="sets rv" id="sets">
+        <div class="set" data-w="60" data-r="12"><div class="i">SET 1</div><div class="wr">60<small> kg</small> × 12</div><div class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+        <div class="set" data-w="80" data-r="10"><div class="i">SET 2</div><div class="wr">80<small> kg</small> × 10</div><div class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+        <div class="set" data-w="90" data-r="8"><div class="i">SET 3</div><div class="wr">90<small> kg</small> × 8</div><div class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+        <div class="set" data-w="90" data-r="8"><div class="i">SET 4</div><div class="wr">90<small> kg</small> × 8</div><div class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+      </div>
+
+      <button class="log rv" id="log">Log set 1 →</button>
+    </section>
+
+    <!-- rest sheet -->
+    <div class="scrim" id="scrim"></div>
+    <div class="sheet" id="sheet">
+      <div class="grab"></div>
+      <div class="rlbl">Rest</div>
+      <div class="rt num" id="rt">1:30</div>
+      <div class="rsub" id="rsub">Next · Set 2 · 80 kg</div>
+      <button class="skip" id="skip">Skip rest →</button>
+    </div>
+  </div>
+
+<script>
+  const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+  const $=s=>document.querySelector(s);
+
+  // ── View Transition wrapper (research: works iOS Safari 18.2+, graceful fallback) ──
+  function go(updateFn){
+    if(!document.startViewTransition||reduce){updateFn();return;}
+    document.startViewTransition(updateFn);
+  }
+  function show(id){
+    go(()=>{
+      document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      document.getElementById(id).scrollTop=0;
+    });
+  }
+  $('#start').onclick=()=>show('active');
+  $('#back').onclick=()=>show('home');
+
+  // ── count-up (research: ease-out, no bounce; numbers are the hero) ──
+  function countUp(el,to,dur=650){
+    const from=parseFloat((el.textContent||'0').replace(/,/g,''))||0;
+    if(reduce){el.textContent=Math.round(to).toLocaleString();return;}
+    const s=performance.now(),e=x=>1-Math.pow(1-x,4);
+    requestAnimationFrame(function k(n){const p=Math.min((n-s)/dur,1);
+      el.textContent=Math.round(from+(to-from)*e(p)).toLocaleString();
+      if(p<1)requestAnimationFrame(k);});
+  }
+
+  // ── logging loop: spring confirm + count-up + rest sheet ──
+  const sets=[...document.querySelectorAll('.set')];
+  let cur=0,vol=0;
+  function paint(){
+    sets.forEach((s,i)=>{s.classList.toggle('cur',i===cur && !s.classList.contains('done'));});
+    const btn=$('#log');
+    if(cur>=sets.length){btn.textContent='Finish exercise ✓';btn.classList.add('dim');}
+    else btn.textContent=`Log set ${cur+1} →`;
+  }
+  paint();
+  $('#log').onclick=()=>{
+    if(cur>=sets.length){show('home');return;}
+    const s=sets[cur];
+    s.classList.remove('cur');s.classList.add('done','flash');
+    if(!reduce){s.animate([{transform:'scale(1)'},{transform:'scale(1.03)'},{transform:'scale(1)'}],{duration:340,easing:'cubic-bezier(.34,1.5,.5,1)'});}
+    vol+=(+s.dataset.w)*(+s.dataset.r);
+    countUp($('#vol'),vol);
+    cur++;paint();
+    if(cur<sets.length){
+      const ns=sets[cur];
+      $('#rsub').textContent=`Next · Set ${cur+1} · ${ns.dataset.w} kg`;
+      openSheet();
+    }
+  };
+
+  // ── rest sheet spring (research: @starting-style/spring bottom sheet) ──
+  let restTimer=null,restLeft=90;
+  function fmt(s){return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;}
+  function openSheet(){
+    restLeft=90;$('#rt').textContent=fmt(restLeft);
+    $('#scrim').classList.add('up');$('#sheet').classList.add('up');
+    clearInterval(restTimer);
+    restTimer=setInterval(()=>{restLeft--;$('#rt').textContent=fmt(Math.max(restLeft,0));if(restLeft<=0){closeSheet();}},1000);
+  }
+  function closeSheet(){clearInterval(restTimer);$('#scrim').classList.remove('up');$('#sheet').classList.remove('up');}
+  $('#skip').onclick=closeSheet;$('#scrim').onclick=closeSheet;
+
+  // ── fit the hero word (no clipping for any muscle name) ──
+  function fitHero(){const el=$('#hero');const avail=el.parentElement.clientWidth;if(!avail)return;
+    el.style.fontSize='100px';const nat=el.scrollWidth;if(!nat)return;el.style.fontSize=Math.min(116,100*avail/nat)+'px';}
+  fitHero();addEventListener('resize',fitHero);document.fonts&&document.fonts.ready.then(fitHero);setTimeout(fitHero,250);
+
+  // deep-link for previewing the active screen directly
+  if(location.hash==='#active'){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$('#active').classList.add('active');}
+</script>
+</body>
+</html>

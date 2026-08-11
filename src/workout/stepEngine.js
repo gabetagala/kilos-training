@@ -402,10 +402,9 @@ export function createStepEngine(exercises = {}) {
               ...(warm ? {} : repLogged(r.ex)),
             });
           });
-          // A rest ROUND, not a rest between sets: `roundRestSecs` buys back a
-          // full minute off the clock before the next trip through the
-          // stations. Without it a long EMOM is one unbroken grind, which is
-          // exactly the pace the forced-rest floor exists to prevent.
+          // A rest ROUND, not a rest between sets: `roundRestSecs` buys back
+          // that much air before the next trip through the stations (a full
+          // minute pre-EMOM40; 20 seconds where the 40-cap left headroom).
           if (block.roundRestSecs && round < block.rounds) {
             steps.push(
               restStep(

@@ -202,8 +202,8 @@ test('tapping the rehab line on a calendar day opens the rehab', async ({ page }
   await page.locator('#btn-rehab-open').click();
   await page.locator('.cal-week.open .cal-part-btn').first().click();
   await expect(page.locator('#rehab-player')).toHaveClass(/open/);
-  await expect(page.locator('#rp-session-name')).toContainText('LOWER BACK & HIPS');
-  await expect(page.locator('#rp-exname')).toHaveText('Hip Internal Rotation');
+  await expect(page.locator('#rp-session-name')).toContainText('BACK & HIPS');
+  await expect(page.locator('#rp-exname')).toHaveText('T-Spine Reach');
 });
 
 test('double-tap does not zoom', async ({ page }) => {

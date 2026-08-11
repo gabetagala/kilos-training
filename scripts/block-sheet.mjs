@@ -43,6 +43,7 @@ import {
   buildStepQueue,
   estimateSessionSecs,
   getRehabSession,
+  REHAB_EXERCISES,
   sessionOverview,
   sessionVariantCount,
 } from '../src/workout/rehab.js';
@@ -78,13 +79,13 @@ const variantFor = (session, week) =>
 // PART A is the quality work off the clock and PART B is the piece(s) on it.
 // (There is no finisher any more — the last round of every piece carries the
 // empty-the-tank note instead of a second clock.)
-function dayPlan(sessionId, week, isRehabSession = false) {
+function dayPlan(sessionId, week, isRehabSession = false, variant = null) {
   const phase = phaseOf(week);
   const base = isRehabSession
     ? getRehabSession(sessionId)
     : getProgramSession(sessionId);
   const s = applyFormats(applyPhase(base, phase), week);
-  const v = variantFor(s, week);
+  const v = variant ?? variantFor(s, week);
   const rows = sessionOverview(s, phaseSwaps(phase), v);
   return {
     name: s.name,
@@ -99,31 +100,40 @@ function dayPlan(sessionId, week, isRehabSession = false) {
 // Sunday's optional extras (Open Up, The Long Way) are shown on the day rows
 // but never counted here, because counting them describes a week he might
 // not train.
+// The daily's topper COUNTS (2026-08-11) — its holds don't. The skip mirrors
+// the verifier exactly: session 'daily' AND a rehab-dictionary movement.
+const REHAB_DAY_SLOT = { 2: 0, 4: 1, 6: 2, 0: 3 }; // getDay() → k
 function weekVolume(week) {
   const phase = phaseOf(week);
   const swaps = phaseSwaps(phase);
   const tot = {};
-  const add = (steps) => {
+  const add = (steps, sessionId) => {
     for (const st of steps) {
+      if (sessionId === 'daily' && REHAB_EXERCISES[st.exId]) continue;
       if (st.kind !== 'work' || !st.countsAsSet || st.phase === 'RAMP') continue;
       for (const [m, f] of Object.entries(MAP[st.exId] || {})) {
         tot[m] = (tot[m] || 0) + f;
       }
     }
   };
-  for (const item of WEEK_PLAN.flat()) {
-    if (item.type === 'lift') {
-      const s = applyFormats(applyPhase(getProgramSession(item.session), phase), week);
-      add(buildStepQueue(s, swaps, variantFor(s, week)));
-    } else if (
-      item.type === 'rehab' &&
-      item.session &&
-      !OPTIONAL_SESSIONS.has(item.session) &&
-      !HYPERTROPHY_EXEMPT.has(item.session)
-    ) {
-      add(buildStepQueue(getRehabSession(item.session), swaps));
+  WEEK_PLAN.forEach((day, d) => {
+    for (const item of day) {
+      if (item.type === 'lift') {
+        const s = applyFormats(applyPhase(getProgramSession(item.session), phase), week);
+        add(buildStepQueue(s, swaps, variantFor(s, week)), s.id);
+      } else if (item.type === 'rehab' && !item.session) {
+        const v = (week - 1) * 4 + (REHAB_DAY_SLOT[d] ?? 0);
+        add(buildStepQueue(getRehabSession('daily'), swaps, v), 'daily');
+      } else if (
+        item.type === 'rehab' &&
+        item.session &&
+        !OPTIONAL_SESSIONS.has(item.session) &&
+        !HYPERTROPHY_EXEMPT.has(item.session)
+      ) {
+        add(buildStepQueue(getRehabSession(item.session), swaps), item.session);
+      }
     }
-  }
+  });
   return tot;
 }
 
@@ -157,9 +167,10 @@ for (let w = 1; w <= BLOCK_WEEKS; w++) {
       // minutes are its own — adding the rehab here overstated every one.
       days.push({ day: DAY_NAMES[offset], date: d, ...dayPlan(lift.session, w) });
     } else {
-      // A rehab day: the 48-minute back program. Sunday additionally offers
+      // A rehab day: Back & Hips (~25 min of holds) + the topper EMOM.
+      // Sunday additionally offers
       // Open Up and The Long Way, both explicitly optional.
-      const p = dayPlan('daily', w, true);
+      const p = dayPlan('daily', w, true, (w - 1) * 4 + (REHAB_DAY_SLOT[offset] ?? 0));
       const extras = items
         .filter((i) => i.type === 'rehab' && i.session)
         .map((i) => dayPlan(i.session, w, true));
@@ -168,11 +179,17 @@ for (let w = 1; w <= BLOCK_WEEKS; w++) {
         date: d,
         ...p,
         focus: extras.length ? 'the back program + the easy day' : 'the back program',
-        partB: extras.map((e) => ({
-          title: `${e.name} — optional`,
-          detail: `${e.mins} min`,
-          members: e.partA.map((r) => ({ name: r.title, detail: r.detail })),
-        })),
+        // APPEND the optional extras — replacing partB silently deleted the
+        // topper row, and a fridge sheet that can't say which topper a day
+        // serves defeats the whole point of calendar-pinning
+        partB: [
+          ...p.partB,
+          ...extras.map((e) => ({
+            title: `${e.name} — optional`,
+            detail: `${e.mins} min`,
+            members: e.partA.map((r) => ({ name: r.title, detail: r.detail })),
+          })),
+        ],
       });
     }
   }
@@ -187,7 +204,7 @@ const movesOf = (row) =>
 const q = (s) => `"${String(s).replace(/"/g, '""')}"`;
 const csv = [];
 csv.push(q('KILOS — BLOCK 01 · 12 weeks · Armored V-Taper'));
-csv.push(q(`Starts ${fmtDate(start)} ${start.getFullYear()}. Mon/Wed/Fri lift — one continuous clock per day. The other four days are the 48-min Lower Back & Hips program. Nothing is stacked.`));
+csv.push(q(`Starts ${fmtDate(start)} ${start.getFullYear()}. EMOM40: every day fits 40 minutes. Mon/Wed/Fri lift; the other four days are Back & Hips holds + a 12-min topper EMOM.`));
 csv.push('');
 csv.push(['Week', 'Phase', 'Day', 'Date', 'Session', 'Part A — quality', 'Part B — the piece', 'Min', 'Test'].map(q).join(','));
 for (const wk of weeks) {
@@ -296,8 +313,8 @@ const html = `<!doctype html>
 
 <h1>Kilos · Block 01</h1>
 <p class="sub"><strong>12 weeks · “Armored V-Taper”.</strong> ${fmtDate(start)} ${start.getFullYear()} → ${fmtDate(new Date(start.getTime() + 83 * 864e5))}.</p>
-<p class="sub"><strong>Mon / Wed / Fri</strong> lift — full body, on a clock. <strong>Tue / Thu / Sat / Sun</strong> are the 48-minute Lower Back &amp; Hips program. Nothing is stacked on anything; times are all-in.</p>
-<p class="sub">Each lift day is <strong>two clocks</strong>, read top to bottom. THE ANCHOR runs <strong>E2M or E3M</strong> (a heavy set per interval — the interval is the rest, and the build rounds ride the same clock); THE PIECE is <strong>one EMOM to the end</strong>: a minute per station, a minute off between trips, hinge and cardio inside it. Every slot rotates on a four-week cycle, so no session repeats inside a month, and every other week the piece runs its reps descending.</p>
+<p class="sub"><strong>EMOM40 — every day fits 40 minutes.</strong> <strong>Mon / Wed / Fri</strong> lift: the anchor, then one EMOM straight to the end. <strong>Tue / Thu / Sat / Sun</strong>: ~25 minutes of Back &amp; Hips holds, then a 12-minute topper EMOM. One session a day. Start the clock — that is it.</p>
+<p class="sub">Each lift day is <strong>two clocks</strong>, read top to bottom. THE ANCHOR runs <strong>E2M or E3M</strong> (a heavy set per interval — the interval is the rest, and the build rounds ride the same clock); THE PIECE is <strong>one EMOM straight to the end</strong>: a minute per station, twenty seconds of air between trips where the day has headroom; Mon/Fri carry the hinge and a cardio minute inside it. Every slot rotates on a four-week cycle, so no session repeats inside a month, and every other week the piece runs its reps descending.</p>
 <p class="legend" style="margin-top:10px">
 <span><i class="tag" style="position:static">A</i> the rehab days — positional holds, no clock pressure</span>
 <span><i class="tag tagb" style="position:static">B</i> on the clock — read top to bottom, it is one running session</span>
@@ -312,8 +329,8 @@ ${weeks
       `<tr class="wk"><td colspan="3">WEEK ${wk.w} · ${PHASE_NAMES[phaseOf(wk.w)]} (phase ${phaseOf(wk.w)}) · w/c ${fmtDate(wk.monday)}${
         wk.tests.length ? ` · <span class="test">TEST WEEK: ${wk.tests.map(testName).join(' + ')}</span>` : ''
       }${isDeloadCheckpoint(wk.w) ? ' · <span class="test">DELOAD CHECKPOINT</span>' : ''}${
-        wk.w === 5 ? ' · phase 2 begins: the pull anchor steps to 5 rounds' : ''
-      }${wk.w === 9 ? ' · phase 3 begins: the squat anchor steps to 5 rounds' : ''}</td></tr>` +
+        wk.w === 5 ? ' · phase 2 begins: Friday pull-ups step to 4 reps' : ''
+      }${wk.w === 9 ? ' · phase 3 begins: Friday pull-ups step to 5 reps' : ''}</td></tr>` +
       wk.days
         .map((d) => `<tr><td class="day">${d.day}</td><td class="dt">${fmtDate(d.date)}</td>${dayCell(d)}</tr>`)
         .join(''),
@@ -347,9 +364,9 @@ ${weeks
 <strong>Front delt sits low every week by design</strong> — its MEV is ~0 because every
 press saturates it. It's the only muscle under MEV, and that's intentional.
 <br><br>
-<strong>Phase 2 (week 5) steps the pull anchor to 5 working rounds</strong> and
-<strong>phase 3 (week 9) steps the squat anchor to 5</strong> — one more heavy interval,
-nothing else changes. The app applies these automatically; you don't have to do anything.
+<strong>The one phase step left is Friday's pull-ups: 3 reps (wk 1-4) → 4 (wk 5-8) → 5
+(wk 9-12)</strong> — the anchor round steps died for the 40-minute cap; anchor progression
+is load. The app applies this automatically; you don't have to do anything.
 <br><br>
 <strong>The volume table is the floor</strong> — Sunday's optional Open Up and The Long Way
 are listed on the day rows but never counted, so these numbers describe the week you'll

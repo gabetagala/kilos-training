@@ -1905,15 +1905,23 @@ const rehabVariantIdx = (sessionId) => {
     const w = currentWeek(blockStartISO());
     return w == null ? 0 : w - 1;
   }
-  // Rehab sessions only — every programId starts with 'd40' and is handled
-  // above, so this branch never needs to consider one. Salvaged partial runs
+  // 'daily' is CALENDAR-PINNED like the lift rotation (2026-08-11): the k-th
+  // rehab day of block week w serves variant (w-1)·4 + k, so a full week
+  // always serves each topper exactly once, the printed sheet can never
+  // drift, and a missed day never desyncs the app from the fridge. The
+  // rotating distillate slot rides the same index (8-deep pool → each
+  // supporting movement ~once per two weeks).
+  if (sessionId === 'daily') {
+    const w = currentWeek(blockStartISO());
+    // rehab days in week order (Mon-start): Tue → Thu → Sat → Sun
+    const slot = { 2: 0, 4: 1, 6: 2, 0: 3 }[new Date().getDay()] ?? 0;
+    return w == null ? slot : (w - 1) * 4 + slot;
+  }
+  // Other rehab sessions — per completed run. Salvaged partial runs
   // ('interrupted' entries) don't count: the rotation advances per COMPLETED
   // run, and a pause the program retired was not one.
   return (get('workoutHistory') || []).filter(
-    (h) =>
-      !h.interrupted &&
-      (h.rehabId === sessionId ||
-        (sessionId === 'daily' && h.rehabId === 'hinge')),
+    (h) => !h.interrupted && h.rehabId === sessionId,
   ).length;
 };
 const isProgramSession = (session) => !!session && session.id.startsWith('d40');
@@ -3028,7 +3036,9 @@ function rhStartGuide() {
 function rhRenderOverview() {
   const overlay = document.getElementById('rp-overview');
   if (!overlay.classList.contains('open') || !rhSession) return;
-  const vl = variantLabel(rhSession, rhVariant);
+  // 'daily' cycles 8 calendar-pinned variants — a bare A–H letter is noise
+  const vl =
+    rhSession.id === 'daily' ? null : variantLabel(rhSession, rhVariant);
   document.getElementById('rpo-title').textContent =
     `${rhSession.name}${vl ? ` · DAY ${vl}` : ''} · FULL SESSION`.toUpperCase();
   const currentBi = rhStep()?.bi ?? 0;
@@ -4017,10 +4027,10 @@ function renderBlockCalendar() {
         ? '<span class="cal-flag">DELOAD CHECKPOINT</span>'
         : '',
       w === 5
-        ? '<span class="cal-flag cal-flag-dim">PHASE 2 — pull anchor steps to 5 rounds</span>'
+        ? '<span class="cal-flag cal-flag-dim">PHASE 2 — Friday pull-ups step to 4 reps</span>'
         : '',
       w === 9
-        ? '<span class="cal-flag cal-flag-dim">PHASE 3 — squat anchor steps to 5 rounds</span>'
+        ? '<span class="cal-flag cal-flag-dim">PHASE 3 — Friday pull-ups step to 5 reps</span>'
         : '',
     ].join('');
 
@@ -4037,7 +4047,7 @@ function renderBlockCalendar() {
           : WEEK_PLAN[offset]
               .filter((i) => i.type === 'rehab' && i.session)
               .map((i) => calDayPlan(i.session, w, true));
-        // The 48-min rehab only runs on the days that carry it (2026-08-10) —
+        // The Back & Hips day only runs on the days that carry it —
         // it no longer stacks on a lift day, so it can't be added to every row.
         const hasRehab = WEEK_PLAN[offset].some(
           (i) => i.type === 'rehab' && !i.session,
@@ -4077,7 +4087,7 @@ function renderBlockCalendar() {
           plans
             .map((p) => p?.name)
             .filter(Boolean)
-            .join(' + ') || (hasRehab ? 'Lower Back & Hips' : 'Rest');
+            .join(' + ') || (hasRehab ? 'Back & Hips + Topper' : 'Rest');
         rows.push(`
           <div class="cal-day${k === todayK ? ' cal-today' : ''}${isDone ? ' cal-done' : ''}">
             <div class="cal-day-top">
@@ -4089,7 +4099,7 @@ function renderBlockCalendar() {
               hasRehab
                 ? `<button class="cal-part cal-part-btn${rehabDone ? ' cal-part-done' : ''}" data-cal-session="daily">
               <span class="cal-tag cal-r">R</span>
-              <span class="cal-part-body"><span class="cal-pt">Lower Back &amp; Hips</span><span class="cal-pd"> · ${rehabMins} min</span></span>
+              <span class="cal-part-body"><span class="cal-pt">Back &amp; Hips + Topper</span><span class="cal-pd"> · ${rehabMins} min</span></span>
             </button>`
                 : ''
             }
@@ -4235,7 +4245,7 @@ function renderWeekPlan() {
     </div>`);
   }
   el.innerHTML = `${rows.join('')}
-    <div class="wp-legend">REHAB the 48-min Lower Back &amp; Hips program, four days a week · PULL / SQUAT / PRESS the three full-body lift days · OPEN UP glutes + stretches · THE LONG WAY easy conditioning</div>`;
+    <div class="wp-legend">BACK &amp; HIPS ~25 min of holds + a 12-min topper EMOM, four days a week · PULL / SQUAT / PRESS the three full-body lift days · OPEN UP glutes + stretches · THE LONG WAY easy conditioning</div>`;
 
   el.querySelectorAll('.wp-chip[data-action]').forEach((chip) => {
     chip.addEventListener('click', () => {
@@ -4372,7 +4382,8 @@ function openSessionPreview(session, after = null, originEl = null) {
   _spSession = session;
   _spAfter = after;
   const spVariant = rehabVariantIdx(session.id);
-  const spLabel = variantLabel(session, spVariant);
+  const spLabel =
+    session.id === 'daily' ? null : variantLabel(session, spVariant);
   document.getElementById('sp-title').textContent = session.name.toUpperCase();
   document.getElementById('sp-meta').textContent =
     `~${estimateSessionMins(session, spVariant)} MIN · ${sessionBlocks(session, spVariant).length} BLOCKS${spLabel ? ` · DAY ${spLabel}` : ''} · ${(session.blurb || session.freq || '').toUpperCase().replace(/\.$/, '')}`;
@@ -4520,7 +4531,7 @@ function renderRehabPage() {
   document.getElementById('rehab-session-list').innerHTML = REHAB_SESSIONS.map(
     (s) => {
       const v = rehabVariantIdx(s.id);
-      const vl = variantLabel(s, v);
+      const vl = s.id === 'daily' ? null : variantLabel(s, v);
       return `
     <button class="rhs-card" data-rehab="${s.id}">
       <div class="rhs-top"><div class="rhs-name">${s.name}</div><div class="rhs-go">→</div></div>
@@ -4545,10 +4556,12 @@ function renderRehabPage() {
   document.getElementById('d40-session-list').innerHTML =
     DENSITY40_SESSIONS.map((raw, i) => {
       const s2 = phased(raw);
+      // this week's variant, not variant 0 — DB-anchor weeks run shorter
+      const v2 = rehabVariantIdx(s2.id);
       return `
     <button class="rhs-card${i === cursor ? ' rh-resume' : ''}" data-d40="${s2.id}">
       <div class="rhs-top"><div class="rhs-name">${s2.name}</div><div class="rhs-go">${i === cursor ? 'NEXT →' : '→'}</div></div>
-      <div class="rhs-meta">~${estimateSessionMins(s2)} MIN · ${s2.freq.toUpperCase()}</div>
+      <div class="rhs-meta">~${estimateSessionMins(s2, v2)} MIN · ${s2.freq.toUpperCase()}</div>
       <div class="rhs-blurb">${s2.blurb}</div>
       ${i !== cursor ? `<span class="rhs-setnext" data-setnext="${i}" role="button">SET AS NEXT</span>` : ''}
     </button>`;

@@ -39,9 +39,9 @@ test('an EMOM minute shows the piece, a running clock AND a weight row', async (
 
   // the header becomes the PIECE — these minutes are one workout, not 12 items
   await expect(page.locator('#rp-session-name')).toContainText(
-    'THE FORGE · EMOM 35',
+    'THE FORGE · EMOM 25',
   );
-  await expect(page.locator('#rp-meta')).toContainText('MIN 1 OF 32');
+  await expect(page.locator('#rp-meta')).toContainText('MIN 1 OF 24');
   // the prescription rides on the movement (2026-08-11): ×reps leads the
   // meta, and the NEXT station + its number shows during the minute so the
   // transition needs zero memory
@@ -63,7 +63,7 @@ test('the overview lists a piece as one row, not as its minutes', async ({
   await page.locator('#rp-overview-btn').click();
   const rows = page.locator('#rpo-list');
   await expect(rows).toContainText('The Gate');
-  await expect(rows).toContainText('EMOM 35');
+  await expect(rows).toContainText('EMOM 25');
   await expect(rows).toContainText('Romanian Deadlift'); // Part A still listed
 });
 
@@ -81,14 +81,14 @@ test('an EMOM minute logs itself when the interval runs out', async ({
   await dismissOnboarding(page);
   await openHalf(page, 'd40-b1');
   await skipTo(page, atForge(page), 40);
-  await expect(page.locator('#rp-meta')).toContainText('MIN 1 OF 32');
+  await expect(page.locator('#rp-meta')).toContainText('MIN 1 OF 24');
 
   await page.evaluate(() => localStorage.removeItem('kilos-guided-weights'));
   // rp-play TOGGLES — clicking an already-running clock would pause it
   if (await page.locator('#rp-play-icon').isVisible()) {
     await page.locator('#rp-play').click();
   }
-  await expect(page.locator('#rp-meta')).toContainText('MIN 2 OF 32', {
+  await expect(page.locator('#rp-meta')).toContainText('MIN 2 OF 24', {
     timeout: 70000,
   });
 

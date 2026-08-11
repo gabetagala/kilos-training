@@ -106,18 +106,16 @@ describe('phases', () => {
       (s) => s.piece === 'The Anchor' && s.countsAsSet,
     ).length;
 
-  it('phase 2 steps the pull anchor 4 → 5 rounds, in every variant', () => {
-    for (const v of [0, 1, 2, 3]) {
-      expect(anchorSets('d40-a1', 1, v), `v${v}`).toBe(4);
-      expect(anchorSets('d40-a1', 2, v), `v${v}`).toBe(5);
-    }
-  });
-
-  it('phase 3 steps the squat anchor 4 → 5 rounds, in every variant', () => {
-    for (const v of [0, 1, 2, 3]) {
-      expect(anchorSets('d40-b1', 1, v), `v${v}`).toBe(4);
-      expect(anchorSets('d40-b1', 2, v), `v${v}`).toBe(4); // phase 3 only
-      expect(anchorSets('d40-b1', 3, v), `v${v}`).toBe(5);
+  // The anchor ROUND steps are retired (2026-08-11, EMOM40): a fifth round
+  // costs minutes the 40-cap doesn't have. Phases must leave the anchors
+  // alone — progression there is load and reps, not clock length.
+  it('phases leave the anchor round-counts alone, in every variant', () => {
+    for (const id of ['d40-a1', 'd40-b1']) {
+      for (const v of [0, 1, 2, 3]) {
+        for (const ph of [1, 2, 3]) {
+          expect(anchorSets(id, ph, v), `${id} p${ph} v${v}`).toBe(4);
+        }
+      }
     }
   });
 
