@@ -6795,7 +6795,17 @@ body {
   color: rgba(255, 255, 255, 0.38);
   margin-top: var(--s-2);
   min-height: 14px;
+  line-height: 14px; /* the rx never grows this fixed slot */
   flex-shrink: 0;
+}
+/* the prescription — the one number read mid-effort, bright and bold but
+   inside the meta line's fixed box */
+.rp-meta .rp-rx {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.92);
+  font-variant-numeric: tabular-nums;
 }
 /* Every row below the stage is a FIXED slot — text length and step type can
    never move the layout. The cue is a locked 3-line box (clamped), and the

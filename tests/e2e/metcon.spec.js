@@ -42,6 +42,11 @@ test('an EMOM minute shows the piece, a running clock AND a weight row', async (
     'THE FORGE · EMOM 35',
   );
   await expect(page.locator('#rp-meta')).toContainText('MIN 1 OF 32');
+  // the prescription rides on the movement (2026-08-11): ×reps leads the
+  // meta, and the NEXT station + its number shows during the minute so the
+  // transition needs zero memory
+  await expect(page.locator('#rp-meta')).toContainText('×10');
+  await expect(page.locator('#rp-next')).toContainText('NEXT · DB PUSH PRESS ×8');
   // both at once: the clock runs the piece, the weight row sets the load
   await expect(page.locator('#rp-clock')).toBeVisible();
   await expect(page.locator('#rp-lift .rp-weight-row')).toBeVisible();
