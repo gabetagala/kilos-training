@@ -9226,7 +9226,11 @@ label {
   #home {
     padding: 0;
     display: grid;
-    grid-template-columns: minmax(420px, 1fr) minmax(0, 1fr);
+    /* The poster is the screen (2026-08-12, his catch): a 50/50 split left
+       the cream hero looking like a lost phone column beside a mostly-empty
+       dark panel. The hero takes the larger share; the side keeps a readable
+       measure. */
+    grid-template-columns: minmax(480px, 1.6fr) minmax(320px, 1fr);
     /* An explicit 1fr row, not an implicit auto one — otherwise the row is
        sized to its tallest child and the panels overflow the fold instead of
        being bound by it. */
