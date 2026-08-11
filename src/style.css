@@ -8217,6 +8217,11 @@ body {
 }
 
 /* ── Session preview — the peg language: poster, rules, marks ── */
+/* The preview opens ON TOP of other page-overlays (program page, lists) —
+   without its own layer it paints under any overlay later in the DOM. */
+#session-preview {
+  z-index: 260;
+}
 #session-preview .page-content {
   background: var(--off);
   color: var(--bg);

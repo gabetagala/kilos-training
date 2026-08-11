@@ -25,6 +25,7 @@ test('the daily session is the Back & Hips distillate + topper', async ({
   await expect(card.locator('.rhs-meta')).toContainText('8 MOVES');
   await expect(card.locator('.rhs-meta')).not.toContainText('DAY ');
   await card.click();
+  await page.locator('#sp-start').click();
   await expect(page.locator('#rehab-player')).toHaveClass(/open/);
   await expect(page.locator('#rp-exname')).toHaveText('T-Spine Reach');
   await page.locator('#rp-overview-btn').click();
@@ -65,6 +66,7 @@ test('the rotation is calendar-pinned — completed runs do not flip it', async 
   // the calendar (block week × rehab-day slot), so the sheet can never drift
   await expect(card.locator('.rhs-meta')).toContainText('8 MOVES');
   await card.click();
+  await page.locator('#sp-start').click();
   await page.locator('#rp-overview-btn').click();
   await expect(page.locator('#rpo-list')).not.toContainText('Romanian Deadlift');
 });
@@ -78,6 +80,7 @@ test('the displaced work is still reachable as its own session', async ({
   const card = page.locator('#rehab-session-list [data-rehab="open-up"]');
   await expect(card.locator('.rhs-meta')).toContainText('3 MOVES');
   await card.click();
+  await page.locator('#sp-start').click();
   await expect(page.locator('#rehab-player')).toHaveClass(/open/);
   await page.locator('#rp-overview-btn').click();
   await expect(page.locator('#rpo-list')).toContainText('Single-Leg Bridge');
@@ -92,6 +95,7 @@ test('a mid-session refresh reopens the same run by itself', async ({
   await dismissOnboarding(page);
   await openRehabPage(page);
   await page.locator('#rehab-session-list [data-rehab="daily"]').click();
+  await page.locator('#sp-start').click();
   await expect(page.locator('#rehab-player')).toHaveClass(/open/);
   await page.reload();
   // No taps needed: the player restores itself with the same queue.

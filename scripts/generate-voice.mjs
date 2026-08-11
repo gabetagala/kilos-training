@@ -55,6 +55,17 @@ const MILESTONES = {
   'last-one': 'Last one',
   'last-set': 'Last set',
   halfway: 'Halfway',
+  // The spoken prescription (2026-08-12): "ten reps — go". Numbers the
+  // program prescribes that the original packs lacked, plus the connectors.
+  reps: 'Reps',
+  twelve: 'Twelve',
+  fourteen: 'Fourteen',
+  fifteen: 'Fifteen',
+  twenty: 'Twenty',
+  seconds: 'Seconds',
+  forty: 'Forty',
+  'forty-five': 'Forty-five',
+  'each-side': 'Each side',
 };
 function kilosPhrases() {
   const out = { ...MILESTONES };
