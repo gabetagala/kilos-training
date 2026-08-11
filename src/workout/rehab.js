@@ -291,7 +291,7 @@ export const REHAB_EXERCISES = {
     name: 'Back Extension',
     feel: 'Low back and glutes working together, all the way through',
     avoid: 'Hyperextending past straight at the top',
-    cue: 'Hips at the pad, spine long. Lower under control, lift to straight — never past it. No chair? Lie face down and hold.',
+    cue: 'Hips at the pad, spine long. Lower under control, lift to straight — never past it. No chair? Hips on the bench end, ankles hooked under the low-racked bar. Simplest: lie face down and hold.',
     why: 'The single biggest lever on a back that hurts: extensors with real endurance.',
     scale:
       'Easier: isometric hold · Harder: reps → + vest → single-leg hold → single-leg reps',

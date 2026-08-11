@@ -49,13 +49,17 @@ export const ART_MANIFEST = {
     important:
       'the two poses are opposite extremes of spine curvature — the curve must be obvious and exaggerated, a smooth arc of the whole spine',
   },
+  // REWRITTEN 2026-08-11 (his catch): the old prompt drew a thread-the-needle
+  // — kneeling on heels, hand threading UNDER the chest — while the app cues
+  // the opposite drill: all fours, sweep the arm UP, eyes following the hand.
   't-spine-reach': {
     scene:
-      'kneeling with his hips sitting back on his heels, chest lowered toward the floor, both arms stretched far forward on the floor',
-    a: 'both palms flat on the floor, spine long, forehead near the floor',
-    b: 'one hand threaded under his chest toward the opposite side, that shoulder and upper back rotated toward the floor',
+      'on all fours on the floor, hands under shoulders, knees under hips, back flat and level',
+    a: 'both palms flat on the floor, spine long and level, eyes down',
+    b: 'one arm swept straight up toward the ceiling, chest rotated open to that side, eyes following the raised hand',
     important:
-      'the rotation comes from the UPPER back only — hips stay square and seated toward the heels',
+      'hips stay square over the knees — the rotation comes from the MID-back only, opening the chest toward the ceiling, never twisting the hips or low back',
+    stack: true,
   },
   'mcgill-curlup': {
     scene:
@@ -252,9 +256,9 @@ export const ART_MANIFEST = {
     scene:
       'seated on the end of a flat bench, feet planted wide and flat on the floor, arms crossed over his chest',
     a: 'sitting fully upright, spine long and tall',
-    b: 'hinged forward from the hips about 45 degrees, spine still perfectly long and flat, chest proud, arms still crossed',
+    b: 'torso hinged forward 45 degrees from the hip crease exactly like a Romanian deadlift performed while seated — the back RIGID and FLAT like a plank of wood with a slight arch in the lower back, chest puffed proudly forward, shoulder blades squeezed together, head lifted in line with the flat spine, arms still crossed on the chest',
     important:
-      'the fold happens ONLY at the hips — the back never rounds, the head stays in line with the long spine',
+      'the back is NEVER rounded or hunched — it stays one rigid straight line from tailbone to head, chest forward, exactly the flat-back hinge of a deadlift; a slouched or curled spine is wrong',
     stack: true,
   },
 
