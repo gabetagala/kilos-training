@@ -753,6 +753,12 @@
       <div class="rp-top">
         <button class="rp-close" id="rp-close" aria-label="Pause and close">✕</button>
         <div class="rp-session" id="rp-session-name">DAILY RESET</div>
+        <!-- Swap lives in the chrome row (2026-08-12): the floating pill
+             overlapped the header on laptop and the art on the phone. Shown
+             only when the step has sanctioned alternates. -->
+        <button class="rp-voice" id="rp-swap" aria-label="Swap exercise" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="16 3 21 8 16 13"/><line x1="21" y1="8" x2="9" y2="8"/><polyline points="8 21 3 16 8 11"/><line x1="3" y1="16" x2="15" y2="16"/></svg>
+        </button>
         <button class="rp-voice" id="rp-overview-btn" aria-label="Session overview">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1" fill="currentColor"/><circle cx="4" cy="12" r="1" fill="currentColor"/><circle cx="4" cy="18" r="1" fill="currentColor"/></svg>
         </button>
@@ -780,10 +786,6 @@
         <div class="rp-time" id="rp-time">0:10</div>
         <div class="rp-bar-track"><div class="rp-bar" id="rp-bar"></div></div>
       </div>
-      <!-- The swap chooser lives OUTSIDE the lift panel: a band station or an
-           anchor build round hides #rp-lift entirely, and those steps still
-           need their equipment fallback reachable. -->
-      <button class="rp-swap" id="rp-swap" style="display:none">⇄ Swap exercise</button>
       <div class="rp-lift" id="rp-lift" style="display:none">
         <div class="rp-context" id="rp-context" style="display:none"></div>
         <button class="rp-guide" id="rp-guide" style="display:none">TAP ▶ FOR TEMPO GUIDE</button>

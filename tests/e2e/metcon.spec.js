@@ -51,6 +51,12 @@ test('an EMOM minute shows the piece, a running clock AND a weight row', async (
   await expect(page.locator('#rp-clock')).toBeVisible();
   await expect(page.locator('#rp-lift .rp-weight-row')).toBeVisible();
   await expect(page.locator('#rp-time')).toHaveText('1:00');
+  // the swap icon lives in the HEADER chrome (2026-08-12) — hidden on a
+  // station with no alternates, shown the minute one has them
+  await expect(page.locator('#rp-swap')).toBeHidden(); // row: no alts
+  await page.locator('#rp-skip').click();
+  await page.locator('#rp-skip').click(); // → band laterals (has a DB alt)
+  await expect(page.locator('#rp-swap')).toBeVisible();
   expect(errors).toEqual([]);
 });
 
