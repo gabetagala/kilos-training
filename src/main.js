@@ -2494,9 +2494,19 @@ function rhAnnounceStep(step) {
       const sideBit = step.side ? `${step.side.toLowerCase()} side — ` : '';
       rhCueSay(parts, `${sideBit}hold. ${step.setNum} of ${step.setTotal}.`);
     } else {
+      // SAY WHAT THE MINUTE IS (2026-08-11, his catch): a burn set or an
+      // EMOM station starts with GO; only true isometrics (HOLD) and
+      // stretches (BREATHE) start with HOLD. Every timed step used to say
+      // "hold" — wrong the moment the daily gained WORK-phase burn sets.
+      const word =
+        step.phase === 'HOLD' || step.phase === 'BREATHE' ? 'hold' : 'go';
       rhCueSay(
-        step.side ? [`${step.side.toLowerCase()}-side`, 'hold'] : ['hold'],
-        step.side ? `${step.side.toLowerCase()} side — hold` : 'Hold',
+        step.side ? [`${step.side.toLowerCase()}-side`, word] : [word],
+        step.side
+          ? `${step.side.toLowerCase()} side — ${word}`
+          : word === 'go'
+            ? 'Go'
+            : 'Hold',
       );
     }
   } else if (step.phase === 'SWITCH SIDES') {
