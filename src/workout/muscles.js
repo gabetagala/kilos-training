@@ -52,6 +52,7 @@ export const MUSCLE_ALIASES = {
   'Push-Up': 'Chest',
   // rehab.js
   'Cat-Camel': 'Core',
+  'Seated Good Morning': 'Legs',
   'T-Spine Reach': 'Back',
   'Pogo Hop': 'Legs',
   'Broad Jump': 'Legs',

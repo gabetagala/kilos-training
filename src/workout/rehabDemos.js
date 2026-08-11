@@ -1276,3 +1276,8 @@ PROGRAM_DEMOS['cable-lateral-raise'] = PROGRAM_DEMOS['db-lateral-raise'];
 PROGRAM_DEMOS['reverse-curl'] = PROGRAM_DEMOS['hammer-curl'];
 PROGRAM_DEMOS['cable-fly-low'] = PROGRAM_DEMOS['band-fly'];
 PROGRAM_DEMOS['band-pull-apart'] = PROGRAM_DEMOS['face-pull'];
+
+// Fallback until the art batch generates the real illustration (2026-08-11):
+// the elephant walk shows the same PATTERN — a long-spine fold at the hips —
+// which is the entire teaching point of the seated version.
+REHAB_DEMOS['seated-good-morning'] = REHAB_DEMOS['elephant-walk'];

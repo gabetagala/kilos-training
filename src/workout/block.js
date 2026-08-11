@@ -95,77 +95,30 @@ const PHASE_SWAPS = { 1: {}, 2: {}, 3: {} };
 export const phaseSwaps = (phase) => ({ ...(PHASE_SWAPS[phase] || {}) });
 
 // ── Phase volume steps ──────────────────────────────────────────────────────
-// The audit in BLOCK-01.md §1 found exactly two gaps for a V-taper: lats and
-// quads both at 7 fractional sets, the modest end of the productive range.
-// These close them, and nothing else changes.
-//
-// Set progression is the least-evidenced part of the plan — Enes 2024, the only
-// direct 12-week test, found stepped increases neutral for hypertrophy and
-// better for strength. So the steps are deliberately small and targeted.
-// REWRITTEN 2026-08-10 for the quartet sessions. The old steps bolted an extra
-// member onto a named piece and added sets to a fixed split-squat block. Both
-// assumed a block was a plain object; every varying slot is now a
-// `{ rotate: [...] }` pool, so a step has to reach THROUGH the pool and land on
-// all four variants — otherwise it silently applies in week 5 and vanishes in
-// week 6, which is worse than not stepping at all.
-//
-// The step is a fifth WORKING anchor round — one more three-minute interval of
-// real work. Build rounds are not touched: warming up more is not a volume step. Two reasons it lands there rather
-// than on a quartet: a quartet round costs five minutes (four stations plus the
-// rest minute) and would push the day past its ceiling, while an anchor set
-// costs about two and a half; and the anchor is the one slot with a continuous
-// load history, so adding sets there is the step whose effect is measurable.
-// Set progression is the least-evidenced part of the plan — Enes 2024, the only
-// direct 12-week test, found stepped increases neutral for hypertrophy and
-// better for strength — so the step stays small and lands where strength lives.
-// `working` is the target number of WORKING rounds — build rounds sit on top,
-// and they differ per lift, so the step has to be expressed in the thing it
-// actually means rather than in a total that would silently vary by day.
-const steppedAnchor = (block, working) => {
-  const bump = (spec) =>
-    spec?.anchor
-      ? // IDEMPOTENT: the player phases a session the session list may already
-        // have phased, and a second bump would desync the printed plan.
-        {
-          ...spec,
-          rounds: Math.max(spec.rounds, (spec.warmupRounds || 0) + working),
-        }
-      : spec;
-  return block.rotate
-    ? { ...block, rotate: block.rotate.map(bump) }
-    : bump(block);
-};
-
+// MOSTLY RETIRED (2026-08-11, EMOM40). The old steps added a fifth anchor
+// round at weeks 5/9 — minutes the 40-cap doesn't have. Set progression was
+// always the least-evidenced part of the plan (Enes 2024: stepped increases
+// neutral for hypertrophy, better for strength), so what survives is the one
+// step that costs zero seconds: Friday's strict-pull-up reps, 3 → 4 → 5 —
+// the lat step, delivered in reps. The quads gap is ACCEPTED at maintenance:
+// his stated goal ("legs are already good; minimal") — a check demanding quad
+// growth contradicted the goal it claimed to guard.
 /**
  * Apply a phase's volume step to a session. Returns the session unchanged
  * when the phase doesn't touch it, so callers can apply it unconditionally.
+ *
+ * THE ANCHOR ROUND STEPS ARE RETIRED (2026-08-11, EMOM40): a fifth anchor
+ * round costs 2-3 minutes and the 40-minute cap has none to give. Anchor
+ * progression is load (+2.5 per exposure) and, on the pull day, reps —
+ * neither needs a longer clock. The ONE surviving phase step costs zero
+ * seconds: Friday's strict-pull-up station steps 3 → 4 → 5 reps, because the
+ * Monday anchor drives his pull-up strength up all block and a fixed 3 would
+ * decay into warm-up grade while the audit kept crediting full lat sets.
+ * IDEMPOTENT: the target is absolute.
  */
 export function applyPhase(session, phase) {
   if (!session || phase < 2) return session;
 
-  // Phase 2+ — the pull day's anchor goes to 5 sets. Every variant of that
-  // slot is a vertical pull or a row, so this is the lat step.
-  if (session.id === 'd40-a1') {
-    return {
-      ...session,
-      blocks: session.blocks.map((b) => steppedAnchor(b, 5)),
-    };
-  }
-
-  // Phase 3 — the squat day's anchor goes to 5 sets. Every variant of that
-  // slot is a squat or a split squat, so this is the quad step.
-  if (phase >= 3 && session.id === 'd40-b1') {
-    return {
-      ...session,
-      blocks: session.blocks.map((b) => steppedAnchor(b, 5)),
-    };
-  }
-
-  // Phase 2+ — Friday's strict-pull-up station steps 3 → 4 → 5 reps. The
-  // Monday anchor drives his pull-up strength up all block; a fixed 3 would
-  // decay into warm-up grade while the volume audit kept crediting full lat
-  // sets. Reps, not rounds: the station's minute has room (5 reps ≈ 20s) and
-  // the piece's length must not move. IDEMPOTENT: the target is absolute.
   if (session.id === 'd40-c1') {
     const reps = phase >= 3 ? '5' : '4';
     const step = (v) =>

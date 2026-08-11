@@ -247,6 +247,17 @@ export const ART_MANIFEST = {
     stack: true,
   },
 
+  // Added 2026-08-11 at his ask — his favorite stretch from the source coach.
+  'seated-good-morning': {
+    scene:
+      'seated on the end of a flat bench, feet planted wide and flat on the floor, arms crossed over his chest',
+    a: 'sitting fully upright, spine long and tall',
+    b: 'hinged forward from the hips about 45 degrees, spine still perfectly long and flat, chest proud, arms still crossed',
+    important:
+      'the fold happens ONLY at the hips — the back never rounds, the head stays in line with the long spine',
+    stack: true,
+  },
+
   // ── CrossFit movements + cardio stations (2026-08-10) ─────────────────────
   'db-push-press': {
     scene:

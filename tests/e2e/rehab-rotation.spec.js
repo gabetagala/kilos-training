@@ -1,18 +1,18 @@
 import { expect, test } from '@playwright/test';
 import { dismissOnboarding } from './helpers.js';
 
-// The daily protocol after the 2026-08-07 trim: ONE fixed 10-minute session,
-// the same every day, no A/B rotation left (the hinge moved into the lift
-// halves; the glutes + stretches became the Sunday "Open Up" session).
-// A mid-session refresh must still restore the same run — losing a session
-// here is unforgivable.
+// The daily session after the 2026-08-11 EMOM40 rebuild: the Back & Hips
+// distillate (six fixed favorites + one rotating supporting-cast slot) plus
+// the topper EMOM, calendar-pinned across the four rehab days. A mid-session
+// refresh must still restore the same run — losing a session here is
+// unforgivable.
 
 async function openRehabPage(page) {
   await page.locator('.nav-btn[data-screen="train"]').click();
   await page.locator('#btn-rehab-open').click();
 }
 
-test('the daily session is the Lower Back & Hips program, twelve moves', async ({
+test('the daily session is the Back & Hips distillate + topper', async ({
   page,
 }) => {
   await page.goto('/');
@@ -21,19 +21,22 @@ test('the daily session is the Lower Back & Hips program, twelve moves', async (
   // daily + the 10-min reset + open-up + the Sunday engine + power primer
   await expect(page.locator('#rehab-session-list .rhs-card')).toHaveCount(5);
   const card = page.locator('#rehab-session-list [data-rehab="daily"]');
-  await expect(card.locator('.rhs-meta')).toContainText('12 MOVES');
-  await expect(card.locator('.rhs-meta')).not.toContainText('DAY A');
+  // 8 blocks; the calendar picks the variant, and no A–H letter is printed
+  await expect(card.locator('.rhs-meta')).toContainText('8 MOVES');
+  await expect(card.locator('.rhs-meta')).not.toContainText('DAY ');
   await card.click();
   await expect(page.locator('#rehab-player')).toHaveClass(/open/);
-  await expect(page.locator('#rp-exname')).toHaveText('Hip Internal Rotation');
+  await expect(page.locator('#rp-exname')).toHaveText('T-Spine Reach');
   await page.locator('#rp-overview-btn').click();
-  // the McGill core lives in its own short-day session now, not in here
-  await expect(page.locator('#rpo-list')).not.toContainText('Cat-Camel');
-  await expect(page.locator('#rpo-list')).not.toContainText('Bird Dog');
+  // his favorites are fixed daily; the topper closes the session
   await expect(page.locator('#rpo-list')).toContainText('Elephant Walk');
+  await expect(page.locator('#rpo-list')).toContainText('Seated Good Morning');
+  await expect(page.locator('#rpo-list')).toContainText(
+    /The (Pump|Popeye|Engine|Wing)/,
+  );
 });
 
-test('completed runs no longer flip the session — it stays identical', async ({
+test('the rotation is calendar-pinned — completed runs do not flip it', async ({
   page,
 }) => {
   await page.addInitScript(() => {
@@ -41,13 +44,13 @@ test('completed runs no longer flip the session — it stays identical', async (
       'workoutHistory',
       JSON.stringify([
         {
-          name: 'Rehab · Daily Reset',
+          name: 'Rehab · Back & Hips',
           type: 'rehab',
           rehabId: 'daily',
           date: new Date().toISOString(),
-          duration: '10 min',
+          duration: '38 min',
           totalWeight: 0,
-          sets: 13,
+          sets: 23,
           newPRs: [],
           exercises: [],
         },
@@ -58,8 +61,9 @@ test('completed runs no longer flip the session — it stays identical', async (
   await dismissOnboarding(page);
   await openRehabPage(page);
   const card = page.locator('#rehab-session-list [data-rehab="daily"]');
-  await expect(card.locator('.rhs-meta')).toContainText('12 MOVES');
-  await expect(card.locator('.rhs-meta')).not.toContainText('DAY B');
+  // a completed run in history changes NOTHING — today's variant comes from
+  // the calendar (block week × rehab-day slot), so the sheet can never drift
+  await expect(card.locator('.rhs-meta')).toContainText('8 MOVES');
   await card.click();
   await page.locator('#rp-overview-btn').click();
   await expect(page.locator('#rpo-list')).not.toContainText('Romanian Deadlift');
@@ -92,5 +96,5 @@ test('a mid-session refresh reopens the same run by itself', async ({
   await page.reload();
   // No taps needed: the player restores itself with the same queue.
   await expect(page.locator('#rehab-player')).toHaveClass(/open/);
-  await expect(page.locator('#rp-exname')).toHaveText('Hip Internal Rotation');
+  await expect(page.locator('#rp-exname')).toHaveText('T-Spine Reach');
 });

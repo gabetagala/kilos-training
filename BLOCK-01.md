@@ -8,8 +8,9 @@
 > below is superseded**: accessories rotate WEEKLY via 4-deep pools (DB ↔
 > band laterals, chest-supported DB row every week, band flies, band
 > pull-aparts, the triceps rope as each Wed/Fri piece's single pulley
-> station), phase steps are anchor rounds (pull → 5 at wk 5, squat → 5 at
-> wk 9) plus Friday's pull-up reps (3 → 4 → 5), and formats rotate
+> station), the one phase step left is Friday's
+> pull-up reps (3 → 4 → 5 — the anchor round steps died with the 2026-08-11
+> EMOM40 cap: every day fits 40 minutes), and formats rotate
 > EMOM ↔ EMOM-descending. The evidence rationale, test-week cadence and
 > deload-checkpoint sections below still stand.
 

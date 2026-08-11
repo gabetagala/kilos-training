@@ -38,6 +38,7 @@ import {
 } from '../src/workout/volume.js';
 import {
   REHAB_EXERCISES,
+  REHAB_SESSIONS,
   buildStepQueue,
   estimateSessionMins,
   getRehabSession,
@@ -49,20 +50,38 @@ const check = (area, name, pass, detail = '') =>
   results.push({ area, name, pass, detail });
 
 // Every (week → session → fully-resolved queue) the athlete can actually meet.
+//
+// THE VARIANT MODEL MUST MATCH THE RUNTIME (2026-08-11): 'daily' rotates
+// CALENDAR-PINNED, one variant per rehab day — the k-th rehab day of week w
+// (Tue→Thu→Sat→Sun) serves variant (w−1)·4+k, exactly what rehabVariantIdx
+// computes in main.js. The first draft of this audit gave all four rehab days
+// of a week the SAME variant and judged weeks that can never occur — a
+// four-Popeye week read forearms at 40 sets and failed a program whose real
+// weeks serve each topper exactly once.
+const REHAB_DAY_SLOT = { 2: 0, 4: 1, 6: 2, 0: 3 }; // getDay() → k
 function* allQueues() {
   for (let w = 1; w <= BLOCK_WEEKS; w++) {
     const ph = phaseOf(w);
     const sw = phaseSwaps(ph);
-    for (const item of WEEK_PLAN.flat()) {
-      let s = null;
-      if (item.type === 'lift') {
-        s = applyFormats(applyPhase(getProgramSession(item.session), ph), w);
-      } else if (item.type === 'rehab') {
-        s = getRehabSession(item.session || 'daily');
+    for (let d = 0; d < 7; d++) {
+      for (const item of WEEK_PLAN[d]) {
+        let s = null;
+        let v = 0;
+        if (item.type === 'lift') {
+          s = applyFormats(applyPhase(getProgramSession(item.session), ph), w);
+          v = sessionVariantCount(s) > 1 ? w - 1 : 0;
+        } else if (item.type === 'rehab') {
+          s = getRehabSession(item.session || 'daily');
+          if (s && sessionVariantCount(s) > 1) {
+            v =
+              s.id === 'daily'
+                ? (w - 1) * 4 + (REHAB_DAY_SLOT[d] ?? 0)
+                : w - 1;
+          }
+        }
+        if (!s) continue;
+        yield { w, d, s, q: buildStepQueue(s, sw, v) };
       }
-      if (!s) continue;
-      const v = sessionVariantCount(s) > 1 ? w - 1 : 0;
-      yield { w, s, q: buildStepQueue(s, sw, v) };
     }
   }
 }
@@ -76,16 +95,19 @@ const NEVER = [
   'kipping', 'snatch', 'power-clean', 'row-erg', 'rower', 'box-jump',
   'good-morning', 'russian-twist',
 ];
-// The ONE documented carve-out, added 2026-08-10 with the CrossFit movements.
-// It is an allowlist rather than a softened pattern so the ban itself stays
-// intact and the exception stays greppable: a barbell snatch, a from-the-floor
-// snatch, or anything else matching NEVER is still a build failure.
+// The documented carve-outs. An allowlist rather than a softened pattern so
+// the ban itself stays intact and each exception stays greppable: a barbell
+// snatch, a loaded good morning, or anything else matching NEVER is still a
+// build failure.
 //
-// Why this one is allowed: it is a HANG variant with a single light DB. The
+// db-hang-snatch (2026-08-10): a HANG variant with a single light DB. The
 // hinge stops above the knee, the spine stays neutral, and it is in
-// OPEN_PACE_BANNED so it can never run on a self-paced clock. Delete this line
-// and the movement to put the rule back exactly as it was.
-const NEVER_ALLOW = new Set(['db-hang-snatch']);
+// OPEN_PACE_BANNED so it can never run on a self-paced clock.
+// seated-good-morning (2026-08-11): the NEVER entry bans the LOADED barbell
+// good morning — a fatigue-loaded hinge. This is its opposite: an UNLOADED
+// seated stretch whose entire cue is "fold at the hips, never the back",
+// held, never repped under load. Delete either line to restore the full ban.
+const NEVER_ALLOW = new Set(['db-hang-snatch', 'seated-good-morning']);
 {
   const known = { ...PROGRAM_EXERCISES, ...REHAB_EXERCISES };
   const hits = Object.keys(known).filter(
@@ -302,7 +324,7 @@ const ANCHOR_IDS = new Set(anchorSpecs().map(({ b }) => b.members[0].ex));
     return /\/(side|leg|arm)/.test(String(repsStr)) ? n * 2 : n;
   };
   const bad = [];
-  for (const s of DENSITY40_SESSIONS) {
+  for (const s of [...DENSITY40_SESSIONS, ...REHAB_SESSIONS]) {
     for (const b of s.blocks) {
       for (const v of b.rotate || [b]) {
         if (v?.mode !== 'emom') continue;
@@ -370,7 +392,7 @@ const CABLE_SETUP = {
   for (const id of Object.keys(CABLE_SETUP)) {
     if (!PROGRAM_EXERCISES[id]?.pulley) bad.push(`${id} has a rig entry but no pulley tag`);
   }
-  for (const s of [...DENSITY40_SESSIONS, ...BENCHMARK_SESSIONS]) {
+  for (const s of [...DENSITY40_SESSIONS, ...BENCHMARK_SESSIONS, ...REHAB_SESSIONS]) {
     let anchorRig = null;
     let pieceRig = null;
     for (const b of s.blocks) {
@@ -406,6 +428,26 @@ const CABLE_SETUP = {
   check('RESTRICTIONS', 'each piece touches the pulley at most once, rig set before the clock', bad.length === 0, bad.slice(0, 3).join(', '));
 }
 
+// REHAB DAYS ARE AXIALLY QUIET (2026-08-11). The topper EMOMs exist to make
+// the light days fun, not to sneak load onto the spine between the heavy
+// days: no SPINE_LOADED movement, no pulley exercise (the rack stays
+// untouched), in any rehab session's emom block — members or alts.
+{
+  const bad = [];
+  for (const s of REHAB_SESSIONS) {
+    for (const b of s.blocks) {
+      for (const v of b.rotate || [b]) {
+        if (v?.mode !== 'emom' || !v.members) continue;
+        for (const m of v.members.flatMap((x) => [x, ...(x.alts || [])])) {
+          if (SPINE_LOADED.includes(m.ex)) bad.push(`${s.id} ${v.name} ${m.ex} spine-loaded`);
+          if (CABLE_SETUP[m.ex]) bad.push(`${s.id} ${v.name} ${m.ex} touches the pulley`);
+        }
+      }
+    }
+  }
+  check('RESTRICTIONS', 'rehab-day toppers are axially quiet — no spine load, no pulley', bad.length === 0, bad.slice(0, 3).join(', '));
+}
+
 // OPEN PACE IS UNREACHABLE for any slot that could serve a banned movement —
 // including via a persisted swap. This is the property that makes the
 // db-hang-snatch carve-out from the NEVER list safe: its EMOM-only claim is
@@ -413,7 +455,7 @@ const CABLE_SETUP = {
 // (the list guarded nothing while no piece declared an open format).
 {
   const bad = [];
-  for (const s of DENSITY40_SESSIONS) {
+  for (const s of [...DENSITY40_SESSIONS, ...REHAB_SESSIONS]) {
     for (const b of s.blocks) {
       for (const v of b.rotate || [b]) {
         if (!v?.members) continue;
@@ -430,7 +472,7 @@ const CABLE_SETUP = {
 
 // Session length. The old ceiling was 45 minutes and it covered rehab + lift
 // stacked on the same day. Nothing stacks any more (2026-08-10): a lift day is
-// a lift, a rehab day is the 48-minute back program, and the ceiling is now
+// a lift, a rehab day is the Back & Hips distillate + topper, and the ceiling is
 // about the SHAPE of the week — every required day lands in one band, so no
 // day is the one he starts skipping. Sunday's Open Up and The Long Way are
 // explicitly optional extras and are not counted.
@@ -455,7 +497,11 @@ const CABLE_SETUP = {
           mins += estimateSessionMins(s, sessionVariantCount(s) > 1 ? w - 1 : 0);
         } else if (item.type === 'rehab' && !item.session) {
           hasRehab = true;
-          mins += estimateSessionMins(getRehabSession('daily'));
+          // the day's REAL variant — toppers differ slightly in length
+          mins += estimateSessionMins(
+            getRehabSession('daily'),
+            (w - 1) * 4 + (REHAB_DAY_SLOT[d] ?? 0),
+          );
         }
       }
       if (hasLift && hasRehab) stacked.push(`wk${w} ${DAYS[d]}`);
@@ -467,14 +513,12 @@ const CABLE_SETUP = {
       shortest = Math.min(shortest, mins);
     });
   }
-  // 58, and the estimate is deliberately PESSIMISTIC at the top end: a day
-  // that peaks here is one carrying the death-by ladder, whose queue ceiling
-  // is 10 minutes but which actually ends at failure — usually inside 5. The
-  // honest read of a 57 is "about 52".
+  // EMOM40 (2026-08-11): the promise is 40:00 of CLOCK work; the ceiling is
+  // 41 to absorb the two 10-second get-set steps the wall clock also spends.
   check(
     'RESTRICTIONS',
-    'no required day exceeds the 58-minute ceiling',
-    longest <= 58,
+    'every day fits the EMOM40 promise (40:00 clock, ceiling 41 with preps)',
+    longest <= 41,
     `longest ${longest} min (${where})`,
   );
   // The floor, not a band. A for-time week is legitimately shorter than an
@@ -483,13 +527,13 @@ const CABLE_SETUP = {
   // What actually matters is that no required day shrinks into a token effort.
   check(
     'RESTRICTIONS',
-    'no required day shrinks below 35 minutes',
-    shortest >= 35,
+    'no required day shrinks below 30 minutes',
+    shortest >= 30,
     `${shortest}–${longest} min`,
   );
   check(
     'RESTRICTIONS',
-    'the 48-minute rehab never stacks on a lift day',
+    'the rehab day never stacks on a lift day',
     stacked.length === 0,
     stacked.slice(0, 3).join(', '),
   );
@@ -504,11 +548,19 @@ const CABLE_SETUP = {
 // THE GUARD. Every movement the program actually serves must be attributed, or
 // its volume vanishes from the audit and every band check below quietly lies.
 // This is how db-split-squat, db-floor-press and incline-db-press went missing.
+// THE DISTILLATE SKIP (2026-08-11): the 'daily' session counts for volume now
+// — its topper EMOM is real hypertrophy work — but its long HOLDS stay
+// medicine, not sets. The skip is scoped to (session === 'daily' AND the
+// exercise is a rehab-dictionary movement): scoping by dictionary alone would
+// erase the lift days' RDL and ballistics, whose definitions live in
+// REHAB_EXERCISES too.
+const distillateSkip = (s, st) => s.id === 'daily' && !!REHAB_EXERCISES[st.exId];
 {
   const used = new Set();
   for (const { s, q } of allQueues()) {
     if (HYPERTROPHY_EXEMPT.has(s.id) || OPTIONAL.has(s.id)) continue;
     for (const st of q) {
+      if (distillateSkip(s, st)) continue;
       if (st.kind === 'work' && st.countsAsSet && st.phase !== 'RAMP') {
         used.add(st.exId);
       }
@@ -529,6 +581,7 @@ for (let w = 1; w <= BLOCK_WEEKS; w++) {
   for (const { w: ww, s, q } of allQueues()) {
     if (ww !== w || HYPERTROPHY_EXEMPT.has(s.id) || OPTIONAL.has(s.id)) continue;
     for (const st of q) {
+      if (distillateSkip(s, st)) continue;
       if (st.kind !== 'work' || !st.countsAsSet || st.phase === 'RAMP') continue;
       for (const [m, f] of Object.entries(MAP[st.exId] || {})) t[m] = (t[m] || 0) + f;
     }
@@ -546,17 +599,43 @@ const muscles = [...new Set(weekVol.flatMap(Object.keys))];
       if ((v[m] || 0) >= WASTEFUL) over.push(`${m} wk${i + 1}=${v[m]}`);
     });
   }
-  check('GOALS', 'every muscle is above MEV in every one of the 12 weeks', under.length === 0, under.slice(0, 3).join(', '));
+  // muscles sitting EXACTLY at MEV pass, but with zero headroom — surfaced so
+  // the knife edges stay visible instead of failing silently on the next tweak
+  const edges = new Set();
+  for (const m of muscles) {
+    if (EXPECTED_LOW.has(m)) continue;
+    weekVol.forEach((v) => {
+      if ((v[m] || 0) === MEV) edges.add(m);
+    });
+  }
+  check('GOALS', 'every muscle is above MEV in every one of the 12 weeks', under.length === 0, under.slice(0, 3).join(', ') || (edges.size ? `at exactly MEV (watch): ${[...edges].join(', ')}` : ''));
   check('GOALS', 'no muscle is pushed into the wasteful band', over.length === 0, over.slice(0, 3).join(', '));
 }
 {
-  const avg = (m, ws) => ws.reduce((a, i) => a + (weekVol[i - 1][m] || 0), 0) / ws.length;
-  const p1 = [1, 2, 3, 4];
-  const p3 = [9, 10, 11, 12];
-  const latsUp = avg('lats', p3) > avg('lats', p1);
-  const quadsUp = avg('quads', p3) > avg('quads', p1);
-  check('GOALS', 'lats rise across the block (the V-taper gap closes)', latsUp, `${avg('lats', p1).toFixed(1)} → ${avg('lats', p3).toFixed(1)}`);
-  check('GOALS', 'quads rise across the block (the other gap closes)', quadsUp, `${avg('quads', p1).toFixed(1)} → ${avg('quads', p3).toFixed(1)}`);
+  // LATS RISE BY REPS now (2026-08-11): the anchor round steps died with the
+  // EMOM40 cap, so the phase progression is Friday's pull-up reps (3 → 4 → 5)
+  // — invisible to a set count, real in the rep count.
+  // The quads-rise check is RETIRED: his stated goal is legs at MAINTENANCE
+  // ("more cuts" is a body-fat outcome), and a check demanding quad growth
+  // contradicted the goal it claimed to guard.
+  const latRepsByWeek = [];
+  for (let w = 1; w <= BLOCK_WEEKS; w++) {
+    let reps = 0;
+    for (const { w: ww, s, q } of allQueues()) {
+      if (ww !== w || OPTIONAL.has(s.id)) continue;
+      for (const st of q) {
+        if (st.kind !== 'work' || !st.countsAsSet || st.phase === 'RAMP') continue;
+        if (distillateSkip(s, st)) continue;
+        if ((MAP[st.exId]?.lats || 0) < 1) continue;
+        const n = Number.parseInt(String(st.reps ?? '').match(/\d+/)?.[0] ?? '', 10);
+        if (n) reps += /\/(side|leg|arm)/.test(String(st.reps)) ? n * 2 : n;
+      }
+    }
+    latRepsByWeek.push(reps);
+  }
+  const avgR = (ws) => ws.reduce((a, i) => a + latRepsByWeek[i - 1], 0) / ws.length;
+  const latsUp = avgR([9, 10, 11, 12]) > avgR([1, 2, 3, 4]);
+  check('GOALS', 'weekly lat REPS rise across the block (the V-taper gap closes)', latsUp, `${avgR([1, 2, 3, 4]).toFixed(0)} → ${avgR([9, 10, 11, 12]).toFixed(0)} reps/wk`);
 }
 {
   // athletic / powerful — the primer must survive every week
@@ -642,6 +721,6 @@ for (const r of results) {
 console.log(
   failed
     ? `\n${failed} CHECK(S) FAILED\n`
-    : `\nALL ${results.length} CHECKS PASS — across 12 weeks, 3 phases, 12 named pieces and 2 formats.\n`,
+    : `\nALL ${results.length} CHECKS PASS — across 12 weeks and 3 phases.\n`,
 );
 process.exit(failed ? 1 : 0);

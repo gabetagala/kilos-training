@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0b">
+<title>KILOS — Train Heavy. Free Forever.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800;900&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  *{scrollbar-width:none;}*::-webkit-scrollbar{display:none;}
+  :root{
+    --bg:#0b0b0b; --surf:#161616; --surf2:#1e1e1e; --press:#262626;
+    --text:#f4f3f1; --text2:#86868a; --faint:#48484c;
+    --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.14);
+    --volt:#d8ff36; --volt-ink:#101400;
+    --g:"Hanken Grotesk",-apple-system,BlinkMacSystemFont,sans-serif; --m:"Space Mono",monospace;
+    --in:cubic-bezier(.2,0,0,1); --out:cubic-bezier(.4,0,1,1); --spring:cubic-bezier(.34,1.5,.5,1);
+  }
+  html,body{height:100%;}
+  body{background:var(--bg);color:var(--text);font-family:var(--g);overflow:hidden;-webkit-font-smoothing:antialiased;user-select:none;letter-spacing:-.01em;}
+  .num{font-variant-numeric:tabular-nums;}
+  .mono{font-family:var(--m);}
+  button{font-family:inherit;color:inherit;cursor:pointer;}
+
+  #app{position:relative;height:100dvh;max-width:460px;margin:0 auto;overflow:hidden;background:var(--bg);}
+  .screen{position:absolute;inset:0;overflow-y:auto;padding:0 22px 110px;display:none;}
+  .screen.on{display:block;}
+
+  /* staggered reveal */
+  .screen.on .rv{opacity:0;transform:translateY(16px);animation:rv .5s var(--in) forwards;}
+  .screen.on .rv:nth-child(1){animation-delay:.04s}.screen.on .rv:nth-child(2){animation-delay:.09s}
+  .screen.on .rv:nth-child(3){animation-delay:.14s}.screen.on .rv:nth-child(4){animation-delay:.19s}
+  .screen.on .rv:nth-child(5){animation-delay:.24s}.screen.on .rv:nth-child(6){animation-delay:.29s}
+  .screen.on .rv:nth-child(7){animation-delay:.34s}.screen.on .rv:nth-child(8){animation-delay:.39s}
+  @keyframes rv{to{opacity:1;transform:none;}}
+  @media(prefers-reduced-motion:reduce){.rv{animation:none!important;opacity:1!important;transform:none!important;}}
+
+  /* top bar */
+  .top{display:flex;align-items:center;justify-content:space-between;padding:50px 2px 6px;}
+  .wm{font-weight:900;font-size:18px;letter-spacing:-.02em;}.wm i{font-style:normal;color:var(--volt);}
+  .ic{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--text2);background:none;transition:transform .12s;}
+  .ic:active{transform:scale(.9);}.ic svg{width:16px;height:16px;}
+
+  /* hero */
+  .eyebrow{font-family:var(--m);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text2);display:flex;align-items:center;gap:9px;}
+  .eyebrow .d{width:7px;height:7px;border-radius:50%;background:var(--volt);box-shadow:0 0 9px var(--volt);}
+  .hero-wrap{padding:28px 0 4px;}
+  .hero{font-weight:900;line-height:.82;letter-spacing:-.045em;white-space:nowrap;font-size:92px;margin:14px 0 0;}
+  .hero-sub{margin-top:16px;font-size:14px;color:var(--text2);font-weight:500;}.hero-sub b{color:var(--text);font-weight:700;}
+  .cta{margin-top:22px;width:100%;height:64px;border:none;border-radius:16px;background:var(--volt);color:var(--volt-ink);font-weight:800;font-size:19px;letter-spacing:-.01em;display:flex;align-items:center;justify-content:space-between;padding:0 24px;transition:transform .14s var(--spring);}
+  .cta:active{transform:scale(.97);}.cta .a{font-weight:900;font-size:22px;}
+
+  /* section header */
+  .sh{display:flex;align-items:baseline;justify-content:space-between;padding:26px 2px 14px;}
+  .sh h2{font-weight:700;font-size:15px;letter-spacing:-.02em;}
+  .sh span{font-family:var(--m);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);}
+
+  /* week dots */
+  .week{display:flex;justify-content:space-between;padding:0 2px;}
+  .wd{display:flex;flex-direction:column;align-items:center;gap:9px;}
+  .wd .o{width:28px;height:28px;border-radius:50%;background:var(--surf2);transition:background .3s;}
+  .wd.on .o{background:var(--text);}.wd.now .o{background:var(--volt);}
+  .wd .l{font-family:var(--m);font-size:9px;color:var(--faint);}.wd.now .l{color:var(--volt);}
+
+  /* snapshot stats */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .stat{background:var(--surf);border:1px solid var(--line);border-radius:16px;padding:15px 14px;}
+  .stat .v{font-weight:800;font-size:30px;letter-spacing:-.03em;line-height:.9;}
+  .stat .v.volt{color:var(--volt);}.stat .v small{font-size:15px;color:var(--faint);font-weight:700;}
+  .stat .l{font-family:var(--m);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);margin-top:8px;}
+
+  /* cards (recent/history) */
+  .card{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surf);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:10px;transition:transform .12s var(--in);width:100%;text-align:left;border:1px solid var(--line);}
+  .card:active{transform:scale(.985);}
+  .card .nm{font-weight:800;font-size:17px;letter-spacing:-.02em;}
+  .card .mt{font-family:var(--m);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--text2);margin-top:5px;}
+  .card .v{font-weight:800;font-size:24px;letter-spacing:-.03em;}.card .u{font-family:var(--m);font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);text-align:right;}
+
+  /* empty state */
+  .empty{padding:18px 0;}
+  .empty .fig{font-weight:900;font-size:120px;line-height:.8;letter-spacing:-.04em;color:rgba(255,255,255,.05);}
+  .empty .cap{font-family:var(--m);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text2);margin-top:-4px;}
+  .empty .sub{font-size:13px;color:var(--text2);max-width:300px;margin-top:12px;line-height:1.55;}
+
+  /* page title */
+  .ptitle{font-weight:900;font-size:56px;letter-spacing:-.045em;line-height:.86;padding:6px 0 0;}
+  .pdesc{font-family:var(--m);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text2);margin-top:12px;}
+
+  /* muscle grid (train) */
+  .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;}
+  .mtile{background:var(--surf);border:1px solid var(--line);border-radius:18px;padding:22px 18px;text-align:left;transition:transform .12s var(--in),border-color .2s,background .2s;min-height:108px;display:flex;flex-direction:column;justify-content:space-between;}
+  .mtile:active{transform:scale(.97);}
+  .mtile .mn{font-weight:900;font-size:26px;letter-spacing:-.03em;line-height:.9;}
+  .mtile .md{font-family:var(--m);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--text2);}
+  .mtile.rec{background:var(--volt);border-color:var(--volt);color:var(--volt-ink);}
+  .mtile.rec .md{color:rgba(16,20,0,.6);}
+
+  /* ══ ACTIVE ══ */
+  .a-top{display:flex;align-items:center;justify-content:space-between;padding:50px 2px 6px;}
+  .a-top .l{display:flex;align-items:center;gap:14px;}
+  .back{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;background:none;transition:transform .12s;}
+  .back:active{transform:scale(.9);}.back svg{width:18px;height:18px;}
+  .fin{font-family:var(--m);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);background:none;border:none;padding:8px;}
+  .a-head{padding:18px 0 0;}
+  .a-ex{font-family:var(--m);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--text2);margin-bottom:8px;}
+  .a-name{font-weight:900;font-size:46px;letter-spacing:-.04em;line-height:.86;}
+  .vol{display:flex;align-items:baseline;gap:10px;margin:22px 0 4px;}
+  .vol .n{font-weight:900;font-size:52px;letter-spacing:-.04em;line-height:1;}
+  .vol .u{font-family:var(--m);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);}
+  .vol-lbl{font-family:var(--m);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--text2);}
+
+  .setpills{display:flex;gap:6px;margin:22px 0 18px;flex-wrap:wrap;}
+  .pill{flex:1;min-width:40px;height:42px;border-radius:11px;background:var(--surf);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:var(--m);font-size:10px;color:var(--text2);transition:.25s;}
+  .pill.done{background:var(--volt);border-color:var(--volt);color:var(--volt-ink);font-weight:700;}
+  .pill.cur{border-color:var(--volt);color:var(--text);background:var(--surf2);}
+
+  .editor{background:var(--surf);border:1px solid var(--line);border-radius:20px;padding:18px;}
+  .editrow{display:flex;align-items:center;justify-content:space-between;}
+  .editrow+.editrow{margin-top:8px;padding-top:16px;border-top:1px solid var(--line);}
+  .ev-lbl{font-family:var(--m);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text2);}
+  .stepper{display:flex;align-items:center;gap:14px;}
+  .stepper button{width:44px;height:44px;border-radius:12px;background:var(--surf2);border:1px solid var(--line);font-size:24px;font-weight:700;color:var(--text);display:flex;align-items:center;justify-content:center;transition:transform .1s;}
+  .stepper button:active{transform:scale(.9);background:var(--press);}
+  .stepper .val{font-weight:800;font-size:30px;letter-spacing:-.03em;min-width:64px;text-align:center;}
+  .stepper .val small{font-size:14px;color:var(--faint);font-weight:600;}
+
+  .log{margin-top:16px;width:100%;height:64px;border:none;border-radius:16px;background:var(--volt);color:var(--volt-ink);font-weight:900;font-size:19px;letter-spacing:-.01em;transition:transform .14s var(--spring);}
+  .log:active{transform:scale(.97);}
+  .log.flash{animation:logflash .5s var(--in);}
+  @keyframes logflash{0%{box-shadow:0 0 0 0 rgba(216,255,54,.45);}100%{box-shadow:0 0 0 18px rgba(216,255,54,0);}}
+
+  /* rest sheet */
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity .3s var(--in);z-index:30;}
+  .scrim.up{opacity:1;pointer-events:auto;}
+  .sheet{position:absolute;left:0;right:0;bottom:0;max-width:460px;margin:0 auto;z-index:31;background:var(--surf);border-top:1px solid var(--line);border-radius:24px 24px 0 0;padding:14px 24px 40px;transform:translateY(115%);transition:transform .42s var(--spring);box-shadow:0 -20px 60px rgba(0,0,0,.6);}
+  .sheet.up{transform:translateY(0);}
+  .grab{width:36px;height:4px;border-radius:2px;background:var(--faint);margin:0 auto 16px;}
+  .sheet .rlbl{font-family:var(--m);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--text2);text-align:center;}
+  .sheet .rt{font-weight:900;font-size:84px;letter-spacing:-.04em;text-align:center;line-height:1;margin:6px 0 2px;}
+  .sheet .rsub{font-family:var(--m);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--volt);text-align:center;}
+  .sheet .skip{margin-top:20px;width:100%;height:52px;border:1px solid var(--line);background:none;color:var(--text);border-radius:14px;font-weight:700;font-size:15px;}
+  .sheet .skip:active{transform:scale(.98);}
+
+  /* summary overlay */
+  .ov{position:absolute;inset:0;z-index:40;background:var(--bg);padding:0 26px max(28px,env(safe-area-inset-bottom));display:none;flex-direction:column;}
+  .ov.up{display:flex;animation:ovin .4s var(--in);}
+  @keyframes ovin{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:none;}}
+  .ov-top{flex:1;display:flex;flex-direction:column;justify-content:center;}
+  .ov .eye{font-family:var(--m);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--volt);margin-bottom:14px;}
+  .ov .big{font-weight:900;font-size:120px;line-height:.82;letter-spacing:-.05em;}
+  .ov .bigu{font-family:var(--m);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--text2);margin-top:10px;}
+  .ov .sub2{display:flex;gap:26px;margin-top:30px;}
+  .ov .s2 .v{font-weight:800;font-size:26px;letter-spacing:-.03em;}
+  .ov .s2 .l{font-family:var(--m);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);margin-top:5px;}
+  .ov .done{width:100%;height:62px;border:none;border-radius:16px;background:var(--volt);color:var(--volt-ink);font-weight:900;font-size:19px;margin-bottom:32px;transition:transform .14s var(--spring);}
+  .ov .done:active{transform:scale(.97);}
+
+  /* nav */
+  .nav{position:absolute;bottom:0;left:0;right:0;max-width:460px;margin:0 auto;z-index:20;display:flex;gap:8px;padding:10px 16px max(14px,env(safe-area-inset-bottom));background:linear-gradient(0deg,var(--bg) 65%,transparent);}
+  .nav button{flex:1;height:50px;border-radius:14px;background:var(--surf);border:1px solid var(--line);color:var(--text2);display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:13px;transition:transform .1s;}
+  .nav button:active{transform:scale(.96);}
+  .nav button.on{background:var(--volt);color:var(--volt-ink);border-color:var(--volt);}
+  .nav svg{width:18px;height:18px;}
+
+  /* profile sheet reuse .scrim/.sheet via #psheet */
+  .pf{margin-bottom:20px;}
+  .pf .lbl{font-family:var(--m);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text2);margin-bottom:10px;}
+  .pf input{width:100%;background:var(--surf2);border:1px solid var(--line);border-radius:12px;padding:14px;color:var(--text);font-family:var(--g);font-weight:600;font-size:16px;outline:none;}
+  .unit{display:flex;gap:8px;}
+  .unit button{flex:1;height:46px;border-radius:12px;background:var(--surf2);border:1px solid var(--line);color:var(--text2);font-weight:700;}
+  .unit button.on{background:var(--volt);color:var(--volt-ink);border-color:var(--volt);}
+  .pf .danger{width:100%;height:46px;border-radius:12px;background:none;border:1px solid rgba(255,80,80,.3);color:#ff6b6b;font-weight:700;font-size:13px;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HOME -->
+  <section id="home" class="screen on"></section>
+  <!-- TRAIN -->
+  <section id="train" class="screen"></section>
+  <!-- ACTIVE -->
+  <section id="active" class="screen"></section>
+  <!-- HISTORY -->
+  <section id="history" class="screen"></section>
+
+  <!-- rest sheet -->
+  <div class="scrim" id="scrim"></div>
+  <div class="sheet" id="sheet">
+    <div class="grab"></div>
+    <div class="rlbl">Rest</div>
+    <div class="rt num" id="rt">1:30</div>
+    <div class="rsub" id="rsub">Next set</div>
+    <button class="skip" id="skip">Skip rest →</button>
+  </div>
+
+  <!-- profile sheet -->
+  <div class="scrim" id="pscrim"></div>
+  <div class="sheet" id="psheet">
+    <div class="grab"></div>
+    <div class="rlbl" style="margin-bottom:20px">Profile</div>
+    <div class="pf"><div class="lbl">Your name</div><input id="pname" placeholder="Athlete" autocomplete="off"></div>
+    <div class="pf"><div class="lbl">Weight unit</div><div class="unit"><button data-u="kg">KG</button><button data-u="lbs">LBS</button></div></div>
+    <div class="pf"><button class="danger" id="clear">Clear all data</button></div>
+    <button class="skip" id="pclose" style="border-color:var(--line)">Done</button>
+  </div>
+
+  <!-- summary -->
+  <div class="ov" id="summary">
+    <div class="ov-top">
+      <div class="eye" id="sm-eye">Session complete</div>
+      <div class="big num" id="sm-big">0</div>
+      <div class="bigu" id="sm-bigu">KG · Total volume</div>
+      <div class="sub2">
+        <div class="s2"><div class="v num" id="sm-sets">0</div><div class="l">Sets</div></div>
+        <div class="s2"><div class="v num" id="sm-dur">0:00</div><div class="l">Duration</div></div>
+        <div class="s2"><div class="v num" id="sm-streak">0</div><div class="l">Day streak</div></div>
+      </div>
+    </div>
+    <button class="done" id="sm-done">Done →</button>
+  </div>
+
+  <!-- nav -->
+  <nav class="nav" id="nav">
+    <button data-s="home" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Home</button>
+    <button data-s="train"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/></svg>Train</button>
+    <button data-s="history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l3 3"/></svg>History</button>
+  </nav>
+</div>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+/* ── storage ── */
+const KEY='kilos.redesign.v1';
+const load=()=>{try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}};
+const save=()=>localStorage.setItem(KEY,JSON.stringify(db));
+let db=load();
+db.history=db.history||[];
+db.profile=db.profile||{name:'',unit:'kg'};
+db.lastW=db.lastW||{};   // last weight per exercise
+
+/* ── exercise data ── */
+const PLANS={
+  Chest:[['Bench Press',4,8,80],['Incline DB Press',3,10,28],['Cable Fly',3,12,15],['Push-up',3,15,0]],
+  Back:[['Deadlift',4,5,120],['Pull-up',4,8,0],['Barbell Row',3,10,70],['Lat Pulldown',3,12,55]],
+  Legs:[['Back Squat',4,6,100],['Romanian Deadlift',3,8,90],['Leg Press',3,12,160],['Walking Lunge',3,12,20]],
+  Shoulders:[['Overhead Press',4,8,50],['Lateral Raise',4,14,10],['Face Pull',3,15,25],['Rear Delt Fly',3,15,9]],
+  Arms:[['Barbell Curl',4,10,35],['Tricep Pushdown',4,12,30],['Hammer Curl',3,12,14],['Skullcrusher',3,12,30]],
+  Core:[['Hanging Leg Raise',4,12,0],['Cable Crunch',3,15,40],['Plank',3,1,0],['Russian Twist',3,20,10]],
+};
+const MUSCLES=Object.keys(PLANS);
+const MTAG={Chest:'Push · Chest · Triceps',Back:'Pull · Back · Biceps',Legs:'Quads · Hams · Glutes',Shoulders:'Delts · Traps',Arms:'Biceps · Triceps',Core:'Abs · Obliques'};
+
+/* ── helpers ── */
+const DAY=864e5;
+function daysAgo(ts){const a=new Date(),b=new Date(ts);a.setHours(0,0,0,0);b.setHours(0,0,0,0);return Math.round((a-b)/DAY);}
+function lastTrained(m){let best=null;db.history.forEach(h=>{if(h.muscle===m){if(best===null||h.date>best)best=h.date;}});return best;}
+function recommendMuscle(){let pick=MUSCLES[0],pd=-1;MUSCLES.forEach(m=>{const lt=lastTrained(m);const d=lt===null?9999:daysAgo(lt);if(d>pd){pd=d;pick=m;}});return{muscle:pick,days:pd};}
+function streak(){if(!db.history.length)return 0;const days=[...new Set(db.history.map(h=>{const d=new Date(h.date);d.setHours(0,0,0,0);return d.getTime();}))].sort((a,b)=>b-a);let s=0,cur=new Date();cur.setHours(0,0,0,0);let c=cur.getTime();if(days[0]!==c&&days[0]!==c-DAY)return 0;if(days[0]===c-DAY)c=c-DAY;for(const d of days){if(d===c){s++;c-=DAY;}else if(d<c){break;}}return s;}
+function weekCount(){const now=Date.now();return db.history.filter(h=>now-h.date<7*DAY).length;}
+function prMap(){const m={};db.history.forEach(h=>h.exercises.forEach(e=>e.sets.forEach(s=>{if(s.done&&s.w>0){const v=s.w;if(!m[e.name]||v>m[e.name])m[e.name]=v;}})));return m;}
+function fmtDate(ts){const d=daysAgo(ts);if(d===0)return'Today';if(d===1)return'Yesterday';if(d<7)return d+' days ago';return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric'});}
+function fmtDur(s){return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;}
+
+/* ── motion ── */
+function go(fn){if(!document.startViewTransition||reduce){fn();return;}document.startViewTransition(fn);}
+function countUp(el,to,dur=650){const from=parseFloat((el.textContent||'0').replace(/,/g,''))||0;if(reduce){el.textContent=Math.round(to).toLocaleString();return;}const s=performance.now(),e=x=>1-Math.pow(1-x,4);requestAnimationFrame(function k(n){const p=Math.min((n-s)/dur,1);el.textContent=Math.round(from+(to-from)*e(p)).toLocaleString();if(p<1)requestAnimationFrame(k);});}
+function fitHero(){$$('.hero').forEach(el=>{const avail=el.parentElement.clientWidth;if(!avail)return;el.style.fontSize='100px';const nat=el.scrollWidth;if(!nat)return;el.style.fontSize=Math.min(112,100*avail/nat)+'px';});}
+
+/* ── navigation ── */
+let screen='home';
+function show(s){if(s===screen&&s!=='active')return;go(()=>{$$('.screen').forEach(x=>x.classList.remove('on'));$('#'+s).classList.add('on');$('#'+s).scrollTop=0;screen=s;$$('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.s===s));requestAnimationFrame(fitHero);});}
+$$('#nav button').forEach(b=>b.onclick=()=>{const s=b.dataset.s;if(s==='train')renderTrain();if(s==='history')renderHistory();if(s==='home')renderHome();show(s);});
+
+/* ══ RENDER: HOME ══ */
+function renderHome(){
+  const rec=recommendMuscle();
+  const recLbl=rec.days>=9999?'Never trained':rec.days>=2?rec.days+' days recovered':'Recovered';
+  const hist=db.history.slice().reverse();
+  const today=new Date();today.setHours(0,0,0,0);
+  const doneDays=new Set(db.history.filter(h=>today.getTime()-new Date(new Date(h.date).setHours(0,0,0,0)).getTime()<7*DAY).map(h=>new Date(h.date).getDay()));
+  const dn=['S','M','T','W','T','F','S'];
+  const pr=prMap();
+  const recentCards=hist.length?hist.slice(0,3).map(h=>`<button class="card" onclick="event.stopPropagation()"><div><div class="nm">${h.name}</div><div class="mt">${fmtDate(h.date)} · ${h.totalSets} sets · ${fmtDur(h.dur)}</div></div><div><div class="v num">${h.volume.toLocaleString()}</div><div class="u">kg vol</div></div></button>`).join(''):
+    `<div class="empty"><div class="fig">00</div><div class="cap">No sessions logged</div><div class="sub">Your training writes itself here. Start your first session — it takes one tap.</div></div>`;
+  $('#home').innerHTML=`
+    <div class="top rv"><div class="wm">KILOS<i>°</i></div><button class="ic" onclick="openProfile()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></button></div>
+    <div class="hero-wrap rv">
+      <div class="eyebrow"><span class="d"></span>Today · Most recovered</div>
+      <div class="hero">${rec.muscle.toUpperCase()}</div>
+      <div class="hero-sub"><b>${PLANS[rec.muscle].length} exercises</b> · ${MTAG[rec.muscle]} — ${recLbl.toLowerCase()}</div>
+      <button class="cta" onclick="startWorkout('${rec.muscle}')">Start session <span class="a">→</span></button>
+    </div>
+    <div class="rv"><div class="sh"><h2>This week</h2><span>${weekCount()} / 5</span></div>
+      <div class="week">${dn.map((d,i)=>`<div class="wd ${doneDays.has(i)?'on':''} ${i===today.getDay()?'now':''}"><div class="o"></div><div class="l">${d}</div></div>`).join('')}</div></div>
+    <div class="rv"><div class="sh"><h2>Snapshot</h2></div>
+      <div class="stats">
+        <div class="stat"><div class="v volt num" data-c="${streak()}">0</div><div class="l">Day streak</div></div>
+        <div class="stat"><div class="v num">${weekCount()}<small>/5</small></div><div class="l">This week</div></div>
+        <div class="stat"><div class="v num" data-c="${db.history.length}">0</div><div class="l">Sessions</div></div>
+      </div></div>
+    ${Object.keys(pr).length?`<div class="rv"><div class="sh"><h2>Records</h2><span>${Object.keys(pr).length} lifts</span></div>
+      <div class="stats">${['Bench Press','Deadlift','Back Squat'].map(n=>`<div class="stat"><div class="v num">${pr[n]||'—'}</div><div class="l">${n.split(' ')[0]} kg</div></div>`).join('')}</div></div>`:''}
+    <div class="rv"><div class="sh"><h2>Recent</h2>${hist.length?'<span>'+hist.length+' total</span>':''}</div>${recentCards}</div>`;
+  requestAnimationFrame(()=>{$$('#home [data-c]').forEach(el=>countUp(el,+el.dataset.c,800));fitHero();});
+}
+
+/* ══ RENDER: TRAIN ══ */
+function renderTrain(){
+  const rec=recommendMuscle().muscle;
+  $('#train').innerHTML=`
+    <div class="top rv"><div class="wm">KILOS<i>°</i></div></div>
+    <div class="rv"><div class="ptitle">TRAIN</div><div class="pdesc">Pick a muscle. We build the session.</div></div>
+    <div class="rv"><div class="mgrid">
+      ${MUSCLES.map(m=>`<button class="mtile ${m===rec?'rec':''}" onclick="startWorkout('${m}')"><div class="mn">${m.toUpperCase()}</div><div class="md">${m===rec?'★ Most recovered':MTAG[m]}</div></button>`).join('')}
+    </div></div>`;
+  requestAnimationFrame(fitHero);
+}
+
+/* ══ RENDER: HISTORY ══ */
+function renderHistory(){
+  const hist=db.history.slice().reverse();
+  const total=db.history.reduce((s,h)=>s+h.volume,0);
+  $('#history').innerHTML=`
+    <div class="top rv"><div class="wm">KILOS<i>°</i></div></div>
+    <div class="rv"><div class="ptitle">HISTORY</div><div class="pdesc">${db.history.length} sessions · ${total.toLocaleString()} kg lifted</div></div>
+    <div class="rv" style="margin-top:18px">${hist.length?hist.map(h=>`<button class="card"><div><div class="nm">${h.name}</div><div class="mt">${fmtDate(h.date)} · ${h.totalSets} sets · ${fmtDur(h.dur)}</div></div><div><div class="v num">${h.volume.toLocaleString()}</div><div class="u">kg vol</div></div></button>`).join(''):
+    `<div class="empty"><div class="fig">00</div><div class="cap">No history yet</div><div class="sub">Every session you finish lands here, newest first.</div></div>`}</div>`;
+}
+
+/* ══ ACTIVE WORKOUT ══ */
+let W=null; // {name,muscle,start,exi,exercises:[{name,sets:[{w,r,done}]}]}
+function startWorkout(muscle){
+  const ex=PLANS[muscle].map(([name,sets,reps,w])=>({name,reps,sets:Array.from({length:sets},()=>({w:db.lastW[name]??w,r:reps,done:false}))}));
+  W={name:muscle+' Day',muscle,start:Date.now(),exi:0,exercises:ex};
+  renderActive();show('active');
+}
+function curEx(){return W.exercises[W.exi];}
+function curSetIdx(){const e=curEx();const i=e.sets.findIndex(s=>!s.done);return i;}
+function sessionVolume(){let v=0;W.exercises.forEach(e=>e.sets.forEach(s=>{if(s.done)v+=s.w*s.r;}));return v;}
+function totalSetsDone(){let n=0;W.exercises.forEach(e=>e.sets.forEach(s=>{if(s.done)n++;}));return n;}
+function renderActive(){
+  const e=curEx(),si=curSetIdx();
+  const allDone=si===-1;
+  const cs=allDone?null:e.sets[si];
+  const lastExercise=W.exi>=W.exercises.length-1;
+  $('#active').innerHTML=`
+    <div class="a-top rv"><div class="l"><button class="back" onclick="confirmQuit()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="15 18 9 12 15 6"/></svg></button><div class="wm">KILOS<i>°</i></div></div><button class="fin" onclick="finish()">Finish</button></div>
+    <div class="a-head rv"><div class="a-ex">${W.name} · Exercise ${W.exi+1} / ${W.exercises.length}</div><div class="a-name">${e.name.toUpperCase()}</div></div>
+    <div class="rv"><div class="vol-lbl">Session volume</div><div class="vol"><span class="n num" id="vol">0</span><span class="u">kg moved</span></div></div>
+    <div class="setpills rv">${e.sets.map((s,i)=>`<div class="pill ${s.done?'done':''} ${i===si?'cur':''}">${s.done?'✓':'S'+(i+1)}</div>`).join('')}</div>
+    ${allDone?`
+      <div class="editor rv" style="text-align:center;padding:26px 18px">
+        <div class="ev-lbl" style="color:var(--volt);margin-bottom:8px">Exercise complete</div>
+        <div style="font-weight:800;font-size:22px">${e.name} done</div>
+      </div>
+      <button class="log rv" onclick="${lastExercise?'finish()':'nextExercise()'}">${lastExercise?'Finish workout ✓':'Next exercise →'}</button>
+    `:`
+      <div class="editor rv">
+        <div class="editrow"><div class="ev-lbl">Weight</div><div class="stepper"><button onclick="bump('w',-2.5)">−</button><div class="val"><span id="vw">${cs.w}</span><small> kg</small></div><button onclick="bump('w',2.5)">+</button></div></div>
+        <div class="editrow"><div class="ev-lbl">Reps</div><div class="stepper"><button onclick="bump('r',-1)">−</button><div class="val"><span id="vr">${cs.r}</span></div><button onclick="bump('r',1)">+</button></div></div>
+      </div>
+      <button class="log rv" id="logbtn" onclick="logSet()">Log set ${si+1} →</button>
+    `}`;
+  requestAnimationFrame(()=>{const v=$('#vol');if(v)countUp(v,sessionVolume(),500);fitHero();});
+}
+function bump(k,d){const e=curEx(),si=curSetIdx();if(si<0)return;const s=e.sets[si];if(k==='w'){s.w=Math.max(0,Math.round((s.w+d)*10)/10);$('#vw').textContent=s.w;}else{s.r=Math.max(1,s.r+d);$('#vr').textContent=s.r;}}
+function logSet(){
+  const e=curEx(),si=curSetIdx();if(si<0)return;
+  e.sets[si].done=true;db.lastW[e.name]=e.sets[si].w;save();
+  const btn=$('#logbtn');if(btn&&!reduce){btn.classList.add('flash');btn.animate([{transform:'scale(1)'},{transform:'scale(1.02)'},{transform:'scale(1)'}],{duration:320,easing:'cubic-bezier(.34,1.5,.5,1)'});}
+  const next=curSetIdx();
+  renderActive();
+  if(next>=0){const ns=curEx().sets[next];openRest(`Next · Set ${next+1} · ${ns.w} kg × ${ns.r}`);}
+}
+function nextExercise(){W.exi++;renderActive();}
+function confirmQuit(){if(totalSetsDone()===0){W=null;renderHome();show('home');return;}finish();}
+function finish(){
+  if(!W)return;closeRest();
+  const dur=Math.round((Date.now()-W.start)/1000);
+  const vol=sessionVolume(),sets=totalSetsDone();
+  if(sets>0){
+    db.history.push({name:W.name,muscle:W.muscle,date:Date.now(),dur,volume:vol,totalSets:sets,exercises:W.exercises});
+    save();
+  }
+  const st=streak();
+  W=null;
+  // summary
+  $('#sm-eye').textContent=st>=2?`${st} day streak`:'Session complete';
+  $('#sm-bigu').textContent='KG · Total volume';
+  $('#sm-sets').textContent='0';$('#sm-dur').textContent=fmtDur(dur);$('#sm-streak').textContent='0';$('#sm-big').textContent='0';
+  $('#summary').classList.add('up');
+  requestAnimationFrame(()=>{countUp($('#sm-big'),vol,800);countUp($('#sm-sets'),sets,700);countUp($('#sm-streak'),st,700);});
+}
+$('#sm-done').onclick=()=>{$('#summary').classList.remove('up');renderHome();show('home');};
+
+/* ── rest sheet ── */
+let restT=null,restLeft=90;
+function openRest(sub){restLeft=90;$('#rt').textContent=fmtDur(restLeft);$('#rsub').textContent=sub;$('#scrim').classList.add('up');$('#sheet').classList.add('up');clearInterval(restT);restT=setInterval(()=>{restLeft--;$('#rt').textContent=fmtDur(Math.max(restLeft,0));if(restLeft<=0)closeRest();},1000);}
+function closeRest(){clearInterval(restT);$('#scrim').classList.remove('up');$('#sheet').classList.remove('up');}
+$('#skip').onclick=closeRest;$('#scrim').onclick=closeRest;
+
+/* ── profile ── */
+function openProfile(){$('#pname').value=db.profile.name||'';$$('#psheet .unit button').forEach(b=>b.classList.toggle('on',b.dataset.u===db.profile.unit));$('#pscrim').classList.add('up');$('#psheet').classList.add('up');}
+function closeProfile(){db.profile.name=$('#pname').value.trim();save();$('#pscrim').classList.remove('up');$('#psheet').classList.remove('up');renderHome();}
+$('#pclose').onclick=closeProfile;$('#pscrim').onclick=closeProfile;
+$$('#psheet .unit button').forEach(b=>b.onclick=()=>{db.profile.unit=b.dataset.u;save();$$('#psheet .unit button').forEach(x=>x.classList.toggle('on',x===b));});
+$('#clear').onclick=()=>{if(confirm('Clear all workouts and start fresh?')){db={history:[],profile:db.profile,lastW:{}};save();closeProfile();renderHome();}};
+
+/* ── boot ── */
+renderHome();
+document.fonts&&document.fonts.ready.then(fitHero);
+setTimeout(fitHero,250);
+
+/* deep-links for previewing each screen */
+const h=location.hash;
+if(h==='#train'){renderTrain();show('train');}
+else if(h==='#history'){renderHistory();show('history');}
+else if(h==='#active'){startWorkout('Chest');}
+</script>
+</body>
+</html>

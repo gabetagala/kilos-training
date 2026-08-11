@@ -58,26 +58,27 @@ test('week 6 is phase 2 and serves that week of the rotation', async ({ page }) 
   expect(rows).not.toContain('DB Lateral Raise');
 });
 
-// The phase step is a fifth ANCHOR set now (2026-08-10), not an extra piece
-// member — see block.js for why it moved.
-test('phase 2 steps the pull anchor to five working rounds', async ({ page }) => {
+// The anchor round steps are RETIRED (2026-08-11, EMOM40) — the only phase
+// step left is Friday's pull-up reps. These prove phases leave anchors alone.
+test('phases leave the pull anchor at four rounds (EMOM40)', async ({ page }) => {
   await openProgram(page, { startWeeksAgo: 5 });
   await page.locator('[data-d40="d40-a1"]').click();
   await page.locator('#rp-overview-btn').click();
   const rows = (await page.locator('#rpo-list').textContent())?.replace(/\s+/g, ' ');
   console.log('WK6 a1 overview:', rows?.slice(0, 220));
-  // bodyweight pull-ups: two-minute clock, no build rounds
-  expect(rows).toContain('E2M 10 · 5 rounds');
+  // bodyweight pull-ups: two-minute clock, no build rounds — and the anchor
+  // round steps are retired (EMOM40): four working rounds in every phase
+  expect(rows).toContain('E2M 8 · 4 rounds');
 });
 
-test('phase 3 steps the squat anchor to five working rounds', async ({ page }) => {
+test('phases leave the squat anchor at five total rounds (EMOM40)', async ({ page }) => {
   await openProgram(page, { startWeeksAgo: 9 }); // week 10
   await expect(page.locator('.blk-phase')).toContainText('PEAK');
   await page.locator('[data-d40="d40-b1"]').click();
   await page.locator('#rp-overview-btn').click();
   const rows = (await page.locator('#rpo-list').textContent())?.replace(/\s+/g, ' ');
   console.log('WK10 b1 overview:', rows?.slice(0, 200));
-  expect(rows).toContain('E3M 18 · 6 rounds (1 to build)');
+  expect(rows).toContain('E3M 15 · 5 rounds (1 to build)');
 });
 
 test('the deload checkpoint asks at week 4 and does not impose', async ({ page }) => {
@@ -149,8 +150,8 @@ async function gateOverview(page, week) {
 // The piece is named per week of the rotation, so the overview assertions
 // match the pool, not one name.
 const PRESS_PIECE_NAMES = /The (Gate|Cage|Bellows|Furnace)/;
-// The Gate's slot pattern asserts five of the eight stations: [hinge ·
-// chest · side delt · rear delt · lungs]. Which MOVEMENT fills each slot
+// The Gate's slot pattern asserts five of the six stations: [hinge ·
+// chest · strict pull-up · side delt · triceps]. Which MOVEMENT fills each slot
 // depends on the variant, so the test asserts the pattern survived the
 // format change, not one particular week's line-up. The alternations are
 // deliberately the AS-BUILT palette (no cable movements — the one-pulley
@@ -158,16 +159,16 @@ const PRESS_PIECE_NAMES = /The (Gate|Cage|Bellows|Furnace)/;
 const GATE_SLOTS = [
   /Romanian Deadlift/,
   /Band Fly|Push-Up/,
+  /Strict Pull-Up/,
   /Lateral Raise/,
-  /Pull-Apart/,
-  /Jumping Jack|High Knees|Skater Bound|Reverse Lunge/,
+  /Overhead Rope Extension|Rope Pushdown/,
 ];
 
 test('week 1 runs The Gate as an EMOM', async ({ page }) => {
   const t = await gateOverview(page, 1);
   console.log('GATE wk1:', t?.slice(-200));
   expect(t).toMatch(PRESS_PIECE_NAMES);
-  expect(t).toContain('EMOM 35');
+  expect(t).toContain('EMOM 25');
   for (const slot of GATE_SLOTS) expect(t, String(slot)).toMatch(slot);
 });
 
@@ -177,7 +178,7 @@ test('week 1 runs The Gate as an EMOM', async ({ page }) => {
 test('week 3 comes back round to the EMOM — never self-paced', async ({ page }) => {
   const t = await gateOverview(page, 3);
   console.log('GATE wk3:', t?.slice(-200));
-  expect(t).toContain('EMOM 35');
+  expect(t).toContain('EMOM 25');
   expect(t).not.toContain('for time');
   for (const slot of GATE_SLOTS) expect(t, String(slot)).toMatch(slot);
 });
@@ -199,5 +200,5 @@ test('week 2 runs it descending — top of the range down, same 4 sets', async (
   await expect(page.locator('#rp-session-name')).toContainText('EMOM ↓');
   const meta = await page.locator('#rp-meta').textContent();
   console.log('GATE wk2 first minute:', meta);
-  await expect(page.locator('#rp-meta')).toContainText('MIN 1 OF 32');
+  await expect(page.locator('#rp-meta')).toContainText('MIN 1 OF 24');
 });

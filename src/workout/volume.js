@@ -78,11 +78,14 @@ export const WASTEFUL = 30;
 // press saturates them. Flagging them red twelve times is noise, not signal.
 export const EXPECTED_LOW = new Set(['frontdelt']);
 
-// THE DAILY REHAB IS NOT HYPERTROPHY VOLUME — 2-4 minute positional holds at
-// a 10/10 burn are an endurance/motor-control stimulus, and the fractional-set
-// model describes hypertrophy-directed working sets. Counting it once reported
-// obliques at 42 sets/week and failed the program.
-export const HYPERTROPHY_EXEMPT = new Set(['daily']);
+// Sessions whose ENTIRE content is exempt from the hypertrophy tally.
+// EMPTY since 2026-08-11: the rebuilt 'daily' carries a topper EMOM that IS
+// hypertrophy work, so its exemption became per-step — the auditors skip a
+// step only when (session === 'daily' AND the exercise is a rehab-dictionary
+// hold). The long holds are endurance medicine, not sets; counting them once
+// reported obliques at 42 sets/week and failed the program. The set survives
+// for any future all-medicine session.
+export const HYPERTROPHY_EXEMPT = new Set([]);
 
 // AND SO ARE THE OPTIONAL SESSIONS. Sunday's Open Up and The Long Way are
 // explicitly skippable, so counting them describes a week he might not train.
