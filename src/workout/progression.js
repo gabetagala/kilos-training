@@ -66,3 +66,41 @@ export function allRepsMet(lastLogs, targetRepsStr) {
   const target = repTargetTop(targetRepsStr) ?? 8;
   return lastLogs.every((l) => !l.reps || parseInt(l.reps, 10) >= target);
 }
+
+// ── Estimated session energy (2026-08-12, his ask) ──────────────────────────
+// MET-based, honest ballpark: kcal = MET × kg × hours (2011 Compendium of
+// Physical Activities). The EMOM40 days sit between "resistance training,
+// multiple exercises" (3.5) and "circuit training, vigorous" (8.0) — work
+// minutes with in-minute rest plus cardio stations lands them at 6.0. This
+// is an ESTIMATE (±30% is normal for any non-lab number) — the UI labels it
+// with a tilde and never pretends otherwise.
+const SESSION_METS = {
+  d40: 6.0, // EMOM full-body: continuous clock, cardio minutes inside
+  strength: 3.5, // classic straight sets with real rests
+  rehab: 2.5, // long positional holds + a light topper
+  cardio: 7.0,
+  metcon: 8.0, // amrap / for-time / tabata benchmarks
+};
+
+export function parseDurationMins(str) {
+  const s = String(str ?? '');
+  const clock = s.match(/^(\d+):(\d{2})$/);
+  if (clock) return Number(clock[1]) + Number(clock[2]) / 60;
+  const mins = s.match(/(\d+(?:\.\d+)?)/);
+  return mins ? Number(mins[1]) : 0;
+}
+
+export function estimateKcal(entry, bodyKg = 80) {
+  const isCF = ['amrap', 'fortime', 'emom', 'tabata'].includes(entry.type);
+  const met = isCF
+    ? SESSION_METS.metcon
+    : entry.type === 'strength' &&
+        String(entry.programId || '').startsWith('d40')
+      ? SESSION_METS.d40
+      : (SESSION_METS[entry.type] ?? SESSION_METS.strength);
+  // Cap the clock at 75 min: salvaged/paused entries can carry wall-clock
+  // durations (hours of pause) that would turn an estimate into a lie.
+  const mins = Math.min(parseDurationMins(entry.duration), 75);
+  if (!mins || !(bodyKg > 0)) return null;
+  return Math.round(met * bodyKg * (mins / 60));
+}

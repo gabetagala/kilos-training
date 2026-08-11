@@ -150,3 +150,39 @@ describe('repTargetTop — range prescriptions gate on the TOP', () => {
     expect(allRepsMet(legacy, '5–8')).toBe(false);
   });
 });
+
+// ── Estimated session energy (2026-08-12) ───────────────────────────────────
+import { estimateKcal, parseDurationMins } from '../../src/workout/progression.js';
+
+describe('estimateKcal', () => {
+  it('parses both duration formats', () => {
+    expect(parseDurationMins('40:20')).toBeCloseTo(40.33, 1);
+    expect(parseDurationMins('26 min')).toBe(26);
+    expect(parseDurationMins(null)).toBe(0);
+  });
+
+  it('rates an EMOM40 day above straight sets above a rehab day', () => {
+    const at = (type, programId, duration) =>
+      estimateKcal({ type, programId, duration }, 78);
+    const emom = at('strength', 'd40-a1', '40:00');
+    const classic = at('strength', null, '40:00');
+    const rehab = at('rehab', null, '38:00');
+    expect(emom).toBeGreaterThan(classic);
+    expect(classic).toBeGreaterThan(rehab);
+    // 6.0 METs × 78kg × 2/3h = 312
+    expect(emom).toBe(312);
+  });
+
+  it('caps salvaged wall-clock durations so the estimate stays honest', () => {
+    // the interrupted entry that carried 237 minutes of pause
+    const k = estimateKcal(
+      { type: 'strength', programId: 'd40-c1', duration: '237:37' },
+      78,
+    );
+    expect(k).toBeLessThanOrEqual(Math.round(6 * 78 * 1.25));
+  });
+
+  it('returns null with nothing to go on', () => {
+    expect(estimateKcal({ type: 'strength', duration: null }, 78)).toBeNull();
+  });
+});
