@@ -341,9 +341,9 @@ const ANCHOR_IDS = new Set(anchorSpecs().map(({ b }) => b.members[0].ex));
 // cannot absorb an attachment change, so per piece AT MOST ONE station may
 // touch the pulley — counting alts, because a persisted swap must never force
 // a second station onto it — and that station's rig is set before the clock
-// starts. The pull-up bar is fixed and assumed usable with an attachment
-// rigged (unconfirmed on his actual rack — if the pulldown seat or a hanging
-// rope blocks the dead-hang, the exemption below needs revisiting).
+// starts. The pull-up bar stays clear for a dead hang with an attachment
+// rigged — CONFIRMED on his actual rack (Gabe, 2026-08-11) — so pull-ups
+// never count against the pulley budget.
 //
 // Membership comes from the `pulley: true` tag on the exercise defs, with the
 // rig names here; the completeness cross-check below makes a missing tag or a
