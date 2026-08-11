@@ -7149,34 +7149,9 @@ body {
 }
 
 /* ── Exercise swap — sanctioned alternates per slot ──
-   A floating pill over the stage, not a row in the column: the player's
-   phone layout has zero spare height, and an in-flow button pushed the
-   controls off a 375px screen. Anchored under the header, clear of the art's
-   centred figure. */
-.rp-swap {
-  position: absolute;
-  top: calc(max(12px, env(safe-area-inset-top, 0px) - 6px) + 46px);
-  right: 10px;
-  z-index: 4;
-  background: rgba(0, 0, 0, 0.06);
-  border: none;
-  border-radius: var(--r-pill);
-  font-family: "Space Mono", monospace;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: rgba(0, 0, 0, 0.6);
-  cursor: pointer;
-  min-height: 44px;
-  padding: 10px 14px;
-}
-/* laptop: the stage is the LEFT half — keep the pill on it, off the details */
-@media (min-width: 1000px) {
-  .rp-swap {
-    top: 26px;
-    right: calc(50% + 34px);
-  }
-}
+   Lives in the header chrome row as an icon button (2026-08-12) — the old
+   floating pill overlapped the header on laptop and the art on the phone.
+   Styling rides the .rp-voice class like the overview + voice buttons. */
 .rps-opt {
   display: flex;
   align-items: center;
