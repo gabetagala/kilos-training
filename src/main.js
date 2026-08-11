@@ -1075,7 +1075,13 @@ function heroExpandPage(pageEl, originEl) {
   const reduce = window.matchMedia?.(
     '(prefers-reduced-motion: reduce)',
   )?.matches;
-  if (!originEl || reduce) {
+  // Never expand-fade OVER another open overlay: the fade starts transparent,
+  // the page beneath shows through mid-animation, and it reads as the screen
+  // loading twice (his catch, 2026-08-12). The plain slide keeps full opacity.
+  const overOverlay = [...document.querySelectorAll('.page-overlay.open')].some(
+    (pg) => pg !== pageEl,
+  );
+  if (!originEl || reduce || overOverlay) {
     pageEl.classList.add('open');
     return;
   }
@@ -4494,9 +4500,12 @@ function openSessionPreview(session, after = null, originEl = null) {
         <div class="sp-row-sub">${prettyDetail(String(m.detail || ''))}</div>`,
           )
           .join('');
+        const kicker = r.piece
+          ? `${(r.title || '').toUpperCase()} — ${(r.detail || '').toUpperCase()}`
+          : `SUPERSET · ${r.rounds} ROUNDS`;
         return `
     <div class="sp-row">
-      <div class="sp-row-kicker">SUPERSET · ${r.rounds} ROUNDS</div>${lines}
+      <div class="sp-row-kicker">${kicker}</div>${lines}
     </div>`;
       }
       return `
