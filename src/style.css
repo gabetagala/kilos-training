@@ -9267,15 +9267,22 @@ label {
      the plan and the action line all keep their size and a calendar row gets
      clipped instead. Losing the button off the bottom of the fold is the one
      outcome that isn't survivable here. */
+  /* …but on a TALL laptop the month is also what fills the poster: it grows
+     into the space between the greeting and the action line (his catch,
+     2026-08-12 — the cream sat empty), centering itself in whatever it gets.
+     The short-screen ladders below still shrink it first. */
   .month-grid {
     padding: 2px 0 0;
-    flex: 0 1 auto;
+    flex: 1 1 auto;
     min-height: 0;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
   .month-grid .mg-grid {
-    max-width: 340px;
-    gap: 6px;
+    max-width: 420px;
+    gap: 8px;
   }
   .dg-hello,
   .day-summary,

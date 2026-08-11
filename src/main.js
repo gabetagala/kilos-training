@@ -61,6 +61,7 @@ import {
   allRepsMet,
   bestE1RM,
   estimate1RM,
+  estimateKcal,
   repTargetTop,
   suggestNextWeight,
 } from './workout/progression.js';
@@ -1009,28 +1010,26 @@ function renderRecent() {
           : h.type === 'cardio'
             ? 'CDO'
             : 'STR';
+      // The big number is ENERGY now (2026-08-12, his ask) — an honest
+      // MET-based estimate, tilde included. CF benchmarks keep their score:
+      // rounds ARE the result there.
+      const kcal = isCFh ? null : estimateKcal(h, latestBodyKg());
       const bigNum = isCFh
         ? h.cfRoundsCompleted != null
           ? h.cfRoundsCompleted
           : h.duration || '—'
-        : isRehab
-          ? h.totalWeight
-            ? fmtNum(toDisplayWeight(h.totalWeight))
-            : h.sets || 0
-          : h.type === 'cardio'
-            ? h.duration || '0:00'
-            : fmtNum(toDisplayWeight(h.totalWeight || 0));
+        : kcal
+          ? `~${fmtNum(kcal)}`
+          : h.sets || 0;
       const bigUnit = isCFh
         ? h.type === 'amrap'
           ? 'rounds'
           : 'done'
-        : isRehab
-          ? h.totalWeight
-            ? `${weightUnit()} volume`
-            : 'holds'
-          : h.type === 'cardio'
-            ? 'duration'
-            : `${weightUnit()} volume`;
+        : kcal
+          ? 'kcal · est'
+          : isRehab
+            ? 'holds'
+            : 'sets';
       const meta = isCFh
         ? `${ds} · ${h.type.toUpperCase()} · ${h.duration || '—'}`
         : isRehab
@@ -4367,6 +4366,11 @@ function renderWeekPlan() {
 // Measurement only, no food tracking. The status line runs TRAINING.md's rule:
 // two weeks with no downward trend → add steps first, then trim ~150 kcal.
 const CHECKINS_KEY = 'kilos-checkins';
+// latest check-in weight feeds the kcal estimate; 80kg until he logs one
+const latestBodyKg = () => {
+  const list = get(CHECKINS_KEY) || [];
+  return list.at(-1)?.weightKg || 80;
+};
 let ciEditing = false;
 let ciExpanded = false; // off-Sunday the card rests as one line (f16)
 
@@ -7918,30 +7922,26 @@ function renderHistory() {
       const prLine = h.newPRs?.length
         ? `<div class="hi-pr">PR — ${h.newPRs.map((p) => p.name).join(', ')}</div>`
         : '';
+      // energy estimate here too — same tilde-honest math as the home panel
+      const kcalH = isCF ? null : estimateKcal(h, latestBodyKg());
       const bigNum = isCF
         ? h.cfRoundsCompleted != null
           ? h.cfRoundsCompleted
           : h.duration || '—'
-        : isRehab
-          ? h.totalWeight
-            ? fmtNum(toDisplayWeight(h.totalWeight))
-            : h.sets || 0
-          : h.type === 'cardio'
-            ? h.duration || '0:00'
-            : fmtNum(toDisplayWeight(h.totalWeight || 0));
+        : kcalH
+          ? `~${fmtNum(kcalH)}`
+          : h.sets || 0;
       const bigUnit = isCF
         ? h.type === 'amrap'
           ? 'rounds'
           : h.type === 'fortime'
             ? 'done'
             : 'rounds'
-        : isRehab
-          ? h.totalWeight
-            ? `${weightUnit()} vol`
-            : 'sets'
-          : h.type === 'cardio'
-            ? 'duration'
-            : `${weightUnit()} vol`;
+        : kcalH
+          ? 'kcal · est'
+          : isRehab
+            ? 'sets'
+            : 'sets';
       const rpeStr = h.rpe ? ` · ${h.rpe}` : '';
       const meta = isCF
         ? `${d} · ${h.cfFormat || h.type} · ${h.duration}`
