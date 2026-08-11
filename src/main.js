@@ -3223,6 +3223,28 @@ function rhRenderVoiceBtn() {
   );
 }
 
+// nextWorkLabel plus the coming station's NUMBER — "JUMPING JACK 45s",
+// "DB LATERAL RAISE ×12" — so an EMOM transition needs zero memory. Only
+// EMOM steps carry a number here; rehab holds keep the plain name (their
+// duration is the clock's business, not a caption).
+function rhNextWorkPreview() {
+  for (let i = rhIdx + 1; i < rhQueue.length; i++) {
+    const s = rhQueue[i];
+    if (s.kind !== 'work') continue;
+    const name = GUIDED_EXERCISES[s.exId]?.name || s.exId;
+    const num = s.emom
+      ? s.workSecs
+        ? `${s.workSecs}s`
+        : s.reps && s.reps !== 'build'
+          ? `×${s.reps}`
+          : ''
+      : '';
+    const side = s.side ? ` · ${s.side}` : '';
+    return `${name}${num ? ` ${num}` : ''}${side}`;
+  }
+  return 'FINISH';
+}
+
 function rhRenderStep() {
   const step = rhStep();
   if (!step) return;
@@ -3245,7 +3267,33 @@ function rhRenderStep() {
   demoEl.classList.toggle('flip', step.side === 'RIGHT');
 
   document.getElementById('rp-exname').textContent = ex.name;
-  document.getElementById('rp-meta').textContent = step.meta || '';
+  // THE PRESCRIPTION RIDES ON THE MOVEMENT (2026-08-11, his ask): mid-EMOM
+  // the one number he needs — reps, or seconds for timed work — leads the
+  // meta line, big enough to read gassed. Warm-up rounds say 'build', which
+  // is not a number worth shouting.
+  // EMOM steps only: every other mode's meta already carries its reps, and a
+  // ladder's meta IS its rep count.
+  const rx =
+    step.emom && step.kind === 'work' && !step.ladder && step.phase !== 'RAMP'
+      ? step.workSecs
+        ? `${step.workSecs}s`
+        : step.reps && step.reps !== 'build'
+          ? `×${step.reps}`
+          : ''
+      : '';
+  const metaEl = document.getElementById('rp-meta');
+  metaEl.textContent = '';
+  if (rx) {
+    const b = document.createElement('b');
+    b.className = 'rp-rx';
+    b.textContent = rx;
+    metaEl.appendChild(b);
+  }
+  metaEl.appendChild(
+    document.createTextNode(
+      `${rx && step.meta ? ' · ' : ''}${step.meta || ''}`,
+    ),
+  );
   const cueEl = document.getElementById('rp-cue');
   if (step.amrapMembers) {
     // An AMRAP is one window with a whole workout in it — the movement list IS
@@ -3359,10 +3407,23 @@ function rhRenderStep() {
   else if (isForTimeWork) rhRenderPieceClock();
 
   // Only rests point forward — on prep/work the screen already IS the task.
-  document.getElementById('rp-next').textContent =
-    step.kind === 'rest'
-      ? `NEXT · ${nextWorkLabel(rhQueue, rhIdx).toUpperCase()}`
-      : '';
+  // Rests point forward, and so does every EMOM minute (2026-08-11, his
+  // ask): the spare seconds inside a station are when the next one gets set
+  // up, so the coming movement + its number live on screen — with reps, so
+  // the transition needs zero memory. Skipped when the next minute is the
+  // same movement (anchor rounds): "next: what you're doing" is noise.
+  const nextEl = document.getElementById('rp-next');
+  if (step.kind === 'rest') {
+    nextEl.textContent = `NEXT · ${rhNextWorkPreview().toUpperCase()}`;
+  } else if (step.emom && step.kind === 'work') {
+    const nxt = rhQueue.slice(rhIdx + 1).find((s) => s.kind === 'work');
+    nextEl.textContent =
+      nxt && nxt.exId !== step.exId
+        ? `NEXT · ${rhNextWorkPreview().toUpperCase()}`
+        : '';
+  } else {
+    nextEl.textContent = '';
+  }
 
   rhRenderOverview();
   rhStopGuide(true);
