@@ -9259,11 +9259,10 @@ label {
   #home {
     padding: 0;
     display: grid;
-    /* The poster is the screen (2026-08-12, his catch): a 50/50 split left
-       the cream hero looking like a lost phone column beside a mostly-empty
-       dark panel. The hero takes the larger share; the side keeps a readable
-       measure. */
-    grid-template-columns: minmax(480px, 1.6fr) minmax(320px, 1fr);
+    /* The poster hugs its content (2026-08-12, final dial): wide enough for
+       the centered calendar plus breathing room, capped so the cream never
+       sprawls — the dark side panel absorbs the rest of the canvas. */
+    grid-template-columns: minmax(520px, 800px) minmax(320px, 1fr);
     /* An explicit 1fr row, not an implicit auto one — otherwise the row is
        sized to its tallest child and the panels overflow the fold instead of
        being bound by it. */
