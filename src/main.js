@@ -4505,16 +4505,46 @@ function openSessionPreview(session, after = null, originEl = null) {
     session.id === 'daily' ? null : variantLabel(session, spVariant);
   document.getElementById('sp-title').textContent = session.name.toUpperCase();
   document.getElementById('sp-meta').textContent =
-    `~${estimateSessionMins(session, spVariant)} MIN · ${sessionBlocks(session, spVariant).length} BLOCKS${spLabel ? ` · DAY ${spLabel}` : ''} · ${(session.blurb || session.freq || '').toUpperCase().replace(/\.$/, '')}`;
+    `~${estimateSessionMins(session, spVariant)} MIN · ${sessionBlocks(session, spVariant).length} BLOCKS${spLabel ? ` · DAY ${spLabel}` : ''}`;
+  // The blurb reads as a sentence, not shouted into the stat line — uppercase
+  // micro-mono across a laptop was the single hardest-to-read thing on screen.
+  const spBlurb = document.getElementById('sp-blurb');
+  spBlurb.textContent = session.blurb || session.freq || '';
+  spBlurb.style.display = spBlurb.textContent ? '' : 'none';
   const rows = sessionOverview(session, getSwaps(), spVariant);
   const prettyDetail = (d) =>
     d
-      .replace(/^(\d+) × (.+)$/, '$1 SETS × $2 REPS')
+      // one set is the norm on the holds — the count is noise, drop it
+      .replace(/^1 × /, '')
+      // spell out SETS × REPS only when both sides are bare numbers;
+      // "12 tempo/side" already carries its own words
+      .replace(/^(\d+) × (\d+)$/, '$1 SETS × $2 REPS')
       .replace(/\/side/gi, ' / SIDE')
       .toUpperCase();
+  // A bare number is a prescription — mark it as one ("×10", "45 SEC") so the
+  // right-hand column scans as reps, not as stray digits.
+  const fmtVal = (d) => {
+    const s = String(d || '').trim();
+    let m = s.match(/^(\d+)s\s*\/\s*side$/i);
+    if (m) return `${m[1]} SEC / SIDE`;
+    m = s.match(/^(\d+)\s*\/\s*side$/i);
+    if (m) return `×${m[1]} / SIDE`;
+    m = s.match(/^(\d+)s(?:\s*·\s*(.+))?$/i);
+    if (m) return `${m[1]} SEC${m[2] ? ` · ${m[2].toUpperCase()}` : ''}`;
+    m = s.match(/^(\d+)(?:\s*·\s*(.+))?$/);
+    if (m) return `×${m[1]}${m[2] ? ` · ${m[2].toUpperCase()}` : ''}`;
+    return prettyDetail(s);
+  };
+  const line = (nm, val) => `
+        <div class="sp-row-line">
+          <span class="sp-row-name">${nm}</span><span class="sp-leader"></span><span class="sp-row-val">${val}</span>
+        </div>`;
   document.getElementById('sp-list').innerHTML = rows
     .map((r) => {
-      if (r.members?.length > 1) {
+      // Any block with members leads with its format as the kicker and lists
+      // the movements — the anchor included, so the main lift is finally NAMED
+      // here instead of hiding behind "The Anchor".
+      if (r.members?.length) {
         // per-side members appear once, marked PER SIDE
         const seen = new Map();
         for (const m of r.members) {
@@ -4527,24 +4557,29 @@ function openSessionPreview(session, after = null, originEl = null) {
           detail: `${m.detail || ''}${m.perSide ? ' · PER SIDE' : ''}`,
         }));
         const lines = collapsed
-          .map(
-            (m) => `
-        <div class="sp-row-name">${m.name}</div>
-        <div class="sp-row-sub">${prettyDetail(String(m.detail || ''))}</div>`,
-          )
+          .map((m) => line(m.name, fmtVal(m.detail)))
           .join('');
+        // a lone circuit member repeats its own name in the row below the
+        // kicker, and "SUPERSET" of one exercise is nonsense — its format
+        // line ("2 rounds · 60s") is the whole story
         const kicker = r.piece
           ? `${(r.title || '').toUpperCase()} — ${(r.detail || '').toUpperCase()}`
-          : `SUPERSET · ${r.rounds} ROUNDS`;
+          : collapsed.length > 1
+            ? `SUPERSET · ${r.rounds} ROUNDS`
+            : (r.detail || '').toUpperCase();
         return `
     <div class="sp-row">
       <div class="sp-row-kicker">${kicker}</div>${lines}
     </div>`;
       }
+      // the rehab day's first act is seven bare hold rows — name the section
+      // so the two-part structure the blurb promises is visible in the list
+      const holdsKicker =
+        session.id === 'daily' && r === rows[0]
+          ? '<div class="sp-row-kicker">THE HOLDS — ONE SET EACH</div>'
+          : '';
       return `
-    <div class="sp-row">
-      <div class="sp-row-name">${r.title}</div>
-      <div class="sp-row-sub">${prettyDetail(r.detail)}</div>
+    <div class="sp-row">${holdsKicker}${line(r.title, fmtVal(r.detail))}
     </div>`;
     })
     .join('');
@@ -4553,7 +4588,7 @@ function openSessionPreview(session, after = null, originEl = null) {
   afterEl.style.display = after ? '' : 'none';
   // Hero expansion when launched from the action line (else a flat slide).
   heroExpandPage(document.getElementById('session-preview'), originEl);
-  fitLineFont(document.querySelector('.sp-title'), 62, 28);
+  fitLineFont(document.querySelector('.sp-title'), isLaptop() ? 92 : 62, 28);
 }
 document.getElementById('sp-back').addEventListener('click', () => {
   closePage('session-preview');
