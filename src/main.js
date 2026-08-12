@@ -790,9 +790,20 @@ function renderDayHero() {
     // But the poster has to fit the greeting, the month AND today's session in
     // one fold — on a short laptop the greeting is what gives. Pairs with the
     // max-height ladder at the end of style.css.
-    const helloMax = isLaptop() ? (window.innerHeight < 860 ? 76 : 104) : 72;
-    fitLineFont(document.getElementById('dg-l1'), helloMax, 42);
-    fitLineFont(document.getElementById('dg-l2'), helloMax, 42);
+    // Tall desktops let the greeting SPAN the poster (2026-08-12, his ask):
+    // the cap rises and the width becomes the binding constraint. Both lines
+    // then take the SMALLER fitted size so "Gabe." never outgrows "Morning,".
+    const helloMax = isLaptop() ? (window.innerHeight < 860 ? 76 : 200) : 72;
+    const l1 = document.getElementById('dg-l1');
+    const l2 = document.getElementById('dg-l2');
+    fitLineFont(l1, helloMax, 42);
+    fitLineFont(l2, helloMax, 42);
+    const unified = Math.min(
+      parseFloat(l1?.style.fontSize) || helloMax,
+      parseFloat(l2?.style.fontSize) || helloMax,
+    );
+    if (l1) l1.style.fontSize = `${unified}px`;
+    if (l2) l2.style.fontSize = `${unified}px`;
   }
   const b = (t) => `<strong>${t}</strong>`;
   const history = get('workoutHistory') || [];
@@ -8479,14 +8490,41 @@ function renderProfilePane() {
 // Shared by the Athlete button and the home footer stamp.
 async function runHardUpdate(btn) {
   const idle = btn.textContent;
-  btn.textContent = 'UPDATING…';
+  const settle = (msg) => {
+    btn.textContent = msg;
+    setTimeout(() => {
+      btn.textContent = idle;
+      btn.disabled = false;
+    }, 2500);
+  };
+  btn.textContent = 'CHECKING…';
   btn.disabled = true;
   try {
     // 1. Prove the network is reachable and pull a fresh shell FIRST —
     //    never wipe caches while offline (that bricks the app till signal).
-    const probe = await fetch(`/?u=${Date.now()}`, { cache: 'reload' });
+    //    Time-boxed: a hanging fetch used to leave the button stuck on
+    //    "UPDATING…" forever (his catch, 2026-08-12).
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    const probe = await fetch(`/?u=${Date.now()}`, {
+      cache: 'reload',
+      signal: ctrl.signal,
+    });
+    clearTimeout(timer);
     if (!probe.ok) throw new Error(`status ${probe.status}`);
-    // 2. Nothing stale survives: caches gone, workers gone.
+    // 2. Already current? Say so and touch nothing — the served shell names
+    //    its bundle, and so does the one this page is running.
+    const bundleOf = (str) => str?.match(/assets\/index-[\w-]+\.js/)?.[0];
+    const served = bundleOf(await probe.text());
+    const running = bundleOf(
+      [...document.scripts].map((sc) => sc.src).find((src) => bundleOf(src)),
+    );
+    if (served && running && served === running) {
+      settle('UP TO DATE ✓');
+      return;
+    }
+    btn.textContent = 'UPDATING…';
+    // 3. Nothing stale survives: caches gone, workers gone.
     const regs = (await navigator.serviceWorker?.getRegistrations?.()) || [];
     if (window.caches) {
       const keys = await caches.keys();
@@ -8497,15 +8535,13 @@ async function runHardUpdate(btn) {
         await r.unregister();
       } catch {}
     }
-    // 3. Cache-busted navigation — a unique URL cannot be served from the
-    //    HTTP cache, so this lands on the newest deploy in one tap.
+    // 4. Cache-busted navigation — a unique URL cannot be served from the
+    //    HTTP cache, so this lands on the newest deploy in one tap. If the
+    //    navigation somehow stalls, the watchdog un-sticks the button.
     window.location.replace(`/?u=${Date.now()}`);
+    setTimeout(() => settle('TRY AGAIN'), 8000);
   } catch {
-    btn.textContent = 'OFFLINE — TRY AGAIN LATER';
-    setTimeout(() => {
-      btn.textContent = idle;
-      btn.disabled = false;
-    }, 2500);
+    settle('OFFLINE — TRY AGAIN LATER');
   }
 }
 
