@@ -384,7 +384,11 @@ body {
     var(--bg0);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  /* clip, not hidden: closed page-overlays hang at translateX(100%), so the
+     shell has scrollable overflow — and a tap landing while one is still
+     sliding in lets the browser's focus-reveal scroll the whole app 130px
+     left, permanently. A clipped box cannot be scrolled by anything. */
+  overflow: hidden; /* upgraded to clip by the @supports rule at file end */
   position: relative;
   isolation: isolate;
 }
@@ -8284,41 +8288,66 @@ body {
 }
 .sp-meta {
   font-family: "Space Mono", monospace;
-  font-size: var(--type-micro);
-  letter-spacing: 0.06em;
-  color: rgba(0, 0, 0, 0.5);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: rgba(0, 0, 0, 0.62);
   margin-top: 10px;
   line-height: 1.6;
 }
+/* The description is PROSE — sentence case at reading size, not a stat. */
+.sp-blurb {
+  font-family: "Space Mono", monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(0, 0, 0, 0.68);
+  max-width: 58ch;
+  margin-top: 8px;
+}
 .sp-list {
-  margin-top: 12px;
-  border-top: 1px solid rgba(0, 0, 0, 0.16);
+  margin-top: 14px;
+  border-top: 1px solid rgba(0, 0, 0, 0.18);
 }
 .sp-row {
-  padding: 9px 0 10px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.16);
+  padding: 12px 0 13px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.18);
+}
+/* Playbill line: movement left, prescription right, a dotted leader tying
+   them — the reps stopped being stray grey digits under the name. */
+.sp-row-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.sp-row-line + .sp-row-line {
+  margin-top: 9px;
 }
 .sp-row-name {
   font-family: "Teko", sans-serif;
-  font-size: 18px;
+  font-size: 21px;
+  line-height: 1.05;
   color: var(--bg);
+  min-width: 0;
 }
-.sp-row-sub {
+.sp-leader {
+  flex: 1;
+  min-width: 24px;
+  border-bottom: 1px dotted rgba(0, 0, 0, 0.28);
+  transform: translateY(-4px);
+}
+.sp-row-val {
   font-family: "Space Mono", monospace;
-  font-size: 11px;
-  letter-spacing: 0.05em;
-  color: rgba(0, 0, 0, 0.55);
-  margin: 1px 0 0;
-}
-.sp-row-name + .sp-row-sub + .sp-row-name {
-  margin-top: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: rgba(0, 0, 0, 0.78);
+  white-space: nowrap;
 }
 .sp-row-kicker {
   font-family: "Space Mono", monospace;
-  font-size: var(--type-micro);
-  letter-spacing: 0.1em;
-  color: rgba(0, 0, 0, 0.4);
-  margin-bottom: 5px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: rgba(0, 0, 0, 0.55);
+  margin-bottom: 9px;
 }
 .sp-after {
   font-family: "Space Mono", monospace;
@@ -8352,6 +8381,47 @@ body {
 #session-preview .page-back {
   color: var(--bg);
 }
+/* Past phone width the full-bleed layout smears the card into a wall —
+   micro-mono lines running 90 characters. The preview becomes what he calls
+   it: a popup — a cream playbill sheet held to a reading measure, centered
+   on the dark stage. (Measure via max-width, NOT 50% padding: the desktop
+   system already caps .page-content, and percentage padding on top of that
+   cap collapses the inner column to nothing.) */
+@media (min-width: 1000px) {
+  /* 1000, not lower: 600–999 windows render the 390px phone MOCK, and sheet
+     sizing inside the mock cramps a column narrower than a real phone. The
+     breakpoint matches isLaptop() in main.js, which sets the title scale. */
+  #session-preview .page-header,
+  #session-preview .page-content {
+    width: 100%;
+    max-width: min(720px, calc(100% - 48px));
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 44px;
+    padding-right: 44px;
+  }
+  #session-preview .sp-content {
+    padding-top: 36px;
+  }
+  .sp-row-name {
+    font-size: 24px;
+  }
+  .sp-row-val {
+    font-size: 14px;
+  }
+  /* the micro-mono layer rises with everything else — the kicker carries the
+     block format (EMOM 25, E3M 15), which is exactly what a lifter reads */
+  .sp-meta,
+  .sp-row-kicker {
+    font-size: 12px;
+  }
+  .sp-row-kicker {
+    color: rgba(0, 0, 0, 0.6);
+  }
+  .sp-start .tl-text {
+    font-size: 64px;
+  }
+}
 
 /* Hero expansion — a page-overlay unfolds from the tapped action line
    (scale + fade from that vertical origin) and its title/content rise in,
@@ -8375,6 +8445,7 @@ body {
   animation: spTitleIn 0.52s 0.08s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 .page-overlay.pg-expand .sp-meta,
+.page-overlay.pg-expand .sp-blurb,
 .page-overlay.pg-expand .sp-list,
 .page-overlay.pg-expand .page-content > *:nth-child(-n + 3) {
   animation: spTitleIn 0.5s 0.16s cubic-bezier(0.2, 0.8, 0.2, 1) both;
@@ -9801,5 +9872,18 @@ label {
   #rehab-player .rpo-overlay {
     grid-column: 1 / -1;
     grid-row: 1 / -1;
+  }
+}
+
+/* ── The shell is UNSCROLLABLE ─────────────────────────────────────────────
+   Closed page-overlays hang at translateX(100%), so #app has scrollable
+   overflow — and a tap landing while one is still sliding in lets the
+   browser's focus-reveal scroll the whole app ~130px left, permanently.
+   A clipped box cannot be scrolled by anything; hidden stays as the iOS ≤15
+   fallback in the #app rules above. Last in the sheet so it outranks every
+   media-query re-declaration. */
+@supports (overflow: clip) {
+  #app {
+    overflow: clip;
   }
 }
