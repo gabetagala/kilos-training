@@ -37,3 +37,19 @@ export function checkinStatus(list) {
     ref,
   };
 }
+
+// Body weight AS OF a date (2026-08-12, his call): a session's kcal estimate
+// uses the weight he had WHEN HE TRAINED IT — a new check-in changes the
+// next workouts, never the previous ones. Latest entry on-or-before the date;
+// a session older than every check-in uses the earliest one (closest truth).
+export function bodyKgAsOf(list, dateISO, fallback = 80) {
+  const sorted = list || [];
+  if (!sorted.length) return fallback;
+  const day = String(dateISO ?? '').slice(0, 10);
+  let best = null;
+  for (const e of sorted) {
+    if (e.date <= day) best = e;
+    else break;
+  }
+  return (best ?? sorted[0]).weightKg || fallback;
+}

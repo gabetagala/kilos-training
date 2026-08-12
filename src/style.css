@@ -9280,8 +9280,13 @@ label {
     flex-direction: column;
     justify-content: center;
   }
+  /* Sized by HEIGHT, not a fixed cap (2026-08-12, his second catch): a
+     420px thumbnail centered in a tall poster just split the dead cream into
+     two voids. The grid scales with the viewport until the poster is
+     genuinely covered; the short-screen ladders below still cap it first. */
   .month-grid .mg-grid {
-    max-width: 420px;
+    width: min(100%, 52vh);
+    max-width: 560px;
     gap: 8px;
   }
   .dg-hello,
