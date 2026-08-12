@@ -7729,6 +7729,15 @@ body {
 .ath-settings .prof-section:last-child {
   border-bottom: none;
 }
+/* THE LOG shows five rows, the rest scroll (2026-08-12, his ask) — with a
+   fade telling the thumb there's more below */
+#history-list {
+  max-height: 540px;
+  overflow-y: auto;
+  -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 48px), transparent);
+  mask-image: linear-gradient(to bottom, black calc(100% - 48px), transparent);
+}
+
 /* the update stamp under the sync line — tiny type, honest tap target */
 .home-update {
   display: block;
