@@ -9666,7 +9666,9 @@ label {
      "I want the calendar to be boxes") — cells keep aspect-ratio 1 and the
      grid's width follows the vertical room the smaller greeting frees up. */
   .month-grid .mg-grid {
-    width: min(100%, 58vh);
+    /* 54vh: big squares that still FIT above the fold at the 861px media
+       floor — 58vh clipped the bottom row on shorter windows (his catch) */
+    width: min(100%, 54vh);
     max-width: none;
     gap: 8px;
     /* the last row never kisses the action line's rule */
