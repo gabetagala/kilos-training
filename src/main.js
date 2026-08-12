@@ -793,9 +793,9 @@ function renderDayHero() {
     // Tall desktops let the greeting SPAN the poster (2026-08-12, his ask):
     // the cap rises and the width becomes the binding constraint. Both lines
     // then take the SMALLER fitted size so "Gabe." never outgrows "Morning,".
-    // 140, not 200 (2026-08-12, his tune): command the poster, don't consume
-    // it — the height given back flows into the calendar tiles below.
-    const helloMax = isLaptop() ? (window.innerHeight < 860 ? 76 : 140) : 72;
+    // 118 (2026-08-12, his tune): "as small as you need" — every pixel the
+    // greeting gives up becomes calendar squares, which is what he wants big.
+    const helloMax = isLaptop() ? (window.innerHeight < 860 ? 76 : 118) : 72;
     const l1 = document.getElementById('dg-l1');
     const l2 = document.getElementById('dg-l2');
     fitLineFont(l1, helloMax, 42);
@@ -8379,6 +8379,8 @@ document.getElementById('ob-skip').addEventListener('click', () => {
 // ─── PROFILE SHEET ────────────────────────────────────────────────────────────
 
 function renderProfilePane() {
+  renderCheckin(); // the weight input lives here now — keep it fresh
+
   const profile = getProfile();
 
   // Name
