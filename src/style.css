@@ -906,13 +906,17 @@ body {
   margin-bottom: 0;
   display: flex;
   align-items: flex-end;
-  justify-content: center; /* centred brand lockup */
-  position: relative; /* anchor the floated streak chip */
+  /* brand LEFT, chip RIGHT (2026-08-12, his catch): the centred lockup put
+     the absolutely-floated streak chip UNDER the wordmark once the chip text
+     grew ("BEST 4 · GO AGAIN"). Side-by-side cannot collide at any width. */
+  justify-content: space-between;
+  gap: 12px;
+  position: relative;
 }
 .home-wordmark {
   display: flex;
   flex-direction: column;
-  align-items: center; /* KILOS over TRAINING, both centred */
+  align-items: flex-start;
   line-height: 1;
 }
 .hw-kilos {
@@ -934,10 +938,8 @@ body {
   line-height: 1;
 }
 .home-utils {
-  /* Floated out of the flow so the wordmark stays perfectly centred; the streak
-     chip (when shown) sits at the right without shifting the lockup. */
-  position: absolute;
-  right: 0;
+  /* in flow since 2026-08-12 — the float collided with the wordmark */
+  flex-shrink: 0;
   bottom: 12px;
   display: flex;
   align-items: center;
@@ -9631,6 +9633,32 @@ label {
   .month-grid .mg-grid {
     max-width: 200px;
     gap: 4px;
+  }
+}
+
+/* ── The poster STRETCHES on a tall desktop (2026-08-12, his ask) ──────────
+   Greeting spans the line (JS unifies the two lines' fitted size), the
+   subheading widens, and the calendar becomes a full-width block — cells
+   relax from squares into tiles that fill the space between the plan and
+   the action line exactly. Short laptops keep the compact ladder. */
+@media (min-width: 1000px) and (min-height: 861px) {
+  .day-summary {
+    font-size: 17px;
+    max-width: 64ch;
+  }
+  .month-grid {
+    justify-content: flex-start;
+  }
+  .month-grid .mg-grid {
+    width: 100%;
+    max-width: none;
+    flex: 1 1 auto;
+    min-height: 0;
+    grid-auto-rows: 1fr;
+  }
+  .month-grid .mg-cell {
+    aspect-ratio: auto;
+    border-radius: 8px;
   }
 }
 
