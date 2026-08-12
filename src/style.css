@@ -9671,8 +9671,8 @@ label {
     width: min(100%, 54vh);
     max-width: none;
     gap: 8px;
-    /* the last row never kisses the action line's rule */
-    margin-bottom: 28px;
+    /* centered in the poster (his last call), air above the action line */
+    margin: 0 auto 28px;
   }
   .month-grid .mg-cell {
     border-radius: 8px;
