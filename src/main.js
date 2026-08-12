@@ -793,7 +793,9 @@ function renderDayHero() {
     // Tall desktops let the greeting SPAN the poster (2026-08-12, his ask):
     // the cap rises and the width becomes the binding constraint. Both lines
     // then take the SMALLER fitted size so "Gabe." never outgrows "Morning,".
-    const helloMax = isLaptop() ? (window.innerHeight < 860 ? 76 : 200) : 72;
+    // 140, not 200 (2026-08-12, his tune): command the poster, don't consume
+    // it — the height given back flows into the calendar tiles below.
+    const helloMax = isLaptop() ? (window.innerHeight < 860 ? 76 : 140) : 72;
     const l1 = document.getElementById('dg-l1');
     const l2 = document.getElementById('dg-l2');
     fitLineFont(l1, helloMax, 42);
