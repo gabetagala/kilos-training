@@ -783,29 +783,29 @@ function renderDayHero() {
     helloEl.dataset.revealed = '1';
     // Title case, not shouting caps — "Afternoon, Gabe."
     const capName = name.charAt(0).toUpperCase() + name.slice(1);
-    helloEl.innerHTML = `
+    // ONE line on a laptop (2026-08-12, his fix): "Morning, Gabe." across
+    // the poster — the whole second line's height goes to the calendar
+    // squares, which is what he wants big. The phone keeps the stacked pair.
+    helloEl.innerHTML = isLaptop()
+      ? `<span class="dg-line${rc}" id="dg-l1">${salut}, ${capName}.</span>`
+      : `
       <span class="dg-line${rc}" id="dg-l1">${salut},</span>
       <span class="dg-line${rc}" id="dg-l2">${capName}.</span>`;
-    // 72px is a headline on a 390px phone; on a laptop poster it looks timid.
-    // But the poster has to fit the greeting, the month AND today's session in
-    // one fold — on a short laptop the greeting is what gives. Pairs with the
-    // max-height ladder at the end of style.css.
-    // Tall desktops let the greeting SPAN the poster (2026-08-12, his ask):
-    // the cap rises and the width becomes the binding constraint. Both lines
-    // then take the SMALLER fitted size so "Gabe." never outgrows "Morning,".
-    // 118 (2026-08-12, his tune): "as small as you need" — every pixel the
-    // greeting gives up becomes calendar squares, which is what he wants big.
+    // 72px is a headline on a 390px phone; on a laptop poster it looks timid
+    // — the single line fits itself to the poster width under a 118 cap.
     const helloMax = isLaptop() ? (window.innerHeight < 860 ? 76 : 118) : 72;
     const l1 = document.getElementById('dg-l1');
     const l2 = document.getElementById('dg-l2');
     fitLineFont(l1, helloMax, 42);
-    fitLineFont(l2, helloMax, 42);
-    const unified = Math.min(
-      parseFloat(l1?.style.fontSize) || helloMax,
-      parseFloat(l2?.style.fontSize) || helloMax,
-    );
-    if (l1) l1.style.fontSize = `${unified}px`;
-    if (l2) l2.style.fontSize = `${unified}px`;
+    if (l2) {
+      fitLineFont(l2, helloMax, 42);
+      const unified = Math.min(
+        parseFloat(l1?.style.fontSize) || helloMax,
+        parseFloat(l2?.style.fontSize) || helloMax,
+      );
+      if (l1) l1.style.fontSize = `${unified}px`;
+      l2.style.fontSize = `${unified}px`;
+    }
   }
   const b = (t) => `<strong>${t}</strong>`;
   const history = get('workoutHistory') || [];
@@ -4414,8 +4414,8 @@ function renderCheckin() {
     el.innerHTML = `
       <div class="ci-card">
         <div class="ci-edit-row">
-          <label class="ci-field"><span class="ci-label">WEIGHT · KG</span>
-            <input class="ci-input" id="ci-weight" type="number" inputmode="decimal" step="0.1" min="30" max="250" value="${latest?.weightKg ?? ''}" placeholder="0.0"></label>
+          <label class="ci-field"><span class="ci-label">WEIGHT · ${isLbs() ? 'LBS' : 'KG'}</span>
+            <input class="ci-input" id="ci-weight" type="number" inputmode="decimal" step="0.1" min="${isLbs() ? 66 : 30}" max="${isLbs() ? 550 : 250}" value="${latest?.weightKg != null ? +(isLbs() ? latest.weightKg * 2.20462 : latest.weightKg).toFixed(1) : ''}" placeholder="0.0"></label>
           <label class="ci-field"><span class="ci-label">WAIST · CM</span>
             <input class="ci-input" id="ci-waist" type="number" inputmode="decimal" step="0.1" min="40" max="200" value="${latest?.waistCm ?? ''}" placeholder="0.0"></label>
         </div>
@@ -4425,12 +4425,19 @@ function renderCheckin() {
         </div>
       </div>`;
     document.getElementById('ci-save').addEventListener('click', () => {
-      const w = Number.parseFloat(document.getElementById('ci-weight').value);
+      // entered in the profile unit; STORED in kg — the kcal math needs a
+      // real kilogram, so this is a true conversion, not a relabel
+      const raw = Number.parseFloat(document.getElementById('ci-weight').value);
+      const w = isLbs() ? raw / 2.20462 : raw;
       const c = Number.parseFloat(document.getElementById('ci-waist').value);
       if (!(w >= 30 && w <= 250) || !(c >= 40 && c <= 200)) return;
       set(
         CHECKINS_KEY,
-        addCheckin(list, { date: todayK, weightKg: w, waistCm: c }),
+        addCheckin(list, {
+          date: todayK,
+          weightKg: +w.toFixed(2),
+          waistCm: c,
+        }),
       );
       ciEditing = false;
       ciExpanded = false;
@@ -4462,8 +4469,18 @@ function renderCheckin() {
     <div class="ci-card">
       <div class="ci-nums">
         <div class="ci-num-cell"><span class="ci-label">WEIGHT</span>
-          <span class="ci-num">${latest ? latest.weightKg.toFixed(1) : '—'}<small> kg</small></span>
-          ${latest && ref ? delta(latest.weightKg, ref.weightKg, 'kg') : ''}</div>
+          <span class="ci-num">${latest ? (isLbs() ? latest.weightKg * 2.20462 : latest.weightKg).toFixed(1) : '—'}<small> ${isLbs() ? 'lbs' : 'kg'}</small></span>
+          ${
+            latest && ref
+              ? isLbs()
+                ? delta(
+                    latest.weightKg * 2.20462,
+                    ref.weightKg * 2.20462,
+                    'lbs',
+                  )
+                : delta(latest.weightKg, ref.weightKg, 'kg')
+              : ''
+          }</div>
         <div class="ci-num-cell"><span class="ci-label">WAIST</span>
           <span class="ci-num">${latest ? latest.waistCm.toFixed(1) : '—'}<small> cm</small></span>
           ${latest && ref ? delta(latest.waistCm, ref.waistCm, 'cm') : ''}</div>
