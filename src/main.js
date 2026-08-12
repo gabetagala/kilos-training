@@ -8162,11 +8162,32 @@ document.getElementById('import-file')?.addEventListener('change', (e) => {
 // ─── AUTH STATE ───────────────────────────────────────────────────────────────
 let currentUser = null;
 
+// "Updated August 12, 2026 · 8:09 AM" — the build's moment, in HIS timezone.
+// The sha lives on for the Athlete row; a human reads a date.
+function buildStampPretty() {
+  const raw = import.meta.env.KILOS_BUILD;
+  const d = raw ? new Date(raw) : null;
+  if (!d || Number.isNaN(d.getTime())) return 'DEV BUILD';
+  const date = d.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  const time = d.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+  return `Updated ${date} · ${time}`;
+}
+
 async function renderDataNotice() {
   const session = await getSession();
   currentUser = session?.user || null;
   const notice = document.querySelector('.data-notice');
   if (!notice) return;
+  // the tiny update line rides under the sync line (2026-08-12, his ask):
+  // shows WHEN this build landed, and a tap pulls the newest one
+  const updateLine = `<button class="home-update" id="home-update" title="Tap to update">${buildStampPretty().toUpperCase()}</button>`;
   if (currentUser) {
     const rawEmail = currentUser.email || '';
     // Show only the username — never expose the internally-minted email domain
@@ -8177,10 +8198,13 @@ async function renderDataNotice() {
     const pending = hasPendingSync();
     notice.innerHTML = `<div class="dn-foot">${
       pending ? '⟳ SYNC PENDING' : `SYNCED · ${displayId.toUpperCase()}`
-    }</div>`;
+    }</div>${updateLine}`;
   } else {
-    notice.innerHTML = `<div class="dn-foot">THIS DEVICE ONLY · CREATE AN ACCOUNT TO SYNC</div>`;
+    notice.innerHTML = `<div class="dn-foot">THIS DEVICE ONLY · CREATE AN ACCOUNT TO SYNC</div>${updateLine}`;
   }
+  document
+    .getElementById('home-update')
+    ?.addEventListener('click', (e) => runHardUpdate(e.currentTarget));
 }
 
 // Listen for auth state changes (sign-in redirect returns here)
@@ -8452,44 +8476,46 @@ function renderProfilePane() {
 // ── Update to the latest build (iOS PWA caches linger) ─────────────────────
 // Nuclear on purpose: fetch the new SW, drop every cache, unregister, reload.
 // localStorage (all training data) is untouched.
+// Shared by the Athlete button and the home footer stamp.
+async function runHardUpdate(btn) {
+  const idle = btn.textContent;
+  btn.textContent = 'UPDATING…';
+  btn.disabled = true;
+  try {
+    // 1. Prove the network is reachable and pull a fresh shell FIRST —
+    //    never wipe caches while offline (that bricks the app till signal).
+    const probe = await fetch(`/?u=${Date.now()}`, { cache: 'reload' });
+    if (!probe.ok) throw new Error(`status ${probe.status}`);
+    // 2. Nothing stale survives: caches gone, workers gone.
+    const regs = (await navigator.serviceWorker?.getRegistrations?.()) || [];
+    if (window.caches) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    }
+    for (const r of regs) {
+      try {
+        await r.unregister();
+      } catch {}
+    }
+    // 3. Cache-busted navigation — a unique URL cannot be served from the
+    //    HTTP cache, so this lands on the newest deploy in one tap.
+    window.location.replace(`/?u=${Date.now()}`);
+  } catch {
+    btn.textContent = 'OFFLINE — TRY AGAIN LATER';
+    setTimeout(() => {
+      btn.textContent = idle;
+      btn.disabled = false;
+    }, 2500);
+  }
+}
+
 {
   const stamp = document.getElementById('build-stamp');
   if (stamp)
-    stamp.textContent = `Version ${import.meta.env.KILOS_BUILD || 'dev'} · ${import.meta.env.KILOS_COMMIT || '—'}`;
+    stamp.textContent = `${buildStampPretty()} · ${import.meta.env.KILOS_COMMIT || '—'}`;
   document
     .getElementById('btn-check-update')
-    ?.addEventListener('click', async () => {
-      const btn = document.getElementById('btn-check-update');
-      btn.textContent = 'Updating…';
-      btn.disabled = true;
-      try {
-        // 1. Prove the network is reachable and pull a fresh shell FIRST —
-        //    never wipe caches while offline (that bricks the app till signal).
-        const probe = await fetch(`/?u=${Date.now()}`, { cache: 'reload' });
-        if (!probe.ok) throw new Error(`status ${probe.status}`);
-        // 2. Nothing stale survives: caches gone, workers gone.
-        const regs =
-          (await navigator.serviceWorker?.getRegistrations?.()) || [];
-        if (window.caches) {
-          const keys = await caches.keys();
-          await Promise.all(keys.map((k) => caches.delete(k)));
-        }
-        for (const r of regs) {
-          try {
-            await r.unregister();
-          } catch {}
-        }
-        // 3. Cache-busted navigation — a unique URL cannot be served from the
-        //    HTTP cache, so this lands on the newest deploy in one tap.
-        window.location.replace(`/?u=${Date.now()}`);
-      } catch {
-        btn.textContent = 'Offline — try again later';
-        setTimeout(() => {
-          btn.textContent = 'Check for update';
-          btn.disabled = false;
-        }, 2500);
-      }
-    });
+    ?.addEventListener('click', (e) => runHardUpdate(e.currentTarget));
 }
 
 document.getElementById('prof-name-input').addEventListener('change', () => {

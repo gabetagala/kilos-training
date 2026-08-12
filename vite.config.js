@@ -17,10 +17,9 @@ const commit =
 
 export default defineConfig({
   define: {
-    // build stamp + commit for the Athlete page's version row
-    'import.meta.env.KILOS_BUILD': JSON.stringify(
-      new Date().toISOString().slice(0, 16).replace('T', ' '),
-    ),
+    // build stamp + commit — full ISO so the client renders "Updated
+    // August 12, 2026 · 8:09 AM" in HIS timezone (home footer + Athlete row)
+    'import.meta.env.KILOS_BUILD': JSON.stringify(new Date().toISOString()),
     'import.meta.env.KILOS_COMMIT': JSON.stringify(commit),
   },
   server: {
