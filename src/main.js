@@ -46,7 +46,7 @@ import {
   testsForWeek,
   weekStart,
 } from './workout/block.js';
-import { addCheckin, checkinStatus } from './workout/checkin.js';
+import { addCheckin, bodyKgAsOf, checkinStatus } from './workout/checkin.js';
 import { FORM_CUES, pickFormCue } from './workout/formCues.js';
 import { loggedExercisesOf, resolveMuscleGroup } from './workout/muscles.js';
 import {
@@ -1013,7 +1013,7 @@ function renderRecent() {
       // The big number is ENERGY now (2026-08-12, his ask) — an honest
       // MET-based estimate, tilde included. CF benchmarks keep their score:
       // rounds ARE the result there.
-      const kcal = isCFh ? null : estimateKcal(h, latestBodyKg());
+      const kcal = isCFh ? null : estimateKcal(h, bodyKgAt(h.date));
       const bigNum = isCFh
         ? h.cfRoundsCompleted != null
           ? h.cfRoundsCompleted
@@ -4366,11 +4366,10 @@ function renderWeekPlan() {
 // Measurement only, no food tracking. The status line runs TRAINING.md's rule:
 // two weeks with no downward trend → add steps first, then trim ~150 kcal.
 const CHECKINS_KEY = 'kilos-checkins';
-// latest check-in weight feeds the kcal estimate; 80kg until he logs one
-const latestBodyKg = () => {
-  const list = get(CHECKINS_KEY) || [];
-  return list.at(-1)?.weightKg || 80;
-};
+// The check-in history feeds the kcal estimates — AS OF each session's date
+// (2026-08-12, his call): logging a new weight changes the next workouts,
+// never the previous ones. 80kg until the first check-in exists.
+const bodyKgAt = (dateISO) => bodyKgAsOf(get(CHECKINS_KEY) || [], dateISO);
 let ciEditing = false;
 let ciExpanded = false; // off-Sunday the card rests as one line (f16)
 
@@ -7923,7 +7922,7 @@ function renderHistory() {
         ? `<div class="hi-pr">PR — ${h.newPRs.map((p) => p.name).join(', ')}</div>`
         : '';
       // energy estimate here too — same tilde-honest math as the home panel
-      const kcalH = isCF ? null : estimateKcal(h, latestBodyKg());
+      const kcalH = isCF ? null : estimateKcal(h, bodyKgAt(h.date));
       const bigNum = isCF
         ? h.cfRoundsCompleted != null
           ? h.cfRoundsCompleted

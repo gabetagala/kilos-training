@@ -77,3 +77,28 @@ describe('checkinStatus', () => {
     ).toBe('stalled');
   });
 });
+
+// ── bodyKgAsOf (2026-08-12): kcal uses the weight he had WHEN he trained ────
+import { bodyKgAsOf } from '../../src/workout/checkin.js';
+
+describe('bodyKgAsOf', () => {
+  const list = addCheckin(
+    addCheckin([], { date: '2026-08-01', weightKg: 80, waistCm: 86 }),
+    { date: '2026-08-10', weightKg: 78, waistCm: 85 },
+  );
+
+  it('a new check-in changes the NEXT workouts, never the previous ones', () => {
+    expect(bodyKgAsOf(list, '2026-08-05T10:00:00Z')).toBe(80); // before the drop
+    expect(bodyKgAsOf(list, '2026-08-11T10:00:00Z')).toBe(78); // after it
+    expect(bodyKgAsOf(list, '2026-08-10')).toBe(78); // check-in day itself
+  });
+
+  it('sessions older than every check-in use the earliest, not the latest', () => {
+    expect(bodyKgAsOf(list, '2026-07-20')).toBe(80);
+  });
+
+  it('falls back with no check-ins at all', () => {
+    expect(bodyKgAsOf([], '2026-08-05')).toBe(80);
+    expect(bodyKgAsOf(null, '2026-08-05', 75)).toBe(75);
+  });
+});
