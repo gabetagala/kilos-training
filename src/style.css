@@ -393,6 +393,35 @@ body {
   isolation: isolate;
 }
 
+/* ── Pull-to-refresh pill — quiet mono, rides the pull, disappears fast ── */
+#ptr {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) - 40px);
+  left: 50%;
+  transform: translate(-50%, 0);
+  z-index: 95;
+  background: rgba(18, 18, 18, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  padding: 9px 16px;
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--text2);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.18s ease,
+    transform 0.22s ease;
+  white-space: nowrap;
+}
+#ptr.on {
+  opacity: 1;
+}
+#ptr.drag {
+  transition: opacity 0.18s ease; /* the finger drives transform directly */
+}
+
 /* ── Film grain overlay — sits above content, below nothing, pointer-events off ── */
 #app::after {
   content: "";
