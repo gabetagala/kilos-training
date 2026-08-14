@@ -3868,7 +3868,7 @@ function rhJump(dir) {
   rhPersist();
 }
 
-function openRehabPlayer(session, saved = null) {
+function openRehabPlayer(session, saved = null, variantOverride = null) {
   rhSession = session;
   // A saved run keeps the variant it was built with (its step index maps
   // onto THAT queue); a fresh run picks up wherever the rotation is.
@@ -3882,7 +3882,7 @@ function openRehabPlayer(session, saved = null) {
   rhAwayMs =
     (saved?.awayMs ?? 0) +
     (saved?.savedAt ? Math.max(0, Date.now() - saved.savedAt) : 0);
-  rhVariant = saved?.variant ?? rehabVariantIdx(session.id);
+  rhVariant = saved?.variant ?? variantOverride ?? rehabVariantIdx(session.id);
   rhQueue = buildStepQueue(applyPhase(session, rhPhase), getSwaps(), rhVariant);
   rhIdx = Math.min(saved?.idx ?? 0, rhQueue.length - 1);
   rhCounted = new Set(saved?.counted || []);
@@ -4411,7 +4411,7 @@ function renderBlockCalendar() {
             </div>
             ${
               hasRehab
-                ? `<button class="cal-part cal-part-btn${rehabDone ? ' cal-part-done' : ''}" data-cal-session="daily">
+                ? `<button class="cal-part cal-part-btn${rehabDone ? ' cal-part-done' : ''}" data-cal-session="daily" data-cal-variant="${rehabV}" data-cal-day="${['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'][offset]}">
               <span class="cal-tag cal-r">R</span>
               <span class="cal-part-body"><span class="cal-pt">Back &amp; Hips + ${esc(rehabFinisher || 'Finisher')}</span><span class="cal-pd"> · ${rehabMins} min</span></span>
             </button>`
@@ -4455,7 +4455,14 @@ function renderBlockCalendar() {
       // Preview first (his ask, 2026-08-12): see the overview, then Start.
       // The pause-state clear moved to Start — browsing must never kill a
       // paused session.
-      openSessionPreview(getGuidedSession(id), null, b);
+      const v = b.dataset.calVariant;
+      openSessionPreview(
+        getGuidedSession(id),
+        null,
+        b,
+        v != null ? Number(v) : null,
+        b.dataset.calDay || 'TODAY',
+      );
     });
   });
 }
@@ -4713,10 +4720,22 @@ function renderCheckin() {
 // ── Session preview — what's inside, before you press go ────────────────────
 let _spSession = null;
 let _spAfter = null;
-function openSessionPreview(session, after = null, originEl = null) {
+let _spVariant = null;
+function openSessionPreview(
+  session,
+  after = null,
+  originEl = null,
+  // A calendar cell carries ITS day's variant (2026-08-15, his report:
+  // clicking different rehab days always showed one identical workout —
+  // every cell resolved to today's). null = today's rotation, as before.
+  variantOverride = null,
+  headerLabel = 'TODAY',
+) {
   _spSession = session;
   _spAfter = after;
-  const spVariant = rehabVariantIdx(session.id);
+  const spVariant = variantOverride ?? rehabVariantIdx(session.id);
+  _spVariant = spVariant;
+  document.getElementById('sp-header-title').textContent = headerLabel;
   const spLabel =
     session.id === 'daily' ? null : variantLabel(session, spVariant);
   document.getElementById('sp-title').textContent = session.name.toUpperCase();
@@ -4818,7 +4837,9 @@ document.getElementById('sp-start').addEventListener('click', () => {
   try {
     localStorage.removeItem(REHAB_STATE_KEY);
   } catch {}
-  openRehabPlayer(_spSession);
+  // run the variant the preview SHOWED — starting Saturday's card must
+  // never silently serve Friday's session
+  openRehabPlayer(_spSession, null, _spVariant);
 });
 
 // ── Rehab page (program overview + resume) ────────────────────────────────────
