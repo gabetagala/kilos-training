@@ -113,7 +113,7 @@ describe('rehab program data', () => {
     expect(finishers.rotate.map((v) => [v.name, v.mode])).toEqual([
       ['The Pump', 'fortime'],
       ['The Arm Farm', 'emom'],
-      ['The Spring', 'tabata'],
+      ['The Redline', 'tabata'],
       ['The Classic', 'amrap'],
       ['The Downhill', 'fortime'],
       ['The Popeye', 'fortime'],
@@ -121,7 +121,7 @@ describe('rehab program data', () => {
       ['Crawl & Haul', 'fortime'],
       ['The Porter', 'emom'],
       ['Death by Curls', 'emom'],
-      ['The Skater', 'tabata'],
+      ['The Sprint', 'fortime'],
       ['The Chase', 'amrap'],
       ['The Complex', 'emom'],
       ['The Test', 'amrap'],
@@ -155,7 +155,7 @@ describe('rehab program data', () => {
     // holds), one movement per day, in every variant
     const cap = daily.blocks.at(-1);
     const MCGILL = new Set(['mcgill-curlup', 'side-plank', 'bird-dog', 'plank']);
-    expect(cap.rotate).toHaveLength(4);
+    expect(cap.rotate).toHaveLength(16); // Latin square — every weekday cycles all four
     for (const c of cap.rotate) {
       expect(MCGILL.has(c.ex), `${c.ex} is McGill core`).toBe(true);
       expect(c.mode, c.ex).toBe('reps');
@@ -477,7 +477,7 @@ describe('rotation (the mechanism outlives the hinge)', () => {
     expect(finishers).toEqual([
       'The Pump',
       'The Arm Farm',
-      'The Spring',
+      'The Redline',
       'The Classic',
     ]);
     // week 2 serves the NEXT four — fresh finishers, same weekday families
@@ -492,6 +492,10 @@ describe('rotation (the mechanism outlives the hinge)', () => {
       (_, v) => sessionBlocks(daily, v).at(-1).ex,
     );
     expect(caps).toEqual(['mcgill-curlup', 'side-plank', 'bird-dog', 'plank']);
+    // …and the cap ROTATES by week (Latin square): Saturday is not
+    // bird-dog forever — week 2's Saturday serves the plank
+    expect(sessionBlocks(daily, 6).at(-1).ex).toBe('plank');
+    expect(sessionBlocks(daily, 10).at(-1).ex).toBe('mcgill-curlup');
   });
 
   // The halves that carry a FINISHER rotate through its pool — one per
