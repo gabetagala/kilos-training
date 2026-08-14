@@ -39,6 +39,34 @@ const SYNC_KEYS = [
   'kilos-checkins',
 ];
 
+// ─── ACTIVE-SESSION HANDOFF (2026-08-15) ─────────────────────────────────────
+// The paused player state rides the cloud row as an ENVELOPE
+// { state, deviceId, updatedAt } — `state` is the kilos-rehab-state payload,
+// or null as a tombstone after a finish/discard. It is last-writer-wins, not
+// a union: two devices can't both be right about one running workout, so the
+// newest save is the truth and everything else defers to it. Adoption rules
+// (live-session guard, same-run check, the queue-fingerprint gate) live in
+// main.js — this layer only carries the newest envelope faithfully.
+export const ACTIVE_SYNC_KEY = 'kilos-active-sync';
+
+/** The newer of two envelopes; null-safe. Pure — unit-tested.
+ *  RUN IDENTITY OUTRANKS WALL CLOCKS: a tombstone for run R beats any state
+ *  save OF run R regardless of stamps — device clocks skew, a run's
+ *  identity doesn't. Without this, a laptop lid closing after a phone
+ *  finish would bury the tombstone and resurrect a completed workout. */
+export function newerEnvelope(a, b) {
+  if (!a) return b || null;
+  if (!b) return a;
+  const aTomb = a.state == null;
+  const bTomb = b.state == null;
+  if (aTomb !== bTomb) {
+    const tomb = aTomb ? a : b;
+    const live = aTomb ? b : a;
+    if (tomb.runId && tomb.runId === live.state?.runId) return tomb;
+  }
+  return (b.updatedAt || 0) > (a.updatedAt || 0) ? b : a;
+}
+
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 
 export async function getSession() {
@@ -122,6 +150,9 @@ export async function deleteAccount() {
   // Tear down the local session + synced data; the device keeps no orphan state.
   clearPendingSync();
   await supabase.auth.signOut();
+  try {
+    localStorage.removeItem(ACTIVE_SYNC_KEY);
+  } catch {}
   SYNC_KEYS.forEach((k) => {
     try {
       localStorage.removeItem(k);
@@ -233,6 +264,13 @@ export async function pushData() {
   SYNC_KEYS.forEach((k) => {
     data[k] = _get(k);
   });
+  // Active-session handoff: carry the NEWEST envelope, and keep the local
+  // copy caught up so adoption on this device sees what the cloud sees.
+  const activeEnv = newerEnvelope(_get(ACTIVE_SYNC_KEY), row?.data?.activeSession);
+  if (activeEnv) {
+    data.activeSession = activeEnv;
+    _set(ACTIVE_SYNC_KEY, activeEnv);
+  }
   // Internal-only marker never belongs in the cloud copy.
   if (data.userProfile?._signinSeed) {
     data.userProfile = { ...data.userProfile };
@@ -250,7 +288,7 @@ export async function pushData() {
         Object.keys(v).length === 0)
     );
   });
-  if (allEmpty) {
+  if (allEmpty && !data.activeSession) {
     clearPendingSync();
     return;
   }
@@ -299,6 +337,11 @@ export async function pullAndMerge() {
 
   const remote = row.data;
   mergeRecords(remote);
+
+  // Active-session handoff: keep the newest envelope locally; main.js
+  // decides whether this device actually adopts it (rhAdoptCloudSession).
+  const activeEnv = newerEnvelope(_get(ACTIVE_SYNC_KEY), remote.activeSession);
+  if (activeEnv) _set(ACTIVE_SYNC_KEY, activeEnv);
 
   // Profile — on sign-in the cloud profile is authoritative for the user's real
   // settings (equipment tier, injuries). Adopt it when the local profile is
