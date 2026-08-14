@@ -1964,8 +1964,13 @@ const rehabVariantIdx = (sessionId) => {
   // supporting movement ~once per two weeks).
   if (sessionId === 'daily') {
     const w = currentWeek(blockStartISO());
-    // rehab days in week order (Mon-start): Tue → Thu → Sat → Sun
-    const slot = { 2: 0, 4: 1, 6: 2, 0: 3 }[new Date().getDay()] ?? 0;
+    // rehab days in week order (Mon-start): Tue → Thu → Sat → Sun. An
+    // OFF-day (Mon/Wed/Fri) resolves to the NEXT rehab day's slot — browsing
+    // on a Friday used to always show Tuesday's Pump, which read as "the
+    // finishers never change" (2026-08-15, his report).
+    const slot = { 1: 0, 2: 0, 3: 1, 4: 1, 5: 2, 6: 2, 0: 3 }[
+      new Date().getDay()
+    ];
     return w == null ? slot : (w - 1) * 4 + slot;
   }
   // Other rehab sessions — per completed run. Salvaged partial runs
@@ -4345,8 +4350,21 @@ function renderBlockCalendar() {
         const hasRehab = WEEK_PLAN[offset].some(
           (i) => i.type === 'rehab' && !i.session,
         );
+        // THE DAY'S REAL VARIANT (2026-08-15, his catch): the calendar used
+        // variant 0 for every rehab cell, so all four days printed the same
+        // label and minutes — the finisher variety was invisible exactly
+        // where he'd look for it. Same math as rehabVariantIdx.
+        const rehabSlot = { 2: 0, 4: 1, 6: 2, 0: 3 }[offset] ?? 0;
+        const rehabV = hasRehab ? (w - 1) * 4 + rehabSlot : 0;
+        const rehabFinisher = hasRehab
+          ? sessionBlocks(getRehabSession('daily'), rehabV).find((b) =>
+              ['fortime', 'amrap', 'tabata'].includes(b.mode),
+            )?.name
+          : null;
         const rehabMins = hasRehab
-          ? Math.round(estimateSessionSecs(getRehabSession('daily')) / 60)
+          ? Math.round(
+              estimateSessionSecs(getRehabSession('daily'), rehabV) / 60,
+            )
           : 0;
         const mins = rehabMins + plans.reduce((a, p) => a + (p?.mins || 0), 0);
         const rehabDone = doneOn.has(`${k}|daily`);
@@ -4380,7 +4398,10 @@ function renderBlockCalendar() {
           plans
             .map((p) => p?.name)
             .filter(Boolean)
-            .join(' + ') || (hasRehab ? 'Back & Hips + Finisher' : 'Rest');
+            .join(' + ') ||
+          (hasRehab
+            ? `Back & Hips + ${rehabFinisher || 'Finisher'}`
+            : 'Rest');
         rows.push(`
           <div class="cal-day${k === todayK ? ' cal-today' : ''}${isDone ? ' cal-done' : ''}">
             <div class="cal-day-top">
@@ -4392,7 +4413,7 @@ function renderBlockCalendar() {
               hasRehab
                 ? `<button class="cal-part cal-part-btn${rehabDone ? ' cal-part-done' : ''}" data-cal-session="daily">
               <span class="cal-tag cal-r">R</span>
-              <span class="cal-part-body"><span class="cal-pt">Back &amp; Hips + Finisher</span><span class="cal-pd"> · ${rehabMins} min</span></span>
+              <span class="cal-part-body"><span class="cal-pt">Back &amp; Hips + ${esc(rehabFinisher || 'Finisher')}</span><span class="cal-pd"> · ${rehabMins} min</span></span>
             </button>`
                 : ''
             }
