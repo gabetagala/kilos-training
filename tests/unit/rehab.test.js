@@ -41,7 +41,7 @@ describe('rehab program data', () => {
     }
   });
 
-  it('is the Back & Hips distillate + topper (2026-08-11), favorites fixed', () => {
+  it('is the distillate + finisher + core cap (2026-08-14), favorites fixed', () => {
     expect(REHAB_SESSIONS.map((s) => s.id)).toEqual([
       'daily',
       'reset',
@@ -51,7 +51,7 @@ describe('rehab program data', () => {
     ]);
     const daily = getRehabSession('daily');
     // v0: six fixed blocks (his favorites + the biggest levers), one rotating
-    // supporting-cast slot, then the topper EMOM
+    // supporting-cast slot, the finisher, then the McGill core cap
     expect(sessionBlocks(daily, 0).map((b) => b.ex ?? b.name)).toEqual([
       't-spine-reach',
       'back-extension',
@@ -61,9 +61,10 @@ describe('rehab program data', () => {
       'seated-good-morning',
       'ql-plank',
       'The Pump',
+      'mcgill-curlup',
     ]);
-    // 8 calendar-pinned variants: the rotating slot is 8-deep, the topper
-    // pool 4-deep — a full week serves each topper exactly once
+    // 8 calendar-pinned variants: the rotating slot is 8-deep, the finisher
+    // and core-cap pools 4-deep — a full week serves each exactly once
     expect(sessionVariantCount(daily)).toBe(8);
     expect(getRehabSession('hinge')).toBeNull();
   });
@@ -100,24 +101,31 @@ describe('rehab program data', () => {
     }
   });
 
-  it('the topper is axially quiet and ends on core, in every variant', () => {
+  it('the finishers are metcon-shaped and every day ends on the core cap', () => {
     const daily = getRehabSession('daily');
-    const toppers = daily.blocks.find(
-      (b) => b.rotate && b.rotate.every((v) => v.mode === 'emom'),
+    // the finisher pool: four days, four distinct deliveries — pump for time,
+    // grip for time, a Tabata redline, an AMRAP climb (2026-08-14, his call)
+    const finishers = daily.blocks.find(
+      (b) => b.rotate && b.rotate.some((v) => v.name),
     );
-    expect(toppers.rotate.map((v) => v.name)).toEqual([
-      'The Pump',
-      'The Popeye',
-      'The Engine',
-      'The Wing',
+    expect(finishers.rotate.map((v) => [v.name, v.mode])).toEqual([
+      ['The Pump', 'fortime'],
+      ['The Popeye', 'fortime'],
+      ['The Redline', 'tabata'],
+      ['The Chase', 'amrap'],
     ]);
-    const CORE = new Set(['plank', 'side-plank', 'bear-crawl', 'bird-dog']);
-    for (const t of toppers.rotate) {
-      expect(t.rounds, t.name).toBe(3);
-      expect(t.members, t.name).toHaveLength(4);
-      expect(CORE.has(t.members.at(-1).ex), `${t.name} ends on core`).toBe(
-        true,
-      );
+    // no strict EMOM left — that cadence was the thing that felt like a
+    // fourth lift day
+    expect(finishers.rotate.every((v) => v.mode !== 'emom')).toBe(true);
+    // the session's LAST block is the core cap: McGill protocol (short 10s
+    // holds), one movement per day, in every variant
+    const cap = daily.blocks.at(-1);
+    const MCGILL = new Set(['mcgill-curlup', 'side-plank', 'bird-dog', 'plank']);
+    expect(cap.rotate).toHaveLength(4);
+    for (const c of cap.rotate) {
+      expect(MCGILL.has(c.ex), `${c.ex} is McGill core`).toBe(true);
+      expect(c.mode, c.ex).toBe('reps');
+      expect(c.holdSecs, c.ex).toBe(10);
     }
   });
 
@@ -205,9 +213,9 @@ describe('buildStepQueue', () => {
     for (const q of [daily, reset, openUp]) {
       let ex = null;
       for (const step of q) {
-        if (step.emom || step.kind === 'rest') {
+        if (step.emom || step.piece || step.kind === 'rest') {
           ex = step.exId;
-          continue; // EMOM minutes flow with no prep — the clock is the prep
+          continue; // piece minutes flow with no prep — the clock is the prep
         }
         if (step.exId !== ex) {
           expect(step.kind).toBe('prep');
@@ -313,8 +321,9 @@ describe('buildStepQueue', () => {
 
   it('counts logical sets per side', () => {
     // v0 daily: tspine 2 + backext 1 + hipIR 2 + couch 2 + elephant 1 +
-    // seated-gm 1 + ql-plank 2 + topper 4 stations × 3 rounds = 23
-    expect(sessionSetTotal(getRehabSession('daily'))).toBe(23);
+    // seated-gm 1 + ql-plank 2 + The Pump 3 movements × 3 rounds +
+    // core cap (mcgill-curlup) 2 straight sets = 22
+    expect(sessionSetTotal(getRehabSession('daily'))).toBe(22);
     // catcamel 1 + tspine 1×2 + curl 2 + (plank, bird) à 2×2 = 13
     expect(sessionSetTotal(getRehabSession('reset'))).toBe(13);
     // open-up: (bridge, ham, hip) à 2×2 = 12
@@ -426,17 +435,24 @@ describe('rotation (the mechanism outlives the hinge)', () => {
       expect(sessionVariantCount(s), s.id).toBe(1);
       expect(variantLabel(s, 0), s.id).toBeNull();
     }
-    // a week = 4 rehab days = each topper once; the slot cycles at 8
-    const toppers = [...Array(4)].map(
-      (_, v) => sessionBlocks(daily, v).at(-1).name,
+    // a week = 4 rehab days = each finisher once; the slot cycles at 8.
+    // The finisher is the second-to-last block — the core cap closes the day.
+    const finishers = [...Array(4)].map(
+      (_, v) => sessionBlocks(daily, v).at(-2).name,
     );
-    expect(toppers).toEqual([
+    expect(finishers).toEqual([
       'The Pump',
       'The Popeye',
-      'The Engine',
-      'The Wing',
+      'The Redline',
+      'The Chase',
     ]);
-    expect(sessionBlocks(daily, 4).at(-1).name).toBe('The Pump');
+    expect(sessionBlocks(daily, 4).at(-2).name).toBe('The Pump');
+    // the core cap is weekday-pinned too: curl-up Tue, side plank Thu,
+    // bird-dog Sat, plank Sun — McGill's set, one per day
+    const caps = [...Array(4)].map(
+      (_, v) => sessionBlocks(daily, v).at(-1).ex,
+    );
+    expect(caps).toEqual(['mcgill-curlup', 'side-plank', 'bird-dog', 'plank']);
   });
 
   // The halves that carry a FINISHER rotate through its pool — one per

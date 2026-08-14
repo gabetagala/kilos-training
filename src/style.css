@@ -6800,18 +6800,21 @@ body {
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.38);
   margin-top: var(--s-2);
-  min-height: 14px;
-  line-height: 14px; /* the rx never grows this fixed slot */
+  min-height: 28px;
+  line-height: 28px; /* fixed slot, sized for the display-type rx */
   flex-shrink: 0;
 }
-/* the prescription — the one number read mid-effort, bright and bold but
-   inside the meta line's fixed box */
+/* the prescription — read at a glance from arm's length (2026-08-14, his
+   ask): display type, white, leading the line. The slot height above is
+   fixed to fit it, so step changes still never move the layout. */
 .rp-meta .rp-rx {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.92);
+  font-family: "Teko", sans-serif;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #fff;
   font-variant-numeric: tabular-nums;
+  vertical-align: -4px;
 }
 /* Every row below the stage is a FIXED slot — text length and step type can
    never move the layout. The cue is a locked 3-line box (clamped), and the
@@ -6943,14 +6946,26 @@ body {
 }
 .rp-next {
   font-family: "Space Mono", monospace;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--grey);
+  color: var(--text2);
   text-align: center;
   margin-top: var(--s-4);
-  min-height: 14px;
+  min-height: 24px;
+  line-height: 24px; /* fixed slot, sized for the display-type rx */
   flex-shrink: 0;
+}
+/* the NEXT station's number in display type — the transition needs zero
+   memory AND zero squinting */
+.rp-next .rp-next-rx {
+  font-family: "Teko", sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  vertical-align: -3px;
 }
 .rp-controls {
   display: flex;
@@ -9188,6 +9203,63 @@ label {
 /* The pane wrapper is inert everywhere except the laptop grid. */
 .pane {
   display: contents;
+}
+
+/* EXCEPT the player's step pane (2026-08-14): it owns its overflow so the
+   controls stay pinned and tappable on every step. The tallest step (an EMOM
+   minute: clock + weight row) has ALWAYS overflowed a small phone — the
+   overflow-hidden shell was being silently focus-scrolled to reach the
+   controls, which `overflow: clip` now rightly refuses. The scroll belongs
+   here; the dense-step compaction below makes it rarely needed. The ≥1000px
+   block later re-declares .rp-side as a grid pane and wins there. */
+#rehab-player .rp-side {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+@media (max-width: 999px) {
+  /* the clock + weight-row step, compacted to fit a 664px viewport */
+  /* the art gives way first: by the third minute of a piece the movement is
+     known, and the clock + load + NEXT are what mid-set eyes need */
+  #rehab-player.rp-dense .rp-demo {
+    min-height: 0;
+    max-height: 72px;
+  }
+  /* one-line cue — the full text lives on the prep step and the library */
+  #rehab-player.rp-dense .rp-cue {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #rehab-player.rp-dense .rp-time {
+    font-size: clamp(44px, 15vw, 62px);
+  }
+  #rehab-player.rp-dense .rp-done {
+    height: 46px;
+    margin-top: var(--s-2);
+  }
+  #rehab-player.rp-dense .rp-weight {
+    font-size: 40px;
+  }
+  #rehab-player.rp-dense .rp-meta {
+    min-height: 22px;
+    line-height: 22px;
+  }
+  #rehab-player.rp-dense .rp-meta .rp-rx {
+    font-size: 22px;
+    vertical-align: -3px;
+  }
+  #rehab-player.rp-dense .rp-next {
+    margin-top: var(--s-2);
+    min-height: 20px;
+    line-height: 20px;
+  }
+  #rehab-player.rp-dense .rp-next .rp-next-rx {
+    font-size: 18px;
+    vertical-align: -2px;
+  }
 }
 
 /* Rail furniture. The phone's nav is a pill that hugs three icons — a wordmark

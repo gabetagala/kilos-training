@@ -187,6 +187,12 @@ export const OPEN_PACE_BANNED = [
   'db-push-press',
   'db-hang-snatch', // the hang range only survives while the pace is capped
   'db-front-rack-lunge',
+  // Added 2026-08-14 with the rehab finishers: the ballistics as a CLASS.
+  // Their dose is quality-capped ("crisp reps, never near fatigue") and a
+  // score-incentivized open clock is the exact opposite of that rule.
+  'power-pushup',
+  'broad-jump',
+  'pogo-hop',
 ];
 
 /** Formats this piece may legally rotate through, safety applied. */

@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { dismissOnboarding } from './helpers.js';
 
-// The daily session after the 2026-08-11 EMOM40 rebuild: the Back & Hips
-// distillate (six fixed favorites + one rotating supporting-cast slot) plus
-// the topper EMOM, calendar-pinned across the four rehab days. A mid-session
+// The daily session after the 2026-08-14 finisher rebuild: the Back & Hips
+// distillate (six fixed favorites + one rotating supporting-cast slot), a
+// metcon-shaped finisher, then the McGill core cap — finisher and cap both
+// calendar-pinned across the four rehab days. A mid-session
 // refresh must still restore the same run — losing a session here is
 // unforgivable.
 
@@ -12,7 +13,7 @@ async function openRehabPage(page) {
   await page.locator('#btn-rehab-open').click();
 }
 
-test('the daily session is the Back & Hips distillate + topper', async ({
+test('the daily session is the distillate + finisher + core cap', async ({
   page,
 }) => {
   await page.goto('/');
@@ -21,19 +22,19 @@ test('the daily session is the Back & Hips distillate + topper', async ({
   // daily + the 10-min reset + open-up + the Sunday engine + power primer
   await expect(page.locator('#rehab-session-list .rhs-card')).toHaveCount(5);
   const card = page.locator('#rehab-session-list [data-rehab="daily"]');
-  // 8 blocks; the calendar picks the variant, and no A–H letter is printed
-  await expect(card.locator('.rhs-meta')).toContainText('8 MOVES');
+  // 9 blocks; the calendar picks the variant, and no A–H letter is printed
+  await expect(card.locator('.rhs-meta')).toContainText('9 MOVES');
   await expect(card.locator('.rhs-meta')).not.toContainText('DAY ');
   await card.click();
   await page.locator('#sp-start').click();
   await expect(page.locator('#rehab-player')).toHaveClass(/open/);
   await expect(page.locator('#rp-exname')).toHaveText('T-Spine Reach');
   await page.locator('#rp-overview-btn').click();
-  // his favorites are fixed daily; the topper closes the session
+  // his favorites are fixed daily; a finisher and the core cap close it
   await expect(page.locator('#rpo-list')).toContainText('Elephant Walk');
   await expect(page.locator('#rpo-list')).toContainText('Seated Good Morning');
   await expect(page.locator('#rpo-list')).toContainText(
-    /The (Pump|Popeye|Engine|Wing)/,
+    /The (Pump|Popeye|Redline|Chase)/,
   );
 });
 
@@ -64,7 +65,7 @@ test('the rotation is calendar-pinned — completed runs do not flip it', async 
   const card = page.locator('#rehab-session-list [data-rehab="daily"]');
   // a completed run in history changes NOTHING — today's variant comes from
   // the calendar (block week × rehab-day slot), so the sheet can never drift
-  await expect(card.locator('.rhs-meta')).toContainText('8 MOVES');
+  await expect(card.locator('.rhs-meta')).toContainText('9 MOVES');
   await card.click();
   await page.locator('#sp-start').click();
   await page.locator('#rp-overview-btn').click();

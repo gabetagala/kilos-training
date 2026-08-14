@@ -1897,8 +1897,26 @@ function openBenchmarkScorePrompt(session) {
   document.getElementById('bm-val').textContent = bmScoreVal;
   document.getElementById('bm-score').classList.add('open');
 }
+// The finisher's score, asked with the same sheet the benchmarks use but
+// routed to a callback — an AMRAP's rounds and a Tabata's worst round only
+// exist in his head, so the app asks while the number is still warm.
+let pendingFinisherSave = null;
+function openFinisherScorePrompt(cfg, last, onSave) {
+  pendingBenchmarkPrompt = null;
+  pendingFinisherSave = { cfg, onSave };
+  bmScoreVal = last ?? cfg.def;
+  document.getElementById('bm-score-title').textContent = cfg.title;
+  document.getElementById('bm-score-sub').textContent =
+    `${cfg.sub}${last != null ? ` Last time: ${last}.` : ''}`;
+  document.getElementById('bm-unit').textContent = cfg.unit;
+  document.getElementById('bm-val').textContent = bmScoreVal;
+  document.getElementById('bm-score').classList.add('open');
+}
 function bmScoreAdjust(d) {
-  const cfg = BM_PROMPT[pendingBenchmarkPrompt?.scoreType] || BM_PROMPT.hr;
+  const cfg =
+    pendingFinisherSave?.cfg ||
+    BM_PROMPT[pendingBenchmarkPrompt?.scoreType] ||
+    BM_PROMPT.hr;
   bmScoreVal = Math.max(cfg.min, Math.min(cfg.max, bmScoreVal + d));
   document.getElementById('bm-val').textContent = bmScoreVal;
 }
@@ -1911,12 +1929,15 @@ document
 document.getElementById('bm-score-save')?.addEventListener('click', () => {
   if (pendingBenchmarkPrompt)
     saveBenchmarkRun(pendingBenchmarkPrompt.id, bmScoreVal);
+  if (pendingFinisherSave) pendingFinisherSave.onSave(bmScoreVal);
   pendingBenchmarkPrompt = null;
+  pendingFinisherSave = null;
   document.getElementById('bm-score').classList.remove('open');
   renderRehabPage();
 });
 document.getElementById('bm-score-skip')?.addEventListener('click', () => {
   pendingBenchmarkPrompt = null;
+  pendingFinisherSave = null;
   document.getElementById('bm-score').classList.remove('open');
 });
 
@@ -2261,7 +2282,13 @@ function rhPlayBuf(slug, opts = {}) {
 }
 // Announcement playback through the AudioContext (gesture-free on iOS).
 let rhAnnSrc = null;
+// Chain generation: stopping a buffer source FIRES its onended, and onended
+// is the old chain's playNext — so without this token, cutting off
+// "next — band lateral raise" resurrects its remaining clips on top of the
+// new "twelve reps — go" (two voices at once, his 2026-08-14 report).
+let rhAnnGen = 0;
 function rhStopAnnounce() {
+  rhAnnGen += 1; // orphan any pending chain BEFORE stop() triggers onended
   try {
     rhAnnSrc?.stop();
   } catch {}
@@ -2273,6 +2300,7 @@ function rhPlayClipSeq(slugs) {
   rhStopBuf(); // announcements outrank tempo words
   rhStopAnnounce();
   rhStopTts(); // …and replace a still-talking TTS announcement
+  const gen = rhAnnGen; // claimed after the stops — this chain owns the mic
   const bufs = slugs.map((sl) => rhClipBuffers.get(sl)).filter(Boolean);
   // An announcement belongs to its moment. If the context was suspended and
   // playback queued, a late clip must be DROPPED, not fired mid-set as a
@@ -2281,6 +2309,7 @@ function rhPlayClipSeq(slugs) {
     Date.now() + bufs.reduce((sum, b) => sum + b.duration, 0) * 1000 + 1500;
   let i = 0;
   const playNext = () => {
+    if (gen !== rhAnnGen) return; // orphaned — a newer voice owns the mic
     if (i >= bufs.length || Date.now() > deadline) {
       rhAnnounceUntil = 0;
       rhAnnSrc = null;
@@ -2309,13 +2338,17 @@ function rhPlayClips(urls) {
   rhStopBuf();
   rhStopAnnounce();
   rhStopTts();
+  const gen = rhAnnGen; // same ownership rule as the buffer chain — a clip
+  // that ends naturally in the same beat a new voice starts must not
+  // resurrect its old chain over it
   // ceiling estimate keeps the mic reserved even if `ended` never fires
   // (autoplay rejection); the chain clears it early on real completion.
   rhAnnounceUntil = Date.now() + urls.length * 1100;
   const done = () => {
-    rhAnnounceUntil = 0;
+    if (gen === rhAnnGen) rhAnnounceUntil = 0;
   };
   const next = (i) => {
+    if (gen !== rhAnnGen) return;
     if (i >= urls.length) {
       done();
       return;
@@ -2518,6 +2551,17 @@ function rhAnnounceStep(step) {
       // already landed; the number rides right behind it.
       const rx = rhRxCue(step);
       if (rx) rhCueSay(rx.parts, rx.text);
+    } else if (
+      step.kind === 'work' &&
+      step.manual &&
+      step.piece &&
+      step.phase !== 'RAMP'
+    ) {
+      // for-time steps are manual but still a clocked piece (2026-08-14):
+      // they get the same spoken number the EMOM minutes do — the finishers
+      // replaced EMOMs, and going silent was a regression, not a choice
+      const rx = rhRxCue(step);
+      if (rx) rhCueSay(rx.parts, rx.text);
     } else if (step.phase === 'SWITCH SIDES') {
       // navigation, not coaching — a beep cannot carry which side is next
       rhCueSay(['switch-sides'], 'Switch sides');
@@ -2632,6 +2676,10 @@ function rhPersist() {
     awayMs: rhAwayMs,
     liftSets: rhLiftSets,
     weightKg: rhWeightKg,
+    // the for-time score survives a refresh — without these, a mid-piece
+    // crash restores with ELAPSED back at 0:00 and the score lies
+    pieceStarts: rhPieceStarts,
+    pieceFinal: rhPieceFinal,
     savedAt: Date.now(),
   });
   rhLastSave = Date.now();
@@ -2805,12 +2853,25 @@ function rhRenderSessionRemain() {
 let rhPieceStartedAt = null;
 let rhPieceName = null;
 let rhPieceInterval = null;
+// name → epoch of the piece's FIRST step this run. Re-entering a piece (a
+// back-tap to check the prep card, a mid-piece refresh) must continue the
+// clock, never restart it — the elapsed number is the score.
+let rhPieceStarts = {};
+// The last finished piece's time, held for the finish entry — "Score = time"
+// is only a real promise if the number survives the piece ending.
+let rhPieceFinal = null;
 // The main tick loop only runs on countdown steps (rhPlay bails on manual
 // ones), so a self-paced piece needs its own repaint or the clock freezes on
 // its first frame.
 function rhStopPieceClock() {
   if (rhPieceInterval) clearInterval(rhPieceInterval);
   rhPieceInterval = null;
+  if (rhPieceName && rhPieceStartedAt != null) {
+    rhPieceFinal = {
+      name: rhPieceName,
+      secs: Math.max(1, Math.floor((Date.now() - rhPieceStartedAt) / 1000)),
+    };
+  }
   rhPieceName = null;
   rhPieceStartedAt = null;
 }
@@ -2819,7 +2880,8 @@ function rhRenderPieceClock() {
   if (!step) return;
   if (rhPieceName !== step.piece) {
     rhPieceName = step.piece;
-    rhPieceStartedAt = Date.now();
+    rhPieceStartedAt = rhPieceStarts[step.piece] ?? Date.now();
+    rhPieceStarts[step.piece] = rhPieceStartedAt;
   }
   if (!rhPieceInterval) {
     rhPieceInterval = setInterval(() => {
@@ -3329,17 +3391,39 @@ function rhNextWorkPreview() {
     const s = rhQueue[i];
     if (s.kind !== 'work') continue;
     const name = GUIDED_EXERCISES[s.exId]?.name || s.exId;
-    const num = s.emom
-      ? s.workSecs
-        ? `${s.workSecs}s`
-        : s.reps && s.reps !== 'build'
-          ? `×${s.reps}`
-          : ''
-      : '';
+    // any work step carries its number now (2026-08-14) — the finishers and
+    // the anchor sets deserve the same forward glance the EMOM stations got
+    const num = s.workSecs
+      ? `${s.workSecs}s`
+      : s.reps && s.reps !== 'build' && !s.holdSet
+        ? `×${s.reps}`
+        : '';
     const side = s.side ? ` · ${s.side}` : '';
     return `${name}${num ? ` ${num}` : ''}${side}`;
   }
   return 'FINISH';
+}
+// The NEXT line, with its number in display type — reading "×8" from across
+// the station is the whole point, so the reps get the big treatment.
+function rhSetNextLine(nextEl, preview) {
+  if (!preview) {
+    nextEl.textContent = '';
+    return;
+  }
+  const m = preview.match(/^(.*?) (×[\d/a-z]+|\d+s)( · .*)?$/i);
+  if (!m) {
+    nextEl.textContent = `NEXT · ${preview.toUpperCase()}`;
+    return;
+  }
+  nextEl.textContent = '';
+  nextEl.appendChild(
+    document.createTextNode(`NEXT · ${m[1].toUpperCase()} `),
+  );
+  const b = document.createElement('b');
+  b.className = 'rp-next-rx';
+  b.textContent = m[2];
+  nextEl.appendChild(b);
+  if (m[3]) nextEl.appendChild(document.createTextNode(m[3].toUpperCase()));
 }
 
 function rhRenderStep() {
@@ -3366,12 +3450,12 @@ function rhRenderStep() {
   document.getElementById('rp-exname').textContent = ex.name;
   // THE PRESCRIPTION RIDES ON THE MOVEMENT (2026-08-11, his ask): mid-EMOM
   // the one number he needs — reps, or seconds for timed work — leads the
-  // meta line, big enough to read gassed. Warm-up rounds say 'build', which
-  // is not a number worth shouting.
-  // EMOM steps only: every other mode's meta already carries its reps, and a
-  // ladder's meta IS its rep count.
+  // meta line, big enough to read gassed (2026-08-14, his ask: at a glance,
+  // not a 12px accent). Warm-up rounds say 'build', which is not a number
+  // worth shouting. ANY work step now — the finishers run fortime/manual, and
+  // their reps deserve the same prominence the EMOM stations got.
   const rx =
-    step.emom && step.kind === 'work' && !step.ladder && step.phase !== 'RAMP'
+    step.kind === 'work' && !step.ladder && step.phase !== 'RAMP'
       ? step.workSecs
         ? `${step.workSecs}s`
         : step.reps && step.reps !== 'build'
@@ -3386,10 +3470,16 @@ function rhRenderStep() {
     b.textContent = rx;
     metaEl.appendChild(b);
   }
+  // the big rx makes a trailing "· 12 REPS" in the meta pure noise — drop
+  // exactly that fragment, and only when the number matches
+  const metaTail = String(step.meta || '').replace(
+    rx.startsWith('×')
+      ? new RegExp(`( · )?${rx.slice(1).replace('/', '\\/')} REPS$`, 'i')
+      : /$^/,
+    '',
+  );
   metaEl.appendChild(
-    document.createTextNode(
-      `${rx && step.meta ? ' · ' : ''}${step.meta || ''}`,
-    ),
+    document.createTextNode(`${rx && metaTail ? ' · ' : ''}${metaTail}`),
   );
   const cueEl = document.getElementById('rp-cue');
   if (step.amrapMembers) {
@@ -3440,6 +3530,11 @@ function rhRenderStep() {
   document.getElementById('rp-lift').style.display = showLiftPanel
     ? ''
     : 'none';
+  // clock + weight row together is the tallest step there is — compact the
+  // pane on phones so it fits a 664px viewport without scrolling
+  document
+    .getElementById('rehab-player')
+    .classList.toggle('rp-dense', showLiftPanel && !step.manual);
   rhPendingReps = null; // arriving at any step resets the two-stage logger
   const skipBtn = document.getElementById('rp-skip');
   const isManualWork = !!(step.manual && step.kind === 'work');
@@ -3511,13 +3606,18 @@ function rhRenderStep() {
   // same movement (anchor rounds): "next: what you're doing" is noise.
   const nextEl = document.getElementById('rp-next');
   if (step.kind === 'rest') {
-    nextEl.textContent = `NEXT · ${rhNextWorkPreview().toUpperCase()}`;
-  } else if (step.emom && step.kind === 'work') {
+    rhSetNextLine(nextEl, rhNextWorkPreview());
+  } else if (
+    step.kind === 'work' &&
+    (step.emom || (step.manual && step.piece))
+  ) {
+    // EMOM minutes AND for-time piece steps point forward — a continuous
+    // piece has no rest step to carry the preview, so the work step must
     const nxt = rhQueue.slice(rhIdx + 1).find((s) => s.kind === 'work');
-    nextEl.textContent =
-      nxt && nxt.exId !== step.exId
-        ? `NEXT · ${rhNextWorkPreview().toUpperCase()}`
-        : '';
+    rhSetNextLine(
+      nextEl,
+      nxt && nxt.exId !== step.exId ? rhNextWorkPreview() : null,
+    );
   } else {
     nextEl.textContent = '';
   }
@@ -3788,6 +3888,11 @@ function openRehabPlayer(session, saved = null) {
   rhLiftSets = saved?.liftSets || [];
   rhStartedAt = saved?.startedAt || Date.now();
   rhWeightKg = saved?.weightKg ?? get(REHAB_RDL_KEY) ?? 40;
+  // the for-time clock continues across a refresh instead of lying at 0:00
+  rhPieceStarts = saved?.pieceStarts ?? {};
+  rhPieceName = null;
+  rhPieceStartedAt = null;
+  rhPieceFinal = saved?.pieceFinal ?? null;
   const step = rhStep();
   rhRemainMs = step.manual
     ? 0
@@ -4005,7 +4110,12 @@ function rhFinish() {
             ? [
                 {
                   ex: b.ex,
-                  sets: b.sets || b.repScheme?.length || 1,
+                  // a tabata's rounds ARE its sets — "High Knees: 1 set"
+                  // beside sets:8 was an internally inconsistent record
+                  sets:
+                    b.mode === 'tabata'
+                      ? (b.rounds ?? 8)
+                      : b.sets || b.repScheme?.length || 1,
                   mode: b.mode,
                 },
               ]
@@ -4036,6 +4146,81 @@ function rhFinish() {
       exercises,
     };
   }
+  // THE FINISHER'S SCORE (2026-08-14): the notes promise "Score = time" /
+  // "beat last Sunday" — a promise the app must keep, not just print. The
+  // for-time clock is observable; rounds and worst-round live in his head,
+  // so those get the score sheet after the summary.
+  const finBlock = sessionBlocks(session, rhVariant).find((b) =>
+    ['fortime', 'amrap', 'tabata'].includes(b.mode),
+  );
+  if (finBlock?.name) {
+    const fmtSecs = (s) =>
+      `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+    if (finBlock.mode === 'fortime') {
+      // capture the clock even if the run ended ON the last piece step —
+      // rhStopPieceClock may not have fired yet for the final step
+      if (rhPieceName === finBlock.name && rhPieceStartedAt != null)
+        rhStopPieceClock();
+      if (rhPieceFinal?.name === finBlock.name) {
+        entry.finisher = {
+          name: finBlock.name,
+          mode: 'fortime',
+          score: rhPieceFinal.secs,
+          label: fmtSecs(rhPieceFinal.secs),
+        };
+      }
+    } else {
+      const isRounds = finBlock.mode === 'amrap';
+      const last = lastFinisherScore(finBlock.name);
+      const capturedEntry = entry;
+      setTimeout(
+        () =>
+          openFinisherScorePrompt(
+            isRounds
+              ? {
+                  title: `${finBlock.name.toUpperCase()} — ROUNDS`,
+                  sub: 'Full rounds only — a part-round counts as the round below it.',
+                  unit: 'rounds',
+                  def: 6,
+                  min: 0,
+                  max: 60,
+                }
+              : {
+                  title: `${finBlock.name.toUpperCase()} — WORST ROUND`,
+                  sub: 'Your lowest rep count of the eight rounds — the honest one.',
+                  unit: 'reps',
+                  def: 30,
+                  min: 0,
+                  max: 99,
+                },
+            last?.score,
+            (score) => {
+              // find the pushed record fresh — `get` re-parses storage, so
+              // mutating the in-memory entry object would silently vanish
+              const h = get('workoutHistory') || [];
+              const rec = h.find(
+                (x) =>
+                  x.date === capturedEntry.date &&
+                  x.name === capturedEntry.name,
+              );
+              if (!rec) return;
+              rec.finisher = {
+                name: finBlock.name,
+                mode: finBlock.mode,
+                score,
+                label: `${score} ${isRounds ? 'rounds' : 'reps'}`,
+              };
+              set('workoutHistory', h);
+              pushData();
+              renderHome();
+            },
+          ),
+        600,
+      );
+    }
+  }
+  rhPieceStarts = {};
+  rhPieceFinal = null;
   const hist = get('workoutHistory') || [];
   hist.push(entry);
   set('workoutHistory', hist);
@@ -4045,6 +4230,16 @@ function rhFinish() {
   lastFinishSnapshot = null; // guided finishes advance state — no undo
   renderHome();
   showWorkoutSummary(completed, durationStr, entry);
+}
+
+// The most recent recorded score for a named finisher — what "beat last
+// Sunday" actually points at.
+function lastFinisherScore(name) {
+  const hist = get('workoutHistory') || [];
+  for (let i = hist.length - 1; i >= 0; i--) {
+    if (hist[i]?.finisher?.name === name) return hist[i].finisher;
+  }
+  return null;
 }
 
 // ── Week plan — Mon…Sun with dates; fills in as things get done ──────────────
@@ -4185,7 +4380,7 @@ function renderBlockCalendar() {
           plans
             .map((p) => p?.name)
             .filter(Boolean)
-            .join(' + ') || (hasRehab ? 'Back & Hips + Topper' : 'Rest');
+            .join(' + ') || (hasRehab ? 'Back & Hips + Finisher' : 'Rest');
         rows.push(`
           <div class="cal-day${k === todayK ? ' cal-today' : ''}${isDone ? ' cal-done' : ''}">
             <div class="cal-day-top">
@@ -4197,7 +4392,7 @@ function renderBlockCalendar() {
               hasRehab
                 ? `<button class="cal-part cal-part-btn${rehabDone ? ' cal-part-done' : ''}" data-cal-session="daily">
               <span class="cal-tag cal-r">R</span>
-              <span class="cal-part-body"><span class="cal-pt">Back &amp; Hips + Topper</span><span class="cal-pd"> · ${rehabMins} min</span></span>
+              <span class="cal-part-body"><span class="cal-pt">Back &amp; Hips + Finisher</span><span class="cal-pd"> · ${rehabMins} min</span></span>
             </button>`
                 : ''
             }
@@ -4343,7 +4538,7 @@ function renderWeekPlan() {
     </div>`);
   }
   el.innerHTML = `${rows.join('')}
-    <div class="wp-legend">BACK &amp; HIPS ~25 min of holds + a 12-min topper EMOM, four days a week · PULL / SQUAT / PRESS the three full-body lift days · OPEN UP glutes + stretches · THE LONG WAY easy conditioning</div>`;
+    <div class="wp-legend">BACK &amp; HIPS ~25 min of holds + a finisher (pump for time · Tabata · AMRAP) + the core cap, four days a week · PULL / SQUAT / PRESS the three full-body lift days · OPEN UP glutes + stretches · THE LONG WAY easy conditioning</div>`;
 
   el.querySelectorAll('.wp-chip[data-action]').forEach((chip) => {
     chip.addEventListener('click', () => {
@@ -4562,8 +4757,11 @@ function openSessionPreview(session, after = null, originEl = null) {
         // a lone circuit member repeats its own name in the row below the
         // kicker, and "SUPERSET" of one exercise is nonsense — its format
         // line ("2 rounds · 60s") is the whole story
+        // A scored finisher shows the number to beat right on the card —
+        // "beat last Sunday" is only a promise if last Sunday is visible.
+        const lastFin = r.piece ? lastFinisherScore(r.title) : null;
         const kicker = r.piece
-          ? `${(r.title || '').toUpperCase()} — ${(r.detail || '').toUpperCase()}`
+          ? `${(r.title || '').toUpperCase()} — ${(r.detail || '').toUpperCase()}${lastFin ? ` · LAST ${lastFin.label.toUpperCase()}` : ''}`
           : collapsed.length > 1
             ? `SUPERSET · ${r.rounds} ROUNDS`
             : (r.detail || '').toUpperCase();
