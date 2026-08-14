@@ -392,29 +392,30 @@ const straight = (ex, phase) => ({
   phase,
 });
 
-// ── THE FINISHERS (2026-08-14, his call) ────────────────────────────────────
-// The strict topper EMOMs felt like a fourth lift day — a minute of standing
-// around per light set, load progression nobody asked for. Replaced with
-// FINISHERS: metcon-shaped closers where the point is the burn or the heart
-// rate, not the bookkeeping. Four, one per rehab day, calendar-pinned — the
-// weekday keeps its identity (Tue chase the pump, Thu grind the grip,
-// Sat redline, Sun climb):
+// ── THE FINISHERS ───────────────────────────────────────────────────────────
+// 2026-08-14: the strict topper EMOMs (a fourth lift day in disguise) became
+// four metcon-shaped finishers. 2026-08-15: the pool grew to SIXTEEN — see
+// the block below, which is the live spec. AXIALLY QUIET by rule
+// (verifier-enforced, all modes): bands, light DBs, bodyweight — the barbell
+// and the pulley stay untouched, because these days sit between the heavy
+// ones on purpose. Core rides the McGill core cap that CLOSES every rehab
+// day, at protocol dose — never a plank minute squeezed into an EMOM.
+// SIXTEEN, striding the four weekday slots (2026-08-15, his ask: "fresh and
+// fun all the time" + "CrossFit level fun" + his old competitors-camp
+// formats). index % 4 keeps each weekday's LEANING — Tue pump/carries,
+// Thu arms/grip, Sat engine, Sun mini-WOD — while the pool cycles FOUR:
+// a full repeat only every four weeks, and when one returns its LAST score
+// is on the card waiting to be beaten.
 //
-//   The Pump    — FOR TIME. Same pump work, no prescribed rest: the burn is
-//                 continuous and the score is the finish time.
-//   The Popeye  — FOR TIME. The wrist pair + reverse curls as a grinder;
-//                 forearm volume stays real (and counted) for the triangle.
-//   The Redline — TABATA, one movement, 8 × 20/10. THE top-HR test he asked
-//                 for; the score is the WORST round, which is the honest one.
-//   The Chase   — AMRAP 9. Jacks, bounds, explosive push-ups; score = rounds,
-//                 beat last Sunday's number.
-//
-// AXIALLY QUIET by rule (verifier-enforced, all modes): bands, light DBs,
-// bodyweight — the barbell and the pulley stay untouched, because these days
-// sit between the heavy ones on purpose. Core no longer rides inside each
-// pool — every rehab day now ENDS on the McGill core cap below, at protocol
-// dose (short crisp holds), not as a minute of plank squeezed into an EMOM.
+// Shapes come from the researched canon (the formats people demonstrably
+// love): for-time chases, Annie's descending mercy-ladder, death-by ladders
+// that end themselves, Tabata's worst-round rule, Cindy's triplet, carry
+// gauntlets (McGill treats loaded carries as DDD therapy, not a workaround).
+// Safety lines from the same research: ballistics and skater bounds live
+// only on forced-rest clocks, DBs come off the BENCH (the pickup is the
+// hazard, not the press), bear-crawl turns are stop-plant-turn.
 const TOPPERS = [
+  // ── week A ────────────────────────────────────────────────────────────
   {
     mode: 'fortime',
     name: 'The Pump',
@@ -424,6 +425,62 @@ const TOPPERS = [
       { ex: 'band-lateral-raise', reps: '12', logWeight: false },
       { ex: 'hammer-curl', reps: '10' },
       { ex: 'band-pull-apart', reps: '14', logWeight: false },
+    ],
+  },
+  {
+    mode: 'emom',
+    name: 'The Arm Farm',
+    formatLabel: 'EMOM',
+    rounds: 5,
+    note: 'Odd minutes curls, even minutes diamond push-ups. Curl load is the score — nudge it up when it stops burning.',
+    members: [
+      { ex: 'supinated-curl', reps: '10' },
+      // NOT overhead-triceps or pushdowns: both are CABLE moves, and the
+      // pulley stays untouched on rehab days (verifier-enforced). Diamond
+      // push-ups are the triceps minute — his pick (2026-08-15), strict,
+      // no equipment, sag-gated like every push-up here.
+      { ex: 'diamond-pushup', reps: '10', logWeight: false },
+    ],
+  },
+  {
+    mode: 'tabata',
+    name: 'The Spring',
+    ex: 'pogo-hop',
+    // UNSCORED by doctrine (2026-08-15 review): a worst-round score
+    // incentivizes max ballistic output at fatigue — the exact opposite of
+    // "stop while still springy". The bell keeps score.
+    scored: false,
+    note: 'Low, springy, quick off the floor — stop the round early the moment the spring dies.',
+  },
+  {
+    mode: 'amrap',
+    name: 'The Classic',
+    capSecs: 9 * 60,
+    note: 'Strict pull-ups, always. Steady rounds beat a hot start. Score = rounds.',
+    members: [
+      { ex: 'pull-up-bw', reps: '3', logWeight: false },
+      { ex: 'push-up', reps: '6', logWeight: false },
+      { ex: 'box-step-up', reps: '9', logWeight: false },
+    ],
+  },
+  // ── week B ────────────────────────────────────────────────────────────
+  {
+    mode: 'fortime',
+    name: 'The Downhill',
+    note: 'Every round is smaller than the last — it only gets easier. Score = time.',
+    members: [
+      { ex: 'band-pull-apart', repScheme: [40, 30, 20, 10], logWeight: false },
+      {
+        ex: 'push-up',
+        repScheme: [16, 12, 8, 4],
+        logWeight: false,
+        // the alt declares its OWN scheme: resolveSwap strips movement
+        // fields an alt doesn't define, so a bare alt would serve
+        // 'undefined reps' and prompt for kilograms on a push-up
+        alts: [
+          { ex: 'elevated-pushup', repScheme: [16, 12, 8, 4], logWeight: false },
+        ],
+      },
     ],
   },
   // the light wrist pair shares one dial (TRAINING.md's own pairing)
@@ -439,24 +496,177 @@ const TOPPERS = [
     ],
   },
   {
+    mode: 'emom',
+    name: 'Death by Step-Ups',
+    formatLabel: 'EMOM',
+    rounds: 10,
+    note: 'Two more every minute until a minute beats you. When it does, tap CLOCK BEAT ME — score = last full minute.',
+    bail: 'CLOCK BEAT ME',
+    scorePrompt: {
+      title: 'DEATH BY STEP-UPS — LAST FULL MINUTE',
+      sub: 'The last minute you finished the count inside. The clock won after that.',
+      unit: 'minutes',
+      labelPrefix: 'min',
+      def: 7,
+      min: 0,
+      max: 10,
+    },
+    members: [
+      {
+        ex: 'box-step-up',
+        reps: '4',
+        repsPerRound: ['4', '6', '8', '10', '12', '14', '16', '18', '20', '22'],
+        logWeight: false,
+      },
+    ],
+  },
+  {
+    mode: 'fortime',
+    name: 'Crawl & Haul',
+    rounds: 6,
+    note: 'Crawl a length, carry back. At each wall: stop, plant, TURN — never twist through it. Score = time.',
+    members: [
+      { ex: 'bear-crawl', reps: '1 length', logWeight: false },
+      { ex: 'farmer-carry', reps: '1 length' },
+    ],
+  },
+  // ── week C ────────────────────────────────────────────────────────────
+  {
+    mode: 'emom',
+    name: 'The Porter',
+    formatLabel: 'EMOM',
+    rounds: 2,
+    note: 'Forty seconds loaded, twenty to breathe. DBs come off the BENCH. Score = total garage lengths.',
+    scorePrompt: {
+      title: 'THE PORTER — GARAGE LENGTHS',
+      sub: 'Total lengths carried across all eight minutes.',
+      unit: 'lengths',
+      def: 16,
+      min: 0,
+      max: 60,
+    },
+    // one hand per suitcase minute — the right (smaller) side leads, same
+    // asymmetry rule as the lift days; no impossible mid-minute switch cue
+    members: [
+      { ex: 'farmer-carry', secs: 40, phase: 'GO' },
+      {
+        ex: 'suitcase-carry',
+        secs: 40,
+        phase: 'GO',
+        note: 'RIGHT hand this minute.',
+      },
+      { ex: 'farmer-carry', secs: 40, phase: 'GO' },
+      {
+        ex: 'suitcase-carry',
+        secs: 40,
+        phase: 'GO',
+        note: 'LEFT hand this minute.',
+      },
+    ],
+  },
+  {
+    mode: 'emom',
+    name: 'Death by Curls',
+    formatLabel: 'EMOM',
+    rounds: 10,
+    // NOT push presses (2026-08-15 review): a light overhead ladder can
+    // never be beaten by the clock, so it ends at overhead muscular failure
+    // — the one scenario the doctrine bans. Curls fail benignly, the top
+    // rungs genuinely race the minute, and the pump is the triangle's.
+    note: 'Two more every minute until a minute beats you — then tap CLOCK BEAT ME. Strict curls, both arms.',
+    bail: 'CLOCK BEAT ME',
+    scorePrompt: {
+      title: 'DEATH BY CURLS — LAST FULL MINUTE',
+      sub: 'The last minute you finished the count inside. The clock won after that.',
+      unit: 'minutes',
+      labelPrefix: 'min',
+      def: 6,
+      min: 0,
+      max: 10,
+    },
+    members: [
+      {
+        ex: 'hammer-curl',
+        reps: '6',
+        repsPerRound: ['6', '8', '10', '12', '14', '16', '18', '20', '22', '24'],
+      },
+    ],
+  },
+  {
     mode: 'tabata',
-    name: 'The Redline',
-    ex: 'high-knees',
-    note: 'All eight rounds at max effort — your score is your worst round.',
+    name: 'The Skater',
+    // skater bounds are EXACTLY tabata work (research ruling: 20s bursts on
+    // a forced clock, never an open grind) — but UNSCORED, same doctrine as
+    // The Spring: landings must stay crisp, never chased for a number.
+    ex: 'skater-bound',
+    scored: false,
+    note: 'Eight rounds of clean bounds — stick every landing for a beat. Quality is the score.',
   },
   {
     mode: 'amrap',
     name: 'The Chase',
     capSecs: 9 * 60,
-    // plain push-up, NOT power-pushup: the ballistic dose is "crisp reps,
-    // never near fatigue" everywhere else in this program, and an AMRAP's
-    // score incentive is the exact opposite. The push-up's own stop rule
-    // (first hip-sag rep) survives open pace; a ballistic's doesn't.
-    note: 'Steady climb, no sprint-and-die. Score = rounds — beat last Sunday.',
+    note: 'Steady climb, no sprint-and-die. Score = rounds — beat last time.',
     members: [
       { ex: 'jumping-jack', reps: '20', logWeight: false },
-      { ex: 'skater-bound', reps: '10', logWeight: false },
+      { ex: 'reverse-lunge', reps: '10', logWeight: false },
       { ex: 'push-up', reps: '8', logWeight: false },
+    ],
+  },
+  // ── week D (2026-08-15) — lifted from his OWN old competitors-camp sheet:
+  // the formats he already loved, re-armed with legal movements ──────────
+  {
+    mode: 'emom',
+    name: 'The Complex',
+    formatLabel: 'EMOM',
+    rounds: 8,
+    note: 'One flow, never set down: hang clean, ride, press. Crisp every minute — the load is the score.',
+    members: [{ ex: 'db-hang-clean-press', reps: '6' }],
+  },
+  {
+    mode: 'amrap',
+    name: 'The Test',
+    capSecs: 5 * 60,
+    note: 'Max STRICT pull-ups in five minutes — break early, break often. Note the number.',
+    scorePrompt: {
+      title: 'THE TEST — STRICT PULL-UPS',
+      sub: 'Total strict reps across the five minutes.',
+      unit: 'reps',
+      def: 15,
+      min: 0,
+      max: 99,
+    },
+    members: [{ ex: 'pull-up-bw', reps: 'max', logWeight: false }],
+  },
+  {
+    mode: 'amrap',
+    name: 'The Climb',
+    capSecs: 8 * 60,
+    note: 'Rung 1 is 2 of each, rung 2 is 4 — add two every rung until the clock ends it. Score = highest full rung.',
+    scorePrompt: {
+      title: 'THE CLIMB — HIGHEST RUNG',
+      sub: 'The last rung you completed in full before the clock.',
+      unit: 'rung',
+      labelPrefix: 'rung',
+      def: 6,
+      min: 1,
+      max: 20,
+    },
+    members: [
+      { ex: 'box-step-up', reps: '2-4-6…', logWeight: false },
+      { ex: 'push-up', reps: '2-4-6…', logWeight: false },
+    ],
+  },
+  {
+    mode: 'fortime',
+    name: 'The Century',
+    rounds: 1,
+    note: 'One hundred reps, one pile, any breaks you need. Score = time.',
+    members: [
+      { ex: 'jumping-jack', reps: '30', logWeight: false },
+      { ex: 'box-step-up', reps: '25', logWeight: false },
+      { ex: 'band-pull-apart', reps: '25', logWeight: false },
+      { ex: 'push-up', reps: '20', logWeight: false },
     ],
   },
 ];
@@ -507,7 +717,7 @@ export const REHAB_SESSIONS = [
     name: 'Back & Hips',
     freq: 'Tue · Thu · Sat · Sun',
     blurb:
-      'The holds that matter, ~25 minutes — then a finisher: chase a pump for time, redline a Tabata, or climb an AMRAP, and close on the core cap. On the holds: 10/10 burn, 0/10 pain; unbroken means take the next progression.',
+      'The holds that matter, ~25 minutes — then a finisher from a sixteen-deep rotation: for time, death-by, Tabata, AMRAP — and the core cap to close. On the holds: 10/10 burn, 0/10 pain; unbroken means take the next progression.',
     blocks: [
       // his thoracic ask — 12 slow reaches a side is a real two minutes
       {

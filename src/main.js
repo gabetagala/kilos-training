@@ -2510,6 +2510,15 @@ function rhRxCue(step) {
       text: `${step.workSecs} seconds`,
     };
   }
+  // unit-bearing prescriptions ('1 length') speak their unit — extracting
+  // the digit alone announced every carry as 'one reps'
+  const lm = String(step.reps ?? '').match(/^(\d+)\s*(length|lengths)$/i);
+  if (lm) {
+    return {
+      parts: ['tts-fallback'],
+      text: `${lm[1]} ${Number(lm[1]) === 1 ? 'length' : 'lengths'}`,
+    };
+  }
   const n = Number.parseInt(
     String(step.reps ?? '').match(/\d+/)?.[0] ?? '',
     10,
@@ -3463,9 +3472,11 @@ function rhRenderStep() {
     step.kind === 'work' && !step.ladder && step.phase !== 'RAMP'
       ? step.workSecs
         ? `${step.workSecs}s`
-        : step.reps && step.reps !== 'build'
-          ? `×${step.reps}`
-          : ''
+        : /length/i.test(String(step.reps || ''))
+          ? String(step.reps).toUpperCase() // '1 LENGTH', not '×1 length'
+          : step.reps && step.reps !== 'build'
+            ? `×${step.reps}`
+            : ''
       : '';
   const metaEl = document.getElementById('rp-meta');
   metaEl.textContent = '';
@@ -3633,6 +3644,14 @@ function rhRenderStep() {
   if (guideEl) {
     guideEl.style.display = step.manual && step.repTempo ? '' : 'none';
     guideEl.textContent = 'TAP ▶ FOR TEMPO GUIDE';
+  }
+  // the death-by exit: visible only on a bailing piece's work minutes —
+  // "the clock ends it, not you" needs a button that means it
+  const bailEl = document.getElementById('rp-bail');
+  if (bailEl) {
+    bailEl.style.display =
+      step.bail && step.kind === 'work' ? '' : 'none';
+    if (step.bail) bailEl.textContent = `${step.bail} →`;
   }
   const swapEl = document.getElementById('rp-swap');
   if (swapEl) {
@@ -4108,7 +4127,9 @@ function rhFinish() {
         b.members
           ? b.members.map((m) => ({
               ex: m.ex,
-              sets: b.rounds || 1,
+              // a per-member repScheme (The Downhill) carries the round
+              // count the block header doesn't
+              sets: b.rounds || m.repScheme?.length || 1,
               mode: 'circuit',
             }))
           : b.ex
@@ -4155,10 +4176,21 @@ function rhFinish() {
   // "beat last Sunday" — a promise the app must keep, not just print. The
   // for-time clock is observable; rounds and worst-round live in his head,
   // so those get the score sheet after the summary.
-  const finBlock = sessionBlocks(session, rhVariant).find((b) =>
-    ['fortime', 'amrap', 'tabata'].includes(b.mode),
+  const finBlock = sessionBlocks(session, rhVariant).find(
+    (b) =>
+      ['fortime', 'amrap', 'tabata'].includes(b.mode) ||
+      // scored EMOMs too (2026-08-15): death-by ladders and the carry
+      // gauntlet declare their own prompt on the block
+      (b.mode === 'emom' && b.scorePrompt),
   );
-  if (finBlock?.name) {
+  // a finisher he never REACHED asks for no score — bailing during the
+  // holds must not end on a demand to invent a number. scored:false marks
+  // the deliberately unscored (the bell keeps score on The Rounds).
+  const finAttempted =
+    finBlock?.name &&
+    finBlock.scored !== false &&
+    [...rhCounted].some((i) => rhQueue[i]?.piece === finBlock.name);
+  if (finBlock?.name && finAttempted) {
     const fmtSecs = (s) =>
       `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
     if (finBlock.mode === 'fortime') {
@@ -4178,26 +4210,30 @@ function rhFinish() {
       const isRounds = finBlock.mode === 'amrap';
       const last = lastFinisherScore(finBlock.name);
       const capturedEntry = entry;
+      // a block's OWN prompt wins (death-by minutes, Porter lengths);
+      // amrap and tabata keep their standard prompts
+      const promptCfg = finBlock.scorePrompt ||
+        (isRounds
+          ? {
+              title: `${finBlock.name.toUpperCase()} — ROUNDS`,
+              sub: 'Full rounds only — a part-round counts as the round below it.',
+              unit: 'rounds',
+              def: 6,
+              min: 0,
+              max: 60,
+            }
+          : {
+              title: `${finBlock.name.toUpperCase()} — WORST ROUND`,
+              sub: 'Your lowest rep count of the eight rounds — the honest one.',
+              unit: 'reps',
+              def: 30,
+              min: 0,
+              max: 99,
+            });
       setTimeout(
         () =>
           openFinisherScorePrompt(
-            isRounds
-              ? {
-                  title: `${finBlock.name.toUpperCase()} — ROUNDS`,
-                  sub: 'Full rounds only — a part-round counts as the round below it.',
-                  unit: 'rounds',
-                  def: 6,
-                  min: 0,
-                  max: 60,
-                }
-              : {
-                  title: `${finBlock.name.toUpperCase()} — WORST ROUND`,
-                  sub: 'Your lowest rep count of the eight rounds — the honest one.',
-                  unit: 'reps',
-                  def: 30,
-                  min: 0,
-                  max: 99,
-                },
+            promptCfg,
             last?.score,
             (score) => {
               // find the pushed record fresh — `get` re-parses storage, so
@@ -4213,7 +4249,11 @@ function rhFinish() {
                 name: finBlock.name,
                 mode: finBlock.mode,
                 score,
-                label: `${score} ${isRounds ? 'rounds' : 'reps'}`,
+                // 'min 7' / 'rung 6', never '7 minutes' — a ladder score is
+                // a RUNG, and a duration label reads as elapsed time
+                label: promptCfg.labelPrefix
+                  ? `${promptCfg.labelPrefix} ${score}`
+                  : `${score} ${promptCfg.unit}`,
               };
               set('workoutHistory', h);
               pushData();
@@ -4356,10 +4396,11 @@ function renderBlockCalendar() {
         // where he'd look for it. Same math as rehabVariantIdx.
         const rehabSlot = { 2: 0, 4: 1, 6: 2, 0: 3 }[offset] ?? 0;
         const rehabV = hasRehab ? (w - 1) * 4 + rehabSlot : 0;
+        // by POSITION, not mode: the finisher is the second-to-last block
+        // (the core cap closes the day) — mode-matching missed the scored
+        // EMOMs (The Arm Farm, the death-by ladders, The Porter)
         const rehabFinisher = hasRehab
-          ? sessionBlocks(getRehabSession('daily'), rehabV).find((b) =>
-              ['fortime', 'amrap', 'tabata'].includes(b.mode),
-            )?.name
+          ? sessionBlocks(getRehabSession('daily'), rehabV).at(-2)?.name
           : null;
         const rehabMins = hasRehab
           ? Math.round(
@@ -4566,7 +4607,7 @@ function renderWeekPlan() {
     </div>`);
   }
   el.innerHTML = `${rows.join('')}
-    <div class="wp-legend">BACK &amp; HIPS ~25 min of holds + a finisher (pump for time · Tabata · AMRAP) + the core cap, four days a week · PULL / SQUAT / PRESS the three full-body lift days · OPEN UP glutes + stretches · THE LONG WAY easy conditioning</div>`;
+    <div class="wp-legend">BACK &amp; HIPS ~25 min of holds + a finisher from a 16-deep rotation (for time · death-by · Tabata · AMRAP) + the core cap, four days a week · PULL / SQUAT / PRESS the three full-body lift days · OPEN UP glutes + stretches · THE LONG WAY easy conditioning</div>`;
 
   el.querySelectorAll('.wp-chip[data-action]').forEach((chip) => {
     chip.addEventListener('click', () => {
@@ -4828,6 +4869,32 @@ function openSessionPreview(
   heroExpandPage(document.getElementById('session-preview'), originEl);
   fitLineFont(document.querySelector('.sp-title'), isLaptop() ? 92 : 62, 28);
 }
+// A death-by minute that beats him ends the PIECE, not the session: jump
+// past its remaining minutes without counting them, land on what follows
+// (the core cap) — clean data, honest score, medicine intact.
+document.getElementById('rp-bail')?.addEventListener('click', () => {
+  const step = rhStep();
+  if (!step?.piece) return;
+  rhStop();
+  let j = rhIdx;
+  while (j < rhQueue.length && rhQueue[j].piece === step.piece) j += 1;
+  if (j >= rhQueue.length) {
+    rhFinish();
+    return;
+  }
+  rhIdx = j;
+  // same timer resets as rhJump — without these, the landing step shows
+  // (and on play, RUNS) the bailed minute's leftover clock
+  const landed = rhStep();
+  rhRemainMs = landed.manual ? 0 : landed.secs * 1000;
+  rhLastBeepSec = null;
+  rhTempoMem.key = null;
+  rhStepEnteredAt = Date.now();
+  rhRenderStep();
+  rhAnnounceStep(landed);
+  rhPersist();
+});
+
 document.getElementById('sp-back').addEventListener('click', () => {
   closePage('session-preview');
 });

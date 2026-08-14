@@ -63,9 +63,11 @@ describe('rehab program data', () => {
       'The Pump',
       'mcgill-curlup',
     ]);
-    // 8 calendar-pinned variants: the rotating slot is 8-deep, the finisher
-    // and core-cap pools 4-deep — a full week serves each exactly once
-    expect(sessionVariantCount(daily)).toBe(8);
+    // 16 calendar-pinned variants: the finisher pool is 16-deep (2026-08-15,
+    // "fresh all the time" + his old competitors-camp formats), the support
+    // slot 8, the core caps 4 — stride-4 keeps each weekday's family while
+    // cycling FOUR variants per slot; full repeat every four weeks
+    expect(sessionVariantCount(daily)).toBe(16);
     expect(getRehabSession('hinge')).toBeNull();
   });
 
@@ -110,13 +112,45 @@ describe('rehab program data', () => {
     );
     expect(finishers.rotate.map((v) => [v.name, v.mode])).toEqual([
       ['The Pump', 'fortime'],
+      ['The Arm Farm', 'emom'],
+      ['The Spring', 'tabata'],
+      ['The Classic', 'amrap'],
+      ['The Downhill', 'fortime'],
       ['The Popeye', 'fortime'],
-      ['The Redline', 'tabata'],
+      ['Death by Step-Ups', 'emom'],
+      ['Crawl & Haul', 'fortime'],
+      ['The Porter', 'emom'],
+      ['Death by Curls', 'emom'],
+      ['The Skater', 'tabata'],
       ['The Chase', 'amrap'],
+      ['The Complex', 'emom'],
+      ['The Test', 'amrap'],
+      ['The Climb', 'amrap'],
+      ['The Century', 'fortime'],
     ]);
-    // no strict EMOM left — that cadence was the thing that felt like a
-    // fourth lift day
-    expect(finishers.rotate.every((v) => v.mode !== 'emom')).toBe(true);
+    // stride-4 keeps each weekday's family: Tue pump, Thu arms, Sat engine,
+    // Sun WOD — and every self-terminating or self-counted format carries
+    // its own score prompt so "beat last time" is never an empty promise
+    for (const f of finishers.rotate) {
+      if (/^Death by|The Porter/.test(f.name)) {
+        expect(f.scorePrompt, f.name).toBeTruthy();
+        expect(f.scorePrompt.unit, f.name).toBeTruthy();
+      }
+    }
+    // EMOMs returned only as GAMES (death-by ladders, the carry gauntlet,
+    // the load-scored arm farm) — never as the flat station cadence that
+    // felt like a fourth lift day: every EMOM here escalates, alternates,
+    // or scores something
+    for (const f of finishers.rotate.filter((v) => v.mode === 'emom')) {
+      const escalates = (f.members || []).some((m) => m.repsPerRound);
+      const alternates = (f.members || []).length > 1;
+      // a single-member EMOM earns its place when the movement itself is a
+      // multi-part flow (the hang clean & press complex)
+      const flows = (f.members || []).some(
+        (m) => m.ex === 'db-hang-clean-press',
+      );
+      expect(escalates || alternates || flows, f.name).toBe(true);
+    }
     // the session's LAST block is the core cap: McGill protocol (short 10s
     // holds), one movement per day, in every variant
     const cap = daily.blocks.at(-1);
@@ -428,8 +462,8 @@ describe('power primer', () => {
 describe('rotation (the mechanism outlives the hinge)', () => {
   const daily = getRehabSession('daily');
 
-  it('the daily rotates 8 calendar-pinned variants; the rest stay fixed', () => {
-    expect(sessionVariantCount(daily)).toBe(8);
+  it('the daily rotates 16 calendar-pinned variants; the rest stay fixed', () => {
+    expect(sessionVariantCount(daily)).toBe(16);
     for (const s of REHAB_SESSIONS) {
       if (s.id === 'daily') continue;
       expect(sessionVariantCount(s), s.id).toBe(1);
@@ -442,11 +476,16 @@ describe('rotation (the mechanism outlives the hinge)', () => {
     );
     expect(finishers).toEqual([
       'The Pump',
-      'The Popeye',
-      'The Redline',
-      'The Chase',
+      'The Arm Farm',
+      'The Spring',
+      'The Classic',
     ]);
-    expect(sessionBlocks(daily, 4).at(-2).name).toBe('The Pump');
+    // week 2 serves the NEXT four — fresh finishers, same weekday families
+    expect(sessionBlocks(daily, 4).at(-2).name).toBe('The Downhill');
+    expect(sessionBlocks(daily, 8).at(-2).name).toBe('The Porter');
+    expect(sessionBlocks(daily, 12).at(-2).name).toBe('The Complex');
+    // full repeat at four weeks
+    expect(sessionBlocks(daily, 16).at(-2).name).toBe('The Pump');
     // the core cap is weekday-pinned too: curl-up Tue, side plank Thu,
     // bird-dog Sat, plank Sun — McGill's set, one per day
     const caps = [...Array(4)].map(

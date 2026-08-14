@@ -434,6 +434,38 @@ export const PROGRAM_EXERCISES = {
   // when the clock is running and he is breathing hard. That rules out the
   // obvious ones: no burpees (the highest flexion-cycle count per minute in
   // the whole metcon canon), no mountain climbers, no sit-ups.
+  'diamond-pushup': {
+    name: 'Diamond Push-Up',
+    feel: 'All of it in the back of the arms',
+    avoid: 'Hips sagging, elbows flaring wide',
+    cue: 'Thumbs and index fingers touch under your chest. Elbows track back, body one plank — first hip-sag rep ends the set.',
+    why: 'The no-equipment triceps builder — the push-up family already proved itself spine-safe here, and the narrow hands put the load where he wants it.',
+    yt: 'diamond push up form',
+  },
+  'db-hang-clean-press': {
+    name: 'DB Hang Clean & Press',
+    feel: 'One flowing shot: hips snap, bells ride up, press to lockout',
+    avoid: 'Bending past the knees, pressing with a soft brace',
+    cue: 'Bells at the hips, hinge only to the knee — snap the hips, ride the bells to the shoulders, press out. One flow, every rep crisp.',
+    why: "The hang clean carve-out, same terms as the hang snatch: above the knee, light DBs, forced-rest clocks only — never a barbell, never from the floor, never open pace.",
+    yt: 'dumbbell hang clean and press',
+  },
+  'db-kickback': {
+    name: 'DB Kickback',
+    feel: 'The back of the arm locking out hard',
+    avoid: 'Swinging the weight, elbow drifting down',
+    cue: 'Chest on the incline bench — same setup as the row. Elbow pinned high, kick the DB back to a full lockout, squeeze, lower slow.',
+    why: "The no-pulley triceps isolator: chest-supported so the spine carries nothing, from his old programming's BBG arm days.",
+    yt: 'chest supported db kickback',
+  },
+  'shadow-boxing': {
+    name: 'Shadow Boxing',
+    feel: 'Hips driving every punch, shoulders burning by round six',
+    avoid: 'Arm-only punches, holding your breath',
+    cue: 'Stance tall, fists at the chin. Jab-cross with the hips, exhale on every punch. Real punches at air — not a wave.',
+    why: "The breakout home-conditioning movement for a reason: zero equipment, zero floor space, spine-neutral, and a heart rate that climbs as fast as you're willing to throw.",
+    yt: 'shadow boxing basics beginners',
+  },
   'jumping-jack': {
     name: 'Jumping Jack',
     feel: 'Everything moving, breathing up fast',
@@ -953,12 +985,37 @@ export const DENSITY40_SESSIONS = [
           // the palette anyway — chest on the bench, spine fully unloaded.
           [0, 1, 2, 3].map(() => ({ ex: 'chest-supported-row', reps: '10' })),
           [
-            { ex: 'db-push-press', reps: '8' },
+            // the hang clean & press rides as the pre-clock alt on every
+            // week of this slot (2026-08-15): same forced-rest clock, same
+            // light-DB class, one more flavor of overhead
+            {
+              ex: 'db-push-press',
+              reps: '8',
+              alts: [{ ex: 'db-hang-clean-press', reps: '6' }],
+            },
             // the snatch's dose is quality-capped exactly like the ballistic
             // primer — the descending format never touches it
-            { ex: 'db-hang-snatch', reps: '5/side', fixedReps: true },
-            { ex: 'db-push-press', reps: '8' },
-            { ex: 'db-hang-snatch', reps: '5/side', fixedReps: true },
+            {
+              ex: 'db-hang-snatch',
+              reps: '5/side',
+              fixedReps: true,
+              alts: [
+                { ex: 'db-hang-clean-press', reps: '5', fixedReps: true },
+              ],
+            },
+            {
+              ex: 'db-push-press',
+              reps: '8',
+              alts: [{ ex: 'db-hang-clean-press', reps: '6' }],
+            },
+            {
+              ex: 'db-hang-snatch',
+              reps: '5/side',
+              fixedReps: true,
+              alts: [
+                { ex: 'db-hang-clean-press', reps: '5', fixedReps: true },
+              ],
+            },
           ],
           // WAS a second quad station. His legs are already where he wants them
           // (2026-08-10) and he asked for maintenance, not growth — you cannot
@@ -978,31 +1035,44 @@ export const DENSITY40_SESSIONS = [
             logWeight: false,
             alts: [{ ex: 'db-lateral-raise', reps: '12' }],
           })),
-          // THE pulley station (2026-08-11): triceps has no DB movement in the
-          // palette, so the week's one attachment lives here — rope high on
-          // pushdown weeks, rope low on overhead weeks, rigged before the piece
-          // and never touched mid-cycle. The alt swaps the exercise AND the
-          // rig, which is a choice made before the clock, not during it.
+          // THE pulley station (2026-08-11): the week's one attachment lives
+          // here — rope high on pushdown weeks, rope low on overhead weeks,
+          // rigged before the piece and never touched mid-cycle. The alts
+          // swap exercise AND rig before the clock — and since 2026-08-15
+          // the diamond push-up is the no-equipment out: pick it and the
+          // pulley isn't touched at all that day.
           [
             {
               ex: 'rope-pushdown',
               reps: '12',
-              alts: [{ ex: 'overhead-triceps', reps: '10' }],
+              alts: [
+                { ex: 'overhead-triceps', reps: '10' },
+                { ex: 'diamond-pushup', reps: '10', logWeight: false },
+              ],
             },
             {
               ex: 'overhead-triceps',
               reps: '10',
-              alts: [{ ex: 'rope-pushdown', reps: '12' }],
+              alts: [
+                { ex: 'rope-pushdown', reps: '12' },
+                { ex: 'diamond-pushup', reps: '10', logWeight: false },
+              ],
             },
             {
               ex: 'rope-pushdown',
               reps: '12',
-              alts: [{ ex: 'overhead-triceps', reps: '10' }],
+              alts: [
+                { ex: 'overhead-triceps', reps: '10' },
+                { ex: 'diamond-pushup', reps: '10', logWeight: false },
+              ],
             },
             {
               ex: 'overhead-triceps',
               reps: '10',
-              alts: [{ ex: 'rope-pushdown', reps: '12' }],
+              alts: [
+                { ex: 'rope-pushdown', reps: '12' },
+                { ex: 'diamond-pushup', reps: '10', logWeight: false },
+              ],
             },
           ],
           [

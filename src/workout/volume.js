@@ -25,6 +25,8 @@ export const MUSCLE_MAP = {
   'cable-fly-low': { chest: 1 },
   'rope-pushdown': { triceps: 1 },
   'overhead-triceps': { triceps: 1 },
+  'db-kickback': { triceps: 1 },
+  'diamond-pushup': { triceps: 1, chest: 0.5 },
   'hammer-curl': { biceps: 1, forearm: 0.5 },
   'supinated-curl': { biceps: 1 },
   'reverse-curl': { biceps: 1, forearm: 0.5 },
@@ -42,6 +44,7 @@ export const MUSCLE_MAP = {
   // CrossFit movements (2026-08-10) — same fractional model as everything else.
   'db-push-press': { frontdelt: 1, triceps: 0.5, quads: 0.5 },
   'db-hang-snatch': { frontdelt: 0.5, upperback: 0.5, hams: 0.5, glutes: 0.5 },
+  'db-hang-clean-press': { frontdelt: 0.5, triceps: 0.5, upperback: 0.5, hams: 0.5, glutes: 0.5 },
   'db-front-rack-lunge': { quads: 1, glutes: 1 },
   'bear-crawl': { obliques: 1, frontdelt: 0.5 },
   // The cardio stations are a CONDITIONING stimulus, not a hypertrophy one —
@@ -51,6 +54,8 @@ export const MUSCLE_MAP = {
   // growth volume would be the same category error the daily rehab exemption
   // exists to avoid.
   'jumping-jack': {},
+  'shadow-boxing': {}, // conditioning, not a set of anything — same rule as the cardio stations
+
   'high-knees': {},
   'skater-bound': {},
   'reverse-lunge': { quads: 0.5, glutes: 0.5 },
