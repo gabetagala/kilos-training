@@ -17,6 +17,7 @@ import {
 import { buildShareData, renderShareCard } from './shareCard.js';
 import {
   deleteAccount,
+  ACTIVE_SYNC_KEY,
   getSession,
   hasPendingSync,
   isConfigured,
@@ -1607,6 +1608,56 @@ document.getElementById('btn-cf-open').addEventListener('click', () => {
 // Plus spoken cues (speechSynthesis) — "Left side — hold", "Rest", rep counts —
 // toggleable via the speaker button, persisted in kilos-rehab-voice.
 const REHAB_STATE_KEY = 'kilos-rehab-state';
+// ── Cross-device handoff (2026-08-15, his ask): leave a workout on the
+// phone, the laptop offers to resume it. The paused state rides the cloud
+// row as a last-writer-wins envelope; this id tells our own echo apart
+// from another device's save.
+const DEVICE_ID_KEY = 'kilos-device-id';
+const rhDeviceId = (() => {
+  let id = get(DEVICE_ID_KEY);
+  if (!id) {
+    id = Math.random().toString(36).slice(2, 10);
+    set(DEVICE_ID_KEY, id);
+  }
+  return id;
+})();
+// Debounced background push — the logging loop NEVER waits on the network;
+// a quiet 5s after the last save is plenty for a between-sets handoff.
+let rhActiveSyncTimer = null;
+// Every run gets a NONCE at first open — the template sessionId can't tell
+// two same-day runs of the one daily session apart, and every cross-device
+// rule below (tombstone-beats-its-own-run, same-run adoption) hangs off it.
+let rhRunId = null;
+// The envelope write, with one guard: a persist while the player is CLOSED
+// is housekeeping (unload, background re-save), not fresher truth — it must
+// never overwrite a foreign envelope, or a laptop tab quietly unloading
+// would bury the phone's finish tombstone and resurrect a dead run.
+// opts.force is for EXPLICIT user actions (discard): those speak for the
+// run no matter which device parked it. opts.runId names the run a
+// tombstone ends — that identity is what outranks wall clocks in the LWW.
+function rhWriteEnvelope(state, opts = {}) {
+  const cur = get(ACTIVE_SYNC_KEY);
+  const playerOpen = !!document
+    .getElementById('rehab-player')
+    ?.classList.contains('open');
+  if (!opts.force && !playerOpen && cur && cur.deviceId !== rhDeviceId)
+    return;
+  set(ACTIVE_SYNC_KEY, {
+    state,
+    runId: state?.runId ?? opts.runId ?? rhRunId ?? null,
+    deviceId: rhDeviceId,
+    updatedAt: Date.now(),
+  });
+}
+function rhQueueActiveSync() {
+  // no currentUser gate: pushData no-ops without a session, and gating here
+  // raced the async sign-in state at boot (adopted runs never queued)
+  if (rhActiveSyncTimer) clearTimeout(rhActiveSyncTimer);
+  rhActiveSyncTimer = setTimeout(() => {
+    rhActiveSyncTimer = null;
+    pushData();
+  }, 5000);
+}
 const REHAB_RDL_KEY = 'kilos-rehab-rdl-kg';
 const REHAB_VOICE_KEY = 'kilos-rehab-voice';
 const GUIDED_WEIGHTS_KEY = 'kilos-guided-weights';
@@ -2666,6 +2717,10 @@ function rhPersist() {
     try {
       localStorage.removeItem(REHAB_STATE_KEY);
     } catch {}
+    // tombstone: a finish/discard here must stop every other device from
+    // offering this run — last write wins, so stamp it now
+    rhWriteEnvelope(null);
+    rhQueueActiveSync();
     return;
   }
   set(REHAB_STATE_KEY, {
@@ -2694,9 +2749,13 @@ function rhPersist() {
     // crash restores with ELAPSED back at 0:00 and the score lies
     pieceStarts: rhPieceStarts,
     pieceFinal: rhPieceFinal,
+    runId: rhRunId,
     savedAt: Date.now(),
   });
   rhLastSave = Date.now();
+  // the same payload rides to the cloud as the handoff envelope
+  rhWriteEnvelope(get(REHAB_STATE_KEY));
+  rhQueueActiveSync();
 }
 
 const rhQueueSig = (q) =>
@@ -2713,6 +2772,10 @@ function rhSalvageStale(saved) {
   try {
     localStorage.removeItem(REHAB_STATE_KEY);
   } catch {}
+  // end the run in the envelope too — without this, an adopted state that
+  // fails the fingerprint re-adopts and re-salvages on every pull, forever
+  rhWriteEnvelope(null, { force: true, runId: saved?.runId });
+  rhQueueActiveSync();
   try {
     const lifts = saved.liftSets || [];
     const setsDone = Math.max(saved.counted?.length || 0, lifts.length);
@@ -2789,6 +2852,61 @@ function rhSalvageStale(saved) {
       renderHome();
     });
   } catch {}
+}
+
+// Adopt another device's paused run, carefully: never over a LIVE session
+// here, never over a DIFFERENT local pause, and our own echo is ignored.
+// Writing REHAB_STATE_KEY is all it takes — every resume path downstream
+// goes through rhRestorable(), so the queue fingerprint still gets the
+// final word (a mismatched program salvages instead of resuming).
+function rhAdoptCloudSession() {
+  if (rhSession) return false;
+  const env = get(ACTIVE_SYNC_KEY);
+  if (!env || env.deviceId === rhDeviceId) return false;
+  const local = get(REHAB_STATE_KEY);
+  const hasSets = (st) =>
+    (st?.counted?.length || 0) > 0 || (st?.liftSets?.length || 0) > 0;
+  if (env.state == null) {
+    // tombstone — clears ONLY the run it names; a different local run
+    // (different nonce) is someone else's business, never touched. Legacy
+    // states without a runId fall back to recency.
+    if (!local) return false;
+    const sameRun = env.runId && local.runId === env.runId;
+    const legacyNewer = !local.runId && env.updatedAt > (local.savedAt || 0);
+    if (sameRun || legacyNewer) {
+      try {
+        localStorage.removeItem(REHAB_STATE_KEY);
+      } catch {}
+      return true;
+    }
+    return false;
+  }
+  if (!local) {
+    set(REHAB_STATE_KEY, env.state);
+    return true;
+  }
+  const sameRun = env.state.runId && local.runId === env.state.runId;
+  if (sameRun) {
+    // the same run continued elsewhere: PROGRESS beats wall clocks (a
+    // fast phone clock must not roll back logged sets), recency breaks ties
+    const progress = (st) => st?.counted?.length || 0;
+    const ahead =
+      progress(env.state) > progress(local) ||
+      (progress(env.state) === progress(local) &&
+        env.updatedAt > (local.savedAt || 0));
+    if (ahead) {
+      set(REHAB_STATE_KEY, env.state);
+      return true;
+    }
+    return false;
+  }
+  // a DIFFERENT run is parked here — if it holds logged sets it is
+  // untouchable; an empty shell yields to newer foreign work
+  if (!hasSets(local) && env.updatedAt > (local.savedAt || 0)) {
+    set(REHAB_STATE_KEY, env.state);
+    return true;
+  }
+  return false;
 }
 
 // THE one gate every resume path goes through. Returns { session, saved } only
@@ -3889,6 +4007,9 @@ function rhJump(dir) {
 
 function openRehabPlayer(session, saved = null, variantOverride = null) {
   rhSession = session;
+  // a resumed run keeps its identity; a fresh one mints it
+  rhRunId =
+    saved?.runId ?? `${Date.now().toString(36)}-${rhDeviceId}`;
   // A saved run keeps the variant it was built with (its step index maps
   // onto THAT queue); a fresh run picks up wherever the rotation is.
   // A saved run keeps the PHASE it was built with as well as the variant:
@@ -5292,6 +5413,9 @@ document
 document.getElementById('btn-startover-new').addEventListener('click', () => {
   document.getElementById('startover-confirm').classList.remove('open');
   activeWorkout = null;
+  const doomed = get(REHAB_STATE_KEY);
+  rhWriteEnvelope(null, { force: true, runId: doomed?.runId });
+  pushData();
   try {
     localStorage.removeItem(ACTIVE_STATE_KEY);
     localStorage.removeItem(REHAB_STATE_KEY);
@@ -5303,9 +5427,15 @@ document.getElementById('btn-startover-new').addEventListener('click', () => {
   }
 });
 document.getElementById('btn-discard-yes').addEventListener('click', () => {
+  // an explicit discard speaks for the run no matter which device parked
+  // it — tombstone by its identity and flush immediately (the 5s debounce
+  // dies with a killed PWA; other devices must be told NOW)
+  const doomed = get(REHAB_STATE_KEY);
   try {
     localStorage.removeItem(REHAB_STATE_KEY);
   } catch {}
+  rhWriteEnvelope(null, { force: true, runId: doomed?.runId });
+  pushData();
   document.getElementById('discard-confirm').classList.remove('open');
   renderRehabPage();
 });
@@ -5320,6 +5450,11 @@ document.getElementById('btn-discard-no').addEventListener('click', () => {
 // into history instead of silently ignored — this path is exactly where the
 // 2026-08-10 rebuild would otherwise have discarded a paused run's sets.
 (() => {
+  // Cross-device handoff runs FIRST: an envelope pulled during a previous
+  // visit may hold another device's newer run — or its tombstone, which
+  // must retire a stale local pause BEFORE the restore below would reopen
+  // a workout that already ended elsewhere.
+  rhAdoptCloudSession();
   const restorable = rhRestorable();
   if (!restorable) return;
   if (Date.now() - (restorable.saved.savedAt || 0) < 30 * 60 * 1000) {
@@ -5330,7 +5465,16 @@ document.getElementById('btn-discard-no').addEventListener('click', () => {
 let rhLastFgPull = 0;
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
-    if (rhSession) rhPersist();
+    if (rhSession) {
+      rhPersist();
+      // the handoff moment: he just left this device — flush the envelope
+      // immediately (fire-and-forget) so the other device sees it on wake
+      if (currentUser) {
+        if (rhActiveSyncTimer) clearTimeout(rhActiveSyncTimer);
+        rhActiveSyncTimer = null;
+        pushData();
+      }
+    }
   } else {
     // iOS parks the AudioContext in the background — as 'interrupted', not
     // 'suspended', for a backgrounded PWA — so wake anything short of
@@ -5355,6 +5499,9 @@ document.addEventListener('visibilitychange', () => {
       rhLastFgPull = Date.now();
       pullAndMerge()
         .then(() => {
+          // another device may have paused (or finished) a run since we
+          // last looked — adopt before painting the resume surfaces
+          if (rhAdoptCloudSession()) renderRehabPage();
           renderDayHero();
           renderTodayCard();
           renderMonthGrid();
@@ -8589,6 +8736,7 @@ if (supabase) {
     if (event === 'SIGNED_IN') {
       setTimeout(async () => {
         await pullAndMerge();
+        rhAdoptCloudSession();
         saveProfile({
           setupComplete: true,
           equipmentTier: getProfile().equipmentTier || 'full-gym',
@@ -8599,6 +8747,11 @@ if (supabase) {
       }, 0);
     }
     if (event === 'SIGNED_OUT') {
+      // the envelope is ACCOUNT data — on a shared device it must not ride
+      // into the next account's cloud row
+      try {
+        localStorage.removeItem(ACTIVE_SYNC_KEY);
+      } catch {}
       renderDataNotice();
     }
   });
@@ -9197,6 +9350,7 @@ async function retrySyncIfNeeded() {
     // failed sign-in pull, then pushes the merged result. A bare pushData here
     // would overwrite the cloud backup after a failed pull (the old blocker).
     await pullAndMerge();
+    rhAdoptCloudSession();
     renderDataNotice(); // refresh sync status label
   }
 }
