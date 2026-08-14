@@ -34,7 +34,7 @@ test('the daily session is the distillate + finisher + core cap', async ({
   await expect(page.locator('#rpo-list')).toContainText('Elephant Walk');
   await expect(page.locator('#rpo-list')).toContainText('Seated Good Morning');
   await expect(page.locator('#rpo-list')).toContainText(
-    /The (Pump|Popeye|Redline|Chase)/,
+    /(The (Pump|Arm Farm|Spring|Classic|Downhill|Popeye|Porter|Skater|Chase|Complex|Test|Climb|Century)|Death by (Step-Ups|Curls)|Crawl & Haul)/,
   );
 });
 

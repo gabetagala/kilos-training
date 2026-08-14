@@ -191,6 +191,7 @@ export function createStepEngine(exercises = {}) {
     'logWeight',
     'secs',
     'repsPerRound',
+    'repScheme',
   ];
 
   function resolveSwap(spec, swaps) {
@@ -374,6 +375,9 @@ export function createStepEngine(exercises = {}) {
               // the heavy slot — the one place load progression is suggested
               anchor: !!block.anchor,
               ladder: !!r.ladderFrom,
+              // a death-by block offers an honest exit: the bail jumps past
+              // the piece's remaining minutes WITHOUT counting them
+              bail: block.bail || null,
               piece: block.name,
               // A ladder has no fixed length — its end is failure — so the
               // format line shows the rule, not a minute count.
@@ -428,16 +432,30 @@ export function createStepEngine(exercises = {}) {
         prepIfNew(rm[0].ex);
         // `repScheme` gives descending couplets their shape: [21,15,9] means
         // round 1 is 21 of everything, round 2 is 15, round 3 is 9. Rounds are
-        // inferred from the scheme's length when it's present.
+        // inferred from the scheme's length when it's present — a per-member
+        // scheme (m.repScheme) sets the round count the same way.
         const scheme = block.repScheme || null;
-        const rounds = scheme ? scheme.length : block.rounds;
+        const rounds = scheme
+          ? scheme.length
+          : (block.members.reduce(
+              (max, m) => Math.max(max, m.repScheme?.length ?? 0),
+              0,
+            ) || block.rounds);
         for (let round = 1; round <= rounds; round++) {
           const schemeReps = scheme ? String(scheme[round - 1]) : null;
           block.members.forEach((m, mi) => {
             // r resolved (swap applied) — authoritative for data, same as the
             // emom and circuit branches; m only names the slot for the chooser
             const r = rm[mi];
-            const reps = schemeReps ?? r.reps;
+            // a member's OWN scheme wins (2026-08-15): descending-ladder
+            // couplets pair unequal ladders — 40-30-20-10 pull-aparts against
+            // 16-12-8-4 push-ups — which one shared block scheme can't say.
+            // Read the RESOLVED member (r, not m) so an alt's scheme counts,
+            // and fall back to the member's last rung on unequal lengths.
+            const memberScheme = r.repScheme || null;
+            const reps = memberScheme
+              ? String(memberScheme[round - 1] ?? memberScheme.at(-1))
+              : (schemeReps ?? r.reps);
             steps.push({
               kind: 'work',
               exId: r.ex,
@@ -611,7 +629,11 @@ export function createStepEngine(exercises = {}) {
         // a fortime piece may be shaped by repScheme instead of `rounds`
         // (21-15-9), in which case the scheme's length IS the round count —
         // reading block.rounds there rendered "undefined rounds for time".
-        const rounds = block.repScheme?.length ?? block.rounds;
+        // A per-member scheme (descending couplets) sets it the same way.
+        const rounds =
+          block.repScheme?.length ??
+          block.members.find((m) => m.repScheme)?.repScheme.length ??
+          block.rounds;
         // wall clock, rest rounds included — must match the step label
         const mins = Math.round(
           (rounds * block.members.length * interval +
@@ -636,11 +658,19 @@ export function createStepEngine(exercises = {}) {
           members: rm.map((r) => ({
             name: name(r.ex),
             // a per-side member would otherwise render as two identical rows;
-            // details read the RESOLVED member so a swap shows its own numbers
+            // details read the RESOLVED member so a swap shows its own numbers.
+            // A ladder reads as a ladder: repScheme joins as 40-30-20-10, and
+            // a rising repsPerRound as 4→22 — never its first rung alone.
             detail:
-              `${r.secs ? `${r.secs}s` : (r.reps ?? block.repScheme?.join('-') ?? '')}${
-                r.side ? ` ${r.side.toLowerCase()}` : ''
-              }`.trim(),
+              `${
+                r.repScheme
+                  ? r.repScheme.join('-')
+                  : r.repsPerRound
+                    ? `${r.repsPerRound[0]}→${r.repsPerRound.at(-1)}`
+                    : r.secs
+                      ? `${r.secs}s`
+                      : (r.reps ?? block.repScheme?.join('-') ?? '')
+              }${r.side ? ` ${r.side.toLowerCase()}` : ''}`.trim(),
           })),
         };
       }

@@ -296,6 +296,37 @@ export const ART_MANIFEST = {
       'the knees hover barely off the floor and the back stays flat as a table — the hips must not swing side to side or pike up',
     stack: true,
   },
+  'diamond-pushup': {
+    scene: 'push-up position on a flat floor, no equipment',
+    a: 'top of a push-up — arms locked out, body one straight line, both hands together directly under the chest with thumbs and index fingers touching in a diamond shape',
+    b: 'bottom of the push-up — chest an inch above the stacked hands, elbows tracking back along the ribs, body still one straight line',
+    important:
+      'the hands stay narrow and touching under the chest in both poses, elbows point BACK not out, hips never sag',
+  },
+  'db-hang-clean-press': {
+    scene:
+      'standing on a flat floor holding a dumbbell in each hand',
+    a: 'slight hinge — chest proud, knees soft, both dumbbells hanging at mid-thigh just above the knees, flat neutral back',
+    b: 'standing fully tall, both dumbbells pressed overhead to lockout, arms straight',
+    important:
+      'the hinge in pose A stops at the knee with a completely flat back; pose B is a strong vertical lockout — same person mid-flow',
+  },
+  'db-kickback': {
+    scene:
+      'chest-down on a 30-degree incline bench, one dumbbell in the working hand',
+    a: 'chest supported on the incline bench, working elbow pinned high beside the ribs, forearm hanging straight down holding the dumbbell',
+    b: 'same position but the working arm fully extended straight back behind him, dumbbell past the hip, tricep locked out',
+    important:
+      'the chest stays glued to the bench pad in both poses, spine neutral, elbow at the same height in both — only the forearm moves',
+  },
+  'shadow-boxing': {
+    scene:
+      'standing in a boxing stance on a flat floor, no equipment, no bag — punching at the air',
+    a: 'boxer guard — staggered stance, knees soft, both fists up at the chin, elbows tucked',
+    b: 'mid-jab — rear fist still glued to the chin, lead arm fully extended at shoulder height, hips rotated slightly into the punch',
+    important:
+      'spine tall and neutral in both poses, weight on the balls of the feet, punching at empty air (shadow boxing, no target)',
+  },
   'jumping-jack': {
     scene: 'standing on a flat floor with no equipment at all',
     a: 'feet together, arms straight down at his sides',

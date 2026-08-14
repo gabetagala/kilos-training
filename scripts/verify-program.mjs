@@ -287,12 +287,30 @@ const ANCHOR_IDS = new Set(anchorSpecs().map(({ b }) => b.members[0].ex));
 {
   const UNILATERAL_TIMED = new Set(['suitcase-carry', 'farmer-carry-1arm']);
   const bad = [];
-  for (const s of DENSITY40_SESSIONS) {
+  // BOTH programs (2026-08-15): The Porter put the first unilateral timed
+  // carry into a rehab session, which this walk never covered — the right
+  // (smaller) side leads everywhere, whether within a set or by minutes.
+  for (const s of [...DENSITY40_SESSIONS, ...REHAB_SESSIONS]) {
     for (const b of s.blocks) {
       for (const v of b.rotate || [b]) {
-        for (const m of v?.members || []) {
+        const members = v?.members || [];
+        for (const m of members) {
           if (!UNILATERAL_TIMED.has(m.ex)) continue;
-          if (!/right side first/i.test(m.note || '')) {
+          const perMinute = members.some((x) =>
+            /left hand this minute/i.test(x.note || ''),
+          );
+          if (perMinute) {
+            // minute-per-hand structure: the RIGHT minute must come first
+            const iR = members.findIndex((x) =>
+              /right hand this minute/i.test(x.note || ''),
+            );
+            const iL = members.findIndex((x) =>
+              /left hand this minute/i.test(x.note || ''),
+            );
+            if (iR === -1 || (iL !== -1 && iR > iL)) {
+              bad.push(`${s.id} ${m.ex} left hand leads`);
+            }
+          } else if (!/right side first/i.test(m.note || '')) {
             bad.push(`${s.id} ${m.ex} has no right-side-first note`);
           }
         }
@@ -336,6 +354,9 @@ const ANCHOR_IDS = new Set(anchorSpecs().map(({ b }) => b.members[0].ex));
           }
           for (const cand of [m, ...(m.alts || [])]) {
             const tempo = tempoOf(cand.ex);
+            // death-by ladders END at failure by design — the top rung is
+            // SUPPOSED to fight the minute, so the 75% budget doesn't apply
+            if (cand.repsPerRound) continue;
             const reps = totalReps(cand.reps);
             if (!tempo || !reps) continue;
             if (reps * tempo > interval * 0.75) {
@@ -690,7 +711,10 @@ const muscles = [...new Set(weekVol.flatMap(Object.keys))];
     }
     perWeek.push(n);
   }
-  check('GOALS', 'the power primer runs twice a week, every week', perWeek.every((n) => n === 2), `sessions/wk: ${[...new Set(perWeek)].join(',')}`);
+  // A FLOOR, not an exact count (2026-08-15): the primer must survive every
+  // week on the lift days; The Spring (tabata pogo) adds a third, tabata-
+  // gated ballistic exposure on its weeks, which the pace rules govern.
+  check('GOALS', 'the power primer runs at least twice a week, every week', perWeek.every((n) => n >= 2), `sessions/wk: ${[...new Set(perWeek)].join(',')}`);
 }
 {
   const hasEngine = !!getRehabSession('engine');
@@ -749,7 +773,9 @@ const muscles = [...new Set(weekVol.flatMap(Object.keys))];
   // Every piece is uniquely named — a different set of movements is a different
   // workout — so the pool should cover a full four-week rotation on all three
   // days: twelve names, none repeated.
-  check('VARIETY', 'the named-piece pool covers a month on every day', fins.size >= 12 && fmts.size >= 3, `${fins.size} named pieces · ${fmts.size} formats`);
+  // 12 lift pieces + 16 finishers (2026-08-15) — the floor tracks reality
+  // so a silent pool shrink fails the build instead of passing at 12
+  check('VARIETY', 'the named-piece pool covers a month on every day', fins.size >= 24 && fmts.size >= 3, `${fins.size} named pieces · ${fmts.size} formats`);
 }
 
 // ── Report ──────────────────────────────────────────────────────────────────

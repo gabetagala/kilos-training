@@ -193,6 +193,14 @@ export const OPEN_PACE_BANNED = [
   'power-pushup',
   'broad-jump',
   'pogo-hop',
+  // The hang clean & press rides the SAME carve-out terms as the hang
+  // snatch (2026-08-15): above the knee, light DBs, and only where the
+  // clock forces rest.
+  'db-hang-clean-press',
+  // Added 2026-08-15 (finisher research, McGill lens): lateral landings add
+  // a shear/rotation component that degrades with fatigue — skater bounds
+  // are 20-second-burst work, tabata/EMOM only, never an open grind.
+  'skater-bound',
 ];
 
 /** Formats this piece may legally rotate through, safety applied. */

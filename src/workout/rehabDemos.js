@@ -1091,6 +1091,67 @@ REHAB_DEMOS['elephant-walk'] = svg(
 // freezes there); the loop is the small part that repeats.
 const RACKED = { sh: -180, el: 120 };
 
+PROGRAM_DEMOS['diamond-pushup'] = svg(
+  GROUND +
+    shadow(100, 48) +
+    // plank low over the floor, hands stacked narrow under the chest
+    figure({
+      ...standing({
+        root: { x: 96, y: 74, rot: -84 },
+        head: 4,
+        // both arms drive under the chest, hands meeting at the midline
+        armF: {
+          at: [-2, 26],
+          sh: 78,
+          el: -18,
+          anim: { a: 106, b: 78 },
+          elAnim: { a: -74, b: -18 },
+        },
+        armN: {
+          at: [2, 26],
+          sh: 82,
+          el: -14,
+          anim: { a: 110, b: 82 },
+          elAnim: { a: -78, b: -14 },
+        },
+        legF: { hip: 4, knee: 2, ankle: 88, far: true },
+        legN: { hip: 6, knee: 2, ankle: 86 },
+      }),
+    }) +
+    action(swoosh('M 60 44 Q 56 34 62 26', 2.6)),
+);
+
+PROGRAM_DEMOS['db-hang-clean-press'] = svg(
+  GROUND +
+    shadow(100, 30) +
+    figure(
+      standing({
+        head: 2,
+        // one flow: bells from the hang to overhead — hips snap, spine tall
+        armN: {
+          at: [2.5, 27],
+          sh: -150,
+          el: -10,
+          hand: DB(0, L.farm),
+          anim: { a: -150, b: 0 },
+          elAnim: { a: -10, b: 0 },
+        },
+        armF: {
+          at: [-2.5, 27],
+          sh: 150,
+          el: 10,
+          hand: DB(0, L.farm),
+          anim: { a: 150, b: 0 },
+          elAnim: { a: 10, b: 0 },
+        },
+        // hinge stops at the knee; the snap is hips, never the back
+        legF: { hip: 10, knee: 8, ankle: 78, far: true },
+        legN: { hip: -10, knee: -8, ankle: -78 },
+      }),
+    ) +
+    action(swoosh('M 122 60 Q 126 34 120 14') + tick(114, 20, 120, 14)),
+);
+
 PROGRAM_DEMOS['db-push-press'] = svg(
   GROUND +
     shadow(100, 30) +
@@ -1194,6 +1255,58 @@ PROGRAM_DEMOS['jumping-jack'] = svg(
       swoosh('M 70 40 Q 66 26 74 16', 2.6) +
         swoosh('M 130 40 Q 134 26 126 16', 2.6),
     ),
+);
+
+PROGRAM_DEMOS['db-kickback'] = svg(
+  GROUND +
+    shadow(100, 44) +
+    // incline bench, chest down — same station as the chest-supported row
+    `<rect x="62" y="52" width="76" height="7" rx="3" fill="#4a4a4a" transform="rotate(-18 100 56)"/>
+     <rect x="84" y="60" width="6" height="26" fill="#3a3a3a"/>
+     <rect x="116" y="52" width="6" height="34" fill="#3a3a3a"/>` +
+    figure({
+      ...standing({
+        root: { x: 96, y: 46, rot: -72 },
+        head: 14,
+        // working arm pinned high, forearm animating from hang to lockout
+        armF: {
+          at: [-2.5, 27],
+          sh: 60,
+          el: -90,
+          elAnim: { a: -90, b: -4 },
+          hand: '<rect x="-3" y="14" width="6" height="10" rx="2" fill="#2e2e2e"/>',
+        },
+        armN: { at: [2.5, 27], sh: 95, el: -8 },
+        legF: { hip: 74, knee: 62, ankle: 30, far: true },
+        legN: { hip: 80, knee: 70, ankle: 24 },
+      }),
+    }) +
+    action(swoosh('M 128 58 Q 138 62 144 70', 2.6)),
+);
+
+PROGRAM_DEMOS['shadow-boxing'] = svg(
+  GROUND +
+    shadow(100, 40) +
+    figure({
+      ...standing({
+        root: { x: 100, y: 70, rot: 5 },
+        head: 8,
+        // guard hand glued to the chin; lead arm snaps guard -> full jab
+        armF: {
+          at: [-2.5, 27],
+          sh: 108,
+          el: -128,
+          anim: { a: 100, b: 8 },
+          elAnim: { a: -128, b: -6 },
+        },
+        armN: { at: [2.5, 27], sh: -112, el: 128 },
+        // boxer base: staggered, knees soft, weight on the balls of the feet
+        legF: { hip: 16, knee: -10, ankle: 62, far: true },
+        legN: { hip: -14, knee: 8, ankle: -34 },
+      }),
+      rootAnim: { a: '0 1.5', b: '0 0', dur: '0.7s', kt: '0;.4;.55;.9;1' },
+    }) +
+    action(swoosh('M 136 30 Q 146 26 154 30', 2.6)),
 );
 
 PROGRAM_DEMOS['high-knees'] = svg(
