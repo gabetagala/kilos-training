@@ -428,24 +428,58 @@ const CABLE_SETUP = {
   check('RESTRICTIONS', 'each piece touches the pulley at most once, rig set before the clock', bad.length === 0, bad.slice(0, 3).join(', '));
 }
 
-// REHAB DAYS ARE AXIALLY QUIET (2026-08-11). The topper EMOMs exist to make
-// the light days fun, not to sneak load onto the spine between the heavy
-// days: no SPINE_LOADED movement, no pulley exercise (the rack stays
-// untouched), in any rehab session's emom block — members or alts.
+// REHAB DAYS ARE AXIALLY QUIET (2026-08-11; widened 2026-08-14). The
+// finishers exist to make the light days fun, not to sneak load onto the
+// spine between the heavy days: no SPINE_LOADED movement, no pulley exercise
+// (the rack stays untouched), in any rehab session's metcon-shaped block —
+// EVERY mode (emom, fortime, tabata, amrap, circuit), members or alts, and
+// tabata's single `ex` counts too. The old version keyed on mode === 'emom'
+// only, which would have silently guarded nothing once the toppers became
+// finishers.
 {
   const bad = [];
+  const METCON_MODES = new Set(['emom', 'fortime', 'tabata', 'amrap', 'circuit']);
   for (const s of REHAB_SESSIONS) {
     for (const b of s.blocks) {
       for (const v of b.rotate || [b]) {
-        if (v?.mode !== 'emom' || !v.members) continue;
-        for (const m of v.members.flatMap((x) => [x, ...(x.alts || [])])) {
+        if (!METCON_MODES.has(v?.mode)) continue;
+        const pool = [
+          ...(v.members || []),
+          ...(v.ex ? [{ ex: v.ex, alts: v.alts }] : []),
+        ].flatMap((x) => [x, ...(x.alts || [])]);
+        for (const m of pool) {
           if (SPINE_LOADED.includes(m.ex)) bad.push(`${s.id} ${v.name} ${m.ex} spine-loaded`);
           if (CABLE_SETUP[m.ex]) bad.push(`${s.id} ${v.name} ${m.ex} touches the pulley`);
         }
       }
     }
   }
-  check('RESTRICTIONS', 'rehab-day toppers are axially quiet — no spine load, no pulley', bad.length === 0, bad.slice(0, 3).join(', '));
+  check('RESTRICTIONS', 'rehab-day finishers are axially quiet — no spine load, no pulley, any mode', bad.length === 0, bad.slice(0, 3).join(', '));
+}
+
+// NATIVELY OPEN-PACE BLOCKS obey the open-pace ban (2026-08-14). The two
+// existing open-pace checks guard the FORMAT-ROTATION path (declared
+// `formats`, lift days) — a rehab finisher shipping mode:'fortime' or
+// mode:'amrap' directly never touches formatsFor, so without this check the
+// ban would pass vacuously: put suitcase-carry in The Pump and nothing fails.
+{
+  const bad = [];
+  const OPEN_MODES = new Set(['fortime', 'amrap']);
+  for (const s of REHAB_SESSIONS) {
+    for (const b of s.blocks) {
+      for (const v of b.rotate || [b]) {
+        if (!OPEN_MODES.has(v?.mode)) continue;
+        const pool = [
+          ...(v.members || []),
+          ...(v.ex ? [{ ex: v.ex, alts: v.alts }] : []),
+        ].flatMap((x) => [x, ...(x.alts || [])]);
+        for (const m of pool) {
+          if (OPEN_PACE_BANNED.includes(m.ex)) bad.push(`${s.id} ${v.name} ${m.ex}`);
+        }
+      }
+    }
+  }
+  check('RESTRICTIONS', 'natively open-pace blocks never serve a pace-banned movement', bad.length === 0, bad.slice(0, 3).join(', '));
 }
 
 // OPEN PACE IS UNREACHABLE for any slot that could serve a banned movement —
@@ -644,7 +678,15 @@ const muscles = [...new Set(weekVol.flatMap(Object.keys))];
     let n = 0;
     for (const { w: ww, q } of allQueues()) {
       if (ww !== w) continue;
-      if (q.some((st) => ['broad-jump', 'power-pushup', 'pogo-hop'].includes(st.exId))) n += 1;
+      const BALLISTIC = ['broad-jump', 'power-pushup', 'pogo-hop'];
+      if (
+        q.some(
+          (st) =>
+            BALLISTIC.includes(st.exId) ||
+            (st.amrapMembers || []).some((m) => BALLISTIC.includes(m.ex)),
+        )
+      )
+        n += 1;
     }
     perWeek.push(n);
   }
@@ -698,7 +740,10 @@ const muscles = [...new Set(weekVol.flatMap(Object.keys))];
   const fins = new Set();
   const fmts = new Set();
   for (const { s, q } of allQueues()) {
-    if (sessionVariantCount(s) > 1) fins.add(q.at(-1).piece);
+    // the day's finisher is the LAST piece-tagged step — the core cap that
+    // now closes the rehab day carries no piece and must not count as one
+    const fin = q.findLast((st) => st.piece)?.piece;
+    if (sessionVariantCount(s) > 1 && fin) fins.add(fin);
     for (const st of q) if (st.pieceFormat) fmts.add(st.pieceFormat.replace(/\d+/g, 'N'));
   }
   // Every piece is uniquely named — a different set of movements is a different

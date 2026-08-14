@@ -392,55 +392,103 @@ const straight = (ex, phase) => ({
   phase,
 });
 
-// ── THE TOPPER (2026-08-11) ─────────────────────────────────────────────────
-// Twelve minutes of fun after the holds — the volume the EMOM40 cap trimmed
-// from the lift days comes back HERE, on the light days, as a short EMOM.
-// Four pools, one per rehab day, calendar-pinned so a full week always serves
-// each exactly once. AXIALLY QUIET by rule (verifier-enforced): bands, light
-// DBs, bodyweight — the barbell and the pulley stay untouched, because these
-// days sit between the heavy ones on purpose. Every pool ENDS ON CORE (his
-// ask): the McGill endurance work, at real frequency, delivered as a minute.
-const TOPPER = (name, members) => ({
-  mode: 'emom',
-  name,
-  formatLabel: 'EMOM',
-  rounds: 3,
-  members,
+// ── THE FINISHERS (2026-08-14, his call) ────────────────────────────────────
+// The strict topper EMOMs felt like a fourth lift day — a minute of standing
+// around per light set, load progression nobody asked for. Replaced with
+// FINISHERS: metcon-shaped closers where the point is the burn or the heart
+// rate, not the bookkeeping. Four, one per rehab day, calendar-pinned — the
+// weekday keeps its identity (Tue chase the pump, Thu grind the grip,
+// Sat redline, Sun climb):
+//
+//   The Pump    — FOR TIME. Same pump work, no prescribed rest: the burn is
+//                 continuous and the score is the finish time.
+//   The Popeye  — FOR TIME. The wrist pair + reverse curls as a grinder;
+//                 forearm volume stays real (and counted) for the triangle.
+//   The Redline — TABATA, one movement, 8 × 20/10. THE top-HR test he asked
+//                 for; the score is the WORST round, which is the honest one.
+//   The Chase   — AMRAP 9. Jacks, bounds, explosive push-ups; score = rounds,
+//                 beat last Sunday's number.
+//
+// AXIALLY QUIET by rule (verifier-enforced, all modes): bands, light DBs,
+// bodyweight — the barbell and the pulley stay untouched, because these days
+// sit between the heavy ones on purpose. Core no longer rides inside each
+// pool — every rehab day now ENDS on the McGill core cap below, at protocol
+// dose (short crisp holds), not as a minute of plank squeezed into an EMOM.
+const TOPPERS = [
+  {
+    mode: 'fortime',
+    name: 'The Pump',
+    rounds: 3,
+    note: 'No prescribed rest — move when the burn lets you. Score = time.',
+    members: [
+      { ex: 'band-lateral-raise', reps: '12', logWeight: false },
+      { ex: 'hammer-curl', reps: '10' },
+      { ex: 'band-pull-apart', reps: '14', logWeight: false },
+    ],
+  },
+  // the light wrist pair shares one dial (TRAINING.md's own pairing)
+  {
+    mode: 'fortime',
+    name: 'The Popeye',
+    rounds: 3,
+    note: 'Grip grinder — smooth reps beat fast ones. Score = time.',
+    members: [
+      { ex: 'wrist-curl', reps: '20', logWeight: false },
+      { ex: 'reverse-wrist-curl', reps: '20', logWeight: false },
+      { ex: 'reverse-curl', reps: '10' },
+    ],
+  },
+  {
+    mode: 'tabata',
+    name: 'The Redline',
+    ex: 'high-knees',
+    note: 'All eight rounds at max effort — your score is your worst round.',
+  },
+  {
+    mode: 'amrap',
+    name: 'The Chase',
+    capSecs: 9 * 60,
+    // plain push-up, NOT power-pushup: the ballistic dose is "crisp reps,
+    // never near fatigue" everywhere else in this program, and an AMRAP's
+    // score incentive is the exact opposite. The push-up's own stop rule
+    // (first hip-sag rep) survives open pace; a ballistic's doesn't.
+    note: 'Steady climb, no sprint-and-die. Score = rounds — beat last Sunday.',
+    members: [
+      { ex: 'jumping-jack', reps: '20', logWeight: false },
+      { ex: 'skater-bound', reps: '10', logWeight: false },
+      { ex: 'push-up', reps: '8', logWeight: false },
+    ],
+  },
+];
+
+// ── THE CORE CAP ────────────────────────────────────────────────────────────
+// Every rehab day ends here: the McGill work at its own protocol (straight
+// sets of 10s holds, 3s re-brace — same dosing as the Daily Reset), one
+// movement per day, calendar-pinned. This replaces the core minute the old
+// topper EMOMs carried, with better quality per rep.
+const CORE_CAP = (ex, extra = {}) => ({
+  ex,
+  mode: 'reps',
+  repScheme: [4, 4],
+  holdSecs: 10,
+  resetSecs: 3,
+  restSecs: 20,
+  ...extra,
 });
 
-const TOPPERS = [
-  TOPPER('The Pump', [
-    { ex: 'band-lateral-raise', reps: '12', logWeight: false },
-    { ex: 'hammer-curl', reps: '10' },
-    { ex: 'band-pull-apart', reps: '14', logWeight: false },
-    { ex: 'plank', secs: 40, phase: 'HOLD', logWeight: false },
-  ]),
-  // the light wrist pair shares one dial (TRAINING.md's own pairing); the
-  // single re-dial lands before the curl, and core needs no DB at all
-  TOPPER('The Popeye', [
-    { ex: 'wrist-curl', reps: '20', logWeight: false },
-    { ex: 'reverse-wrist-curl', reps: '20', logWeight: false },
-    { ex: 'reverse-curl', reps: '10' },
-    {
-      ex: 'side-plank',
-      secs: 40,
-      phase: 'HOLD',
-      logWeight: false,
-      note: 'Right side first — switch at 20 seconds.',
-    },
-  ]),
-  TOPPER('The Engine', [
-    { ex: 'jumping-jack', secs: 45, phase: 'GO', logWeight: false },
-    { ex: 'high-knees', secs: 45, phase: 'GO', logWeight: false },
-    { ex: 'skater-bound', secs: 40, phase: 'GO', logWeight: false },
-    { ex: 'bear-crawl', secs: 40, phase: 'GO', logWeight: false },
-  ]),
-  TOPPER('The Wing', [
-    { ex: 'band-pull-apart', reps: '14', logWeight: false },
-    { ex: 'supinated-curl', reps: '10' },
-    { ex: 'band-lateral-raise', reps: '12', logWeight: false },
-    { ex: 'bird-dog', reps: '6/side', logWeight: false },
-  ]),
+const CORE_CAPS = [
+  CORE_CAP('mcgill-curlup'),
+  CORE_CAP('side-plank', {
+    repScheme: [3, 3],
+    perSide: true,
+    switchSecs: 8,
+  }),
+  CORE_CAP('bird-dog', {
+    repScheme: [3, 3],
+    perSide: true,
+    switchSecs: 8,
+  }),
+  CORE_CAP('plank'),
 ];
 
 export const REHAB_SESSIONS = [
@@ -459,7 +507,7 @@ export const REHAB_SESSIONS = [
     name: 'Back & Hips',
     freq: 'Tue · Thu · Sat · Sun',
     blurb:
-      'The holds that matter, ~25 minutes — then a twelve-minute topper EMOM to finish. Chase a 10/10 burn and 0/10 pain on the holds; when one goes unbroken, take its next progression.',
+      'The holds that matter, ~25 minutes — then a finisher: chase a pump for time, redline a Tabata, or climb an AMRAP, and close on the core cap. On the holds: 10/10 burn, 0/10 pain; unbroken means take the next progression.',
     blocks: [
       // his thoracic ask — 12 slow reaches a side is a real two minutes
       {
@@ -496,6 +544,7 @@ export const REHAB_SESSIONS = [
         ],
       },
       { rotate: TOPPERS },
+      { rotate: CORE_CAPS },
     ],
   },
   {
