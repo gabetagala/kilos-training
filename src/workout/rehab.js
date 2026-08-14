@@ -444,13 +444,13 @@ const TOPPERS = [
   },
   {
     mode: 'tabata',
-    name: 'The Spring',
-    ex: 'pogo-hop',
-    // UNSCORED by doctrine (2026-08-15 review): a worst-round score
-    // incentivizes max ballistic output at fatigue — the exact opposite of
-    // "stop while still springy". The bell keeps score.
-    scored: false,
-    note: 'Low, springy, quick off the floor — stop the round early the moment the spring dies.',
+    name: 'The Redline',
+    // pogo was here and it was a husk: ballistics can't be scored at
+    // fatigue, and an unscored 4-minute hop is nobody's engine day. High
+    // knees fail at hip flexors and lungs — max effort is SAFE there, so
+    // this is the scored top-HR test he actually asked for.
+    ex: 'high-knees',
+    note: 'All eight rounds at max effort — your score is your worst round. Count knee drives on one side.',
   },
   {
     mode: 'amrap',
@@ -593,14 +593,16 @@ const TOPPERS = [
     ],
   },
   {
-    mode: 'tabata',
-    name: 'The Skater',
-    // skater bounds are EXACTLY tabata work (research ruling: 20s bursts on
-    // a forced clock, never an open grind) — but UNSCORED, same doctrine as
-    // The Spring: landings must stay crisp, never chased for a number.
-    ex: 'skater-bound',
-    scored: false,
-    note: 'Eight rounds of clean bounds — stick every landing for a beat. Quality is the score.',
+    mode: 'fortime',
+    name: 'The Sprint',
+    // skater tabata was the other unscored husk. This is Annie's downhill
+    // shape as pure engine: both movements open-pace legal, the clock is
+    // the score, and every round is smaller than the last.
+    note: 'Every round shrinks — empty the tank on the way down. Score = time.',
+    members: [
+      { ex: 'jumping-jack', repScheme: [40, 30, 20, 10], logWeight: false },
+      { ex: 'box-step-up', repScheme: [16, 12, 8, 4], logWeight: false },
+    ],
   },
   {
     mode: 'amrap',
@@ -686,19 +688,21 @@ const CORE_CAP = (ex, extra = {}) => ({
   ...extra,
 });
 
+const CAP_CURL = () => CORE_CAP('mcgill-curlup');
+const CAP_SIDE = () =>
+  CORE_CAP('side-plank', { repScheme: [3, 3], perSide: true, switchSecs: 8 });
+const CAP_BIRD = () =>
+  CORE_CAP('bird-dog', { repScheme: [3, 3], perSide: true, switchSecs: 8 });
+const CAP_PLANK = () => CORE_CAP('plank');
+// A 16-slot Latin square, aligned with the finisher pool's stride: every
+// weekday cycles through ALL FOUR McGill moves across the month instead of
+// serving the same one forever ("pogo hops and bird dog" — his 2026-08-15
+// review of a Saturday that never changed its cap).
 const CORE_CAPS = [
-  CORE_CAP('mcgill-curlup'),
-  CORE_CAP('side-plank', {
-    repScheme: [3, 3],
-    perSide: true,
-    switchSecs: 8,
-  }),
-  CORE_CAP('bird-dog', {
-    repScheme: [3, 3],
-    perSide: true,
-    switchSecs: 8,
-  }),
-  CORE_CAP('plank'),
+  CAP_CURL(), CAP_SIDE(), CAP_BIRD(), CAP_PLANK(),
+  CAP_SIDE(), CAP_BIRD(), CAP_PLANK(), CAP_CURL(),
+  CAP_BIRD(), CAP_PLANK(), CAP_CURL(), CAP_SIDE(),
+  CAP_PLANK(), CAP_CURL(), CAP_SIDE(), CAP_BIRD(),
 ];
 
 export const REHAB_SESSIONS = [
