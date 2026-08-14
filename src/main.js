@@ -5462,7 +5462,107 @@ document.getElementById('btn-discard-no').addEventListener('click', () => {
   }
 })();
 
+// ── Pull to refresh (2026-08-15, his ask) ──────────────────────────────────
+(() => {
+  const ptr = document.getElementById('ptr');
+  const ptrLabel = document.getElementById('ptr-label');
+  if (!ptr) return;
+  const THRESH = 72;
+  let startY = null;
+  let dist = 0;
+  let pulling = false;
+  let refreshing = false;
+  for (const sc of document.querySelectorAll('.screen')) {
+    const onMove = (e) => {
+      if (startY == null || refreshing) return;
+      const dy = e.touches[0].clientY - startY;
+      if (!pulling && (dy <= 8 || sc.scrollTop > 0)) return;
+      pulling = true;
+      dist = Math.max(0, Math.min(110, dy * 0.45));
+      e.preventDefault();
+      ptr.classList.add('on', 'drag');
+      ptr.style.transform = `translate(-50%, ${dist}px)`;
+      ptrLabel.textContent =
+        dist >= THRESH ? 'RELEASE TO SYNC' : 'PULL TO SYNC';
+    };
+    const end = () => {
+      sc.removeEventListener('touchmove', onMove);
+      if (startY == null) return;
+      startY = null;
+      if (!pulling) return;
+      pulling = false;
+      ptr.classList.remove('drag');
+      if (dist >= THRESH && !refreshing) {
+        refreshing = true;
+        ptr.style.transform = `translate(-50%, ${THRESH}px)`;
+        if (!currentUser) {
+          // honest when signed out: nothing to pull, say so briefly
+          ptrLabel.textContent = 'THIS DEVICE ONLY';
+          setTimeout(() => {
+            ptr.classList.remove('on');
+            ptr.style.transform = '';
+            refreshing = false;
+          }, 900);
+          return;
+        }
+        ptrLabel.textContent = 'SYNCING…';
+        rhLastFgPull = Date.now(); // an explicit pull resets the throttle
+        Promise.resolve(refreshFromCloud()).finally(() => {
+          ptrLabel.textContent = 'SYNCED ✓';
+          setTimeout(() => {
+            ptr.classList.remove('on');
+            ptr.style.transform = '';
+            refreshing = false;
+          }, 700);
+        });
+      } else {
+        ptr.classList.remove('on');
+        ptr.style.transform = '';
+      }
+    };
+    sc.addEventListener(
+      'touchstart',
+      (e) => {
+        if (refreshing || sc.scrollTop > 0) return;
+        startY = e.touches[0].clientY;
+        dist = 0;
+        pulling = false;
+        sc.addEventListener('touchmove', onMove, { passive: false });
+      },
+      { passive: true },
+    );
+    sc.addEventListener('touchend', end, { passive: true });
+    sc.addEventListener('touchcancel', end, { passive: true });
+  }
+})();
+
 let rhLastFgPull = 0;
+// The one refresh path: pull, adopt, repaint. Shared by the foreground
+// pull, the laptop's window-focus listener, and pull-to-refresh — three
+// triggers, one truth.
+function refreshFromCloud() {
+  return pullAndMerge()
+    .then(() => {
+      // another device may have paused (or finished) a run since we last
+      // looked — adopt before painting the resume surfaces
+      if (rhAdoptCloudSession()) renderRehabPage();
+      renderDayHero();
+      renderTodayCard();
+      renderMonthGrid();
+      renderHistory();
+      renderDataNotice();
+    })
+    .catch(() => {});
+}
+// The laptop case (2026-08-15, his report: "I have to close and open the
+// app"): moving phone → laptop keeps the browser window VISIBLE the whole
+// time, so visibilitychange never fires — but window focus does.
+window.addEventListener('focus', () => {
+  if (currentUser && Date.now() - rhLastFgPull > 60000) {
+    rhLastFgPull = Date.now();
+    refreshFromCloud();
+  }
+});
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     if (rhSession) {
@@ -5497,17 +5597,7 @@ document.addEventListener('visibilitychange', () => {
     // background — never blocks, at most once a minute.
     if (currentUser && Date.now() - rhLastFgPull > 60000) {
       rhLastFgPull = Date.now();
-      pullAndMerge()
-        .then(() => {
-          // another device may have paused (or finished) a run since we
-          // last looked — adopt before painting the resume surfaces
-          if (rhAdoptCloudSession()) renderRehabPage();
-          renderDayHero();
-          renderTodayCard();
-          renderMonthGrid();
-          renderHistory();
-        })
-        .catch(() => {});
+      refreshFromCloud();
     }
     if (rhSession && rhRunning) {
       rhAcquireWakeLock();
