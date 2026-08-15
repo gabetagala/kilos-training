@@ -44,6 +44,8 @@ describe('rehab program data', () => {
   it('is the distillate + finisher + core cap (2026-08-14), favorites fixed', () => {
     expect(REHAB_SESSIONS.map((s) => s.id)).toEqual([
       'daily',
+      'sunday', // the rest day (2026-08-16): the holds, nothing else
+      'wod', // Sunday's old mini-WOD column, opt-in
       'reset',
       'open-up',
       'engine',
@@ -120,7 +122,7 @@ describe('rehab program data', () => {
       ['Death by Step-Ups', 'emom'],
       ['Crawl & Haul', 'fortime'],
       ['The Porter', 'emom'],
-      ['Death by Curls', 'emom'],
+      ['Death by Pull-Aparts', 'emom'],
       ['The Sprint', 'fortime'],
       ['The Chase', 'amrap'],
       ['The Complex', 'emom'],
@@ -464,8 +466,12 @@ describe('rotation (the mechanism outlives the hinge)', () => {
 
   it('the daily rotates 16 calendar-pinned variants; the rest stay fixed', () => {
     expect(sessionVariantCount(daily)).toBe(16);
+    // the Sunday pair (2026-08-16) is calendar-pinned too: the rest day
+    // cycles its supporting-cast/core columns, the Bonus WOD its four WODs
+    expect(sessionVariantCount(getRehabSession('sunday'))).toBe(4);
+    expect(sessionVariantCount(getRehabSession('wod'))).toBe(4);
     for (const s of REHAB_SESSIONS) {
-      if (s.id === 'daily') continue;
+      if (['daily', 'sunday', 'wod'].includes(s.id)) continue;
       expect(sessionVariantCount(s), s.id).toBe(1);
       expect(variantLabel(s, 0), s.id).toBeNull();
     }
@@ -993,5 +999,73 @@ describe('exercise swaps (sanctioned alternates)', () => {
     // change the slot's clock
     expect(anchorRow.detail).toBe('E2M 8 · 4 rounds');
     expect(anchorRow.members[0].name).toBe('Lat Pulldown');
+  });
+});
+
+// ── The Sunday split (2026-08-16, his ask: "rest days on Sundays") ──────────
+// Sunday used to be the fourth full rehab day, and the finisher stride made
+// it the HARDEST one — its column of the pool was all mini-WODs. Now the
+// required Sunday session is medicine only; the WODs are opt-in.
+describe('the Sunday rest day', () => {
+  const sunday = getRehabSession('sunday');
+  const wod = getRehabSession('wod');
+  const METCON = new Set(['emom', 'fortime', 'tabata', 'amrap', 'circuit']);
+
+  it('carries the distillate holds and nothing metcon-shaped', () => {
+    for (const b of sunday.blocks) {
+      for (const v of b.rotate || [b]) {
+        expect(METCON.has(v?.mode), `${v?.name || v?.ex} is a metcon`).toBe(
+          false,
+        );
+      }
+    }
+    // same six fixed holds as the daily, in the same order
+    expect(sunday.blocks.slice(0, 6).map((b) => b.ex)).toEqual([
+      't-spine-reach',
+      'back-extension',
+      'hip-internal-rotation',
+      'couch-stretch',
+      'elephant-walk',
+      'seated-good-morning',
+    ]);
+    // well under a training day — the rest is the point
+    for (let v = 0; v < 4; v++) {
+      expect(estimateSessionMins(sunday, v)).toBeLessThan(30);
+    }
+  });
+
+  it('serves exactly what the pre-split Sunday column served', () => {
+    // supporting cast: old (w−1)·4+3 mod 8 only ever hit indices 3 and 7 —
+    // hip-flexor-lift on odd block-weeks, side-hip-adduction on even
+    const cast = [...Array(4)].map((_, w) => sessionBlocks(sunday, w)[6].ex);
+    expect(cast).toEqual([
+      'hip-flexor-lift',
+      'side-hip-adduction',
+      'hip-flexor-lift',
+      'side-hip-adduction',
+    ]);
+    // core cap: the Latin square's k=3 stripe
+    const caps = [...Array(4)].map((_, w) => sessionBlocks(sunday, w).at(-1).ex);
+    expect(caps).toEqual(['plank', 'mcgill-curlup', 'side-plank', 'bird-dog']);
+  });
+
+  it('the Bonus WOD cycles the four Sunday mini-WODs, opt-in', () => {
+    const names = [...Array(4)].map(
+      (_, w) => sessionBlocks(wod, w)[0].name,
+    );
+    expect(names).toEqual([
+      'The Classic',
+      'Crawl & Haul',
+      'The Chase',
+      'The Century',
+    ]);
+  });
+
+  it('Sunday in the week plan is the rest session plus optional extras only', () => {
+    const sun = WEEK_PLAN[0];
+    expect(sun.every((i) => i.type === 'rehab' && i.session)).toBe(true);
+    expect(sun[0].session).toBe('sunday');
+    // and no bare (full Back & Hips) rehab day lands on Sunday any more
+    expect(sun.some((i) => !i.session)).toBe(false);
   });
 });

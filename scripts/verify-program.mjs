@@ -34,6 +34,7 @@ import {
   MEV,
   MUSCLE_MAP as MAP,
   OPTIONAL_SESSIONS as OPTIONAL,
+  TARGETS,
   WASTEFUL,
 } from '../src/workout/volume.js';
 import {
@@ -58,7 +59,9 @@ const check = (area, name, pass, detail = '') =>
 // of a week the SAME variant and judged weeks that can never occur — a
 // four-Popeye week read forearms at 40 sets and failed a program whose real
 // weeks serve each topper exactly once.
-const REHAB_DAY_SLOT = { 2: 0, 4: 1, 6: 2, 0: 3 }; // getDay() → k
+// Sunday left the map 2026-08-16: it serves the 'sunday' rest session (and
+// the optional 'wod'), both of which ride the generic w−1 variant path.
+const REHAB_DAY_SLOT = { 2: 0, 4: 1, 6: 2 }; // getDay() → k
 function* allQueues() {
   for (let w = 1; w <= BLOCK_WEEKS; w++) {
     const ph = phaseOf(w);
@@ -557,6 +560,22 @@ const CABLE_SETUP = {
             getRehabSession('daily'),
             (w - 1) * 4 + (REHAB_DAY_SLOT[d] ?? 0),
           );
+        } else if (
+          item.type === 'rehab' &&
+          item.session &&
+          !OPTIONAL.has(item.session)
+        ) {
+          // Sunday's required rest session — counted against the 40-minute
+          // ceiling like any other day, exempt only from the 30-minute floor
+          // below (being short is its whole job since 2026-08-16)
+          hasRehab = true;
+          const s = getRehabSession(item.session);
+          if (s) {
+            mins += estimateSessionMins(
+              s,
+              sessionVariantCount(s) > 1 ? w - 1 : 0,
+            );
+          }
         }
       }
       if (hasLift && hasRehab) stacked.push(`wk${w} ${DAYS[d]}`);
@@ -565,7 +584,9 @@ const CABLE_SETUP = {
         longest = mins;
         where = `wk${w} ${DAYS[d]}`;
       }
-      shortest = Math.min(shortest, mins);
+      // Sunday is exempt from the floor: it is the REST day (2026-08-16),
+      // and a short Sunday is the promise kept, not a day gone token.
+      if (d !== 0) shortest = Math.min(shortest, mins);
     });
   }
   // EMOM40 (2026-08-11): the promise is 40:00 of CLOCK work; the ceiling is
@@ -582,7 +603,7 @@ const CABLE_SETUP = {
   // What actually matters is that no required day shrinks into a token effort.
   check(
     'RESTRICTIONS',
-    'no required day shrinks below 30 minutes',
+    'no required training day shrinks below 30 minutes (Sunday rests)',
     shortest >= 30,
     `${shortest}–${longest} min`,
   );
@@ -591,6 +612,39 @@ const CABLE_SETUP = {
     'the rehab day never stacks on a lift day',
     stacked.length === 0,
     stacked.slice(0, 3).join(', '),
+  );
+}
+
+// ── SUNDAY IS A REST DAY (2026-08-16, his ask) ──────────────────────────────
+// The properties that make it real rather than polite: Sunday's only
+// required session is the all-medicine 'sunday' (holds + the McGill cap —
+// no metcon-shaped block, nothing scored), everything else on the day is
+// audited as optional, and the medicine stays under half an hour.
+{
+  const sunday = WEEK_PLAN[0];
+  const required = sunday.filter(
+    (i) => !(i.type === 'rehab' && OPTIONAL.has(i.session)),
+  );
+  const restOk =
+    required.length === 1 &&
+    required[0].type === 'rehab' &&
+    required[0].session === 'sunday';
+  const rest = getRehabSession('sunday');
+  const METCON = new Set(['emom', 'fortime', 'tabata', 'amrap', 'circuit']);
+  const noMetcon =
+    !!rest &&
+    rest.blocks.every((b) =>
+      (b.rotate || [b]).every((v) => !METCON.has(v?.mode)),
+    );
+  let restMins = 0;
+  for (let w = 1; w <= BLOCK_WEEKS; w++) {
+    restMins = Math.max(restMins, rest ? estimateSessionMins(rest, w - 1) : 99);
+  }
+  check(
+    'GOALS',
+    'Sunday is a rest day — medicine only, the WOD is opt-in, under 30 min',
+    restOk && noMetcon && OPTIONAL.has('wod') && restMins < 30,
+    `required: ${required.map((i) => i.session).join('+') || 'none'} · ${restMins} min`,
   );
 }
 
@@ -665,6 +719,29 @@ const muscles = [...new Set(weekVol.flatMap(Object.keys))];
   }
   check('GOALS', 'every muscle is above MEV in every one of the 12 weeks', under.length === 0, under.slice(0, 3).join(', ') || (edges.size ? `at exactly MEV (watch): ${[...edges].join(', ')}` : ''));
   check('GOALS', 'no muscle is pushed into the wasteful band', over.length === 0, over.slice(0, 3).join(', '));
+}
+{
+  // THE HYPERTROPHY TARGETS (2026-08-16 QA). MEV keeps a muscle alive; it
+  // does not grow one. "Every week hits the threshold for hypertrophy" is
+  // his ask, so the muscles he is chasing carry a real weekly floor —
+  // triangle at 10+, 3-D support at 7+ (TARGETS in volume.js). Without this
+  // check the next EMOM40 trade could quietly park chest at 8 and the build
+  // would stay green.
+  const under = [];
+  const edges = new Set();
+  for (const [m, floor] of Object.entries(TARGETS)) {
+    weekVol.forEach((v, i) => {
+      if ((v[m] || 0) < floor) under.push(`${m} wk${i + 1}=${v[m] || 0}<${floor}`);
+      if ((v[m] || 0) === floor) edges.add(m);
+    });
+  }
+  check(
+    'GOALS',
+    'every priority muscle hits its hypertrophy target in every week',
+    under.length === 0,
+    under.slice(0, 3).join(', ') ||
+      (edges.size ? `at exactly target (watch): ${[...edges].join(', ')}` : ''),
+  );
 }
 {
   // LATS RISE BY REPS now (2026-08-11): the anchor round steps died with the

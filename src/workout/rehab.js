@@ -20,7 +20,9 @@ import { createStepEngine } from './stepEngine.js';
 // seated good morning), ONE rotating supporting-cast slot (8-deep — the other
 // seven source movements, each ~once per two weeks), then a 12-minute topper
 // EMOM (4-deep pool, axially quiet, ends on core). ~25 min of holds + 12 of
-// topper; runs Tue/Thu/Sat/Sun, calendar-pinned. Stated plainly: the
+// topper; runs Tue/Thu/Sat, calendar-pinned — Sunday is the REST DAY since
+// 2026-08-16 (holds only, its old mini-WOD column opt-in as 'wod'). Stated
+// plainly: the
 // supporting cast went from 4×/wk to ~0.5×/wk — a real dose cut, traded
 // knowingly for a session he'll do forever. The long-set mechanism is
 // untouched: durations were never trimmed, movements were.
@@ -566,29 +568,31 @@ const TOPPERS = [
   },
   {
     mode: 'emom',
-    name: 'Death by Curls',
+    name: 'Death by Pull-Aparts',
     formatLabel: 'EMOM',
     rounds: 10,
-    // NOT push presses (2026-08-15 review): a light overhead ladder can
-    // never be beaten by the clock, so it ends at overhead muscular failure
-    // — the one scenario the doctrine bans. Curls fail benignly, the top
-    // rungs genuinely race the minute, and the pump is the triangle's.
-    note: 'Two more every minute until a minute beats you — then tap CLOCK BEAT ME. Strict curls, both arms.',
+    // WAS Death by Curls (2026-08-16 QA): its week already ran biceps at 26
+    // fractional sets — the hottest number in the program — while rear delts
+    // sat at 6, the thinnest slice of "3-D shoulders". Same death-by game,
+    // same benign failure, the dose moved to the muscle that needed it.
+    // The top rungs (40+ band reps in a minute) genuinely race the clock.
+    note: 'Four more every minute until a minute beats you — then tap CLOCK BEAT ME. Arms long, blades squeezed; the band is the load knob.',
     bail: 'CLOCK BEAT ME',
     scorePrompt: {
-      title: 'DEATH BY CURLS — LAST FULL MINUTE',
+      title: 'DEATH BY PULL-APARTS — LAST FULL MINUTE',
       sub: 'The last minute you finished the count inside. The clock won after that.',
       unit: 'minutes',
       labelPrefix: 'min',
-      def: 6,
+      def: 7,
       min: 0,
       max: 10,
     },
     members: [
       {
-        ex: 'hammer-curl',
-        reps: '6',
-        repsPerRound: ['6', '8', '10', '12', '14', '16', '18', '20', '22', '24'],
+        ex: 'band-pull-apart',
+        reps: '10',
+        logWeight: false,
+        repsPerRound: ['10', '14', '18', '22', '26', '30', '34', '38', '42', '46'],
       },
     ],
   },
@@ -621,9 +625,16 @@ const TOPPERS = [
     mode: 'emom',
     name: 'The Complex',
     formatLabel: 'EMOM',
-    rounds: 8,
-    note: 'One flow, never set down: hang clean, ride, press. Crisp every minute — the load is the score.',
-    members: [{ ex: 'db-hang-clean-press', reps: '6' }],
+    rounds: 4,
+    // Alternating minutes since the 2026-08-16 QA: eight straight minutes of
+    // a ballistic flow was the grindiest EMOM in the pool, and its week ran
+    // rear delts at 7 — the band minute keeps every complex minute crisp AND
+    // feeds the 3-D shoulder. Same eight-minute clock: 4 rounds × 2 members.
+    note: 'Odd minutes one flow, never set down: hang clean, ride, press — the load is the score. Even minutes, pull the band apart and breathe.',
+    members: [
+      { ex: 'db-hang-clean-press', reps: '6' },
+      { ex: 'band-pull-apart', reps: '14', logWeight: false },
+    ],
   },
   {
     mode: 'amrap',
@@ -698,11 +709,65 @@ const CAP_PLANK = () => CORE_CAP('plank');
 // weekday cycles through ALL FOUR McGill moves across the month instead of
 // serving the same one forever ("pogo hops and bird dog" — his 2026-08-15
 // review of a Saturday that never changed its cap).
+// Since the Sunday split (2026-08-16) the 'daily' session only ever serves
+// the k∈{0,1,2} columns of this square — the k=3 column moved to the
+// 'sunday' session below, extracted so the month's coverage is unchanged.
 const CORE_CAPS = [
   CAP_CURL(), CAP_SIDE(), CAP_BIRD(), CAP_PLANK(),
   CAP_SIDE(), CAP_BIRD(), CAP_PLANK(), CAP_CURL(),
   CAP_BIRD(), CAP_PLANK(), CAP_CURL(), CAP_SIDE(),
   CAP_PLANK(), CAP_CURL(), CAP_SIDE(), CAP_BIRD(),
+];
+
+// ── THE SUNDAY SPLIT (2026-08-16, his ask: "rest days on Sundays") ──────────
+// Sunday used to be the FOURTH full rehab day — and the finisher stride made
+// it the hardest one: its column of the pool was all mini-WODs. His QA ask
+// was explicit, so the day split in two:
+//   'sunday' — the same holds, NOTHING else. Medicine, not training: no
+//              finisher, no clock to race, no score. The back program keeps
+//              its four weekly exposures (the dose that wins the argument);
+//              the training week is genuinely six days.
+//   'wod'    — Sunday's old mini-WOD column, now OPT-IN (audited as optional,
+//              same as Open Up and The Long Way). Feeling fresh is the only
+//              reason to open it.
+// The stride math is untouched for Tue/Thu/Sat: 'daily' keeps its 16-deep
+// pool and (w−1)·4+k indexing with k∈{0,1,2}, which never lands on the
+// k≡3 (mod 4) entries — those four live in SUNDAY_WODS.
+const SUNDAY_WODS = [3, 7, 11, 15].map((i) => TOPPERS[i]);
+
+// Sunday's columns of the two 'daily' rotations, extracted verbatim so the
+// calendar-pinned month serves exactly what it served before the split:
+// supporting cast (w−1)·4+3 mod 8 only ever hit indices 3 and 7, and the
+// core-cap column is the Latin square's k=3 stripe.
+const SUNDAY_CAST = [
+  perSide('hip-flexor-lift', 'WORK'),
+  perSide('side-hip-adduction', 'WORK', 12),
+];
+const SUNDAY_CAPS = [CAP_PLANK(), CAP_CURL(), CAP_SIDE(), CAP_BIRD()];
+
+// The distillate holds, shared by 'daily' and 'sunday' — six fixed blocks,
+// defined once so the dose can never drift between the two sessions.
+const DISTILLATE_BLOCKS = [
+  // his thoracic ask — 12 slow reaches a side is a real two minutes
+  {
+    ex: 't-spine-reach',
+    mode: 'tempo',
+    sets: 1,
+    reps: 12,
+    perSide: true,
+    tempo: TSPINE_TEMPO,
+  },
+  straight('back-extension', 'WORK'),
+  perSide('hip-internal-rotation', 'WORK'),
+  perSide('couch-stretch', 'BREATHE', 20),
+  straight('elephant-walk', 'WORK'),
+  {
+    ex: 'seated-good-morning',
+    mode: 'hold',
+    sets: 1,
+    holdSecs: MINS(2),
+    phase: 'BREATHE',
+  },
 ];
 
 export const REHAB_SESSIONS = [
@@ -719,32 +784,15 @@ export const REHAB_SESSIONS = [
     // unbroken set per movement, burn to 10/10, pain at 0/10.
     id: 'daily',
     name: 'Back & Hips',
-    freq: 'Tue · Thu · Sat · Sun',
+    freq: 'Tue · Thu · Sat',
     blurb:
       'The holds that matter, ~25 minutes — then a finisher from a sixteen-deep rotation: for time, death-by, Tabata, AMRAP — and the core cap to close. On the holds: 10/10 burn, 0/10 pain; unbroken means take the next progression.',
     blocks: [
-      // his thoracic ask — 12 slow reaches a side is a real two minutes
-      {
-        ex: 't-spine-reach',
-        mode: 'tempo',
-        sets: 1,
-        reps: 12,
-        perSide: true,
-        tempo: TSPINE_TEMPO,
-      },
-      straight('back-extension', 'WORK'),
-      perSide('hip-internal-rotation', 'WORK'),
-      perSide('couch-stretch', 'BREATHE', 20),
-      straight('elephant-walk', 'WORK'),
-      {
-        ex: 'seated-good-morning',
-        mode: 'hold',
-        sets: 1,
-        holdSecs: MINS(2),
-        phase: 'BREATHE',
-      },
+      ...DISTILLATE_BLOCKS,
       // the supporting cast, one per day, rotating — nothing dies, everything
-      // thins: ~1 exposure per two weeks each
+      // thins: ~1 exposure per two weeks each. Sunday's two columns (indices
+      // 3 and 7) still live here so paused pre-split sessions restore, but
+      // the Tue/Thu/Sat stride never reaches them — SUNDAY_CAST serves them.
       {
         rotate: [
           perSide('ql-plank', 'HOLD', 12),
@@ -760,6 +808,33 @@ export const REHAB_SESSIONS = [
       { rotate: TOPPERS },
       { rotate: CORE_CAPS },
     ],
+  },
+  {
+    // THE REST DAY (2026-08-16, his ask). The same medicine 'daily' opens
+    // with — and then it ends. No finisher, no clock to race, no score to
+    // beat: the one day of the week that asks nothing of him but breathing.
+    // The back program keeps its 4×/week dose; the TRAINING week is six days.
+    id: 'sunday',
+    name: 'Rest Day',
+    freq: 'Sun',
+    blurb:
+      'The holds and nothing else — no finisher, no clock, no score. Medicine, not training. Feeling fresh? The Bonus WOD is one tap away, and skipping it costs nothing.',
+    blocks: [
+      ...DISTILLATE_BLOCKS,
+      { rotate: SUNDAY_CAST },
+      { rotate: SUNDAY_CAPS },
+    ],
+  },
+  {
+    // Sunday's old mini-WOD column, opt-in. Audited as OPTIONAL — the weekly
+    // volume floor is proven without it, so this is genuinely free fun, not
+    // hidden homework.
+    id: 'wod',
+    name: 'The Bonus WOD',
+    freq: 'Sun · optional',
+    blurb:
+      'The Classic, Crawl & Haul, The Chase, The Century — one per week, only if you want it. Beat last month’s score or just move.',
+    blocks: [{ rotate: SUNDAY_WODS }],
   },
   {
     id: 'reset',

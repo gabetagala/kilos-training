@@ -79,20 +79,44 @@ export const MUSCLE_MAP = {
 export const MEV = 4;
 export const WASTEFUL = 30;
 
+// ── THE HYPERTROPHY TARGETS (2026-08-16 QA) ─────────────────────────────────
+// MEV is a survival floor, not a growth target — a program could park every
+// muscle at 4 fractional sets and the old audit would stay green. His ask
+// was "hit the threshold for hypertrophy per muscle every week", so the
+// muscles he is actually chasing get a REAL floor, enforced weekly by
+// verify-program.mjs: the triangle (his stated physique goal) at 10+ —
+// the bottom of the 10–20 productive band — and the 3-D support muscles
+// at 7+. Everything absent here keeps the MEV floor: legs are maintenance
+// BY GOAL ("legs are already there; cuts are a body-fat thing"), obliques
+// get their real dose from the daily side-core medicine the tally
+// deliberately excludes, and front delts are EXPECTED_LOW.
+export const TARGETS = {
+  lats: 10,
+  chest: 10,
+  sidedelt: 10,
+  biceps: 10,
+  triceps: 10,
+  forearm: 10,
+  upperback: 7,
+  reardelt: 7,
+};
+
 // Front delts are intentionally unserved — their MEV is ~0 because every
 // press saturates them. Flagging them red twelve times is noise, not signal.
 export const EXPECTED_LOW = new Set(['frontdelt']);
 
 // Sessions whose ENTIRE content is exempt from the hypertrophy tally.
-// EMPTY since 2026-08-11: the rebuilt 'daily' carries a topper EMOM that IS
-// hypertrophy work, so its exemption became per-step — the auditors skip a
-// step only when (session === 'daily' AND the exercise is a rehab-dictionary
-// hold). The long holds are endurance medicine, not sets; counting them once
-// reported obliques at 42 sets/week and failed the program. The set survives
-// for any future all-medicine session.
-export const HYPERTROPHY_EXEMPT = new Set([]);
+// The rebuilt 'daily' carries a topper EMOM that IS hypertrophy work, so its
+// exemption is per-step — the auditors skip a step only when (session ===
+// 'daily' AND the exercise is a rehab-dictionary hold). The long holds are
+// endurance medicine, not sets; counting them once reported obliques at 42
+// sets/week and failed the program. 'sunday' (2026-08-16) is the promised
+// all-medicine session: holds and the McGill cap, zero sets by construction.
+export const HYPERTROPHY_EXEMPT = new Set(['sunday']);
 
-// AND SO ARE THE OPTIONAL SESSIONS. Sunday's Open Up and The Long Way are
-// explicitly skippable, so counting them describes a week he might not train.
-// The audited numbers are the FLOOR — the required days on their own.
-export const OPTIONAL_SESSIONS = new Set(['open-up', 'engine']);
+// AND SO ARE THE OPTIONAL SESSIONS. Sunday's Bonus WOD, Open Up and The Long
+// Way are explicitly skippable, so counting them describes a week he might
+// not train. The audited numbers are the FLOOR — the required days on their
+// own. 'wod' being here is what makes the Sunday rest day real: every
+// volume target above must be provable without it.
+export const OPTIONAL_SESSIONS = new Set(['wod', 'open-up', 'engine']);

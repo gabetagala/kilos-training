@@ -102,7 +102,7 @@ function dayPlan(sessionId, week, isRehabSession = false, variant = null) {
 // not train.
 // The daily's topper COUNTS (2026-08-11) — its holds don't. The skip mirrors
 // the verifier exactly: session 'daily' AND a rehab-dictionary movement.
-const REHAB_DAY_SLOT = { 2: 0, 4: 1, 6: 2, 0: 3 }; // getDay() → k
+const REHAB_DAY_SLOT = { 2: 0, 4: 1, 6: 2 }; // getDay() → k (Sunday rests)
 function weekVolume(week) {
   const phase = phaseOf(week);
   const swaps = phaseSwaps(phase);
@@ -167,27 +167,45 @@ for (let w = 1; w <= BLOCK_WEEKS; w++) {
       // minutes are its own — adding the rehab here overstated every one.
       days.push({ day: DAY_NAMES[offset], date: d, ...dayPlan(lift.session, w) });
     } else {
-      // A rehab day: Back & Hips (~25 min of holds) + the topper EMOM.
-      // Sunday additionally offers
-      // Open Up and The Long Way, both explicitly optional.
-      const p = dayPlan('daily', w, true, (w - 1) * 4 + (REHAB_DAY_SLOT[offset] ?? 0));
+      // A rehab day: Back & Hips (~25 min of holds) + the topper EMOM on
+      // Tue/Thu/Sat. Sunday (2026-08-16) serves the 'sunday' rest session
+      // instead — holds only — with the Bonus WOD, Open Up and The Long Way
+      // all explicitly optional.
+      const bare = items.some((i) => i.type === 'rehab' && !i.session);
+      const requiredId = bare
+        ? 'daily'
+        : items.find(
+            (i) => i.type === 'rehab' && !OPTIONAL_SESSIONS.has(i.session),
+          )?.session;
+      const p = bare
+        ? dayPlan('daily', w, true, (w - 1) * 4 + (REHAB_DAY_SLOT[offset] ?? 0))
+        : dayPlan(requiredId, w, true);
       const extras = items
-        .filter((i) => i.type === 'rehab' && i.session)
+        .filter(
+          (i) =>
+            i.type === 'rehab' && i.session && i.session !== requiredId,
+        )
         .map((i) => dayPlan(i.session, w, true));
       days.push({
         day: DAY_NAMES[offset],
         date: d,
         ...p,
-        focus: extras.length ? 'the back program + the easy day' : 'the back program',
+        focus: bare
+          ? 'the back program'
+          : 'the rest day — extras optional',
         // APPEND the optional extras — replacing partB silently deleted the
         // topper row, and a fridge sheet that can't say which topper a day
-        // serves defeats the whole point of calendar-pinning
+        // serves defeats the whole point of calendar-pinning. The optional
+        // Bonus WOD shows its PART B (the metcon itself), not partA.
         partB: [
           ...p.partB,
           ...extras.map((e) => ({
             title: `${e.name} — optional`,
             detail: `${e.mins} min`,
-            members: e.partA.map((r) => ({ name: r.title, detail: r.detail })),
+            members: [...e.partA, ...e.partB].map((r) => ({
+              name: r.title,
+              detail: r.detail,
+            })),
           })),
         ],
       });
@@ -204,7 +222,7 @@ const movesOf = (row) =>
 const q = (s) => `"${String(s).replace(/"/g, '""')}"`;
 const csv = [];
 csv.push(q('KILOS — BLOCK 01 · 12 weeks · Armored V-Taper'));
-csv.push(q(`Starts ${fmtDate(start)} ${start.getFullYear()}. EMOM40: every day fits 40 minutes. Mon/Wed/Fri lift; the other four days are Back & Hips holds + a 12-min topper EMOM.`));
+csv.push(q(`Starts ${fmtDate(start)} ${start.getFullYear()}. EMOM40: every day fits 40 minutes. Mon/Wed/Fri lift; Tue/Thu/Sat are Back & Hips holds + a finisher. Sunday is the REST DAY — holds only, the Bonus WOD is opt-in.`));
 csv.push('');
 csv.push(['Week', 'Phase', 'Day', 'Date', 'Session', 'Part A — quality', 'Part B — the piece', 'Min', 'Test'].map(q).join(','));
 for (const wk of weeks) {
@@ -313,7 +331,7 @@ const html = `<!doctype html>
 
 <h1>Kilos · Block 01</h1>
 <p class="sub"><strong>12 weeks · “Armored V-Taper”.</strong> ${fmtDate(start)} ${start.getFullYear()} → ${fmtDate(new Date(start.getTime() + 83 * 864e5))}.</p>
-<p class="sub"><strong>EMOM40 — every day fits 40 minutes.</strong> <strong>Mon / Wed / Fri</strong> lift: the anchor, then one EMOM straight to the end. <strong>Tue / Thu / Sat / Sun</strong>: ~25 minutes of Back &amp; Hips holds, then a 12-minute topper EMOM. One session a day. Start the clock — that is it.</p>
+<p class="sub"><strong>EMOM40 — every day fits 40 minutes.</strong> <strong>Mon / Wed / Fri</strong> lift: the anchor, then one EMOM straight to the end. <strong>Tue / Thu / Sat</strong>: ~25 minutes of Back &amp; Hips holds, then a finisher. <strong>Sunday rests</strong> — holds only, no clock; the Bonus WOD is opt-in. One session a day. Start the clock — that is it.</p>
 <p class="sub">Each lift day is <strong>two clocks</strong>, read top to bottom. THE ANCHOR runs <strong>E2M or E3M</strong> (a heavy set per interval — the interval is the rest, and the build rounds ride the same clock); THE PIECE is <strong>one EMOM straight to the end</strong>: a minute per station, twenty seconds of air between trips where the day has headroom; Mon/Fri carry the hinge and a cardio minute inside it. Every slot rotates on a four-week cycle, so no session repeats inside a month, and every other week the piece runs its reps descending.</p>
 <p class="legend" style="margin-top:10px">
 <span><i class="tag" style="position:static">A</i> the rehab days — positional holds, no clock pressure</span>

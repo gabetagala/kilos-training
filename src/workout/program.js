@@ -944,15 +944,25 @@ export const DENSITY40_SESSIONS = [
             'One build round: empty bar ×3, quick load to ~80%, ×2 — working weight next round.',
           alts: [{ ex: 'db-split-squat', reps: '6/leg' }],
         },
+        // the front-rack reverse lunge joined the alt lists 2026-08-16 (QA):
+        // it had art, a demo and a muscle-map entry but was served nowhere.
+        // Same single-leg class as the split squats, and the front rack
+        // forces the upright torso — the position does the spine-safety.
         {
           ex: 'db-split-squat',
           reps: '6/leg',
-          alts: [{ ex: 'rfe-split-squat', reps: '6/leg' }],
+          alts: [
+            { ex: 'rfe-split-squat', reps: '6/leg' },
+            { ex: 'db-front-rack-lunge', reps: '6/leg' },
+          ],
         },
         {
           ex: 'rfe-split-squat',
           reps: '6/leg',
-          alts: [{ ex: 'db-split-squat', reps: '6/leg' }],
+          alts: [
+            { ex: 'db-split-squat', reps: '6/leg' },
+            { ex: 'db-front-rack-lunge', reps: '6/leg' },
+          ],
         },
         {
           ex: 'box-squat',
@@ -1003,10 +1013,16 @@ export const DENSITY40_SESSIONS = [
                 { ex: 'db-hang-clean-press', reps: '5', fixedReps: true },
               ],
             },
+            // week 3's primary is the hang clean & press (2026-08-16 QA):
+            // the slot now rotates all THREE overhead flavors — push press,
+            // snatch, clean & press, snatch — instead of holding the third
+            // one hostage in the alt list. Same class as the snatch: light
+            // DBs, above the knee, forced-rest clocks, quality-capped reps.
             {
-              ex: 'db-push-press',
-              reps: '8',
-              alts: [{ ex: 'db-hang-clean-press', reps: '6' }],
+              ex: 'db-hang-clean-press',
+              reps: '6',
+              fixedReps: true,
+              alts: [{ ex: 'db-push-press', reps: '8' }],
             },
             {
               ex: 'db-hang-snatch',
@@ -1435,12 +1451,16 @@ export const getProgramSession = (id) =>
 // 3×/week prescription, and the hardest lift days are the ones with a full
 // rehab day either side of them.
 //
-// Sunday keeps its easy-day extras — Open Up and The Long Way are both short
-// and both optional, and Sunday's rehab is the one to skip guilt-free when the
-// week has been heavy.
+// SUNDAY IS THE REST DAY (2026-08-16, his ask — "rest days on Sundays").
+// It carries the 'sunday' session: the same distillate holds, and then it
+// ENDS — no finisher, no clock, no score. Sunday's old mini-WOD column is
+// 'wod', opt-in and audited as optional alongside Open Up and The Long Way.
+// The audited week must prove every volume target WITHOUT the optional
+// Sunday work — that is what makes the rest day real instead of polite.
 export const WEEK_PLAN = [
   /* Sun */ [
-    { type: 'rehab' },
+    { type: 'rehab', session: 'sunday' },
+    { type: 'rehab', session: 'wod' },
     { type: 'rehab', session: 'open-up' },
     { type: 'rehab', session: 'engine' },
   ],
