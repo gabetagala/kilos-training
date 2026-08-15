@@ -3667,6 +3667,26 @@ function rhRenderStep() {
   }
   document.getElementById('rp-phase').textContent = step.phase;
 
+  // THE WORK MODEL (2026-08-16, his ask: "hard to know how many reps or when
+  // to start or stop"). Long holds have no rep counter by design — the
+  // duration is the prescription and breaks are part of the protocol — but
+  // that model was only ever stated in the session blurb. Now every hold
+  // says it on the step: reps or hold, the cadence, and the break rule.
+  // Steps that count FOR you (tempo reps, the McGill 10s holds, EMOM
+  // minutes) stay clean — a how-line there is noise.
+  const howEl = document.getElementById('rp-how');
+  if (howEl) {
+    const showHow =
+      !!ex.how &&
+      !step.piece &&
+      !step.emom &&
+      !step.tempo &&
+      step.rep == null &&
+      (step.kind === 'work' || step.kind === 'prep');
+    howEl.textContent = showHow ? ex.how : '';
+    howEl.style.display = showHow ? '' : 'none';
+  }
+
   // Countdown vs self-paced set (with or without a weight to log).
   // An EMOM minute is the one step that shows BOTH: the interval clock runs
   // the piece, and the weight row sits under it so the load you're using is

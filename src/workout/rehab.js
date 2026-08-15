@@ -122,6 +122,7 @@ export const REHAB_EXERCISES = {
     avoid: 'Chin tucking, spine bending to lift',
     cue: 'Hands under the low back, one knee bent. Lift head + shoulders barely off the floor — the spine never bends.',
     why: 'Front-side stiffness without spine flexion.',
+    scale: 'Harder: elbows hovering → hands off the floor → pre-tense the abs hard before each lift',
     yt: 'mcgill curl up form',
   },
   'side-plank': {
@@ -130,6 +131,7 @@ export const REHAB_EXERCISES = {
     avoid: 'Hips sagging toward the floor',
     cue: 'Elbow under shoulder, hips tall. One straight line from ear to ankle.',
     why: 'Side-core stiffness with near-zero disc load.',
+    scale: 'Easier: from the knees · Harder: feet stacked → top leg raised → weighted vest',
     yt: 'side plank mcgill big 3',
   },
   'bird-dog': {
@@ -138,6 +140,7 @@ export const REHAB_EXERCISES = {
     avoid: 'Hips rotating as the leg reaches',
     cue: 'Opposite arm + leg out. Reach long, not high — hips stay square, spine stays still.',
     why: 'Back-side stiffness while the limbs move around a quiet spine.',
+    scale: 'Easier: leg only · Harder: slow square with hand + foot → wrist/ankle weights',
     yt: 'bird dog exercise mcgill',
   },
   'glute-bridge': {
@@ -208,6 +211,7 @@ export const REHAB_EXERCISES = {
     avoid: 'Yanking — pain means too far',
     cue: 'On your back, one leg up, hands behind the thigh. Gentle pull — breathe into it.',
     why: 'Tight hamstrings drag the pelvis and load the low back.',
+    how: 'Just breathe — a soft pull, never pain. The timer does the counting.',
     yt: 'lying hamstring stretch',
   },
   'hip-flexor-stretch': {
@@ -216,6 +220,7 @@ export const REHAB_EXERCISES = {
     avoid: 'Arching the low back to fake range',
     cue: 'Half-kneeling, tuck the tail, shift hips forward. Stretch in the front of the rear hip.',
     why: 'Tight hip flexors tilt the pelvis and cramp the hinge.',
+    how: 'Just breathe — tail tucked, a soft stretch. The timer does the counting.',
     yt: 'half kneeling hip flexor stretch',
   },
 
@@ -232,6 +237,7 @@ export const REHAB_EXERCISES = {
     cue: 'Sit tall, knees bent, feet wide. Drop one knee inward, then lift that foot off the floor — small lifts, the hip does all of it.',
     why: 'The rotation a hip loses first. Without it the spine turns instead.',
     scale: 'Easier: body weight · Harder: ankle weight',
+    how: 'Small lifts, one after another — no counting, the clock is the set. 10/10 burn = pause, resume.',
     yt: 'seated hip internal rotation lift off',
   },
   'hip-airplane': {
@@ -242,6 +248,7 @@ export const REHAB_EXERCISES = {
     why: 'Teaches the hip to rotate under load so the low back stops doing it.',
     scale:
       'Easier: body weight, less bend · Harder: ankle weight, more bend over',
+    how: 'Slow turns — open, then closed, no counting. Keep moving until the beep.',
     yt: 'hip airplane exercise',
   },
   'side-hip-abduction': {
@@ -251,6 +258,7 @@ export const REHAB_EXERCISES = {
     cue: 'Lie on your side, body in one line. Lift the top leg up and slightly back, toes level. No rolling.',
     why: 'Glute-med endurance — the muscle that keeps the pelvis level every step you take.',
     scale: 'Easier: body weight · Harder: ankle weight',
+    how: 'Steady lifts, ~2s up, ~2s down — no target. Break at a true 10/10 burn, then back on.',
     yt: 'side lying hip abduction form',
   },
   'side-hip-adduction': {
@@ -260,6 +268,7 @@ export const REHAB_EXERCISES = {
     cue: 'Same side-lying stack. Cross the top leg over in front, then lift the BOTTOM leg off the floor and keep it there.',
     why: 'Adductors hold up more of the pelvis than anyone trains — weak ones surface as groin and SI pain.',
     scale: 'Easier: body weight · Harder: ankle weight',
+    how: 'One long hold, bottom leg up. When it gives: rest a breath, lift again — time up is the score.',
     yt: 'side lying hip adduction exercise',
   },
   'hip-flexor-lift': {
@@ -269,6 +278,7 @@ export const REHAB_EXERCISES = {
     cue: 'Sit on the floor, legs long, sit tall. Lift one straight leg as high as it will go and hold it there — hands off it.',
     why: 'Trains the hip flexor short and strong so it stops yanking the pelvis into a tilt.',
     scale: 'Easier: body weight · Harder: ankle weight, or swap in an L-sit',
+    how: 'Lift and hold it there. When the leg drops: shake out, lift again. The clock keeps score.',
     yt: 'seated straight leg hip flexor lift',
   },
   'ql-plank': {
@@ -278,6 +288,7 @@ export const REHAB_EXERCISES = {
     cue: 'On your side, elbow under the shoulder, legs stacked. Drive the hips high and hold — the burn belongs in the side of your low back.',
     why: 'The QL hikes the hip. Even and strong on both sides, the pelvis stops sitting crooked.',
     scale: 'Easier: body weight · Harder: weighted vest',
+    how: 'One hold, hips high. Break when you must, get straight back up — total hold time is the set.',
     yt: 'QL plank exercise',
   },
   plank: {
@@ -287,6 +298,7 @@ export const REHAB_EXERCISES = {
     cue: 'Elbows under shoulders, ribs down, glutes on. One line from ear to ankle. Break when you must, then get straight back on.',
     why: 'Four minutes of front-core endurance — the thing that stops the spine borrowing range under load.',
     scale: 'Easier: body weight · Harder: weighted vest',
+    how: 'One hold. Break when you must, get straight back on — total time under tension is the set.',
     yt: 'plank form',
   },
   'back-extension': {
@@ -297,6 +309,7 @@ export const REHAB_EXERCISES = {
     why: 'The single biggest lever on a back that hurts: extensors with real endurance.',
     scale:
       'Easier: isometric hold · Harder: reps → + vest → single-leg hold → single-leg reps',
+    how: 'Slow reps, ~3s each, no target — the clock is the set. At a 10/10 burn: breathe, then back on.',
     yt: 'roman chair back extension form',
   },
   'wall-groin-stretch': {
@@ -307,6 +320,7 @@ export const REHAB_EXERCISES = {
     why: 'Four unhurried minutes is what actually changes adductor length. Thirty seconds never did.',
     scale:
       'Easier: hips further from the wall · Harder: hips closer, legs lower',
+    how: 'No work at all — let gravity take the legs and breathe until the beep.',
     yt: 'wall straddle groin stretch',
   },
   '90-90-pushup': {
@@ -316,6 +330,7 @@ export const REHAB_EXERCISES = {
     cue: 'Sit in 90/90, both shins square. Push the floor away and come up tall over the front hip, then sit back down. Slow both ways.',
     why: 'Strength at end-range rotation — the hip position everyone stretches and nobody trains.',
     scale: 'Easier: two hands down · Harder: one hand, then none',
+    how: 'Slow reps, ~3s up, ~3s down — no target, the clock is the set. 10/10 burn = breathe, resume.',
     yt: '90 90 hip lift off push up',
   },
   'couch-stretch': {
@@ -326,6 +341,7 @@ export const REHAB_EXERCISES = {
     why: 'Unwinds the hip flexor a day of sitting shortens — the one the pelvis pays for.',
     scale:
       'Easier: hold a counter · Harder: hands off, glute squeezed, lunge forward with a neutral pelvis',
+    how: 'No reps — sink in, squeeze the back glute, breathe slow. Effort 0/10.',
     yt: 'couch stretch form',
   },
   'elephant-walk': {
@@ -337,6 +353,7 @@ export const REHAB_EXERCISES = {
     why: 'Hamstring length earned through movement, without one second of spinal flexion.',
     scale:
       'Easier: hands on a higher surface · Harder: hands lower, then floor',
+    how: 'Keep walking the whole time, one leg then the other. Nothing to count, no burn to chase.',
     yt: 'elephant walk hamstring exercise',
   },
   // Added 2026-08-11 at his ask — his favorite feel from the source coach's
@@ -351,6 +368,7 @@ export const REHAB_EXERCISES = {
     why: 'The hip hinge, learned unloaded — the pattern every lift in this program depends on, stretched into the hamstrings from a dead-safe seat.',
     scale:
       'Easier: hands on thighs, smaller fold · Harder: deeper fold, arms crossed',
+    how: 'Fold to where the stretch bites and breathe there. No reps, no pushing.',
     yt: 'seated good morning stretch',
   },
 };
