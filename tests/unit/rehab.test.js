@@ -1069,3 +1069,32 @@ describe('the Sunday rest day', () => {
     expect(sun.some((i) => !i.session)).toBe(false);
   });
 });
+
+// ── The work model rides the step (2026-08-16, his ask) ─────────────────────
+// "Hard to know how many reps or when to start or stop" — long holds have no
+// rep counter BY DESIGN (the duration is the prescription, breaks are part
+// of the protocol), so every hold-mode movement must SAY its work model:
+// reps or hold, the cadence, the break rule. The player renders ex.how
+// under the clock; a hold without one regresses straight back to a silent
+// countdown.
+describe('hold-mode movements carry a work model', () => {
+  it('every hold served by a rehab session has a how line', () => {
+    for (const s of REHAB_SESSIONS) {
+      for (const b of s.blocks) {
+        for (const v of (b.rotate || [b]).filter(Boolean)) {
+          if (v.mode !== 'hold' || v.members) continue;
+          const ex = REHAB_EXERCISES[v.ex] || PROGRAM_EXERCISES[v.ex];
+          expect(ex?.how, `${s.id}: ${v.ex} needs a how line`).toBeTruthy();
+          // one glanceable line, not an essay
+          expect(ex.how.length, v.ex).toBeLessThanOrEqual(110);
+        }
+      }
+    }
+  });
+
+  it('the McGill core carries progression ladders like everything else', () => {
+    for (const ex of ['mcgill-curlup', 'side-plank', 'bird-dog', 'plank']) {
+      expect(REHAB_EXERCISES[ex].scale, ex).toBeTruthy();
+    }
+  });
+});

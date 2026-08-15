@@ -102,6 +102,7 @@ export const PROGRAM_EXERCISES = {
     avoid: 'Pushing off the back foot, or leaning forward to get up',
     cue: 'Whole foot on the box, stand tall through the top leg, step down under control. Torso stays upright — a forward lean means the box is too high.',
     why: 'The best engine builder in the garage: upright, unilateral, and zero spine flexion even when you are wrecked.',
+    how: 'Steady, even steps to the beep — no counting, no rush. Swap the lead leg at halfway.',
     yt: 'weighted box step up form',
   },
   'box-squat': {
