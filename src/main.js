@@ -50,6 +50,7 @@ import {
 import { addCheckin, bodyKgAsOf, checkinStatus } from './workout/checkin.js';
 import { FORM_CUES, pickFormCue } from './workout/formCues.js';
 import { loggedExercisesOf, resolveMuscleGroup } from './workout/muscles.js';
+import { OPTIONAL_SESSIONS } from './workout/volume.js';
 import {
   BENCHMARK_SESSIONS,
   DENSITY40_SESSIONS,
@@ -814,7 +815,9 @@ function renderDayHero() {
   if (!history.length) {
     line = `Day one — ${b('rehab + guided lifting')} is ready.`;
   } else {
-    const plan = todayPlan().filter((i) => i.sessionId);
+    // required work only — the Bonus WOD / Open Up / The Long Way are not
+    // today's ask, and "55 min all in" on the rest day would defeat it
+    const plan = todayPlan().filter((i) => i.sessionId && !i.optional);
     const mins = plan.reduce((sum, i) => {
       const sess = getGuidedSession(i.sessionId);
       return (
@@ -1999,6 +2002,11 @@ document.getElementById('bm-score-skip')?.addEventListener('click', () => {
 // drifts: miss a week and the rotation desyncs from the printed plan forever,
 // so the sheet on the fridge stops matching the app. Block week can't drift.
 // Rehab sessions (no block) fall back to completed runs.
+// Calendar-pinned sessions cycle with the block week, so a bare A–P variant
+// letter is noise everywhere they're shown ('daily' 2026-08-11; the Sunday
+// pair 2026-08-16).
+const CAL_PINNED = new Set(['daily', 'sunday', 'wod']);
+
 const rehabVariantIdx = (sessionId) => {
   if (sessionId?.startsWith('d40')) {
     // blockStartISO(), not the raw key — it's what lazily seeds the block, so
@@ -2015,14 +2023,24 @@ const rehabVariantIdx = (sessionId) => {
   // supporting movement ~once per two weeks).
   if (sessionId === 'daily') {
     const w = currentWeek(blockStartISO());
-    // rehab days in week order (Mon-start): Tue → Thu → Sat → Sun. An
-    // OFF-day (Mon/Wed/Fri) resolves to the NEXT rehab day's slot — browsing
-    // on a Friday used to always show Tuesday's Pump, which read as "the
-    // finishers never change" (2026-08-15, his report).
-    const slot = { 1: 0, 2: 0, 3: 1, 4: 1, 5: 2, 6: 2, 0: 3 }[
-      new Date().getDay()
-    ];
+    const day = new Date().getDay();
+    // rehab days in week order (Mon-start): Tue → Thu → Sat. An OFF-day
+    // (Mon/Wed/Fri) resolves to the NEXT rehab day's slot — browsing on a
+    // Friday used to always show Tuesday's Pump, which read as "the
+    // finishers never change" (2026-08-15, his report). Sunday (rest day
+    // since 2026-08-16) looks ahead to NEXT week's Tuesday.
+    if (day === 0) {
+      return w == null ? 0 : w * 4;
+    }
+    const slot = { 1: 0, 2: 0, 3: 1, 4: 1, 5: 2, 6: 2 }[day];
     return w == null ? slot : (w - 1) * 4 + slot;
+  }
+  // Sunday's pair (2026-08-16) is calendar-pinned to the block week, exactly
+  // like the lift rotation — a skipped Sunday must never desync the printed
+  // sheet from what the app serves.
+  if (sessionId === 'sunday' || sessionId === 'wod') {
+    const w = currentWeek(blockStartISO());
+    return w == null ? 0 : w - 1;
   }
   // Other rehab sessions — per completed run. Salvaged partial runs
   // ('interrupted' entries) don't count: the rotation advances per COMPLETED
@@ -3319,7 +3337,7 @@ function rhRenderOverview() {
   if (!overlay.classList.contains('open') || !rhSession) return;
   // 'daily' cycles 8 calendar-pinned variants — a bare A–H letter is noise
   const vl =
-    rhSession.id === 'daily' ? null : variantLabel(rhSession, rhVariant);
+    CAL_PINNED.has(rhSession.id) ? null : variantLabel(rhSession, rhVariant);
   document.getElementById('rpo-title').textContent =
     `${rhSession.name}${vl ? ` · DAY ${vl}` : ''} · FULL SESSION`.toUpperCase();
   const currentBi = rhStep()?.bi ?? 0;
@@ -4505,7 +4523,17 @@ function renderBlockCalendar() {
           ? [calDayPlan(lift.session, w)]
           : WEEK_PLAN[offset]
               .filter((i) => i.type === 'rehab' && i.session)
-              .map((i) => calDayPlan(i.session, w, true));
+              // required first (Sunday's 'sunday' rest session leads its
+              // optional extras), so plans[0] is always the day's real work
+              .sort(
+                (a, b) =>
+                  (OPTIONAL_SESSIONS.has(a.session) ? 1 : 0) -
+                  (OPTIONAL_SESSIONS.has(b.session) ? 1 : 0),
+              )
+              .map((i) => ({
+                ...calDayPlan(i.session, w, true),
+                optional: OPTIONAL_SESSIONS.has(i.session),
+              }));
         // The Back & Hips day only runs on the days that carry it —
         // it no longer stacks on a lift day, so it can't be added to every row.
         const hasRehab = WEEK_PLAN[offset].some(
@@ -4528,15 +4556,18 @@ function renderBlockCalendar() {
               estimateSessionSecs(getRehabSession('daily'), rehabV) / 60,
             )
           : 0;
-        const mins = rehabMins + plans.reduce((a, p) => a + (p?.mins || 0), 0);
+        // the day's headline minutes are its REQUIRED work — optional extras
+        // (the Bonus WOD, Open Up, The Long Way) are not the day's ask
+        const mins =
+          rehabMins +
+          plans.reduce((a, p) => a + (p && !p.optional ? p.mins : 0), 0);
         const rehabDone = doneOn.has(`${k}|daily`);
         // A day is done when its REQUIRED work is done: the lift on lift days,
-        // the daily back program on rehab days. Judging rehab days by `plans`
-        // meant Tue/Thu/Sat could never show the tick (plans is empty there)
-        // and Sunday's tick tracked the optional extras instead.
+        // the daily back program on rehab days, the rest-day holds on Sunday.
+        // Judging by any plan meant Sunday's tick tracked the optional extras.
         const isDone = hasRehab
           ? rehabDone
-          : plans.some((p) => p && doneOn.has(`${k}|${p.id}`));
+          : plans.some((p) => p && !p.optional && doneOn.has(`${k}|${p.id}`));
         const parts = plans
           .filter(Boolean)
           .map((p) =>
@@ -4546,20 +4577,28 @@ function renderBlockCalendar() {
                     'A',
                     'cal-a',
                     p.partA.map((r) => `${r.title} ${r.detail}`).join(' · '),
-                    '',
+                    p.optional ? 'optional' : '',
                     '',
                   )
                 : '',
               ...p.partB.map((r) =>
-                calPartLine('B', 'cal-b', r.title, r.detail, calMoves(r)),
+                calPartLine(
+                  'B',
+                  'cal-b',
+                  p.optional ? `${r.title} — optional` : r.title,
+                  r.detail,
+                  calMoves(r),
+                ),
               ),
             ].join(''),
           )
           .join('');
+        // the headline is the day's REQUIRED work; optional extras stay in
+        // the part rows below ("Rest Day", not "Rest Day + three extras")
         const dayName =
           plans
-            .map((p) => p?.name)
-            .filter(Boolean)
+            .filter((p) => p && !p.optional)
+            .map((p) => p.name)
             .join(' + ') ||
           (hasRehab
             ? `Back & Hips + ${rehabFinisher || 'Finisher'}`
@@ -4899,7 +4938,7 @@ function openSessionPreview(
   _spVariant = spVariant;
   document.getElementById('sp-header-title').textContent = headerLabel;
   const spLabel =
-    session.id === 'daily' ? null : variantLabel(session, spVariant);
+    CAL_PINNED.has(session.id) ? null : variantLabel(session, spVariant);
   document.getElementById('sp-title').textContent = session.name.toUpperCase();
   document.getElementById('sp-meta').textContent =
     `~${estimateSessionMins(session, spVariant)} MIN · ${sessionBlocks(session, spVariant).length} BLOCKS${spLabel ? ` · DAY ${spLabel}` : ''}`;
@@ -5113,7 +5152,7 @@ function renderRehabPage() {
   document.getElementById('rehab-session-list').innerHTML = REHAB_SESSIONS.map(
     (s) => {
       const v = rehabVariantIdx(s.id);
-      const vl = s.id === 'daily' ? null : variantLabel(s, v);
+      const vl = CAL_PINNED.has(s.id) ? null : variantLabel(s, v);
       return `
     <button class="rhs-card" data-rehab="${s.id}">
       <div class="rhs-top"><div class="rhs-name">${s.name}</div><div class="rhs-go">→</div></div>
@@ -5646,6 +5685,7 @@ function todayPlan() {
             h.rehabId === rid || (rid === 'daily' && h.rehabId === 'hinge'),
         ),
         sessionId: rid,
+        optional: OPTIONAL_SESSIONS.has(rid),
       };
     }
     if (item.type === 'lift') {
