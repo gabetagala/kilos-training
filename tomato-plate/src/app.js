@@ -6,6 +6,8 @@ import { ALLERGENS, AMOUNTS, EXPOSURE_TARGET, FOODS, HAND_GUIDE, MILK, REACTION,
 import { dayPlan, ironToday } from './plan.js'
 import * as store from './store.js'
 
+const BUILD = `${import.meta.env.KILOS_BUILD || 'dev'} · ${import.meta.env.KILOS_COMMIT || '—'}`
+
 const app = document.getElementById('app')
 document.body.insertAdjacentHTML('afterbegin', SPRITE)
 
@@ -257,6 +259,7 @@ function screenBaby() {
       <div class="soft" style="font-size:11px;margin-top:3px">${esc(milk.note)}</div></div>
     <div class="note"><b style="color:var(--ink)">Not a reaction:</b> ${esc(REACTION.notReaction)}</div>
     <button class="btn ghost" data-export>Export the log</button>
+    <button class="buildstamp" data-update>${esc(BUILD)} · tap to update</button>
   </div>`
 }
 
@@ -336,7 +339,7 @@ function render() {
     : view.tab === 'baby' ? screenBaby()
     : screenToday()
   const bar = view.food ? '' : `<nav class="tabbar">${TABS.map(([id, ic, label]) =>
-    `<button data-tab="${id}" class="${view.tab === id ? 'on' : ''}"><i>${ic}</i>${label}</button>`).join('')}</nav>`
+    `<button data-tab="${id}" class="${view.tab === id ? 'on' : ''}" aria-label="${label}"><i>${ic}</i><span>${label}</span></button>`).join('')}</nav>`
   const sheetEl = !view.sheet ? '' : view.sheet.kind === 'reaction' ? sheetReaction() : view.sheet.kind === 'hands' ? sheetHands() : sheetLog(view.sheet)
   app.innerHTML = body + bar + sheetEl
 }
@@ -398,6 +401,27 @@ app.addEventListener('click', (e) => {
     }
     // backdrop, or any explicit close button (which lives inside [data-stop])
     if (e.target.classList.contains('scrim') || hit('button[data-close]')) { view.sheet = null; return render() }
+  }
+
+  const upd = hit('[data-update]')
+  if (upd) {
+    // Never wipe caches while offline — that bricks the app until signal is back.
+    // Prove the network first, THEN clear everything and land on a unique URL.
+    upd.textContent = 'Updating…'
+    ;(async () => {
+      try {
+        const probe = await fetch(`./?u=${Date.now()}`, { cache: 'reload' })
+        if (!probe.ok) throw new Error(String(probe.status))
+        const regs = (await navigator.serviceWorker?.getRegistrations?.()) || []
+        if (window.caches) await Promise.all((await caches.keys()).map((k) => caches.delete(k)))
+        for (const r of regs) { try { await r.unregister() } catch { /* already gone */ } }
+        window.location.replace(`./?u=${Date.now()}`)
+      } catch {
+        upd.textContent = 'Offline — try again later'
+        setTimeout(() => { upd.textContent = `${BUILD} · tap to update` }, 2600)
+      }
+    })()
+    return
   }
 
   if (hit('[data-export]')) {

@@ -3,10 +3,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#FBF3E4" />
+  <meta name="theme-color" content="#FAF8F2" />
   <meta name="description" content="Every food, how to cut it, and what he thought of it." />
+  <!-- Installed as a standalone PWA: own manifest + icon, translucent status
+       bar so the cream page runs under it (safe-area padding does the rest). -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Plate" />
+  <link rel="manifest" href="/tomato-plate.webmanifest" />
+  <link rel="apple-touch-icon" href="/plate-icon-180.png" />
+  <link rel="icon" type="image/png" href="/plate-icon-180.png" />
   <title>Tomato Plate</title>
-  <link rel="icon" href="/favicon.svg" />
   <link rel="stylesheet" href="./src/style.css" />
 </head>
 <body>

@@ -45,10 +45,38 @@ body {
   -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
   overscroll-behavior-y: none;
 }
-#app { max-width: 480px; margin: 0 auto; min-height: 100%; display: flex; flex-direction: column; }
+/* Installed to the home screen, the small viewport under-reports on iOS and
+   leaves a dead strip under the page; only 100vh resolves to the true height.
+   Phone widths only, so a desktop install keeps its framed shell. */
+@media (display-mode: standalone) and (max-width: 599px) {
+  html, body, #app { height: 100vh; }
+  body { min-height: 100vh; }
+}
+#app {
+  /* height, not min-height: the shell is exactly the viewport and .scroll does
+     the scrolling inside it, so the floating nav can anchor to the true bottom. */
+  max-width: 480px; margin: 0 auto; height: 100%; overflow: hidden;
+  display: flex; flex-direction: column; position: relative;
+}
+
+/* Paper grain — barely there, but it stops the flat fills reading as unfinished.
+   Fixed so it never scrolls with content, and inert to pointers. */
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  opacity: .5; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.055'/%3E%3C/svg%3E");
+}
+/* A warm bloom behind the hero so the top of the page has some depth. */
+body::after {
+  content: ''; position: fixed; inset: 0 0 auto; height: 42vh; z-index: 0; pointer-events: none;
+  background: radial-gradient(120% 80% at 50% -10%, rgba(15,74,53,.055), transparent 70%);
+}
+#app { z-index: 2; }
 .scroll {
-  flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
-  padding: max(18px, env(safe-area-inset-top)) var(--pad) 28px;
+  /* min-height:0 lets a flex child shrink below its content and scroll itself,
+     instead of stretching the shell past the viewport. */
+  flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: max(18px, calc(env(safe-area-inset-top) + 6px)) var(--pad) calc(96px + env(safe-area-inset-bottom));
 }
 .stack > * + * { margin-top: 22px; }
 .ic { display: block; flex: 0 0 auto; }
@@ -224,26 +252,46 @@ h2 { font-family: var(--font-display); font-size: 22px; font-weight: 600; letter
 .notelog { background: var(--surface-2); border-radius: var(--r-sm); padding: 13px 15px; }
 .notelog + .notelog { margin-top: 9px; }
 
-/* ── tab bar ──────────────────────────────────────────────────────────── */
+/* ── tab bar: floats above the home indicator, hugs its content ───────── */
 .tabbar {
-  display: flex; border-top: 1px solid var(--line);
-  background: rgba(250,248,242,.94); backdrop-filter: saturate(160%) blur(12px);
-  padding: 8px 0 max(10px, env(safe-area-inset-bottom)); position: sticky; bottom: 0;
+  position: absolute; z-index: 100;
+  bottom: max(14px, calc(env(safe-area-inset-bottom) - 6px));
+  left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 4px; padding: 6px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, .82);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(26, 43, 34, .07);
+  box-shadow: 0 2px 8px rgba(26,43,34,.06), 0 12px 32px rgba(26,43,34,.10);
 }
 .tabbar button {
-  flex: 1; border: 0; background: none; font: inherit; cursor: pointer;
-  font-size: 11px; font-weight: 600; color: var(--ink-3); letter-spacing: -0.005em;
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 4px 0; min-height: 46px;
+  border: 0; background: none; font: inherit; cursor: pointer;
+  display: flex; align-items: center; gap: 7px;
+  height: 44px; padding: 0 14px; border-radius: var(--r-pill);
+  font-size: 13px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink-2);
+  transition: background .3s cubic-bezier(.4,0,.2,1), color .2s, padding .3s cubic-bezier(.4,0,.2,1);
 }
-.tabbar button.on { color: var(--green); }
-.tabbar i { font-style: normal; font-size: 15px; opacity: .45; }
+.tabbar button i { font-style: normal; font-size: 13px; opacity: .5; }
+/* Inactive tabs collapse to the icon; the active one expands to show its label. */
+.tabbar button span { max-width: 0; overflow: hidden; white-space: nowrap; opacity: 0;
+  transition: max-width .3s cubic-bezier(.4,0,.2,1), opacity .2s, margin .3s; margin-left: -7px; }
+.tabbar button.on { background: var(--green); color: #fff; padding: 0 16px; }
 .tabbar button.on i { opacity: 1; }
+.tabbar button.on span { max-width: 90px; opacity: 1; margin-left: 0; }
+
+/* ── 2. build stamp — tiny, in the Baby footer; tap to pull the newest build */
+.buildstamp {
+  display: block; width: 100%; background: none; border: 0; cursor: pointer;
+  font: inherit; font-size: 10.5px; font-weight: 500; letter-spacing: .04em;
+  color: var(--ink-3); text-align: center; padding: 10px 0 2px;
+}
+.buildstamp:active { color: var(--green-2); }
 
 /* ── sheets ───────────────────────────────────────────────────────────── */
 .scrim {
   position: fixed; inset: 0; background: rgba(26,43,34,.32); display: flex;
-  align-items: flex-end; justify-content: center; z-index: 50;
+  align-items: flex-end; justify-content: center; z-index: 200;
   animation: fade .18s ease;
 }
 @keyframes fade { from { opacity: 0 } }
