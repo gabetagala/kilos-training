@@ -2,7 +2,7 @@
 // Vanilla, localStorage-first, no framework. Renders whole screens; the state
 // is small enough that diffing would cost more than it saves.
 import { SPRITE, cutGlyph, icon } from './art.js'
-import { ALLERGENS, AMOUNTS, EXPOSURE_TARGET, FOODS, HAND_GUIDE, MILK, REACTION, ROTATION_DAYS } from './data.js'
+import { ALLERGENS, AMOUNTS, EXPOSURE_TARGET, FOODS, HAND_GUIDE, MILK, REACTION, ROTATION_DAYS, TAKEN } from './data.js'
 import { dayPlan, ironToday, scheduleIndex, slotOf, swapOptions } from './plan.js'
 import * as store from './store.js'
 
@@ -45,7 +45,7 @@ const ageBand = (months) => (months >= 12 ? 12 : months >= 9 ? 9 : 6)
 const amountFor = (day) => AMOUNTS.find((a) => day <= a.upTo) || AMOUNTS[AMOUNTS.length - 1]
 
 /** The whole "how do I actually make this" block — shared by Today and Food detail. */
-function serveBlock(id, band) {
+function serveBlock(id, band, { solo = false } = {}) {
   const f = FOODS[id]
   if (!f) return ''
   const [spoon, hands] = f.cut[band] || f.cut[9]
@@ -55,6 +55,9 @@ function serveBlock(id, band) {
     </div>
     ${f.prep.length ? `<div style="margin-top:12px"><div class="eyebrow" style="margin-bottom:6px">Prepare it</div>
       <ol class="prep">${f.prep.map((p) => `<li>${esc(p)}</li>`).join('')}</ol></div>` : ''}
+    ${solo
+      ? '<div class="note" style="margin-top:12px"><b>On its own for these three days.</b> No mixing yet — if something flares up, one ingredient means you know which.</div>'
+      : f.pairing ? `<div class="note" style="margin-top:12px"><b>Goes well with</b> ${esc(f.pairing)}</div>` : ''}
     ${f.buy ? `<div class="buy" style="margin-top:12px"><b>What to buy</b>${esc(f.buy)}</div>` : ''}
     ${f.safety ? `<div class="safety" style="margin-top:12px">${esc(f.safety)}</div>` : ''}`
 }
@@ -94,8 +97,8 @@ function screenToday() {
   // In the trial months the new food IS the day — show its full prep inline,
   // no tapping through.
   const inlinePrep = plan.mode === 'trial'
-    ? `<div><div class="eyebrow" style="margin-bottom:8px">How to serve it at ${band} months</div>
-        ${serveBlock(plan.foodId, band)}</div>` : ''
+    ? `<div><div class="eyebrow ruled" style="margin-bottom:10px">How to serve it at ${band} months</div>
+        ${serveBlock(plan.foodId, band, { solo: true })}</div>` : ''
 
   const meals = MEAL_ORDER.filter((k) => plan.meals[k] || (k === 'snack' && plan.snack)).map((k) => {
     const m = plan.meals[k] || { spoon: plan.snack, hands: '', foods: [] }
@@ -119,7 +122,7 @@ function screenToday() {
           ${m.hands ? `<div class="hands">✋ ${esc(m.hands)}</div>` : ''}
           ${m.alongside ? `<div class="d">Alongside: ${esc(m.alongside)}</div>` : ''}
           ${rec?.note ? `<div class="mealnote">\u201C${esc(rec.note)}\u201D</div>` : ''}
-          ${rec?.amount ? `<div class="d" style="margin-top:2px">Ate: <b>${esc(rec.amount)}</b></div>` : ''}
+          ${rec?.amount ? `<div class="d" style="margin-top:2px">Ate: <b>${esc((TAKEN.find((t) => t.id === rec.amount) || {}).label || rec.amount)}</b></div>` : ''}
         </div>
         <div class="thumbs">
           <button class="th ${rec?.verdict === 'up' ? 'on-up' : ''}" data-log="${k}" data-v="up" aria-label="Liked it">👍</button>
@@ -143,7 +146,7 @@ function screenToday() {
       <div style="font-size:14px;font-weight:800">${esc(amt.offer)}</div>
       <div class="soft" style="font-size:11px;margin-top:3px">${esc(amt.meals)}. This is what to <i>offer</i>, never what he has to finish — stop when he turns away.</div>
       <button class="link" data-hands style="margin-top:6px">No measuring spoons? Use your hands →</button></div>
-    <div><div class="eyebrow" style="margin-bottom:10px">Today\u2019s meals${plan.mode === 'cycle' ? ' · tap one for how to make it' : ''}</div>${meals}</div>
+    <div><div class="eyebrow ruled" style="margin-bottom:10px">Today\u2019s meals${plan.mode === 'cycle' ? ' · tap one for how to make it' : ''}</div>${meals}</div>
     ${due.length ? `<div class="note"><b style="color:var(--ink)">Due back in rotation:</b> ${due.map((d) => `${esc(d.name)} (${d.since}d)`).join(', ')}. Once an allergen is in, it stays in — at least weekly, for good.</div>` : ''}
   </div>`
 }
@@ -187,7 +190,7 @@ function screenFoods() {
       ${chip('allergens', 'Allergens', rows.filter((r) => r.f.allergen).length)}
     </div>
     <div class="foodgrid">${shown.map(card).join('')}</div>
-    ${Object.keys(moved).length ? `<div class="note"><b>${Object.keys(moved).map((id) => esc(FOODS[id].name)).join(', ')}</b> moved because you were out of ${Object.keys(moved).length > 1 ? 'them' : 'it'} — re-queued to the next free slot rather than dropped, so ${Object.keys(moved).length > 1 ? 'they still get their trials' : 'it still gets its trial'}.</div>` : ''}
+    ${Object.keys(moved).length ? `<div class="note"><b>Dates swapped.</b> ${Object.entries(moved).map(([id, d]) => `${esc(FOODS[id].name)} → day ${d}`).join(', ')}. Nothing is dropped — the two just traded places.</div>` : ''}
     <div class="note"><b>Green dot</b> is iron-rich, <b>amber</b> is one of the nine allergens. Tap any food for how to cut it at his age.</div>
   </div>`
 }
@@ -215,7 +218,7 @@ function screenFood(id) {
       </div>
       <div class="seg">${[6, 9, 12].map((a) => `<button data-age="${a}" class="${view.age === a ? 'on' : ''}">${a} mo</button>`).join('')}</div>
       <div>
-        <div class="eyebrow" style="margin-bottom:8px">How to serve it at ${band} months</div>
+        <div class="eyebrow ruled" style="margin-bottom:10px">How to serve it at ${band} months</div>
         ${serveBlockInline}
       </div>
       <div class="note"><b style="color:var(--ink)">Squash test.</b> Every piece must squash between your finger and thumb with light pressure. If it doesn't, cook it longer.</div>
@@ -313,15 +316,16 @@ function sheetLog(ctx) {
     <div class="row">${icon(f?.art || 'lugaw', 44)}
       <div><div style="font-size:18px;font-weight:650;letter-spacing:-.02em">${esc(ctx.label)}</div>
         <div class="soft" style="font-size:12px">${esc(TITLE[ctx.key] || 'Extra')} · exposure ${n}</div></div></div>
-    <div><div class="eyebrow" style="margin-bottom:10px">How did it go?</div>
+    <div><div class="eyebrow ruled" style="margin-bottom:10px">How did it go?</div>
       <div class="verdicts">
         <button class="verdict ${ctx.verdict === 'up' ? 'on-up' : ''}" data-v="up"><span>👍</span>Liked it</button>
         <button class="verdict ${ctx.verdict === 'down' ? 'on-down' : ''}" data-v="down"><span>👎</span>Not today</button>
       </div>
       <div class="verdict-msg ${ctx.verdict === 'down' ? 'warm' : ''}">${msg}</div>
     </div>
-    <div><div class="eyebrow" style="margin-bottom:10px">How much</div>
-      <div class="amounts">${['none', 'a taste', 'some', 'lots'].map((x) => `<button data-amt="${x}" class="${ctx.amount === x ? 'on' : ''}">${x}</button>`).join('')}</div></div>
+    <div><div class="eyebrow ruled" style="margin-bottom:10px">How much</div>
+      <div class="takens">${TAKEN.map((t) => `<button data-amt="${t.id}" class="taken ${ctx.amount === t.id ? 'on' : ''}">
+        <b>${t.label}</b><span>${t.desc}</span></button>`).join('')}</div></div>
     <textarea id="log-note" placeholder="Anything worth remembering?">${esc(ctx.note || '')}</textarea>
     <div class="row">
       <button class="link" data-reaction>Flag a reaction</button>
@@ -338,7 +342,7 @@ function sheetSwap(ctx) {
     <div class="grab"></div>
     <h2>No ${esc(f.name.toLowerCase())} today?</h2>
     ${opts.length
-      ? `<p class="soft" style="font-size:13px;line-height:1.5">This moves the whole 3-day slot — a trial split between two ingredients tests neither. Pick something that does the same job. ${
+      ? `<p class="soft" style="font-size:13px;line-height:1.5">The two trade places — this food takes today's slot, and the one you're out of takes its date. A trial split between two ingredients tests neither, so the whole 3-day slot moves. ${
           f.allergen ? `This is an <b>allergen day</b>, so only another ${f.allergen} food counts — a vegetable would skip the introduction entirely.`
           : f.ironMg >= 1 ? 'This is an <b>iron day</b>, so the stand-in needs to carry iron too.'
           : 'Same food group, so the variety still counts.'}</p>

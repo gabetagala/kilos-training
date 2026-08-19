@@ -63,20 +63,22 @@ body {
    Fixed so it never scrolls with content, and inert to pointers. */
 body::before {
   content: ''; position: fixed; inset: 0; z-index: 1; pointer-events: none;
-  opacity: .5; mix-blend-mode: multiply;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.055'/%3E%3C/svg%3E");
+  opacity: .85; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.075'/%3E%3C/svg%3E");
 }
 /* A warm bloom behind the hero so the top of the page has some depth. */
 body::after {
   content: ''; position: fixed; inset: 0 0 auto; height: 42vh; z-index: 0; pointer-events: none;
-  background: radial-gradient(120% 80% at 50% -10%, rgba(15,74,53,.055), transparent 70%);
+  background:
+    radial-gradient(120% 70% at 50% -8%, rgba(15,74,53,.08), transparent 68%),
+    radial-gradient(90% 50% at 8% 4%, rgba(192,68,42,.045), transparent 60%);
 }
 #app { z-index: 2; }
 .scroll {
   /* min-height:0 lets a flex child shrink below its content and scroll itself,
      instead of stretching the shell past the viewport. */
   flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
-  padding: max(18px, calc(env(safe-area-inset-top) + 6px)) var(--pad) calc(96px + env(safe-area-inset-bottom));
+  padding: max(20px, env(safe-area-inset-top)) var(--pad) calc(96px + env(safe-area-inset-bottom));
 }
 .stack > * + * { margin-top: 22px; }
 .ic { display: block; flex: 0 0 auto; }
@@ -391,3 +393,47 @@ textarea::placeholder { color: var(--ink-3); }
 
 .fcard.moved { border-style: dashed; opacity: .72; }
 .fcard.moved span { color: var(--amber); font-weight: 700; }
+
+/* ── texture: depth without decoration ─────────────────────────────────── */
+/* Cards sit on a hairline plus a whisper of lift, so they read as paper laid
+   on paper rather than as flat rectangles. */
+.card, .meal, .fcard, .cut, .swapopt, .verdict, .al, .chip {
+  box-shadow: 0 1px 1.5px rgba(26,43,34,.035), 0 1px 0 rgba(255,255,255,.7) inset;
+}
+.hero { background: transparent; border: 0; }
+/* The hero illustration gets a soft ground so it isn't floating on nothing. */
+.hero-art { position: relative; }
+.hero-art::before {
+  content: ''; position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+  width: 190px; height: 190px; border-radius: 999px; z-index: -1;
+  background: radial-gradient(circle, rgba(15,74,53,.07), rgba(15,74,53,.02) 55%, transparent 72%);
+}
+.hero-art svg { filter: drop-shadow(0 10px 18px rgba(26,43,34,.10)); }
+/* Section headings get a hairline rule that runs to the edge — structure the
+   eye can follow when scanning one-handed. */
+.eyebrow.ruled { display: flex; align-items: center; gap: 12px; }
+.eyebrow.ruled::after {
+  content: ''; flex: 1; height: 1px; background: var(--line);
+}
+.foodgrid .fcard svg { filter: drop-shadow(0 4px 8px rgba(26,43,34,.08)); }
+.meal svg, .cut svg { filter: drop-shadow(0 3px 6px rgba(26,43,34,.07)); }
+
+/* ── how much: label + what it means ───────────────────────────────────── */
+.takens { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.taken {
+  border: 1px solid var(--line); background: var(--surface); border-radius: var(--r-sm);
+  padding: 12px 13px; font: inherit; cursor: pointer; text-align: left; color: var(--ink);
+}
+.taken b { display: block; font-size: 14px; font-weight: 650; letter-spacing: -.01em; }
+.taken span { display: block; font-size: 11.5px; color: var(--ink-3); margin-top: 2px; line-height: 1.35; }
+.taken.on { background: var(--green); border-color: var(--green); color: #fff; }
+.taken.on span { color: rgba(255,255,255,.72); }
+
+/* Installed, there is no browser chrome to push content down, so clear the
+   clock and the notch explicitly. Last in the file so it wins the cascade —
+   it has the same specificity as the base rule. */
+@media (display-mode: standalone) {
+  .scroll { padding-top: max(30px, calc(env(safe-area-inset-top) + 12px)); }
+  .sheet { padding-bottom: max(30px, calc(env(safe-area-inset-bottom) + 8px)); }
+  .tabbar { bottom: max(18px, calc(env(safe-area-inset-bottom) - 2px)); }
+}

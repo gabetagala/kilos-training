@@ -16,23 +16,39 @@ const M8 = M7 + TRIALS[8].length * TRIAL_LEN       // 69
  * than dropping out of the plan.
  */
 export function planSlots(swaps = {}) {
-  const slots = []
+  const base = []
   for (const [month, list] of Object.entries(TRIALS)) {
     const offset = month === '6' ? 0 : month === '7' ? M6 : M7
-    list.forEach((t, i) => {
-      const start = offset + i * TRIAL_LEN + 1
-      slots.push({ start, original: t.food, food: swaps[start] || t.food, note: t.note })
-    })
+    list.forEach((t, i) => base.push({ start: offset + i * TRIAL_LEN + 1, original: t.food, note: t.note }))
   }
-  const scheduled = new Set(slots.map((s) => s.food))
-  const bumped = slots.filter((s) => s.food !== s.original && !scheduled.has(s.original))
-  bumped.forEach((s, i) => {
+  base.sort((a, b) => a.start - b.start)
+
+  // A swap is a TRADE. If the stand-in already has a slot of its own, the two
+  // simply exchange places — the food you were out of takes the other's date
+  // rather than being shunted to the back of the queue. Only a stand-in with
+  // no slot of its own (already eaten, or never scheduled) leaves the
+  // displaced food needing a fresh date at the end.
+  const at = new Map(base.map((s) => [s.start, s.original]))
+  const queued = []
+  for (const start of Object.keys(swaps).map(Number).sort((a, b) => a - b)) {
+    const incoming = swaps[start]
+    if (!incoming || !at.has(start)) continue
+    const outgoing = at.get(start)
+    if (outgoing === incoming) continue
+    let otherStart = null
+    for (const [k, v] of at) if (v === incoming) { otherStart = k; break }
+    at.set(start, incoming)
+    if (otherStart !== null) at.set(otherStart, outgoing)
+    else queued.push(outgoing)
+  }
+
+  const slots = base.map((s) => ({ start: s.start, original: s.original, food: at.get(s.start), note: s.note }))
+  const last = base[base.length - 1].start
+  queued.forEach((food, i) => {
     slots.push({
-      start: M8 + 1 + i * TRIAL_LEN,
-      original: s.original,
-      food: s.original,
-      note: `Moved from day ${s.start} — you were out of it`,
-      rescheduled: true,
+      start: last + TRIAL_LEN * (i + 1),
+      original: food, food, rescheduled: true,
+      note: 'Moved — you were out of it',
     })
   })
   return slots
@@ -45,11 +61,13 @@ export function slotOf(n, swaps = {}) {
 
 /** Where each food actually lands, once swaps and re-queues are applied. */
 export function scheduleIndex(swaps = {}) {
+  const home = {}
+  for (const s of planSlots()) home[s.original] ??= s.start
   const schedule = {}
   const moved = {}
   for (const s of planSlots(swaps)) {
     schedule[s.food] ??= s.start
-    if (s.rescheduled) moved[s.food] = s.start
+    if (home[s.food] !== undefined && home[s.food] !== s.start) moved[s.food] ??= s.start
   }
   return { schedule, moved }
 }

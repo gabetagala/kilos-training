@@ -45,8 +45,8 @@ export const FOODS = {
     cut: { 6: ['Blended very smooth with unsalted broth', 'Not yet'],
            9: ['Finely minced through a mash', 'Soft shreds'],
            12: ['Chopped small', 'Shredded pieces'] },
-    prep: ['Boil until cooked through.', 'Blend very smooth with unsalted cooking broth.',
-           'Chicken alone is not a strong iron source — pair it with malunggay or monggo.'],
+    prep: ['Boil until cooked through.', 'Blend very smooth with unsalted cooking broth.'],
+    pairing: 'Chicken alone is not a strong iron source. Once malunggay or monggo are in, serve them together.',
     safety: '' }),
   avocado: f({ name: 'Avocado', sub: '', cat: 'fruit', art: 'avocado',
     cut: { 6: ['Mashed, loosened with warm water', 'Not yet'], 9: ['Mashed', 'Ripe wedges'],
@@ -57,7 +57,8 @@ export const FOODS = {
     cut: { 6: ['Blended smooth into lugaw', 'Not yet'], 9: ['Finely mashed through lugaw', 'Serve a kamote stick alongside'],
            12: ['Finely chopped into rice', 'Small pieces'] },
     prep: ['Rinse, trim greenish or stringy bits.', 'Simmer 8–10 min until NO pink remains.',
-           'Blend smooth with a little cooking liquid.', 'Stir a fingertip or two into lugaw. Start small — strong flavour.'],
+           'Blend smooth with a little cooking liquid.', 'Start with a fingertip — the flavour is strong.'],
+    pairing: 'Once lugaw is in the rotation this is the iron workhorse: plain lugaw is 0.45mg iron, with liver it is 10.20mg.',
     buy: 'Fresh chicken liver from the palengke or the supermarket chiller. Buy it the day you cook it.',
     safety: 'MAX TWICE A WEEK. Extremely vitamin-A dense — the one food where more is worse.' }),
   lakatan: f({ name: 'Lakatan', sub: 'Banana', cat: 'fruit', art: 'banana',
@@ -88,13 +89,14 @@ export const FOODS = {
            9: ['Finely chopped through food', 'Not as finger food'],
            12: ['Cooked into family dishes', '—'] },
     prep: ['Strip leaves off the stems completely — stems stay fibrous.', 'Boil 3–5 min until fully wilted.',
-           'Blend VERY smooth, then stir a spoonful into lugaw or kalabasa.'],
+           'Blend VERY smooth.', 'Stir a spoonful into a purée he already has — never served on its own.'],
+    pairing: 'Its own vitamin C helps absorb its iron, so it pairs well with dilis or monggo.',
     safety: 'Carries its own vitamin C, so it helps absorb its own iron. Pairs naturally with dilis.' }),
   tilapia: f({ name: 'Tilapia', sub: '', cat: 'protein', art: 'fish', allergen: 'fish', choking: 'moderate',
     cut: { 6: ['Mashed into lugaw', 'Not yet'], 9: ['Flaked into soft lumps', 'Large soft flakes'],
            12: ['Flaked into family dishes', 'Flakes'] },
     prep: ['Steam or poach 8–10 min until it flakes.', 'DEBONE METICULOUSLY — flake apart by hand and check twice.',
-           'Mash with the cooking water or stir into lugaw.'],
+           'Mash with the cooking water.'],
     safety: 'Bones. Check by hand, twice, every time.' }),
   beef: f({ name: 'Beef', sub: 'Lean ground', cat: 'protein', art: 'meat', ironMg: 2.6,
     cut: { 6: ['Blended very smooth with broth', 'Not yet'], 9: ['Finely minced', 'Flattened soft patty'],
@@ -136,7 +138,8 @@ export const FOODS = {
     cut: { 6: ['Mashed completely smooth into lugaw', 'Not yet'], 9: ['Finely flaked', 'Serve a kalabasa baton alongside'],
            12: ['Flaked into family dishes', 'Flakes'] },
     prep: ['FRESH dilis only — never dried salted.', 'Heads and guts out; debone by running a thumb down the spine.',
-           'Simmer 5–8 min until it flakes.', 'CHECK FOR BONES AGAIN, by hand.', 'Mash smooth into lugaw.'],
+           'Simmer 5–8 min until it flakes.', 'CHECK FOR BONES AGAIN, by hand.', 'Mash completely smooth.'],
+    pairing: 'Dilis and malunggay in lugaw is the cheapest iron meal in the plan.',
     buy: 'FRESH dilis from the palengke, not the dried salted snack kind — that one is far too much salt for a baby.',
     safety: 'About 10x the iron of bangus, plus real calcium, and on the FDA low-mercury list. Never the dried salted kind — far too much salt.' }),
   tahini: f({ name: 'Tahini', sub: 'Sesame paste', cat: 'protein', art: 'tahini', allergen: 'sesame',
@@ -165,7 +168,8 @@ export const FOODS = {
     cut: { 6: ['Blended smooth', 'Not yet'], 9: ['Mashed — a good early lumpy texture', 'Whole soft beans'],
            12: ['Family monggo with malunggay', 'Whole beans'] },
     prep: ['SOAK OVERNIGHT, drain, rinse.', 'Boil 30–40 min until the beans collapse.',
-           'Blend smooth with the cooking water.', 'Serve beside papaya or a squeeze of calamansi.'],
+           'Blend smooth with the cooking water.'],
+    pairing: 'Serve beside something with vitamin C — papaya, or a squeeze of calamansi — to absorb the plant iron.',
     buy: 'Dry monggo from any palengke or supermarket. Soak it overnight before cooking.',
     safety: 'Soaking overnight cuts phytate about 45%, which meaningfully improves iron and zinc absorption. Free win.' }),
   mangga: f({ name: 'Mangga', sub: 'Mango', cat: 'fruit', art: 'mango',
@@ -260,6 +264,14 @@ export const AMOUNTS = [
 ]
 
 // No rulers, no measuring spoons — everything sized against a hand.
+// What he ate, relative to what you offered — not abstract sizes.
+export const TAKEN = [
+  { id: 'none', label: 'None', desc: 'Turned away, or spat it out' },
+  { id: 'taste', label: 'A taste', desc: 'A spoon or two' },
+  { id: 'half', label: 'About half', desc: 'Half of what you offered' },
+  { id: 'all', label: 'All of it', desc: 'Finished, or wanted more' },
+]
+
 export const HAND_GUIDE = [
   ['A fingertip', 'Roughly a teaspoon. The starting amount, and the dose for strong things like liver or nut butter.'],
   ['Your thumb', 'Tip to the first knuckle is roughly a tablespoon — the everyday spoonful.'],
