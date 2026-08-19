@@ -57,34 +57,65 @@ const amountFor = (day) => AMOUNTS.find((a) => day <= a.upTo) || AMOUNTS[AMOUNTS
  */
 function referencedFood(text, selfId) {
   const t = (text || '').toLowerCase()
+  // The name must be followed by a form word — "kamote stick", "kalabasa
+  // baton". Matching the bare name caught "squash-TESTED" as the vegetable
+  // squash and drew carrot batons as kalabasa.
+  const FORM = '(?:stick|baton|spear|cube|finger|flake|strip|piece|wedge)'
   for (const [id, f] of Object.entries(FOODS)) {
     if (id === selfId) continue
-    const names = [f.name, f.sub].filter(Boolean).map((n) => n.toLowerCase())
-    if (names.some((n) => n.length > 3 && t.includes(n))) return id
+    for (const n of [f.name, f.sub].filter(Boolean).map((x) => x.toLowerCase())) {
+      if (n.length > 3 && new RegExp(`\\b${n}\\s+${FORM}`).test(t)) return id
+    }
   }
-  if (/\btoast\b|\bbread\b/.test(t)) return 'wheat'
+  if (new RegExp(`\\b(?:toast|bread)\\s*${FORM}?`).test(t)) return 'wheat'
   return null
 }
 
 /** The whole "how do I actually make this" block — shared by Today and Food detail. */
+/** Do the two serving notes actually say different things? */
+function saysTheSame(a = '', c = '') {
+  const key = (x) => new Set(x.toLowerCase().replace(/[^a-z ]/g, '').split(' ').filter((w) => w.length > 3))
+  const [x, y] = [key(a), key(c)]
+  if (!x.size) return false
+  return [...x].filter((w) => y.has(w)).length / x.size >= 0.5
+}
+
 function serveBlock(id, band, { solo = false } = {}) {
   const f = FOODS[id]
   if (!f) return ''
   const [spoon, hands] = f.cut[band] || f.cut[9]
-  return `<div class="cuts">
-      <div class="cut">${cutIcon(cutGlyph(spoon), id)}<b>On the spoon</b><span>${esc(spoon)}</span></div>
-      <div class="cut hands">${cutIcon(cutGlyph(hands), referencedFood(hands, id) || id)}<b>In his hands</b><span>${esc(hands)}</span></div>
-    </div>
+  const noHands = /^not\b|^never\b|^—$/i.test((hands || '').trim())
+
+  // By 12 months the spoon/hands split collapses — he feeds himself. Showing
+  // two identical cards reads as a bug, so show one.
+  const merged = !noHands && saysTheSame(spoon, hands)
+  const cards = merged
+    ? `<div class="cut wide">${cutIcon(cutGlyph(hands), referencedFood(hands, id) || id, 92)}
+        <b>Spoon or hands</b><span>${esc(hands)} — the same either way at this age.</span></div>`
+    : `<div class="cut">${cutIcon(cutGlyph(spoon), id)}<b>On the spoon</b><span>${esc(spoon)}</span></div>
+       <div class="cut hands">${cutIcon(cutGlyph(hands), referencedFood(hands, id) || id)}<b>In his hands</b><span>${esc(hands)}</span></div>`
+
+  // The finishing step is the one that actually changes with his age, so it is
+  // generated from the band rather than sitting static in the food data.
+  const finish = noHands || merged
+    ? `Finish it: ${(merged ? hands : spoon).toLowerCase()}.`
+    : `Finish it: ${spoon.toLowerCase()} — and set aside ${hands.toLowerCase().replace(/^serve (a|an) /, '')} for him to hold.`
+
+  return `<div class="cuts ${merged ? 'one' : ''}">${cards}</div>
     ${f.prep.length ? `<div style="margin-top:14px"><div class="eyebrow ruled" style="margin-bottom:12px">Prepare it</div>
       <ol class="steps">${f.prep.map((p, i) => `<li>
         <span class="step-n">${i + 1}</span>
         <span class="step-i">${icon(stepGlyph(p), 22)}</span>
-        <span class="step-t">${emphasise(esc(p))}</span></li>`).join('')}</ol></div>` : ''}
+        <span class="step-t">${emphasise(esc(p))}</span></li>`).join('')}
+        <li class="step-final">
+          <span class="step-n">${f.prep.length + 1}</span>
+          <span class="step-i">${icon('s-stir', 22)}</span>
+          <span class="step-t">${emphasise(esc(finish))} <i>at ${band} months</i></span></li>
+      </ol></div>` : ''}
     ${solo
       ? '<div class="note" style="margin-top:12px"><b>On its own for these three days.</b> No mixing yet — if something flares up, one ingredient means you know which.</div>'
       : f.pairing ? `<div class="note" style="margin-top:12px"><b>Goes well with</b> ${esc(f.pairing)}</div>` : ''}
-    ${f.buy ? `<div class="buy" style="margin-top:12px"><b>What to buy</b>${esc(f.buy)}</div>` : ''}
-    ${f.safety ? `<div class="safety" style="margin-top:12px">${esc(f.safety)}</div>` : ''}`
+    ${f.buy ? `<div class="buy" style="margin-top:12px"><b>What to buy</b>${esc(f.buy)}</div>` : ''}`
 }
 
 function screenToday() {

@@ -458,3 +458,11 @@ textarea::placeholder { color: var(--ink-3); }
   .sheet { padding-bottom: max(30px, calc(env(safe-area-inset-bottom) + 8px)); }
   .tabbar { bottom: max(18px, calc(env(safe-area-inset-bottom) - 2px)); }
 }
+
+.cuts.one { grid-template-columns: 1fr; }
+.cut.wide { padding: 20px 16px; }
+/* the age-dependent step, marked so it is obvious it moves with the tab */
+.step-final .step-n { background: var(--green); color: #fff; }
+.step-final .step-t { color: var(--ink); }
+.step-final .step-t i { font-style: normal; font-size: 11px; font-weight: 700; color: var(--green);
+  background: var(--green-soft); border-radius: 999px; padding: 2px 8px; margin-left: 4px; white-space: nowrap; }

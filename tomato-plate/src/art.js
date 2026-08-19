@@ -342,32 +342,25 @@ export const TINT = {
 
 /** Foods that have their own drawn diagram rather than the tinted generic. */
 const DRAWN = new Set([
-  'cut-carrot-baton', 'cut-carrot-cube', 'cut-kamote-baton', 'cut-kamote-cube',
-  'cut-kalabasa-baton', 'cut-kalabasa-cube', 'cut-sayote-cube', 'cut-tofu-cube',
-  'cut-lakatan-spear', 'cut-lakatan-cube', 'cut-avocado-spear', 'cut-avocado-cube',
-  'cut-papaya-spear', 'cut-papaya-cube', 'cut-mangga-spear', 'cut-mangga-cube',
-  'cut-egg-spear', 'cut-egg-cube',
+  'cut-carrot-baton', 'cut-kamote-baton', 'cut-kalabasa-baton',
+  'cut-sayote-cube', 'cut-tofu-cube', 'cut-wheat-cube',
+  'cut-lakatan-spear', 'cut-avocado-spear', 'cut-papaya-spear',
+  'cut-mangga-spear', 'cut-egg-spear',
   'cut-dilis-flake', 'cut-dilis-mash', 'cut-tilapia-flake', 'cut-tilapia-mash',
   'cut-bangus-flake', 'cut-bangus-mash', 'cut-chicken-flake', 'cut-chicken-mash',
-  'cut-beef-flake', 'cut-beef-cube', 'cut-pork-flake', 'cut-pork-cube',
-  'cut-shrimp-flake', 'cut-shrimp-mash', 'cut-shrimp-cube',
-  'cut-monggo-puree', 'cut-monggo-mash', 'cut-monggo-cube',
-  'cut-liver-puree', 'cut-liver-mash', 'cut-wheat-cube', 'cut-wheat-mash',
+  'cut-beef-flake', 'cut-pork-flake', 'cut-shrimp-flake', 'cut-shrimp-mash',
+  'cut-monggo-puree', 'cut-monggo-mash', 'cut-liver-puree', 'cut-liver-mash',
 ])
 /** Some foods share a drawing — bangus is tilapia, beef and pork are meat. */
 const ALIAS = {
+  // Only where the drawn shape is genuinely the same food-form. A cube must
+  // never alias to a baton — the shape IS the instruction.
   'cut-bangus-flake': 'cut-tilapia-flake', 'cut-bangus-mash': 'cut-tilapia-flake',
+  'cut-tilapia-mash': 'cut-tilapia-flake', 'cut-dilis-mash': 'cut-dilis-flake',
+  'cut-chicken-mash': 'cut-chicken-flake', 'cut-shrimp-mash': 'cut-shrimp-flake',
   'cut-beef-flake': 'cut-meat-flake', 'cut-pork-flake': 'cut-meat-flake',
-  'cut-beef-cube': 'cut-meat-flake', 'cut-pork-cube': 'cut-meat-flake',
-  'cut-wheat-cube': 'cut-pasta-cube', 'cut-wheat-mash': 'cut-pasta-cube',
+  'cut-wheat-cube': 'cut-pasta-cube',
   'cut-liver-mash': 'cut-liver-puree', 'cut-monggo-mash': 'cut-monggo-puree',
-  'cut-monggo-cube': 'cut-monggo-puree', 'cut-tilapia-mash': 'cut-tilapia-flake',
-  'cut-dilis-mash': 'cut-dilis-flake', 'cut-chicken-mash': 'cut-chicken-flake',
-  'cut-shrimp-mash': 'cut-shrimp-flake', 'cut-shrimp-cube': 'cut-shrimp-flake',
-  'cut-papaya-cube': 'cut-papaya-spear', 'cut-mangga-cube': 'cut-mangga-spear',
-  'cut-lakatan-cube': 'cut-lakatan-spear', 'cut-avocado-cube': 'cut-avocado-spear',
-  'cut-kamote-cube': 'cut-kamote-baton', 'cut-carrot-cube': 'cut-carrot-baton',
-  'cut-kalabasa-cube': 'cut-kalabasa-baton', 'cut-egg-cube': 'cut-egg-spear',
 }
 
 /**
