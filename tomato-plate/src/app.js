@@ -31,7 +31,8 @@ const today = () => {
   const age = store.ageOf(s.profile.birthdate)
   const band = ageBand(age.months)
   const swaps = s.swaps || {}
-  return { s, day, age, band, swaps, slot: slotOf(day, swaps), plan: dayPlan(day, band, swaps) }
+  const skip = s.profile.preTried || []
+  return { s, day, age, band, swaps, skip, slot: slotOf(day, swaps, skip), plan: dayPlan(day, band, swaps, skip) }
 }
 
 function allergenRows() {
@@ -55,19 +56,25 @@ const amountFor = (day) => AMOUNTS.find((a) => day <= a.upTo) || AMOUNTS[AMOUNTS
  * batons for liver. The spoon column is always the food itself: "mashed
  * through lugaw" is still liver, lugaw is only the vehicle.
  */
+const RX_ESCAPE = /[.*+?^${}()|[\]\\]/g
+const FORM_RX = (() => {
+  const FORM = '(?:stick|baton|spear|cube|finger|flake|strip|piece|wedge)'
+  const out = []
+  for (const [id, f] of Object.entries(FOODS)) {
+    for (const n of [f.name, f.sub].filter(Boolean).map((x) => x.toLowerCase())) {
+      if (n.length > 3) out.push([id, new RegExp(`\\b${n.replace(RX_ESCAPE, '\\$&')}\\s+${FORM}`)])
+    }
+  }
+  return { list: out, bread: new RegExp(`\\b(?:toast|bread)\\s*${FORM}?`) }
+})()
+
 function referencedFood(text, selfId) {
   const t = (text || '').toLowerCase()
   // The name must be followed by a form word — "kamote stick", "kalabasa
   // baton". Matching the bare name caught "squash-TESTED" as the vegetable
   // squash and drew carrot batons as kalabasa.
-  const FORM = '(?:stick|baton|spear|cube|finger|flake|strip|piece|wedge)'
-  for (const [id, f] of Object.entries(FOODS)) {
-    if (id === selfId) continue
-    for (const n of [f.name, f.sub].filter(Boolean).map((x) => x.toLowerCase())) {
-      if (n.length > 3 && new RegExp(`\\b${n}\\s+${FORM}`).test(t)) return id
-    }
-  }
-  if (new RegExp(`\\b(?:toast|bread)\\s*${FORM}?`).test(t)) return 'wheat'
+  for (const [id, rx] of FORM_RX.list) if (id !== selfId && rx.test(t)) return id
+  if (FORM_RX.bread.test(t)) return 'wheat'
   return null
 }
 
@@ -89,9 +96,20 @@ function serveBlock(id, band, { solo = false } = {}) {
   // By 12 months the spoon/hands split collapses — he feeds himself. Showing
   // two identical cards reads as a bug, so show one.
   const merged = !noHands && saysTheSame(spoon, hands)
+  // Render the UNION, never just the hands text — carrot's spoon says "Soft
+  // cubes" and its hands says "Small cubes he picks up"; dropping "soft" would
+  // lose the only cooked-through cue on a food whose own safety note is about
+  // exactly that.
+  const mergedText = (() => {
+    const words = (x) => x.toLowerCase().replace(/[^a-z ]/g, '').split(' ').filter(Boolean)
+    const [sw, hw] = [words(spoon), words(hands)]
+    if (sw.every((w) => hw.includes(w))) return hands
+    if (hw.every((w) => sw.includes(w))) return spoon
+    return `${spoon} — ${hands.charAt(0).toLowerCase()}${hands.slice(1)}`
+  })()
   const cards = merged
     ? `<div class="cut wide">${cutIcon(cutGlyph(hands), referencedFood(hands, id) || id, 92)}
-        <b>Spoon or hands</b><span>${esc(hands)} — the same either way at this age.</span></div>`
+        <b>Spoon or hands</b><span>${esc(mergedText)} — the same either way at this age.</span></div>`
     : `<div class="cut">${cutIcon(cutGlyph(spoon), id)}<b>On the spoon</b><span>${esc(spoon)}</span></div>
        <div class="cut hands">${cutIcon(cutGlyph(hands), referencedFood(hands, id) || id)}<b>In his hands</b><span>${esc(hands)}</span></div>`
 
@@ -211,7 +229,7 @@ function screenToday() {
 
 function screenFoods() {
   const { s, day, plan } = today()
-  const { schedule, moved } = scheduleIndex(s.swaps || {})
+  const { schedule, moved } = scheduleIndex(s.swaps || {}, s.profile.preTried || [])
   const todayFood = plan.mode === 'trial' ? plan.foodId : null
   const rows = Object.entries(FOODS).map(([id, f]) => {
     const rec = s.foods[id]
@@ -271,7 +289,7 @@ function screenFood(id) {
   const tint = f.allergen ? '#F9EEDA' : TINT[f.cat] || 'var(--surface-2)'
   return `<div class="scroll" style="padding:0">
     <div style="background:${tint};height:150px;display:grid;place-items:center;position:relative">
-      <button class="link" data-back style="position:absolute;left:14px;top:12px;font-size:20px;text-decoration:none;color:var(--cream)">‹</button>
+      <button class="link" data-back style="position:absolute;left:12px;top:10px;font-size:22px;text-decoration:none;color:var(--ink);min-height:44px;padding:0 10px">‹</button>
       ${icon(f.art, 96)}
     </div>
     <div style="padding:14px 18px 24px" class="stack">
@@ -306,7 +324,7 @@ function screenBaby() {
   const tried = Object.keys(s.foods).length
   const total = Object.keys(FOODS).length
   const milk = MILK.find((m) => m.m === Math.min(12, Math.max(6, age.months))) || MILK[0]
-  const pct = Math.round((tried / total) * 132)
+  const pct = Math.round((tried / total) * 138)
   return `<div class="scroll stack">
     <div style="text-align:center;padding:8px 0 4px">
       <button class="avatar" data-photo aria-label="Change photo">
@@ -365,7 +383,9 @@ function screenOnboard() {
 function sheetLog(ctx) {
   const id = ctx.foods?.[0]
   const f = FOODS[id]
-  const n = (store.get().foods[id]?.exposures || 0) + 1
+  // Editing an existing entry is a correction — do not preview it as one more.
+  const already = Boolean(store.get().log[store.todayISO()]?.[ctx.key])
+  const n = (store.get().foods[id]?.exposures || 0) + (already ? 0 : 1)
   // One slot, always filled — nothing appears or disappears under the thumbs,
   // so tapping one never shoves the rest of the sheet around.
   // All four run to a similar length on purpose: the slot is fixed, so a
@@ -444,6 +464,7 @@ function sheetReaction() {
 
 /* ── render + events ─────────────────────────────────────────────────────── */
 const TABS = [['today', 'Today'], ['foods', 'Foods'], ['baby', 'Baby']]
+const SCROLL_MEM = {}
 
 function render() {
   if (!store.isOnboarded()) { app.innerHTML = screenOnboard(); return }
@@ -453,9 +474,27 @@ function render() {
     : screenToday()
   const bar = view.food ? '' : `<nav class="tabbar">${TABS.map(([id, label]) =>
     `<button data-tab="${id}" class="${view.tab === id ? 'on' : ''}">${label}</button>`).join('')}</nav>`
+  // Remember where the reader was on each screen, so returning from a food
+  // detail lands back at the card they tapped instead of at the top.
+  const prevKey = app.dataset.screen
+  const key = view.food ? `food:${view.food}` : view.tab
+  if (prevKey) SCROLL_MEM[prevKey] = app.querySelector('.scroll')?.scrollTop || 0
+  const keep = SCROLL_MEM[key] || 0
+
   let sheetEl = !view.sheet ? '' : view.sheet.kind === 'reaction' ? sheetReaction() : view.sheet.kind === 'hands' ? sheetHands() : view.sheet.kind === 'swap' ? sheetSwap(view.sheet) : sheetLog(view.sheet)
   if (sheetEl && !view.sheet._shown) { sheetEl = sheetEl.replace('class="scrim"', 'class="scrim enter"'); view.sheet._shown = true }
   app.innerHTML = body + bar + sheetEl
+  app.dataset.screen = key
+  // innerHTML rebuilds the scroller, so put the reader back where they were —
+  // otherwise every tap below the fold snaps the page to the top. Deferred a
+  // frame: assigning scrollTop before layout settles silently clamps to 0.
+  if (keep) {
+    const sc = app.querySelector('.scroll')
+    if (sc) {
+      sc.scrollTop = keep
+      requestAnimationFrame(() => { sc.scrollTop = keep })
+    }
+  }
 }
 
 app.addEventListener('click', (e) => {
@@ -484,6 +523,7 @@ app.addEventListener('click', (e) => {
     if (!birthdate) { document.getElementById('ob-dob').focus(); return }
     store.saveProfile({ name, birthdate, startDate })
     for (const id of view.pretried) store.markTried(id, startDate, FOODS[id].allergen)
+    store.saveProfile({ preTried: [...view.pretried] })
     view.pretried = new Set()
     return render()
   }
@@ -526,8 +566,8 @@ app.addEventListener('click', (e) => {
   const th = hit('[data-log]')
   if (th) {
     const key = th.dataset.log
-    const { day: d0, band: b0, swaps: sw0 } = today()
-    const plan = dayPlan(d0, b0, sw0)
+    const { day: d0, band: b0, swaps: sw0, skip: sk0 } = today()
+    const plan = dayPlan(d0, b0, sw0, sk0)
     const m = plan.meals[key] || { spoon: plan.snack, foods: [] }
     view.sheet = { kind: 'log', key, label: m.spoon, foods: m.foods || [], verdict: th.dataset.v, amount: '', note: '' }
     return render()
@@ -574,19 +614,26 @@ app.addEventListener('click', (e) => {
         for (const r of regs) { try { await r.unregister() } catch { /* already gone */ } }
         window.location.replace(`./?u=${Date.now()}`)
       } catch {
-        upd.textContent = 'Offline — try again later'
-        setTimeout(() => { upd.textContent = `${BUILD} · tap to update` }, 2600)
+        // re-query: an unrelated render may have replaced this node
+        const el = document.querySelector('[data-update]') || upd
+        el.textContent = 'Offline — try again later'
+        setTimeout(() => { el.textContent = `${BUILD} · tap to update` }, 2600)
       }
     })()
-    return render()
+    return
   }
 
   if (hit('[data-export]')) {
     const blob = new Blob([JSON.stringify(store.get(), null, 2)], { type: 'application/json' })
-    const a = Object.assign(document.createElement('a'), {
-      href: URL.createObjectURL(blob), download: `tomato-plate-${store.todayISO()}.json`,
+    const url = URL.createObjectURL(blob)
+    // Firefox needs the anchor in the document for a synthetic click, and
+    // Safari needs the blob URL to outlive the click by a tick.
+    const link = Object.assign(document.createElement('a'), {
+      href: url, download: `tomato-plate-${store.todayISO()}.json`,
     })
-    a.click(); URL.revokeObjectURL(a.href)
+    document.body.appendChild(link)
+    link.click()
+    setTimeout(() => { link.remove(); URL.revokeObjectURL(url) }, 0)
   }
 })
 

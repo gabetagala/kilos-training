@@ -15,59 +15,59 @@ const M8 = M7 + TRIALS[8].length * TRIAL_LEN       // 69
  * so it re-queues onto the next free slot after the scheduled trials rather
  * than dropping out of the plan.
  */
-export function planSlots(swaps = {}) {
+export function planSlots(swaps = {}, skip = []) {
+  const skipped = new Set(skip)
   const base = []
   for (const [month, list] of Object.entries(TRIALS)) {
     const offset = month === '6' ? 0 : month === '7' ? M6 : M7
-    list.forEach((t, i) => base.push({ start: offset + i * TRIAL_LEN + 1, original: t.food, note: t.note }))
+    list.forEach((t, i) => base.push({ order: offset + i * TRIAL_LEN, original: t.food, note: t.note }))
   }
-  base.sort((a, b) => a.start - b.start)
+  base.sort((a, b) => a.order - b.order)
 
-  // A swap is a TRADE. If the stand-in already has a slot of its own, the two
-  // simply exchange places — the food you were out of takes the other's date
-  // rather than being shunted to the back of the queue. Only a stand-in with
-  // no slot of its own (already eaten, or never scheduled) leaves the
-  // displaced food needing a fresh date at the end.
-  const at = new Map(base.map((s) => [s.start, s.original]))
-  const queued = []
-  for (const start of Object.keys(swaps).map(Number).sort((a, b) => a - b)) {
-    const incoming = swaps[start]
-    // A swap can outlive the food it points at (data changes, an old save).
-    // Ignore it rather than taking the whole plan down.
-    if (!incoming || !FOODS[incoming] || !at.has(start)) continue
-    const outgoing = at.get(start)
-    if (outgoing === incoming) continue
-    let otherStart = null
-    for (const [k, v] of at) if (v === incoming) { otherStart = k; break }
-    at.set(start, incoming)
-    if (otherStart !== null) at.set(otherStart, outgoing)
-    else queued.push(outgoing)
+  // Foods already eaten before the plan started don't need a trial — the
+  // onboarding copy promises they won't come up, so drop them and close the gap.
+  const slots = base.filter((s) => !skipped.has(s.original)).map((s) => ({ ...s, food: s.original }))
+
+  // A swap is a TRADE: the stand-in takes today's slot, the food you're out of
+  // takes the stand-in's date. Only a stand-in with no slot of its own leaves
+  // the displaced food needing a fresh date at the end. Re-numbering happens
+  // after each pass so a swap made ON a re-queued slot still resolves.
+  const renumber = () => slots.forEach((s, i) => { s.start = i * TRIAL_LEN + 1 })
+  renumber()
+  const done = new Set()
+  for (let pass = 0; pass < 4; pass += 1) {
+    let changed = false
+    for (const key of Object.keys(swaps).map(Number).sort((a, b) => a - b)) {
+      if (done.has(key)) continue
+      const slot = slots.find((s) => s.start === key)
+      const incoming = swaps[key]
+      if (!slot || !incoming || !FOODS[incoming] || slot.food === incoming) continue
+      const outgoing = slot.food
+      const other = slots.find((s) => s.food === incoming && s !== slot)
+      slot.food = incoming
+      if (other) other.food = outgoing
+      else slots.push({ original: outgoing, food: outgoing, rescheduled: true, note: 'Moved — you were out of it' })
+      done.add(key)
+      changed = true
+      renumber()
+    }
+    if (!changed) break
   }
-
-  const slots = base.map((s) => ({ start: s.start, original: s.original, food: at.get(s.start), note: s.note }))
-  const last = base[base.length - 1].start
-  queued.forEach((food, i) => {
-    slots.push({
-      start: last + TRIAL_LEN * (i + 1),
-      original: food, food, rescheduled: true,
-      note: 'Moved — you were out of it',
-    })
-  })
   return slots
 }
 
 /** The slot containing day n, or null once the trials are done. */
-export function slotOf(n, swaps = {}) {
-  return planSlots(swaps).find((s) => n >= s.start && n < s.start + TRIAL_LEN) || null
+export function slotOf(n, swaps = {}, skip = []) {
+  return planSlots(swaps, skip).find((s) => n >= s.start && n < s.start + TRIAL_LEN) || null
 }
 
 /** Where each food actually lands, once swaps and re-queues are applied. */
-export function scheduleIndex(swaps = {}) {
+export function scheduleIndex(swaps = {}, skip = []) {
   const home = {}
-  for (const s of planSlots()) home[s.original] ??= s.start
+  for (const s of planSlots({}, skip)) home[s.original] ??= s.start
   const schedule = {}
   const moved = {}
-  for (const s of planSlots(swaps)) {
+  for (const s of planSlots(swaps, skip)) {
     schedule[s.food] ??= s.start
     if (home[s.food] !== undefined && home[s.food] !== s.start) moved[s.food] ??= s.start
   }
@@ -75,8 +75,8 @@ export function scheduleIndex(swaps = {}) {
 }
 
 /** Every food already through a trial that finished before day n. */
-function clearedBefore(n, swaps) {
-  return planSlots(swaps).filter((s) => s.start + TRIAL_LEN <= n).map((s) => s.food)
+function clearedBefore(n, swaps, skip) {
+  return planSlots(swaps, skip).filter((s) => s.start + TRIAL_LEN <= n).map((s) => s.food)
 }
 
 /** During the trial months there's one designated meal; cleared foods ride along. */
@@ -84,7 +84,7 @@ function trialMeals(id, food, cleared, band) {
   const hands = food.cut[band]?.[1]
   return {
     lunch: {
-      spoon: `${food.name} — ${food.cut[6][0]}`,
+      spoon: `${food.name} — ${(food.cut[band] || food.cut[6])[0]}`,
       hands: hands && !/not yet|never/i.test(hands) ? hands : '',
       foods: [id],
       alongside: cleared.slice(-3).map((c) => FOODS[c].name).join(', '),
@@ -97,13 +97,13 @@ function trialMeals(id, food, cleared, band) {
  * a swap can extend), then a 7-day cycle repeats — deliberately, so every
  * allergen comes round weekly and liver never lands more than twice.
  */
-export function dayPlan(n, band = 9, swaps = {}) {
-  const slots = planSlots(swaps)
+export function dayPlan(n, band = 9, swaps = {}, skip = []) {
+  const slots = planSlots(swaps, skip)
   const slot = slots.find((s) => n >= s.start && n < s.start + TRIAL_LEN)
   if (slot) {
     const food = FOODS[slot.food] || FOODS[slot.original]
     if (!food) return { mode: 'cycle', month: 8, day: n, cycle: CYCLE[0].id, snack: CYCLE[0].snack, iron: CYCLE[0].iron, meals: CYCLE[0].meals }
-    const cleared = clearedBefore(n, swaps)
+    const cleared = clearedBefore(n, swaps, skip)
     return {
       mode: 'trial', month: slot.start <= M6 ? 6 : slot.start <= M7 ? 7 : 8, day: n,
       trialDay: n - slot.start + 1, trialLen: TRIAL_LEN,
@@ -138,7 +138,9 @@ export function swapOptions(foodId) {
   if (!f) return []
   const rest = Object.entries(FOODS).filter(([id]) => id !== foodId)
   if (f.allergen) return rest.filter(([, x]) => x.allergen === f.allergen).map(([id, x]) => ({ id, ...x, why: `Also ${f.allergen}` }))
-  if (f.ironMg >= 1) return rest.filter(([, x]) => x.ironMg >= 1).map(([id, x]) => ({ id, ...x, why: `${x.ironMg}mg iron` }))
+  // No allergens here: they carry their own first-exposure protocol, and
+  // pulling one forward as a quiet iron substitute would skip that entirely.
+  if (f.ironMg >= 1) return rest.filter(([, x]) => x.ironMg >= 1 && !x.allergen).map(([id, x]) => ({ id, ...x, why: `${x.ironMg}mg iron` }))
   return rest.filter(([, x]) => x.cat === f.cat && !x.allergen).map(([id, x]) => ({ id, ...x, why: x.cat }))
 }
 
