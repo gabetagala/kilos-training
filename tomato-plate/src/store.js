@@ -84,6 +84,17 @@ export const planDay = (startDate = state.profile.startDate, now = new Date()) =
 
 export const todayISO = today
 
+/** Every note ever written on a meal containing this food, newest first. */
+export function notesFor(foodId) {
+  const out = []
+  for (const [date, meals] of Object.entries(state.log)) {
+    for (const rec of Object.values(meals)) {
+      if (rec.note && rec.foods?.includes(foodId)) out.push({ date, note: rec.note, verdict: rec.verdict })
+    }
+  }
+  return out.sort((a, b) => (a.date < b.date ? 1 : -1))
+}
+
 export function reset() {
   state = structuredClone(DEFAULT)
   persist()

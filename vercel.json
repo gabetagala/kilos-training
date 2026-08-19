@@ -1,16 +1,57 @@
 {
   "redirects": [
-    { "source": "/bantay", "destination": "/tomato", "permanent": true },
-    { "source": "/bantay/", "destination": "/tomato/", "permanent": true },
-    { "source": "/bantay/:file", "destination": "/tomato/:file", "permanent": true }
+    {
+      "source": "/bantay",
+      "destination": "/tomato",
+      "permanent": true
+    },
+    {
+      "source": "/bantay/",
+      "destination": "/tomato/",
+      "permanent": true
+    },
+    {
+      "source": "/bantay/:file",
+      "destination": "/tomato/:file",
+      "permanent": true
+    }
   ],
   "rewrites": [
-    { "source": "/coach-cilyn", "destination": "/coach-cilyn/index.html" },
-    { "source": "/coach-cilyn/", "destination": "/coach-cilyn/index.html" },
-    { "source": "/tomato", "destination": "/tomato/index.html" },
-    { "source": "/tomato/", "destination": "/tomato/index.html" },
-    { "source": "/tayo", "destination": "/tayo/index.html" },
-    { "source": "/tayo/", "destination": "/tayo/index.html" },
-    { "source": "/((?!coach-cilyn|tomato|bantay|tayo).*)", "destination": "/index.html" }
+    {
+      "source": "/coach-cilyn",
+      "destination": "/coach-cilyn/index.html"
+    },
+    {
+      "source": "/coach-cilyn/",
+      "destination": "/coach-cilyn/index.html"
+    },
+    {
+      "source": "/tomato-plate",
+      "destination": "/tomato-plate/index.html"
+    },
+    {
+      "source": "/tomato-plate/",
+      "destination": "/tomato-plate/index.html"
+    },
+    {
+      "source": "/tomato",
+      "destination": "/tomato/index.html"
+    },
+    {
+      "source": "/tomato/",
+      "destination": "/tomato/index.html"
+    },
+    {
+      "source": "/tayo",
+      "destination": "/tayo/index.html"
+    },
+    {
+      "source": "/tayo/",
+      "destination": "/tayo/index.html"
+    },
+    {
+      "source": "/((?!coach-cilyn|tomato|bantay|tayo).*)",
+      "destination": "/index.html"
+    }
   ]
 }

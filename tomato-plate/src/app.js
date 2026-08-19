@@ -2,7 +2,7 @@
 // Vanilla, localStorage-first, no framework. Renders whole screens; the state
 // is small enough that diffing would cost more than it saves.
 import { SPRITE, cutGlyph, icon } from './art.js'
-import { ALLERGENS, EXPOSURE_TARGET, FOODS, MILK, REACTION, ROTATION_DAYS } from './data.js'
+import { ALLERGENS, AMOUNTS, EXPOSURE_TARGET, FOODS, MILK, REACTION, ROTATION_DAYS } from './data.js'
 import { dayPlan, ironToday } from './plan.js'
 import * as store from './store.js'
 
@@ -13,7 +13,7 @@ const esc = (s = '') => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<'
 const MEAL_ORDER = ['breakfast', 'snack', 'lunch', 'dinner']
 const TITLE = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' }
 
-let view = { tab: 'today', food: null, age: 9, sheet: null }
+let view = { tab: 'today', food: null, age: null, sheet: null, openMeal: null }
 
 /* ── derived ─────────────────────────────────────────────────────────────── */
 const today = () => {
@@ -33,11 +33,32 @@ function allergenRows() {
 }
 
 /* ── screens ─────────────────────────────────────────────────────────────── */
+/** Which serving band his age falls in. */
+const ageBand = (months) => (months >= 12 ? 12 : months >= 9 ? 9 : 6)
+const amountFor = (day) => AMOUNTS.find((a) => day <= a.upTo) || AMOUNTS[AMOUNTS.length - 1]
+
+/** The whole "how do I actually make this" block — shared by Today and Food detail. */
+function serveBlock(id, band) {
+  const f = FOODS[id]
+  if (!f) return ''
+  const [spoon, hands] = f.cut[band] || f.cut[9]
+  return `<div class="cuts">
+      <div class="cut">${icon(cutGlyph(spoon), 52)}<b>On the spoon</b><span>${esc(spoon)}</span></div>
+      <div class="cut hands">${icon(cutGlyph(hands), 52)}<b>In his hands</b><span>${esc(hands)}</span></div>
+    </div>
+    ${f.prep.length ? `<div style="margin-top:12px"><div class="eyebrow" style="margin-bottom:6px">Prepare it</div>
+      <ol class="prep">${f.prep.map((p) => `<li>${esc(p)}</li>`).join('')}</ol></div>` : ''}
+    ${f.buy ? `<div class="buy" style="margin-top:12px"><b>What to buy</b>${esc(f.buy)}</div>` : ''}
+    ${f.safety ? `<div class="safety" style="margin-top:12px">${esc(f.safety)}</div>` : ''}`
+}
+
 function screenToday() {
   const { s, day, plan, age } = today()
+  const band = ageBand(age.months)
   const due = allergenRows().filter((a) => a.state === 'due')
   const iron = ironToday(plan)
   const logged = s.log[store.todayISO()] || {}
+  const amt = amountFor(day)
 
   const hero = plan.mode === 'trial'
     ? `<div class="hero">
@@ -48,10 +69,10 @@ function screenToday() {
           <span class="pill" style="background:rgba(251,243,228,.2);color:var(--cream)">Day ${plan.trialDay} of ${plan.trialLen}</span>
           ${plan.allergen ? '<span class="pill allergen">Allergen</span>' : ''}
           ${plan.food.ironMg >= 1 ? '<span class="pill iron">Iron</span>' : ''}
+          ${plan.food.choking !== 'low' ? `<span class="pill due">${plan.food.choking} choking risk</span>` : ''}
         </div>
         ${plan.allergen && plan.trialDay === 1
-          ? `<div class="band"><b>First exposure.</b> Morning, at home, only if he's well. Two hours free to watch. Tip of the spoon, wait 10 minutes, then the rest.</div>` : ''}
-        ${plan.food.safety ? `<div class="band">${esc(plan.food.safety)}</div>` : ''}
+          ? '<div class="band"><b>First exposure.</b> Morning, at home, only if he\u2019s well. Two hours free to watch. Tip of the spoon, wait 10 minutes, then the rest.</div>' : ''}
       </div>`
     : `<div class="hero">
         <div class="bg">${icon('logo', 112)}</div>
@@ -60,22 +81,40 @@ function screenToday() {
         <div class="band">${esc(plan.iron)}</div>
       </div>`
 
+  // In the trial months the new food IS the day — show its full prep inline,
+  // no tapping through.
+  const inlinePrep = plan.mode === 'trial'
+    ? `<div><div class="eyebrow" style="margin-bottom:8px">How to serve it at ${band} months</div>
+        ${serveBlock(plan.foodId, band)}</div>` : ''
+
   const meals = MEAL_ORDER.filter((k) => plan.meals[k] || (k === 'snack' && plan.snack)).map((k) => {
     const m = plan.meals[k] || { spoon: plan.snack, hands: '', foods: [] }
     const rec = logged[k]
     const art = FOODS[m.foods?.[0]]?.art || 'lugaw'
-    return `<div class="meal"><div class="row">
-      ${icon(art, 32)}
-      <div style="min-width:0">
-        <div class="t">${TITLE[k]}</div>
-        <div class="d">${esc(m.spoon)}</div>
-        ${m.hands ? `<div class="hands">✋ ${esc(m.hands)}</div>` : ''}
-        ${m.alongside ? `<div class="d">Alongside: ${esc(m.alongside)}</div>` : ''}
-      </div>
-      <div class="thumbs">
-        <button class="th ${rec?.verdict === 'up' ? 'on-up' : ''}" data-log="${k}" data-v="up" aria-label="Liked it">👍</button>
-        <button class="th ${rec?.verdict === 'down' ? 'on-down' : ''}" data-log="${k}" data-v="down" aria-label="Not today">👎</button>
-      </div></div></div>`
+    const open = view.openMeal === k
+    const detail = open && m.foods?.length
+      ? `<div class="mealdetail">${m.foods.map((id) => `
+          <div class="row" style="margin-bottom:8px">${icon(FOODS[id].art, 24)}
+            <b style="font-size:12px">${esc(FOODS[id].name)}</b>
+            <button class="link" data-food="${id}" style="margin-left:auto;font-size:11px">Open</button></div>
+          ${serveBlock(id, band)}`).join('<hr style="border:0;border-top:1px solid rgba(42,30,25,.09);margin:14px 0">')}</div>`
+      : ''
+    return `<div class="meal">
+      <div class="row" data-meal="${k}" style="cursor:pointer">
+        ${icon(art, 32)}
+        <div style="min-width:0">
+          <div class="t">${TITLE[k]} <span class="soft" style="font-weight:600;font-size:10px">${open ? '▾' : '▸'}</span></div>
+          <div class="d">${esc(m.spoon)}</div>
+          ${m.hands ? `<div class="hands">✋ ${esc(m.hands)}</div>` : ''}
+          ${m.alongside ? `<div class="d">Alongside: ${esc(m.alongside)}</div>` : ''}
+          ${rec?.note ? `<div class="mealnote">\u201C${esc(rec.note)}\u201D</div>` : ''}
+          ${rec?.amount ? `<div class="d" style="margin-top:2px">Ate: <b>${esc(rec.amount)}</b></div>` : ''}
+        </div>
+        <div class="thumbs">
+          <button class="th ${rec?.verdict === 'up' ? 'on-up' : ''}" data-log="${k}" data-v="up" aria-label="Liked it">👍</button>
+          <button class="th ${rec?.verdict === 'down' ? 'on-down' : ''}" data-log="${k}" data-v="down" aria-label="Not today">👎</button>
+        </div>
+      </div>${detail}</div>`
   }).join('')
 
   return `<div class="scroll stack">
@@ -89,7 +128,11 @@ function screenToday() {
       <span class="pill ${iron.length ? 'iron' : 'due'}">${iron.length ? 'Iron ✓' : 'No iron yet'}</span>
       ${due.length ? `<span class="pill due">${due.length} allergen${due.length > 1 ? 's' : ''} due</span>` : '<span class="pill iron">Rotation on track</span>'}
     </div>
-    <div><div class="eyebrow" style="margin-bottom:8px">Today's meals</div>${meals}</div>
+    ${inlinePrep}
+    <div class="card"><div class="eyebrow" style="margin-bottom:5px">How much to offer</div>
+      <div style="font-size:14px;font-weight:800">${esc(amt.offer)}</div>
+      <div class="soft" style="font-size:11px;margin-top:3px">${esc(amt.meals)}. This is what to <i>offer</i>, never what he has to finish — stop when he turns away.</div></div>
+    <div><div class="eyebrow" style="margin-bottom:8px">Today\u2019s meals${plan.mode === 'cycle' ? ' · tap for how to make it' : ''}</div>${meals}</div>
     ${due.length ? `<div class="note"><b style="color:var(--ink)">Due back in rotation:</b> ${due.map((d) => `${esc(d.name)} (${d.since}d)`).join(', ')}. Once an allergen is in, it stays in — at least weekly, for good.</div>` : ''}
   </div>`
 }
@@ -141,7 +184,9 @@ function screenFood(id) {
   const f = FOODS[id]
   const s = store.get()
   const rec = s.foods[id]
-  const [spoon, hands] = f.cut[view.age] || f.cut[9]
+  const band = view.age || 9
+  const serveBlockInline = serveBlock(id, band)
+  const notes = store.notesFor(id)
   const tint = f.allergen ? 'var(--amber)' : f.ironMg >= 1 ? 'var(--calyx)' : 'var(--tomato-soft)'
   return `<div class="scroll" style="padding:0">
     <div style="background:${tint};height:150px;display:grid;place-items:center;position:relative">
@@ -158,16 +203,15 @@ function screenFood(id) {
       </div>
       <div class="seg">${[6, 9, 12].map((a) => `<button data-age="${a}" class="${view.age === a ? 'on' : ''}">${a} mo</button>`).join('')}</div>
       <div>
-        <div class="eyebrow" style="margin-bottom:8px">How to serve it at ${view.age} months</div>
-        <div class="cuts">
-          <div class="cut">${icon(cutGlyph(spoon), 56)}<b>On the spoon</b><span>${esc(spoon)}</span></div>
-          <div class="cut hands">${icon(cutGlyph(hands), 56)}<b>In his hands</b><span>${esc(hands)}</span></div>
-        </div>
+        <div class="eyebrow" style="margin-bottom:8px">How to serve it at ${band} months</div>
+        ${serveBlockInline}
       </div>
       <div class="note"><b style="color:var(--ink)">Squash test.</b> Every piece must squash between your finger and thumb with light pressure. If it doesn't, cook it longer.</div>
-      ${f.prep.length ? `<div><div class="eyebrow" style="margin-bottom:6px">Prepare it</div>
-        <ol style="font-size:12.5px;line-height:1.7;padding-left:17px;color:var(--ink-soft)">${f.prep.map((p) => `<li>${esc(p)}</li>`).join('')}</ol></div>` : ''}
-      ${f.safety ? `<div class="safety">${esc(f.safety)}</div>` : ''}
+      ${notes.length ? `<div><div class="eyebrow" style="margin-bottom:7px">What you noticed</div>
+        ${notes.map((n) => `<div class="notelog"><div class="row" style="gap:7px;margin-bottom:3px">
+          <span style="font-size:13px">${n.verdict === 'down' ? '👎' : '👍'}</span>
+          <span class="soft" style="font-size:10px;font-weight:700">${esc(n.date)}</span></div>
+          <div style="font-size:12px;line-height:1.45">${esc(n.note)}</div></div>`).join('')}</div>` : ''}
       <div class="soft" style="font-size:11px;text-align:center">${rec ? `Served ${rec.exposures}× · last ${esc(rec.lastServed)}` : 'Not tried yet'}</div>
       <button class="btn" data-logfood="${id}">Log ${esc(f.name)} today</button>
     </div>
@@ -293,7 +337,7 @@ app.addEventListener('click', (e) => {
   }
   if (hit('[data-tab]')) { view.tab = hit('[data-tab]').dataset.tab; view.food = null; return render() }
   if (hit('[data-back]')) { view.food = null; return render() }
-  if (hit('[data-food]')) { view.food = hit('[data-food]').dataset.food; view.age = 9; return render() }
+  if (hit('[data-food]')) { view.food = hit('[data-food]').dataset.food; view.age ??= ageBand(today().age.months); return render() }
   if (hit('[data-age]')) { view.age = +hit('[data-age]').dataset.age; return render() }
   if (hit('[data-day]')) { view.tab = 'today'; return render() }
 
@@ -312,6 +356,9 @@ app.addEventListener('click', (e) => {
     view.sheet = { kind: 'log', key: id, label: FOODS[id].name, foods: [id], verdict: null, amount: '', note: '' }
     return render()
   }
+
+  // after the thumbs: they live inside the row, and tapping one must log, not expand
+  if (hit('[data-meal]')) { const k = hit('[data-meal]').dataset.meal; view.openMeal = view.openMeal === k ? null : k; return render() }
 
   if (sheet) {
     if (hit('[data-reaction]')) { view.sheet = { kind: 'reaction' }; return render() }
