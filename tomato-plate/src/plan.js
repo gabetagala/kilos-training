@@ -31,6 +31,14 @@ function trialMeals(id, food, cleared, band) {
   }
 }
 
+/** The 3-day trial slot containing day n (null once the cycle starts). */
+export function slotOf(n) {
+  if (n > M8) return null
+  const [list, offset] = n <= M6 ? [TRIALS[6], 0] : n <= M7 ? [TRIALS[7], M6] : [TRIALS[8], M7]
+  const i = Math.floor((n - offset - 1) / TRIAL_LEN)
+  return { start: offset + i * TRIAL_LEN + 1, foodId: list[i].food, note: list[i].note }
+}
+
 /**
  * What day `n` of the plan looks like.
  * Days 1–69 are 3-day single-ingredient trials (the pediatrician's rule).
@@ -82,12 +90,24 @@ export function swapOptions(foodId) {
   return rest.filter(([, x]) => x.cat === f.cat && !x.allergen).map(([id, x]) => ({ id, ...x, why: x.cat }))
 }
 
-/** Which plan day each food is first scheduled for — powers the merged Foods tab. */
-export function scheduleIndex() {
-  const out = {}
+/**
+ * Which plan day each food actually lands on, once swaps are applied — and
+ * which foods a swap pushed out of the plan. A displaced food is NOT dropped;
+ * it has no date any more and the Foods tab says so, so it can be swapped back
+ * in rather than quietly disappearing.
+ */
+export function scheduleIndex(swaps = {}) {
+  const schedule = {}
+  const displaced = new Set()
   for (const [month, list] of Object.entries(TRIALS)) {
     const offset = month === '6' ? 0 : month === '7' ? M6 : M7
-    list.forEach((t, i) => { out[t.food] ??= offset + i * TRIAL_LEN + 1 })
+    list.forEach((t, i) => {
+      const start = offset + i * TRIAL_LEN + 1
+      const actual = swaps[start] || t.food
+      schedule[actual] ??= start
+      if (actual !== t.food) displaced.add(t.food)
+    })
   }
-  return out
+  for (const id of displaced) if (schedule[id] !== undefined) displaced.delete(id)
+  return { schedule, displaced }
 }

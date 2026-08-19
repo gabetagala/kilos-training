@@ -3,7 +3,7 @@
 // is small enough that diffing would cost more than it saves.
 import { SPRITE, cutGlyph, icon } from './art.js'
 import { ALLERGENS, AMOUNTS, EXPOSURE_TARGET, FOODS, HAND_GUIDE, MILK, REACTION, ROTATION_DAYS } from './data.js'
-import { dayPlan, ironToday, scheduleIndex, swapOptions } from './plan.js'
+import { dayPlan, ironToday, scheduleIndex, slotOf, swapOptions } from './plan.js'
 import * as store from './store.js'
 
 const BUILD = `${import.meta.env.KILOS_BUILD || 'dev'} · ${import.meta.env.KILOS_COMMIT || '—'}`
@@ -25,7 +25,8 @@ const today = () => {
   const day = store.planDay()
   const age = store.ageOf(s.profile.birthdate)
   const band = ageBand(age.months)
-  return { s, day, age, band, plan: dayPlan(day, band, s.swaps?.[day]) }
+  const slot = slotOf(day)
+  return { s, day, age, band, slot, plan: dayPlan(day, band, slot && s.swaps?.[slot.start]) }
 }
 
 function allergenRows() {
@@ -148,13 +149,14 @@ function screenToday() {
 }
 
 function screenFoods() {
-  const { s, day } = today()
-  const sched = scheduleIndex()
+  const { s, day, plan } = today()
+  const { schedule, displaced } = scheduleIndex(s.swaps || {})
+  const todayFood = plan.mode === 'trial' ? plan.foodId : null
   const rows = Object.entries(FOODS).map(([id, f]) => {
     const rec = s.foods[id]
-    const on = sched[id] || null
-    const now = on && day >= on && day < on + 3
-    return { id, f, rec, on, now, tried: Boolean(rec) }
+    const on = schedule[id] || null
+    const now = id === todayFood || (on && day >= on && day < on + 3)
+    return { id, f, rec, on, now, moved: displaced.has(id), tried: Boolean(rec) }
   }).sort((x, y) => (x.on || 9e3) - (y.on || 9e3))
 
   const F = view.filter
@@ -166,10 +168,12 @@ function screenFoods() {
 
   const card = (r) => {
     const since = r.rec ? store.daysSince(r.rec.lastServed) : null
-    const status = r.now ? `Day ${day - r.on + 1} of 3`
+    const status = r.id === todayFood ? `Today · day ${today().plan.trialDay} of 3`
+      : r.now ? `Day ${day - r.on + 1} of 3`
       : r.tried ? `${r.rec.exposures}× · ${since === 0 ? 'today' : `${since}d ago`}`
+      : r.moved ? 'moved — no date'
       : r.on ? `Day ${r.on}` : 'anytime'
-    return `<div class="fcard ${r.now ? 'now' : ''} ${r.tried ? 'tried' : ''}" data-food="${r.id}">
+    return `<div class="fcard ${r.now ? 'now' : ''} ${r.tried ? 'tried' : ''} ${r.moved ? 'moved' : ''}" data-food="${r.id}">
       ${r.f.allergen ? '<span class="fdot allergen"></span>' : r.f.ironMg >= 1 ? '<span class="fdot iron"></span>' : ''}
       ${icon(r.f.art, 42)}<b>${esc(r.f.name)}</b><span>${status}</span></div>`
   }
@@ -183,6 +187,7 @@ function screenFoods() {
       ${chip('allergens', 'Allergens', rows.filter((r) => r.f.allergen).length)}
     </div>
     <div class="foodgrid">${shown.map(card).join('')}</div>
+    ${displaced.size ? `<div class="note"><b>${[...displaced].map((id) => esc(FOODS[id].name)).join(', ')}</b> ${displaced.size > 1 ? 'were' : 'was'} swapped out and ${displaced.size > 1 ? 'have' : 'has'} no date now — nothing is dropped, so swap ${displaced.size > 1 ? 'them' : 'it'} back into a later slot when you have some.</div>` : ''}
     <div class="note"><b>Green dot</b> is iron-rich, <b>amber</b> is one of the nine allergens. Tap any food for how to cut it at his age.</div>
   </div>`
 }
@@ -294,13 +299,15 @@ function sheetLog(ctx) {
   const n = (store.get().foods[id]?.exposures || 0) + 1
   // One slot, always filled — nothing appears or disappears under the thumbs,
   // so tapping one never shoves the rest of the sheet around.
+  // All four run to a similar length on purpose: the slot is fixed, so a
+  // message that wrapped to a different line count would shift the sheet.
   const msg = ctx.verdict === 'down' && n < EXPOSURE_TARGET
-      ? `That’s exposure <b>${n} of ${EXPOSURE_TARGET}</b>. Most parents stop at 3–5 — the evidence says keep going. Try again in a few days.`
+      ? `Exposure <b>${n} of ${EXPOSURE_TARGET}</b>. Most parents stop at 3–5. Keep going — offer it again in a few days.`
     : ctx.verdict === 'down'
-      ? `Exposure <b>${n}</b>. Some foods take far longer than others, and a few never land. That’s allowed.`
+      ? `Exposure <b>${n}</b>. Some foods take far longer than this, and a few never land at all. That is allowed.`
     : ctx.verdict === 'up'
-      ? `Exposure <b>${n}</b>. Keep it in the rotation — liking it once isn’t the same as keeping it.`
-      : `Exposure <b>${n}</b> of ${EXPOSURE_TARGET}. Either answer is useful — a refusal is data, not a failure.`
+      ? `Exposure <b>${n}</b>. Keep it in the rotation — liking it once is not the same as keeping it.`
+      : `Exposure <b>${n} of ${EXPOSURE_TARGET}</b>. Either answer is useful here — a refusal is data, not a failure.`
   return `<div class="scrim"><div class="sheet stack" data-stop>
     <div class="grab"></div>
     <div class="row">${icon(f?.art || 'lugaw', 44)}
@@ -331,7 +338,7 @@ function sheetSwap(ctx) {
     <div class="grab"></div>
     <h2>No ${esc(f.name.toLowerCase())} today?</h2>
     ${opts.length
-      ? `<p class="soft" style="font-size:13px;line-height:1.5">Pick something that does the same job. ${
+      ? `<p class="soft" style="font-size:13px;line-height:1.5">This moves the whole 3-day slot — a trial split between two ingredients tests neither. Pick something that does the same job. ${
           f.allergen ? `This is an <b>allergen day</b>, so only another ${f.allergen} food counts — a vegetable would skip the introduction entirely.`
           : f.ironMg >= 1 ? 'This is an <b>iron day</b>, so the stand-in needs to carry iron too.'
           : 'Same food group, so the variety still counts.'}</p>
@@ -427,13 +434,18 @@ app.addEventListener('click', (e) => {
     return render()
   }
   if (hit('[data-swapopen]')) {
-    const { day, band } = today()
-    const base = dayPlan(day, band).foodId
-    view.sheet = { kind: 'swap', foodId: base, day, swapped: Boolean(store.get().swaps?.[day]) }
+    const { slot } = today()
+    if (!slot) return
+    view.sheet = { kind: 'swap', foodId: slot.foodId, slot, swapped: Boolean(store.get().swaps?.[slot.start]) }
     return render()
   }
   const sw = hit('[data-swap]')
-  if (sw) { store.setSwap(today().day, sw.dataset.swap || null); view.sheet = null; return render() }
+  if (sw) {
+    const { slot } = today()
+    if (slot) store.setSwap(slot.start, sw.dataset.swap || null)
+    view.sheet = null
+    return render()
+  }
   if (hit('[data-photo]')) { document.getElementById('photo-input')?.click(); return }
   if (hit('[data-food]')) { view.food = hit('[data-food]').dataset.food; view.age ??= ageBand(today().age.months); return render() }
   if (hit('[data-age]')) { view.age = +hit('[data-age]').dataset.age; return render() }
@@ -443,8 +455,8 @@ app.addEventListener('click', (e) => {
   const th = hit('[data-log]')
   if (th) {
     const key = th.dataset.log
-    const { day: d0, band: b0 } = today()
-    const plan = dayPlan(d0, b0, store.get().swaps?.[d0])
+    const { day: d0, band: b0, slot: sl } = today()
+    const plan = dayPlan(d0, b0, sl && store.get().swaps?.[sl.start])
     const m = plan.meals[key] || { spoon: plan.snack, foods: [] }
     view.sheet = { kind: 'log', key, label: m.spoon, foods: m.foods || [], verdict: th.dataset.v, amount: '', note: '' }
     return render()

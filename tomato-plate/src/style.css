@@ -351,17 +351,16 @@ textarea::placeholder { color: var(--ink-3); }
   border-radius: var(--r-md); padding: 16px 8px; cursor: pointer;
   font-size: 13px; font-weight: 650; color: var(--ink); min-height: 92px;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-  transition: background .16s ease, border-color .16s ease, color .16s ease;
 }
 .verdict span { font-size: 26px; line-height: 1; }
 .verdict.on-up { background: var(--green); border-color: var(--green); color: #fff; }
 .verdict.on-down { background: var(--tomato); border-color: var(--tomato); color: #fff; }
 .verdict-msg {
-  min-height: 74px; margin-top: 12px; border-radius: var(--r-sm); padding: 13px 15px;
+  min-height: 112px; margin-top: 12px; border-radius: var(--r-sm); padding: 14px 16px;
   background: var(--surface-2); color: var(--ink-2);
   font-size: 13px; line-height: 1.5; font-weight: 550;
-  display: flex; align-items: center; transition: background .2s ease, color .2s ease;
 }
+.verdict-msg b { white-space: nowrap; }
 .verdict-msg.warm { background: var(--green-soft); color: var(--green); }
 .verdict-msg b { font-weight: 750; }
 
@@ -387,3 +386,6 @@ textarea::placeholder { color: var(--ink-3); }
   background: rgba(26,43,34,.62); color: #fff; font-size: 10px; font-weight: 700;
   letter-spacing: .04em; padding: 4px 0; text-transform: uppercase;
 }
+
+.fcard.moved { border-style: dashed; opacity: .72; }
+.fcard.moved span { color: var(--amber); font-weight: 700; }
