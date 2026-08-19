@@ -12,6 +12,8 @@ const DEFAULT = {
   foods: {},
   // { [allergenId]: { introduced, lastServed } }
   allergens: {},
+  // { [planDay]: foodId } — the day's food was unavailable, this went instead
+  swaps: {},
 }
 
 let state = load()
@@ -54,6 +56,31 @@ export function logMeal({ date = today(), key, verdict, amount = '', note = '', 
   }
   persist()
   return foods.map((id) => ({ id, exposures: state.foods[id].exposures }))
+}
+
+/** Swap the day's ingredient for an equivalent one (see plan.swapOptions). */
+export function setSwap(day, foodId) {
+  if (foodId) state.swaps[day] = foodId
+  else delete state.swaps[day]
+  persist()
+}
+
+/** Backfill a food he has already had, before the app existed. */
+export function markTried(foodId, date = today(), allergen = null) {
+  const f = (state.foods[foodId] ??= { exposures: 0, lastServed: null, liked: 0 })
+  f.exposures = Math.max(1, f.exposures)
+  if (!f.lastServed || f.lastServed < date) f.lastServed = date
+  if (allergen) {
+    const a = (state.allergens[allergen] ??= { introduced: null, lastServed: null })
+    a.introduced ??= date
+    if (!a.lastServed || a.lastServed < date) a.lastServed = date
+  }
+  persist()
+}
+
+export function forgetTried(foodId) {
+  delete state.foods[foodId]
+  persist()
 }
 
 export function markAllergen(id, date = today()) {

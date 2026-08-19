@@ -268,20 +268,15 @@ h2 { font-family: var(--font-display); font-size: 22px; font-weight: 600; letter
 }
 .tabbar button {
   border: 0; background: none; font: inherit; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-  height: 42px; padding: 0 13px; border-radius: var(--r-pill);
+  display: flex; align-items: center; justify-content: center;
+  height: 42px; padding: 0 20px; border-radius: var(--r-pill);
   font-size: 13px; font-weight: 600; letter-spacing: -0.012em; color: var(--ink-2);
   white-space: nowrap;
   transition: background .28s cubic-bezier(.4,0,.2,1), color .2s;
 }
-.tabbar button i { font-style: normal; font-size: 11px; opacity: .45; }
 .tabbar button.on { background: var(--green); color: #fff; }
-.tabbar button.on i { opacity: 1; }
 /* Narrow phones: drop the glyphs before the words — the words are the point. */
-@media (max-width: 379px) {
-  .tabbar button { padding: 0 11px; font-size: 12.5px; }
-  .tabbar button i { display: none; }
-}
+@media (max-width: 379px) { .tabbar button { padding: 0 16px; font-size: 12.5px; } }
 
 /* ── 2. build stamp — tiny, in the Baby footer; tap to pull the newest build */
 .buildstamp {
@@ -325,3 +320,70 @@ textarea::placeholder { color: var(--ink-3); }
 .wordmark { text-align: center; line-height: .84; color: var(--tomato); font-weight: 800; letter-spacing: -.035em; }
 .wordmark .l1 { font-size: 33px; display: block; }
 .wordmark .l2 { font-size: 50px; display: block; margin-top: 4px; }
+
+/* ── filter chips ─────────────────────────────────────────────────────── */
+.chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.chips::-webkit-scrollbar { display: none; }
+.chips.wrap { flex-wrap: wrap; overflow: visible; }
+.chip {
+  flex: 0 0 auto; border: 1px solid var(--line); background: var(--surface);
+  font: inherit; font-size: 13px; font-weight: 600; color: var(--ink-2);
+  border-radius: var(--r-pill); padding: 9px 15px; cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.chip span { font-size: 11px; opacity: .55; font-weight: 700; }
+.chip.on { background: var(--green); border-color: var(--green); color: #fff; }
+.chip.on span { opacity: .7; }
+
+/* ── food cards: schedule + counts on the same square ─────────────────── */
+.fcard { position: relative; }
+.fcard.now { border-color: var(--green); box-shadow: 0 0 0 1px var(--green); }
+.fcard.tried b { color: var(--ink); }
+.fcard:not(.tried) { opacity: .82; }
+.fdot { position: absolute; top: 10px; right: 10px; width: 7px; height: 7px; border-radius: 999px; }
+.fdot.iron { background: var(--green); }
+.fdot.allergen { background: var(--amber); }
+
+/* ── verdict buttons: fixed height, message slot always present ───────── */
+.verdicts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.verdict {
+  border: 1px solid var(--line); background: var(--surface); font: inherit;
+  border-radius: var(--r-md); padding: 16px 8px; cursor: pointer;
+  font-size: 13px; font-weight: 650; color: var(--ink); min-height: 92px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  transition: background .16s ease, border-color .16s ease, color .16s ease;
+}
+.verdict span { font-size: 26px; line-height: 1; }
+.verdict.on-up { background: var(--green); border-color: var(--green); color: #fff; }
+.verdict.on-down { background: var(--tomato); border-color: var(--tomato); color: #fff; }
+.verdict-msg {
+  min-height: 74px; margin-top: 12px; border-radius: var(--r-sm); padding: 13px 15px;
+  background: var(--surface-2); color: var(--ink-2);
+  font-size: 13px; line-height: 1.5; font-weight: 550;
+  display: flex; align-items: center; transition: background .2s ease, color .2s ease;
+}
+.verdict-msg.warm { background: var(--green-soft); color: var(--green); }
+.verdict-msg b { font-weight: 750; }
+
+/* ── swap options ─────────────────────────────────────────────────────── */
+.swapopt {
+  display: flex; align-items: center; gap: 13px; width: 100%; text-align: left;
+  border: 1px solid var(--line); background: var(--surface); border-radius: var(--r-md);
+  padding: 13px 15px; font: inherit; cursor: pointer; margin-top: 9px;
+}
+.swapopt b { display: block; font-size: 14px; font-weight: 650; }
+.swapopt span { font-size: 12px; color: var(--ink-3); }
+
+/* ── avatar ───────────────────────────────────────────────────────────── */
+.avatar {
+  width: 92px; height: 92px; border-radius: 999px; border: 0; padding: 0; cursor: pointer;
+  background: var(--tomato-soft); margin: 0 auto 12px; display: block; position: relative;
+  overflow: hidden; display: grid; place-items: center;
+}
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.avatar > span { font-size: 40px; }
+.avatar-edit {
+  position: absolute; left: 0; right: 0; bottom: 0; font-style: normal;
+  background: rgba(26,43,34,.62); color: #fff; font-size: 10px; font-weight: 700;
+  letter-spacing: .04em; padding: 4px 0; text-transform: uppercase;
+}

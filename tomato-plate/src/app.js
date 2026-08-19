@@ -3,7 +3,7 @@
 // is small enough that diffing would cost more than it saves.
 import { SPRITE, cutGlyph, icon } from './art.js'
 import { ALLERGENS, AMOUNTS, EXPOSURE_TARGET, FOODS, HAND_GUIDE, MILK, REACTION, ROTATION_DAYS } from './data.js'
-import { dayPlan, ironToday } from './plan.js'
+import { dayPlan, ironToday, scheduleIndex, swapOptions } from './plan.js'
 import * as store from './store.js'
 
 const BUILD = `${import.meta.env.KILOS_BUILD || 'dev'} · ${import.meta.env.KILOS_COMMIT || '—'}`
@@ -16,7 +16,8 @@ const possessive = (n) => (!n ? "Baby's" : /[sz]$/i.test(n) ? `${n}\u2019` : `${
 const MEAL_ORDER = ['breakfast', 'snack', 'lunch', 'dinner']
 const TITLE = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' }
 
-let view = { tab: 'today', food: null, age: null, sheet: null, openMeal: null }
+let view = { tab: 'today', food: null, age: null, sheet: null, openMeal: null, filter: 'all',
+  ob: { name: '', birthdate: '', startDate: '' }, pretried: new Set() }
 
 /* ── derived ─────────────────────────────────────────────────────────────── */
 const today = () => {
@@ -24,7 +25,7 @@ const today = () => {
   const day = store.planDay()
   const age = store.ageOf(s.profile.birthdate)
   const band = ageBand(age.months)
-  return { s, day, age, band, plan: dayPlan(day, band) }
+  return { s, day, age, band, plan: dayPlan(day, band, s.swaps?.[day]) }
 }
 
 function allergenRows() {
@@ -75,7 +76,8 @@ function screenToday() {
           ${plan.food.ironMg >= 1 ? '<span class="pill iron">Iron</span>' : ''}
           ${plan.food.choking !== 'low' ? `<span class="pill due">${plan.food.choking} choking risk</span>` : ''}
         </div>
-        ${plan.note ? `<p class="hero-note">${esc(plan.note)}</p>` : ''}
+        ${plan.swappedFrom ? `<p class="hero-note">Swapped in for ${esc(FOODS[plan.swappedFrom].name)}</p>` : plan.note ? `<p class="hero-note">${esc(plan.note)}</p>` : ''}
+        <button class="link" data-swapopen style="display:block;margin:10px auto 0">Don’t have ${esc(plan.food.name.toLowerCase())}? Swap it →</button>
         ${plan.allergen && plan.trialDay === 1
           ? '<div class="band"><b>First exposure.</b> Morning, at home, only if he\u2019s well. Two hours free to watch. Tip of the spoon, wait 10 minutes, then the rest.</div>' : ''}
       </header>`
@@ -98,8 +100,9 @@ function screenToday() {
     const m = plan.meals[k] || { spoon: plan.snack, hands: '', foods: [] }
     const rec = logged[k]
     const art = FOODS[m.foods?.[0]]?.art || 'lugaw'
-    const open = view.openMeal === k
-    const detail = open && m.foods?.length
+    const expandable = plan.mode === 'cycle' && (m.foods?.length || 0) > 0
+    const open = expandable && view.openMeal === k
+    const detail = open
       ? `<div class="mealdetail">${m.foods.map((id) => `
           <div class="row" style="margin-bottom:8px">${icon(FOODS[id].art, 24)}
             <b style="font-size:12px">${esc(FOODS[id].name)}</b>
@@ -107,10 +110,10 @@ function screenToday() {
           ${serveBlock(id, band)}`).join('<hr style="border:0;border-top:1px solid rgba(42,30,25,.09);margin:14px 0">')}</div>`
       : ''
     return `<div class="meal">
-      <div class="row" data-meal="${k}" style="cursor:pointer">
+      <div class="row" ${expandable ? `data-meal="${k}"` : ''} style="${expandable ? 'cursor:pointer' : ''}">
         ${icon(art, 32)}
         <div style="min-width:0">
-          <div class="t">${TITLE[k]} <span class="soft" style="font-weight:600;font-size:10px">${open ? '▾' : '▸'}</span></div>
+          <div class="t">${TITLE[k]}${expandable ? ` <span class="soft" style="font-weight:600;font-size:11px">${open ? '▾' : '▸'}</span>` : ''}</div>
           <div class="d">${esc(m.spoon)}</div>
           ${m.hands ? `<div class="hands">✋ ${esc(m.hands)}</div>` : ''}
           ${m.alongside ? `<div class="d">Alongside: ${esc(m.alongside)}</div>` : ''}
@@ -139,52 +142,48 @@ function screenToday() {
       <div style="font-size:14px;font-weight:800">${esc(amt.offer)}</div>
       <div class="soft" style="font-size:11px;margin-top:3px">${esc(amt.meals)}. This is what to <i>offer</i>, never what he has to finish — stop when he turns away.</div>
       <button class="link" data-hands style="margin-top:6px">No measuring spoons? Use your hands →</button></div>
-    <div><div class="eyebrow" style="margin-bottom:8px">Today\u2019s meals${plan.mode === 'cycle' ? ' · tap for how to make it' : ''}</div>${meals}</div>
+    <div><div class="eyebrow" style="margin-bottom:10px">Today\u2019s meals${plan.mode === 'cycle' ? ' · tap one for how to make it' : ''}</div>${meals}</div>
     ${due.length ? `<div class="note"><b style="color:var(--ink)">Due back in rotation:</b> ${due.map((d) => `${esc(d.name)} (${d.since}d)`).join(', ')}. Once an allergen is in, it stays in — at least weekly, for good.</div>` : ''}
   </div>`
 }
 
-function screenPlan() {
-  const cur = store.planDay()
-  const { band } = today()
-  const rows = []
-  for (let d = 1; d <= 120; d += 1) {
-    const p = dayPlan(d, band)
-    if (p.mode === 'trial' && p.trialDay !== 1) continue
-    if (p.mode === 'cycle' && d > 76) break
-    const isNow = d <= cur && cur < d + (p.mode === 'trial' ? 3 : 1)
-    rows.push(p.mode === 'trial'
-      ? `<div class="dayrow" data-day="${d}" style="${isNow ? 'background:var(--cream-2);border-radius:12px' : ''}">
-          <div class="dnum">${d}</div>${icon(p.food.art, 28)}
-          <div style="min-width:0"><div style="font-size:13px;font-weight:800">${esc(p.food.name)}</div>
-            <div style="font-size:10px;font-weight:700;color:${p.allergen ? 'var(--amber)' : p.food.ironMg >= 1 ? 'var(--calyx)' : 'var(--ink-soft)'}">
-              ${p.allergen ? `Allergen · ${p.allergen}` : p.food.ironMg >= 1 ? 'Iron' : esc(p.food.sub || p.food.cat)}</div></div>
-          <div class="pips">${[1, 2, 3].map((i) => `<span class="pip ${isNow && cur - d + 1 >= i ? 'on' : ''}"></span>`).join('')}</div>
-        </div>`
-      : `<div class="dayrow" data-day="${d}"><div class="cyc">${p.cycle}</div>
-          ${icon(FOODS[p.meals.dinner.foods[0]]?.art || 'lugaw', 28)}
-          <div style="min-width:0"><div style="font-size:13px;font-weight:800">${esc(p.meals.dinner.spoon.split(' with ')[0])}</div>
-            <div style="font-size:10px;color:var(--ink-soft)">${esc(p.iron)}</div></div></div>`)
-  }
-  return `<div class="scroll stack">
-    <div><h1>The plan</h1><div class="soft" style="font-size:12px;margin-top:3px">One new ingredient every 3 days, then a repeating cycle</div></div>
-    <div><div class="eyebrow" style="margin-bottom:6px">Months 6–8 · single-ingredient trials</div>${rows.slice(0, 23).join('')}</div>
-    <div><div class="eyebrow" style="margin:6px 0">From month 8 — the cycle repeats</div>${rows.slice(23).join('')}
-      <div class="note" style="margin-top:11px">The repeat is on purpose. Familiar food is what he learns to eat, and the cycle keeps every allergen coming round at least weekly while liver never lands more than twice.</div></div>
-  </div>`
-}
-
 function screenFoods() {
-  const s = store.get()
-  const cards = Object.entries(FOODS).map(([id, f]) => {
+  const { s, day } = today()
+  const sched = scheduleIndex()
+  const rows = Object.entries(FOODS).map(([id, f]) => {
     const rec = s.foods[id]
-    return `<div class="fcard" data-food="${id}">${icon(f.art, 36)}<b>${esc(f.name)}</b>
-      <span>${rec ? `${rec.exposures}× tried` : esc(f.sub || f.cat)}</span></div>`
-  }).join('')
+    const on = sched[id] || null
+    const now = on && day >= on && day < on + 3
+    return { id, f, rec, on, now, tried: Boolean(rec) }
+  }).sort((x, y) => (x.on || 9e3) - (y.on || 9e3))
+
+  const F = view.filter
+  const shown = rows.filter((r) =>
+    F === 'tried' ? r.tried : F === 'todo' ? !r.tried : F === 'allergens' ? r.f.allergen : true)
+
+  const chip = (id, label, n) =>
+    `<button class="chip ${F === id ? 'on' : ''}" data-filter="${id}">${label}<span>${n}</span></button>`
+
+  const card = (r) => {
+    const since = r.rec ? store.daysSince(r.rec.lastServed) : null
+    const status = r.now ? `Day ${day - r.on + 1} of 3`
+      : r.tried ? `${r.rec.exposures}× · ${since === 0 ? 'today' : `${since}d ago`}`
+      : r.on ? `Day ${r.on}` : 'anytime'
+    return `<div class="fcard ${r.now ? 'now' : ''} ${r.tried ? 'tried' : ''}" data-food="${r.id}">
+      ${r.f.allergen ? '<span class="fdot allergen"></span>' : r.f.ironMg >= 1 ? '<span class="fdot iron"></span>' : ''}
+      ${icon(r.f.art, 42)}<b>${esc(r.f.name)}</b><span>${status}</span></div>`
+  }
+
   return `<div class="scroll stack">
-    <div><h1>Foods</h1><div class="soft" style="font-size:12px;margin-top:3px">How to cut it, at every age</div></div>
-    <div class="foodgrid">${cards}</div>
-    <div class="note">Every serving instruction here is authored from public guidance — NHS, CDC, USDA, and the allergy guidelines. Nothing is copied from another app.</div>
+    <div><h1>Foods</h1><div class="soft" style="font-size:13px;margin-top:4px">When each one lands, and how it went</div></div>
+    <div class="chips">
+      ${chip('all', 'All', rows.length)}
+      ${chip('todo', 'To try', rows.filter((r) => !r.tried).length)}
+      ${chip('tried', 'Tried', rows.filter((r) => r.tried).length)}
+      ${chip('allergens', 'Allergens', rows.filter((r) => r.f.allergen).length)}
+    </div>
+    <div class="foodgrid">${shown.map(card).join('')}</div>
+    <div class="note"><b>Green dot</b> is iron-rich, <b>amber</b> is one of the nine allergens. Tap any food for how to cut it at his age.</div>
   </div>`
 }
 
@@ -220,8 +219,9 @@ function screenFood(id) {
           <span style="font-size:13px">${n.verdict === 'down' ? '👎' : '👍'}</span>
           <span class="soft" style="font-size:10px;font-weight:700">${esc(n.date)}</span></div>
           <div style="font-size:12px;line-height:1.45">${esc(n.note)}</div></div>`).join('')}</div>` : ''}
-      <div class="soft" style="font-size:11px;text-align:center">${rec ? `Served ${rec.exposures}× · last ${esc(rec.lastServed)}` : 'Not tried yet'}</div>
+      <div class="soft" style="font-size:12px;text-align:center">${rec ? `Served ${rec.exposures}× · last ${esc(rec.lastServed)}` : 'Not tried yet'}</div>
       <button class="btn" data-logfood="${id}">Log ${esc(f.name)} today</button>
+      <button class="link" data-tried="${id}" style="text-align:center;width:100%">${rec ? 'Not actually tried — undo' : 'He has already had this'}</button>
     </div>
   </div>`
 }
@@ -235,7 +235,11 @@ function screenBaby() {
   const pct = Math.round((tried / total) * 132)
   return `<div class="scroll stack">
     <div style="text-align:center;padding:8px 0 4px">
-      <div style="width:70px;height:70px;border-radius:999px;background:var(--tomato-soft);margin:0 auto 10px;display:grid;place-items:center;font-size:32px">👶</div>
+      <button class="avatar" data-photo aria-label="Change photo">
+        ${s.profile.photo ? `<img src="${s.profile.photo}" alt="">` : '<span>👶</span>'}
+        <i class="avatar-edit">${s.profile.photo ? 'Change' : 'Add photo'}</i>
+      </button>
+      <input type="file" id="photo-input" accept="image/*" hidden>
       <h1>${esc(s.profile.name || 'Baby')}</h1>
       <div class="soft" style="font-size:12px;margin-top:3px">${age.label}${s.profile.birthdate ? ` · born ${esc(s.profile.birthdate)}` : ''}</div>
     </div>
@@ -264,15 +268,20 @@ function screenBaby() {
 }
 
 function screenOnboard() {
+  view.ob.startDate ||= store.todayISO()
   return `<div class="scroll stack" style="justify-content:center;display:flex;flex-direction:column">
     <div style="text-align:center">
       ${icon('logo', 72, 'ic')}
       <div class="wordmark" style="margin-top:12px"><span class="l1">TOMATO</span><span class="l2">PLATE</span></div>
       <p class="soft" style="font-size:13px;margin:16px 0 4px;line-height:1.5">Every food, how to cut it,<br>and what he thought of it.</p>
     </div>
-    <div><div class="eyebrow" style="margin-bottom:6px">His name</div><input type="text" id="ob-name" placeholder="Baby's name" autocomplete="off"></div>
-    <div><div class="eyebrow" style="margin-bottom:6px">Birthday</div><input type="date" id="ob-dob"></div>
-    <div><div class="eyebrow" style="margin-bottom:6px">First day of solids</div><input type="date" id="ob-start" value="${store.todayISO()}"></div>
+    <div><div class="eyebrow" style="margin-bottom:6px">His name</div><input type="text" id="ob-name" placeholder="Baby's name" autocomplete="off" value="${esc(view.ob.name)}"></div>
+    <div><div class="eyebrow" style="margin-bottom:6px">Birthday</div><input type="date" id="ob-dob" value="${esc(view.ob.birthdate)}"></div>
+    <div><div class="eyebrow" style="margin-bottom:6px">First day of solids</div><input type="date" id="ob-start" value="${esc(view.ob.startDate)}"></div>
+    <div><div class="eyebrow" style="margin-bottom:8px">Already tried any of these?</div>
+      <div class="chips wrap">${Object.entries(FOODS).slice(0, 12).map(([id, f]) =>
+        `<button class="chip ${view.pretried.has(id) ? 'on' : ''}" data-pretried="${id}">${esc(f.name)}</button>`).join('')}</div>
+      <div class="soft" style="font-size:12px;margin-top:8px">Tap any he has already had — they’ll show as done instead of coming up.</div></div>
     <button class="btn" data-onboard>Start the plan</button>
     <p class="soft" style="font-size:10px;text-align:center;line-height:1.5">Not medical advice. Always follow your pediatrician's guidance.</p>
   </div>`
@@ -280,34 +289,62 @@ function screenOnboard() {
 
 /* ── log sheet ───────────────────────────────────────────────────────────── */
 function sheetLog(ctx) {
-  const f = FOODS[ctx.foods?.[0]]
-  const exposures = (store.get().foods[ctx.foods?.[0]]?.exposures || 0) + 1
-  const encourage = ctx.verdict === 'down' && exposures < EXPOSURE_TARGET
-  return `<div class="scrim" data-close><div class="sheet stack" data-stop>
+  const id = ctx.foods?.[0]
+  const f = FOODS[id]
+  const n = (store.get().foods[id]?.exposures || 0) + 1
+  // One slot, always filled — nothing appears or disappears under the thumbs,
+  // so tapping one never shoves the rest of the sheet around.
+  const msg = ctx.verdict === 'down' && n < EXPOSURE_TARGET
+      ? `That’s exposure <b>${n} of ${EXPOSURE_TARGET}</b>. Most parents stop at 3–5 — the evidence says keep going. Try again in a few days.`
+    : ctx.verdict === 'down'
+      ? `Exposure <b>${n}</b>. Some foods take far longer than others, and a few never land. That’s allowed.`
+    : ctx.verdict === 'up'
+      ? `Exposure <b>${n}</b>. Keep it in the rotation — liking it once isn’t the same as keeping it.`
+      : `Exposure <b>${n}</b> of ${EXPOSURE_TARGET}. Either answer is useful — a refusal is data, not a failure.`
+  return `<div class="scrim"><div class="sheet stack" data-stop>
     <div class="grab"></div>
-    <div class="row">${icon(f?.art || 'lugaw', 42)}
-      <div><div style="font-size:17px;font-weight:900">${esc(ctx.label)}</div>
-        <div class="soft" style="font-size:11px">${esc(TITLE[ctx.key] || '')} · exposure ${exposures}</div></div></div>
-    <div><div class="eyebrow" style="margin-bottom:8px">How did it go?</div>
-      <div class="row" style="gap:9px">
-        <button class="card" data-v="up" style="flex:1;text-align:center;border:0;font:inherit;cursor:pointer;${ctx.verdict === 'up' ? 'background:var(--calyx);color:#fff' : ''}">
-          <div style="font-size:25px">👍</div><div style="font-size:11px;font-weight:800;margin-top:4px">Liked it</div></button>
-        <button class="card" data-v="down" style="flex:1;text-align:center;border:0;font:inherit;cursor:pointer;${ctx.verdict === 'down' ? 'background:var(--tomato);color:var(--cream)' : ''}">
-          <div style="font-size:25px">👎</div><div style="font-size:11px;font-weight:800;margin-top:4px">Not today</div></button>
-      </div></div>
-    ${encourage ? `<div class="encourage">That's exposure <b>${exposures} of ${EXPOSURE_TARGET}</b>. Most parents stop at 3–5 — the evidence says keep going. Try again in a few days.</div>` : ''}
-    <div><div class="eyebrow" style="margin-bottom:8px">How much</div>
-      <div class="amounts">${['none', 'a taste', 'some', 'lots'].map((a) => `<button data-amt="${a}" class="${ctx.amount === a ? 'on' : ''}">${a}</button>`).join('')}</div></div>
+    <div class="row">${icon(f?.art || 'lugaw', 44)}
+      <div><div style="font-size:18px;font-weight:650;letter-spacing:-.02em">${esc(ctx.label)}</div>
+        <div class="soft" style="font-size:12px">${esc(TITLE[ctx.key] || 'Extra')} · exposure ${n}</div></div></div>
+    <div><div class="eyebrow" style="margin-bottom:10px">How did it go?</div>
+      <div class="verdicts">
+        <button class="verdict ${ctx.verdict === 'up' ? 'on-up' : ''}" data-v="up"><span>👍</span>Liked it</button>
+        <button class="verdict ${ctx.verdict === 'down' ? 'on-down' : ''}" data-v="down"><span>👎</span>Not today</button>
+      </div>
+      <div class="verdict-msg ${ctx.verdict === 'down' ? 'warm' : ''}">${msg}</div>
+    </div>
+    <div><div class="eyebrow" style="margin-bottom:10px">How much</div>
+      <div class="amounts">${['none', 'a taste', 'some', 'lots'].map((x) => `<button data-amt="${x}" class="${ctx.amount === x ? 'on' : ''}">${x}</button>`).join('')}</div></div>
     <textarea id="log-note" placeholder="Anything worth remembering?">${esc(ctx.note || '')}</textarea>
     <div class="row">
       <button class="link" data-reaction>Flag a reaction</button>
-      <button class="btn" data-save style="margin-left:auto;width:auto;padding:13px 30px">Save</button>
+      <button class="btn" data-save style="margin-left:auto;width:auto;padding:14px 32px">Save</button>
     </div>
   </div></div>`
 }
 
+/** The day's ingredient isn't in the house — offer something that does the same job. */
+function sheetSwap(ctx) {
+  const opts = swapOptions(ctx.foodId)
+  const f = FOODS[ctx.foodId]
+  return `<div class="scrim"><div class="sheet stack" data-stop>
+    <div class="grab"></div>
+    <h2>No ${esc(f.name.toLowerCase())} today?</h2>
+    ${opts.length
+      ? `<p class="soft" style="font-size:13px;line-height:1.5">Pick something that does the same job. ${
+          f.allergen ? `This is an <b>allergen day</b>, so only another ${f.allergen} food counts — a vegetable would skip the introduction entirely.`
+          : f.ironMg >= 1 ? 'This is an <b>iron day</b>, so the stand-in needs to carry iron too.'
+          : 'Same food group, so the variety still counts.'}</p>
+        ${opts.map((o) => `<button class="swapopt" data-swap="${o.id}">${icon(o.art, 34)}
+          <div><b>${esc(o.name)}</b><span>${esc(o.why)}</span></div></button>`).join('')}`
+      : `<div class="safety">Nothing else does this job — ${esc(f.name)} is the only ${esc(f.allergen || f.cat)} food in the plan. Skip today rather than substituting, and pick it up when you have some. Missing a day costs nothing; skipping the introduction does.</div>`}
+    ${ctx.swapped ? '<button class="btn ghost" data-swap="">Put it back</button>' : ''}
+    <button class="btn ghost" data-close>Close</button>
+  </div></div>`
+}
+
 function sheetHands() {
-  return `<div class="scrim" data-close><div class="sheet stack" data-stop>
+  return `<div class="scrim"><div class="sheet stack" data-stop>
     <div class="grab"></div>
     <h2>Sizing by hand</h2>
     <p class="soft" style="font-size:12px;line-height:1.5">Everything in this app is measured against a hand, not a ruler. Yours for amounts, his for portions.</p>
@@ -318,7 +355,7 @@ function sheetHands() {
 }
 
 function sheetReaction() {
-  return `<div class="scrim" data-close><div class="sheet stack" data-stop>
+  return `<div class="scrim"><div class="sheet stack" data-stop>
     <div class="grab"></div>
     <h2>Is it a reaction?</h2>
     <div class="safety"><b>Get help immediately</b><ul style="margin:6px 0 0 16px;font-weight:600">${REACTION.urgent.map((r) => `<li>${esc(r)}</li>`).join('')}</ul></div>
@@ -329,18 +366,17 @@ function sheetReaction() {
 }
 
 /* ── render + events ─────────────────────────────────────────────────────── */
-const TABS = [['today', '●', 'Today'], ['plan', '▤', 'Plan'], ['foods', '❋', 'Foods'], ['baby', '◍', 'Baby']]
+const TABS = [['today', 'Today'], ['foods', 'Foods'], ['baby', 'Baby']]
 
 function render() {
   if (!store.isOnboarded()) { app.innerHTML = screenOnboard(); return }
   const body = view.food ? screenFood(view.food)
-    : view.tab === 'plan' ? screenPlan()
     : view.tab === 'foods' ? screenFoods()
     : view.tab === 'baby' ? screenBaby()
     : screenToday()
-  const bar = view.food ? '' : `<nav class="tabbar">${TABS.map(([id, ic, label]) =>
-    `<button data-tab="${id}" class="${view.tab === id ? 'on' : ''}" aria-label="${label}"><i>${ic}</i><span>${label}</span></button>`).join('')}</nav>`
-  const sheetEl = !view.sheet ? '' : view.sheet.kind === 'reaction' ? sheetReaction() : view.sheet.kind === 'hands' ? sheetHands() : sheetLog(view.sheet)
+  const bar = view.food ? '' : `<nav class="tabbar">${TABS.map(([id, label]) =>
+    `<button data-tab="${id}" class="${view.tab === id ? 'on' : ''}">${label}</button>`).join('')}</nav>`
+  const sheetEl = !view.sheet ? '' : view.sheet.kind === 'reaction' ? sheetReaction() : view.sheet.kind === 'hands' ? sheetHands() : view.sheet.kind === 'swap' ? sheetSwap(view.sheet) : sheetLog(view.sheet)
   app.innerHTML = body + bar + sheetEl
 }
 
@@ -348,24 +384,57 @@ app.addEventListener('click', (e) => {
   const hit = (sel) => e.target.closest(sel)
   const sheet = view.sheet
 
-  // Every interaction re-renders the sheet, which recreates the textarea —
-  // grab whatever is typed BEFORE that happens or the note is lost.
+  // Re-rendering replaces the DOM, so anything typed into an uncontrolled
+  // field is gone unless it is captured first. Same trap in both places.
   if (view.sheet?.kind === 'log') {
     const ta = document.getElementById('log-note')
     if (ta) view.sheet.note = ta.value
   }
+  const obName = document.getElementById('ob-name')
+  if (obName) {
+    view.ob = {
+      name: obName.value,
+      birthdate: document.getElementById('ob-dob').value,
+      startDate: document.getElementById('ob-start').value,
+    }
+  }
 
   if (hit('[data-onboard]')) {
-    const name = document.getElementById('ob-name').value.trim()
-    const birthdate = document.getElementById('ob-dob').value
-    const startDate = document.getElementById('ob-start').value || store.todayISO()
+    const name = view.ob.name.trim()
+    const birthdate = view.ob.birthdate
+    const startDate = view.ob.startDate || store.todayISO()
     if (!birthdate) { document.getElementById('ob-dob').focus(); return }
     store.saveProfile({ name, birthdate, startDate })
+    for (const id of view.pretried) store.markTried(id, startDate, FOODS[id].allergen)
+    view.pretried = new Set()
     return render()
   }
   if (hit('[data-tab]')) { view.tab = hit('[data-tab]').dataset.tab; view.food = null; return render() }
   if (hit('[data-back]')) { view.food = null; return render() }
   if (hit('[data-hands]')) { view.sheet = { kind: 'hands' }; return render() }
+  if (hit('[data-filter]')) { view.filter = hit('[data-filter]').dataset.filter; return render() }
+  if (hit('[data-pretried]')) {
+    const id = hit('[data-pretried]').dataset.pretried
+    if (view.pretried.has(id)) view.pretried.delete(id)
+    else view.pretried.add(id)
+    return render()
+  }
+  const tri = hit('[data-tried]')
+  if (tri) {
+    const id = tri.dataset.tried
+    if (store.get().foods[id]) store.forgetTried(id)
+    else store.markTried(id, store.todayISO(), FOODS[id].allergen)
+    return render()
+  }
+  if (hit('[data-swapopen]')) {
+    const { day, band } = today()
+    const base = dayPlan(day, band).foodId
+    view.sheet = { kind: 'swap', foodId: base, day, swapped: Boolean(store.get().swaps?.[day]) }
+    return render()
+  }
+  const sw = hit('[data-swap]')
+  if (sw) { store.setSwap(today().day, sw.dataset.swap || null); view.sheet = null; return render() }
+  if (hit('[data-photo]')) { document.getElementById('photo-input')?.click(); return }
   if (hit('[data-food]')) { view.food = hit('[data-food]').dataset.food; view.age ??= ageBand(today().age.months); return render() }
   if (hit('[data-age]')) { view.age = +hit('[data-age]').dataset.age; return render() }
   if (hit('[data-day]')) { view.tab = 'today'; return render() }
@@ -374,7 +443,8 @@ app.addEventListener('click', (e) => {
   const th = hit('[data-log]')
   if (th) {
     const key = th.dataset.log
-    const plan = dayPlan(store.planDay(), today().band)
+    const { day: d0, band: b0 } = today()
+    const plan = dayPlan(d0, b0, store.get().swaps?.[d0])
     const m = plan.meals[key] || { spoon: plan.snack, foods: [] }
     view.sheet = { kind: 'log', key, label: m.spoon, foods: m.foods || [], verdict: th.dataset.v, amount: '', note: '' }
     return render()
@@ -398,7 +468,7 @@ app.addEventListener('click', (e) => {
       for (const id of sheet.foods) if (FOODS[id]?.allergen) store.markAllergen(FOODS[id].allergen)
       view.sheet = null
       return render()
-    }
+  }
     // backdrop, or any explicit close button (which lives inside [data-stop])
     if (e.target.classList.contains('scrim') || hit('button[data-close]')) { view.sheet = null; return render() }
   }
@@ -421,7 +491,7 @@ app.addEventListener('click', (e) => {
         setTimeout(() => { upd.textContent = `${BUILD} · tap to update` }, 2600)
       }
     })()
-    return
+    return render()
   }
 
   if (hit('[data-export]')) {
@@ -432,5 +502,64 @@ app.addEventListener('click', (e) => {
     a.click(); URL.revokeObjectURL(a.href)
   }
 })
+
+// Photos are downscaled to 320px before storing — a raw camera frame would
+// blow the localStorage quota and take the log down with it.
+app.addEventListener('change', (e) => {
+  if (e.target.id !== 'photo-input') return
+  const file = e.target.files?.[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = () => {
+    const img = new Image()
+    img.onload = () => {
+      const size = 320
+      const c = document.createElement('canvas')
+      c.width = c.height = size
+      const scale = Math.max(size / img.width, size / img.height)
+      const w = img.width * scale
+      const h = img.height * scale
+      c.getContext('2d').drawImage(img, (size - w) / 2, (size - h) / 2, w, h)
+      store.saveProfile({ photo: c.toDataURL('image/jpeg', 0.82) })
+      render()
+    }
+    img.src = reader.result
+  }
+  reader.readAsDataURL(file)
+})
+
+// ── 2: swipe between tabs ────────────────────────────────────────────────
+// Only on a plain tab screen, only when the gesture is clearly horizontal, so
+// vertical scrolling and the sheets are untouched.
+{
+  let g = null
+  const order = TABS.map(([id]) => id)
+  app.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1 || view.sheet || view.food) return
+    g = { x: e.touches[0].clientX, y: e.touches[0].clientY, on: false }
+  }, { passive: true })
+  app.addEventListener('touchmove', (e) => {
+    if (!g) return
+    const dx = e.touches[0].clientX - g.x
+    const dy = e.touches[0].clientY - g.y
+    if (!g.on) {
+      if (Math.abs(dx) < 12 && Math.abs(dy) < 12) return
+      if (Math.abs(dy) >= Math.abs(dx)) { g = null; return } // vertical — let it scroll
+      g.on = true
+    }
+    g.dx = dx
+  }, { passive: true })
+  const end = () => {
+    if (!g?.on) { g = null; return }
+    const { dx } = g
+    g = null
+    if (Math.abs(dx) < 60) return
+    const i = order.indexOf(view.tab)
+    const next = order[Math.min(order.length - 1, Math.max(0, i + (dx < 0 ? 1 : -1)))]
+    if (next !== view.tab) { view.tab = next; view.openMeal = null; render() }
+  }
+  app.addEventListener('touchend', end, { passive: true })
+  app.addEventListener('touchcancel', end, { passive: true })
+}
 
 render()

@@ -37,19 +37,21 @@ function trialMeals(id, food, cleared, band) {
  * From day 70 a 7-day cycle repeats — deliberately, so allergens come round
  * weekly and liver never lands more than twice.
  */
-export function dayPlan(n, band = 9) {
+export function dayPlan(n, band = 9, swapId = null) {
   if (n <= M8) {
     const [month, list, offset] =
       n <= M6 ? [6, TRIALS[6], 0] : n <= M7 ? [7, TRIALS[7], M6] : [8, TRIALS[8], M7]
     const i = Math.floor((n - offset - 1) / TRIAL_LEN)
     const trial = list[i]
-    const food = FOODS[trial.food]
+    const foodId = swapId && FOODS[swapId] ? swapId : trial.food
+    const food = FOODS[foodId]
     const cleared = clearedBefore(n)
     return {
       mode: 'trial', month, day: n,
       trialDay: ((n - offset - 1) % TRIAL_LEN) + 1, trialLen: TRIAL_LEN,
-      foodId: trial.food, food, note: trial.note, allergen: food.allergen,
-      cleared, meals: trialMeals(trial.food, food, cleared, band),
+      foodId, food, note: trial.note, allergen: food.allergen,
+      swappedFrom: foodId !== trial.food ? trial.food : null,
+      cleared, meals: trialMeals(foodId, food, cleared, band),
     }
   }
   const c = CYCLE[(n - M8 - 1) % CYCLE.length]
@@ -63,3 +65,29 @@ export function ironToday(plan) {
 }
 
 export const planLength = { M6, M7, M8 }
+
+/**
+ * What can stand in when the day's ingredient isn't in the house.
+ * The slot has a JOB, and the substitute has to do the same job:
+ *   allergen day  -> only the same allergen (fish for fish), never a bystander
+ *   iron day      -> another iron-rich food
+ *   otherwise     -> the same food group, untried first
+ */
+export function swapOptions(foodId) {
+  const f = FOODS[foodId]
+  if (!f) return []
+  const rest = Object.entries(FOODS).filter(([id]) => id !== foodId)
+  if (f.allergen) return rest.filter(([, x]) => x.allergen === f.allergen).map(([id, x]) => ({ id, ...x, why: `Also ${f.allergen}` }))
+  if (f.ironMg >= 1) return rest.filter(([, x]) => x.ironMg >= 1).map(([id, x]) => ({ id, ...x, why: `${x.ironMg}mg iron` }))
+  return rest.filter(([, x]) => x.cat === f.cat && !x.allergen).map(([id, x]) => ({ id, ...x, why: x.cat }))
+}
+
+/** Which plan day each food is first scheduled for — powers the merged Foods tab. */
+export function scheduleIndex() {
+  const out = {}
+  for (const [month, list] of Object.entries(TRIALS)) {
+    const offset = month === '6' ? 0 : month === '7' ? M6 : M7
+    list.forEach((t, i) => { out[t.food] ??= offset + i * TRIAL_LEN + 1 })
+  }
+  return out
+}
