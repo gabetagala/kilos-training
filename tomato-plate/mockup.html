@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TOMATO PLATE — UI mockup</title>
+<style>
+:root{
+  --tomato:#C0442A; --tomato-deep:#9A3520; --tomato-soft:#E8A594;
+  --cream:#FBF3E4; --cream-2:#F4E9D6;
+  --calyx:#2E6B44; --calyx-soft:#B9D3BF;
+  --amber:#E9963E; --aubergine:#3A3684;
+  --ink:#2A1E19; --ink-soft:#7A675C;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--tomato);font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:var(--ink);padding:48px 24px 80px;-webkit-font-smoothing:antialiased}
+.head{max-width:1200px;margin:0 auto 44px;color:var(--cream);text-align:center}
+.head h1{font-size:15px;letter-spacing:.28em;font-weight:700;opacity:.75;margin-bottom:14px}
+.head p{font-size:15px;opacity:.62;max-width:560px;margin:0 auto;line-height:1.6}
+.grid{max-width:1240px;margin:0 auto;display:flex;flex-wrap:wrap;gap:38px;justify-content:center}
+.frame{width:300px;flex:0 0 auto}
+.phone{background:var(--cream);border-radius:38px;overflow:hidden;height:640px;
+  box-shadow:0 18px 44px rgba(0,0,0,.26);display:flex;flex-direction:column;position:relative}
+.cap{color:var(--cream);font-size:12px;letter-spacing:.13em;font-weight:700;
+  text-transform:uppercase;margin-bottom:11px;opacity:.85;text-align:center}
+.sb{display:flex;justify-content:space-between;padding:13px 22px 5px;font-size:12px;font-weight:700;flex:0 0 auto}
+.body{flex:1;overflow:hidden;position:relative}
+.pad{padding:0 18px}
+.tabbar{flex:0 0 auto;display:flex;border-top:1px solid rgba(42,30,25,.08);background:var(--cream);padding:8px 0 14px}
+.tab{flex:1;text-align:center;font-size:9.5px;font-weight:700;color:var(--ink-soft);letter-spacing:.04em}
+.tab.on{color:var(--tomato)}
+.tab i{display:block;font-style:normal;font-size:17px;margin-bottom:3px;opacity:.55}
+.tab.on i{opacity:1}
+h2{font-size:21px;line-height:1.15;letter-spacing:-.02em}
+.eyebrow{font-size:9.5px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-soft)}
+.card{background:var(--cream-2);border-radius:18px;padding:14px}
+.pill{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:4px 10px;
+  font-size:10px;font-weight:800;letter-spacing:.02em}
+.p-iron{background:var(--calyx-soft);color:var(--calyx)}
+.p-all{background:#F8DFBE;color:#8A5312}
+.p-due{background:var(--tomato-soft);color:var(--tomato-deep)}
+.btn{background:var(--tomato);color:var(--cream);border-radius:999px;padding:12px;text-align:center;
+  font-weight:800;font-size:13px}
+.btn-o{background:transparent;border:1.5px solid rgba(42,30,25,.16);color:var(--ink);border-radius:999px;
+  padding:11px;text-align:center;font-weight:700;font-size:13px}
+.row{display:flex;gap:9px;align-items:center}
+.mealrow{background:var(--cream-2);border-radius:16px;padding:11px 12px;margin-bottom:8px}
+.thumbs{display:flex;gap:6px;margin-left:auto}
+.th{width:31px;height:31px;border-radius:999px;display:grid;place-items:center;font-size:14px;
+  background:var(--cream);border:1.5px solid rgba(42,30,25,.1)}
+.th.up{background:var(--calyx);border-color:var(--calyx);color:#fff}
+.agetabs{display:flex;background:var(--cream-2);border-radius:999px;padding:3px;gap:2px}
+.agetab{flex:1;text-align:center;font-size:11px;font-weight:800;padding:7px 0;border-radius:999px;color:var(--ink-soft)}
+.agetab.on{background:var(--tomato);color:var(--cream)}
+.aboard{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.al{border-radius:13px;padding:9px 7px;text-align:center;background:var(--cream-2)}
+.al b{display:block;font-size:10.5px;font-weight:800;margin-bottom:2px}
+.al span{font-size:8.5px;color:var(--ink-soft);font-weight:700}
+.al.ok{background:var(--calyx-soft)} .al.ok b{color:var(--calyx)} .al.ok span{color:var(--calyx)}
+.al.due{background:var(--tomato-soft)} .al.due b{color:var(--tomato-deep)} .al.due span{color:var(--tomato-deep)}
+.dayrow{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid rgba(42,30,25,.07)}
+.dnum{width:26px;font-size:11px;font-weight:800;color:var(--ink-soft);text-align:center;flex:0 0 auto}
+.pips{display:flex;gap:2.5px;margin-left:auto;flex:0 0 auto}
+.pip{width:5px;height:5px;border-radius:999px;background:rgba(42,30,25,.14)}
+.pip.on{background:var(--tomato)}
+.cyc{width:17px;height:17px;border-radius:6px;background:var(--aubergine);color:#fff;font-size:9px;
+  font-weight:800;display:grid;place-items:center;flex:0 0 auto}
+.note{background:var(--cream);border:1.5px dashed rgba(42,30,25,.17);border-radius:13px;padding:9px 11px;
+  font-size:11px;color:var(--ink-soft)}
+.enc{background:var(--calyx-soft);border-radius:14px;padding:11px 12px;font-size:11px;line-height:1.5;color:var(--calyx);font-weight:600}
+.wordmark{text-align:center;line-height:.82;color:var(--tomato);font-weight:900;letter-spacing:-.03em}
+.wordmark .l1{font-size:31px;transform:rotate(-2.4deg);display:block}
+.wordmark .l2{font-size:47px;transform:rotate(1.1deg);display:block;margin-top:2px}
+.cut{background:var(--cream-2);border-radius:15px;padding:11px;text-align:center}
+.cut b{display:block;font-size:10px;font-weight:800;margin-top:5px}
+.cut span{font-size:8.5px;color:var(--ink-soft);display:block;line-height:1.35;margin-top:2px}
+.safety{background:var(--tomato-soft);border-radius:14px;padding:11px 12px;font-size:10.5px;
+  line-height:1.5;color:var(--tomato-deep);font-weight:600}
+.sc{overflow-y:auto;height:100%;padding-bottom:12px}
+.sc::-webkit-scrollbar{display:none}
+</style></head><body>
+
+<div class="head">
+  <h1>TOMATO PLATE</h1>
+  <p>Flat illustration, six colours, one idea per screen. The three things the subscription actually sells — the plan, the cut-safety reference, and the log — with nothing else bolted on.</p>
+</div>
+
+<svg width="0" height="0" style="position:absolute">
+<defs>
+  <symbol id="logo" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="46" fill="#C0442A"/>
+    <circle cx="50" cy="50" r="35" fill="#D4553A"/>
+    <circle cx="50" cy="50" r="27" fill="#C0442A"/>
+    <g fill="#2E6B44"><path d="M50 26c2 0 3 4 3 7 3-2 6-4 8-2s0 6-2 8c3 0 7 1 7 3s-4 3-7 3c2 2 4 5 2 7s-5 0-8-2c0 3-1 7-3 7s-3-4-3-7c-3 2-6 4-8 2s0-5 2-7c-3 0-7-1-7-3s4-3 7-3c-2-2-4-6-2-8s5 0 8 2c0-3 1-7 3-7z"/></g>
+    <circle cx="50" cy="43" r="4" fill="#4E9060"/>
+  </symbol>
+  <symbol id="kamote" viewBox="0 0 60 60"><ellipse cx="30" cy="32" rx="21" ry="14" transform="rotate(-18 30 32)" fill="#D4763C"/><ellipse cx="24" cy="28" rx="6" ry="4" transform="rotate(-18 24 28)" fill="#E09355"/><path d="M49 22c3-2 6-1 6 1s-4 3-6 2z" fill="#B85E2C"/></symbol>
+  <symbol id="kalabasa" viewBox="0 0 60 60"><ellipse cx="30" cy="35" rx="22" ry="18" fill="#E9963E"/><ellipse cx="30" cy="35" rx="8" ry="18" fill="#F0AB5E"/><ellipse cx="15" cy="35" rx="6" ry="15" fill="#DD8630"/><ellipse cx="45" cy="35" rx="6" ry="15" fill="#DD8630"/><rect x="27" y="12" width="6" height="9" rx="2" fill="#2E6B44"/></symbol>
+  <symbol id="avocado" viewBox="0 0 60 60"><path d="M30 8c11 0 19 12 19 26 0 11-8 18-19 18s-19-7-19-18C11 20 19 8 30 8z" fill="#2E6B44"/><path d="M30 14c8 0 14 10 14 21 0 8-6 13-14 13s-14-5-14-13c0-11 6-21 14-21z" fill="#9FBF6A"/><ellipse cx="30" cy="34" rx="8" ry="9" fill="#8A5A2B"/></symbol>
+  <symbol id="egg" viewBox="0 0 60 60"><ellipse cx="30" cy="32" rx="19" ry="23" fill="#FCF6E9"/><circle cx="30" cy="33" r="10" fill="#E9963E"/><circle cx="27" cy="30" r="3.5" fill="#F2B266"/></symbol>
+  <symbol id="peanut" viewBox="0 0 60 60"><path d="M22 12c7 0 11 5 11 10 0 4-2 6-2 9s2 5 2 9c0 6-5 11-11 11S11 46 11 40c0-4 2-6 2-9s-2-5-2-9c0-5 4-10 11-10z" transform="translate(8,0)" fill="#D9A05B"/><circle cx="27" cy="22" r="3" fill="#C08840"/><circle cx="31" cy="41" r="3" fill="#C08840"/></symbol>
+  <symbol id="tomato" viewBox="0 0 60 60"><circle cx="30" cy="34" r="20" fill="#C0442A"/><circle cx="23" cy="27" r="5" fill="#D4553A"/><path d="M30 10c1.5 0 2 3 2 5 2-1.5 4.5-3 6-1.5s0 4.5-1.5 6c2 0 5 1 5 2.5s-3 2-5 2c1.5 1.5-1 3-2.5 1.5-1-1-2.5-2-4-2s-3 1-4 2c-1.5 1.5-4 0-2.5-1.5-2 0-5-.5-5-2s3-2.5 5-2.5c-1.5-1.5-3-4.5-1.5-6s4 .5 6 1.5c0-2 .5-5 2-5z" fill="#2E6B44"/></symbol>
+  <symbol id="dilis" viewBox="0 0 60 60"><path d="M10 30c8-9 24-11 34-4l6-5-1 9 1 9-6-5C34 41 18 39 10 30z" fill="#7C93A8"/><circle cx="38" cy="27" r="2.5" fill="#2A1E19"/><path d="M22 24c4 4 4 8 0 12" stroke="#5F7488" stroke-width="2" fill="none"/></symbol>
+  <symbol id="malunggay" viewBox="0 0 60 60"><path d="M30 52V14" stroke="#2E6B44" stroke-width="3"/><g fill="#4E9060"><ellipse cx="21" cy="22" rx="7" ry="5"/><ellipse cx="39" cy="27" rx="7" ry="5"/><ellipse cx="21" cy="34" rx="7" ry="5"/><ellipse cx="39" cy="40" rx="7" ry="5"/><ellipse cx="30" cy="14" rx="6" ry="5"/></g></symbol>
+  <!-- cut-state vocabulary -->
+  <symbol id="cut-puree" viewBox="0 0 60 40"><ellipse cx="30" cy="27" rx="20" ry="9" fill="#D4763C"/><ellipse cx="30" cy="24" rx="20" ry="9" fill="#E09355"/><path d="M20 22c5-3 15-3 20 0" stroke="#D4763C" stroke-width="2" fill="none"/></symbol>
+  <symbol id="cut-baton" viewBox="0 0 60 40"><rect x="10" y="9" width="10" height="24" rx="5" fill="#D4763C"/><rect x="25" y="9" width="10" height="24" rx="5" fill="#E09355"/><rect x="40" y="9" width="10" height="24" rx="5" fill="#D4763C"/></symbol>
+  <symbol id="cut-cube" viewBox="0 0 60 40"><rect x="12" y="10" width="11" height="11" rx="3" fill="#D4763C"/><rect x="27" y="16" width="11" height="11" rx="3" fill="#E09355"/><rect x="40" y="9" width="11" height="11" rx="3" fill="#D4763C"/><rect x="20" y="25" width="11" height="11" rx="3" fill="#E09355"/></symbol>
+</defs></svg>
+
+<div class="grid">
+
+<!-- 1 WELCOME -->
+<div class="frame"><div class="cap">01 · Welcome</div><div class="phone">
+  <div class="sb"><span>9:41</span><span>▮▮▮ ⌾ ▰</span></div>
+  <div class="body">
+    <div style="height:172px;position:relative;overflow:hidden">
+      <svg width="52" height="52" style="position:absolute;left:16px;top:14px;transform:rotate(-14deg)"><use href="#kalabasa"/></svg>
+      <svg width="40" height="40" style="position:absolute;left:82px;top:66px"><use href="#avocado"/></svg>
+      <svg width="46" height="46" style="position:absolute;right:22px;top:20px;transform:rotate(12deg)"><use href="#kamote"/></svg>
+      <svg width="34" height="34" style="position:absolute;right:80px;top:82px"><use href="#malunggay"/></svg>
+      <svg width="30" height="30" style="position:absolute;left:48px;top:118px"><use href="#egg"/></svg>
+      <svg width="32" height="32" style="position:absolute;right:34px;top:112px;transform:rotate(-8deg)"><use href="#dilis"/></svg>
+      <svg width="26" height="26" style="position:absolute;left:132px;top:16px"><use href="#peanut"/></svg>
+    </div>
+    <div class="pad" style="text-align:center">
+      <svg width="66" height="66" style="margin-bottom:12px"><use href="#logo"/></svg>
+      <div class="wordmark"><span class="l1">TOMATO</span><span class="l2">PLATE</span></div>
+      <p style="font-size:12.5px;color:var(--ink-soft);margin:16px 0 20px;line-height:1.5">
+        Every food, how to cut it,<br>and what he thought of it.</p>
+      <div class="btn" style="margin-bottom:8px"> Continue with Apple</div>
+      <div class="btn-o" style="margin-bottom:8px">Continue with Google</div>
+      <div class="btn-o">Continue with e-mail</div>
+      <p style="font-size:8.5px;color:var(--ink-soft);margin-top:14px;line-height:1.5">
+        Not medical advice. Always follow your<br>pediatrician's guidance.</p>
+    </div>
+  </div>
+</div></div>
+
+<!-- 2 TODAY -->
+<div class="frame"><div class="cap">02 · Today</div><div class="phone">
+  <div class="sb"><span>9:41</span><span>▮▮▮ ⌾ ▰</span></div>
+  <div class="body"><div class="sc pad">
+    <div class="row" style="margin:4px 0 12px">
+      <div><div class="eyebrow">Tuesday</div>
+        <h2 style="margin-top:2px">Mateo <span style="color:var(--ink-soft);font-weight:600;font-size:13px">· 7 mo 2 wk</span></h2></div>
+      <svg width="30" height="30" style="margin-left:auto"><use href="#logo"/></svg>
+    </div>
+
+    <div class="card" style="background:var(--tomato);color:var(--cream);margin-bottom:10px;position:relative;overflow:hidden">
+      <div style="position:absolute;right:-14px;top:-10px;opacity:.22"><svg width="104" height="104"><use href="#peanut"/></svg></div>
+      <div class="eyebrow" style="color:var(--tomato-soft)">New today</div>
+      <div style="font-size:25px;font-weight:900;letter-spacing:-.02em;margin:3px 0 6px">Peanut</div>
+      <div class="row" style="gap:5px">
+        <span class="pill" style="background:rgba(251,243,228,.2);color:var(--cream)">Day 1 of 3</span>
+        <span class="pill" style="background:var(--amber);color:#4A2A06">Allergen</span>
+      </div>
+      <div style="background:rgba(251,243,228,.15);border-radius:11px;padding:8px 10px;margin-top:10px;font-size:10.5px;line-height:1.5">
+        <b>First exposure.</b> Morning, at home, only if well. Two hours free to watch. Tip of the spoon, wait 10 min.</div>
+    </div>
+
+    <div class="row" style="gap:5px;margin-bottom:11px">
+      <span class="pill p-iron">Iron ✓</span><span class="pill p-due">2 due</span><span class="pill p-all">Liver 1/2</span>
+    </div>
+
+    <div class="eyebrow" style="margin-bottom:7px">Today's meals</div>
+    <div class="mealrow"><div class="row">
+      <svg width="30" height="30"><use href="#kalabasa"/></svg>
+      <div><div style="font-size:12.5px;font-weight:800">Breakfast</div>
+        <div style="font-size:9.5px;color:var(--ink-soft)">Oat lugaw + peanut · kalabasa baton</div></div>
+      <div class="thumbs"><div class="th up">👍</div><div class="th">👎</div></div>
+    </div></div>
+    <div class="mealrow"><div class="row">
+      <svg width="30" height="30"><use href="#dilis"/></svg>
+      <div><div style="font-size:12.5px;font-weight:800">Lunch</div>
+        <div style="font-size:9.5px;color:var(--ink-soft)">Dilis + malunggay lugaw</div></div>
+      <div class="thumbs"><div class="th">👍</div><div class="th">👎</div></div>
+    </div></div>
+    <div class="mealrow" style="opacity:.55"><div class="row">
+      <svg width="30" height="30"><use href="#kamote"/></svg>
+      <div><div style="font-size:12.5px;font-weight:800">Dinner</div>
+        <div style="font-size:9.5px;color:var(--ink-soft)">Liver lugaw · kamote stick</div></div>
+      <div class="thumbs"><div class="th">👍</div><div class="th">👎</div></div>
+    </div></div>
+  </div></div>
+  <div class="tabbar"><div class="tab on"><i>◗</i>Today</div><div class="tab"><i>▤</i>Plan</div>
+    <div class="tab"><i>❋</i>Foods</div><div class="tab"><i>◍</i>Mateo</div></div>
+</div></div>
+
+<!-- 3 FOOD DETAIL -->
+<div class="frame"><div class="cap">03 · Food — the cut screen</div><div class="phone">
+  <div class="sb"><span>9:41</span><span>▮▮▮ ⌾ ▰</span></div>
+  <div class="body"><div class="sc">
+    <div style="background:var(--amber);height:132px;position:relative;display:grid;place-items:center">
+      <div style="position:absolute;left:14px;top:10px;font-size:17px">‹</div>
+      <svg width="88" height="88"><use href="#kamote"/></svg>
+    </div>
+    <div class="pad" style="padding-top:12px">
+      <h2>Kamote</h2>
+      <div style="font-size:11px;color:var(--ink-soft);margin:1px 0 9px">Sweet potato · vegetable</div>
+      <div class="row" style="gap:5px;margin-bottom:12px">
+        <span class="pill" style="background:var(--cream-2);color:var(--ink-soft)">No allergen</span>
+        <span class="pill p-iron">Iron 0.6mg</span>
+        <span class="pill" style="background:var(--calyx-soft);color:var(--calyx)">Low risk</span>
+      </div>
+
+      <div class="agetabs" style="margin-bottom:11px">
+        <div class="agetab">6 mo</div><div class="agetab on">9 mo</div><div class="agetab">12 mo</div>
+      </div>
+
+      <div class="eyebrow" style="margin-bottom:7px">How to cut it</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <div class="cut"><svg width="62" height="40"><use href="#cut-puree"/></svg>
+          <b>On the spoon</b><span>Fork-mashed, visible lumps</span></div>
+        <div class="cut" style="background:#EAF0EC"><svg width="62" height="40"><use href="#cut-baton"/></svg>
+          <b>In his hands</b><span>Finger-length baton, two fingers wide</span></div>
+      </div>
+
+      <div class="note" style="margin-bottom:12px">
+        <b style="color:var(--ink)">Squash test.</b> It must squash between your finger and thumb with light pressure. If it doesn't, cook it longer.</div>
+
+      <div class="eyebrow" style="margin-bottom:6px">Prepare it</div>
+      <ol style="font-size:11px;line-height:1.65;padding-left:15px;color:var(--ink-soft);margin-bottom:12px">
+        <li>Peel, cut into 2cm chunks.</li>
+        <li>Steam 12–15 min until a fork meets no resistance.</li>
+        <li><b style="color:var(--ink)">Keep the cooking water.</b></li>
+        <li>Set aside a baton before you mash the rest.</li>
+        <li>Mash, thinning with the cooking water.</li>
+      </ol>
+      <div class="safety">Never thin with breastmilk on this plan — use the cooking water. Serve lukewarm; test on the inside of your wrist.</div>
+      <div style="font-size:10px;color:var(--ink-soft);margin:12px 0 8px;text-align:center">Served 4 times · last Tuesday</div>
+      <div class="btn" style="margin-bottom:12px">Log kamote today</div>
+    </div>
+  </div></div>
+</div></div>
+
+<!-- 4 LOG -->
+<div class="frame"><div class="cap">04 · Log · thumbs + note</div><div class="phone">
+  <div class="sb"><span>9:41</span><span>▮▮▮ ⌾ ▰</span></div>
+  <div class="body" style="background:rgba(42,30,25,.28)">
+    <div style="position:absolute;bottom:0;left:0;right:0;background:var(--cream);border-radius:26px 26px 0 0;padding:16px 18px 20px">
+      <div style="width:36px;height:4px;background:rgba(42,30,25,.16);border-radius:9px;margin:0 auto 14px"></div>
+      <div class="row" style="margin-bottom:14px">
+        <svg width="38" height="38"><use href="#kalabasa"/></svg>
+        <div><div style="font-size:16px;font-weight:900">Kalabasa</div>
+          <div style="font-size:10px;color:var(--ink-soft)">Breakfast · exposure 3</div></div>
+      </div>
+
+      <div class="eyebrow" style="margin-bottom:7px">How did it go?</div>
+      <div class="row" style="gap:8px;margin-bottom:13px">
+        <div style="flex:1;background:var(--cream-2);border-radius:15px;padding:13px;text-align:center">
+          <div style="font-size:23px">👍</div><div style="font-size:10px;font-weight:800;margin-top:3px">Liked it</div></div>
+        <div style="flex:1;background:var(--tomato);color:var(--cream);border-radius:15px;padding:13px;text-align:center">
+          <div style="font-size:23px">👎</div><div style="font-size:10px;font-weight:800;margin-top:3px">Not today</div></div>
+      </div>
+
+      <div class="enc" style="margin-bottom:13px">
+        That's exposure <b>3 of 10</b>. Most parents stop at 3–5 — the evidence says keep going. Try again in a few days.</div>
+
+      <div class="eyebrow" style="margin-bottom:7px">How much</div>
+      <div class="row" style="gap:5px;margin-bottom:13px">
+        <span class="pill" style="background:var(--tomato);color:var(--cream)">None</span>
+        <span class="pill" style="background:var(--cream-2);color:var(--ink-soft)">A taste</span>
+        <span class="pill" style="background:var(--cream-2);color:var(--ink-soft)">Some</span>
+        <span class="pill" style="background:var(--cream-2);color:var(--ink-soft)">Lots</span>
+      </div>
+
+      <div class="note" style="margin-bottom:12px">Turned his head after two spoons. Took the baton though — chewed it for ages.</div>
+      <div class="row" style="gap:8px">
+        <div style="font-size:10.5px;color:var(--tomato-deep);font-weight:700;text-decoration:underline">Flag a reaction</div>
+        <div class="btn" style="margin-left:auto;padding:11px 26px">Save</div>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<!-- 5 BABY -->
+<div class="frame"><div class="cap">05 · Mateo · allergen board</div><div class="phone">
+  <div class="sb"><span>9:41</span><span>▮▮▮ ⌾ ▰</span></div>
+  <div class="body"><div class="sc pad">
+    <div style="text-align:center;padding:10px 0 12px">
+      <div style="width:66px;height:66px;border-radius:999px;background:var(--tomato-soft);margin:0 auto 9px;
+        display:grid;place-items:center;font-size:29px">👶</div>
+      <h2>Mateo</h2>
+      <div style="font-size:11px;color:var(--ink-soft);margin-top:2px">7 months, 2 weeks · born 12 Jan</div>
+    </div>
+
+    <div class="card" style="margin-bottom:11px;display:flex;align-items:center;gap:13px">
+      <svg width="52" height="52" viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r="21" fill="none" stroke="rgba(42,30,25,.1)" stroke-width="6"/>
+        <circle cx="26" cy="26" r="21" fill="none" stroke="var(--tomato)" stroke-width="6"
+          stroke-dasharray="132" stroke-dashoffset="31" stroke-linecap="round" transform="rotate(-90 26 26)"/>
+      </svg>
+      <div><div style="font-size:20px;font-weight:900;line-height:1">23 <span style="font-size:12px;color:var(--ink-soft)">/ 30 foods</span></div>
+        <div style="font-size:10px;color:var(--ink-soft);margin-top:3px">7 still to try this stage</div></div>
+    </div>
+
+    <div class="row" style="margin-bottom:8px">
+      <div class="eyebrow">The nine allergens</div>
+      <span class="pill p-due" style="margin-left:auto">2 overdue</span>
+    </div>
+    <div class="aboard" style="margin-bottom:12px">
+      <div class="al ok"><b>Egg</b><span>2d ago</span></div>
+      <div class="al ok"><b>Peanut</b><span>today</span></div>
+      <div class="al ok"><b>Dairy</b><span>1d ago</span></div>
+      <div class="al ok"><b>Fish</b><span>3d ago</span></div>
+      <div class="al due"><b>Wheat</b><span>9d ago</span></div>
+      <div class="al ok"><b>Soy</b><span>4d ago</span></div>
+      <div class="al due"><b>Sesame</b><span>11d ago</span></div>
+      <div class="al"><b>Tree nut</b><span>not yet</span></div>
+      <div class="al"><b>Shellfish</b><span>not yet</span></div>
+    </div>
+
+    <div class="card" style="margin-bottom:10px">
+      <div class="eyebrow" style="margin-bottom:5px">Milk &amp; weaning</div>
+      <div style="font-size:12.5px;font-weight:800">5 feeds a day</div>
+      <div style="font-size:10px;color:var(--ink-soft);margin-top:2px">Next step at 10 months — drop the 10am</div>
+    </div>
+    <div class="btn-o" style="margin-bottom:12px">Export for the pediatrician</div>
+  </div></div>
+  <div class="tabbar"><div class="tab"><i>◗</i>Today</div><div class="tab"><i>▤</i>Plan</div>
+    <div class="tab"><i>❋</i>Foods</div><div class="tab on"><i>◍</i>Mateo</div></div>
+</div></div>
+
+<!-- 6 PLAN -->
+<div class="frame"><div class="cap">06 · Plan</div><div class="phone">
+  <div class="sb"><span>9:41</span><span>▮▮▮ ⌾ ▰</span></div>
+  <div class="body"><div class="sc pad">
+    <h2 style="margin:6px 0 3px">The plan</h2>
+    <div style="font-size:11px;color:var(--ink-soft);margin-bottom:11px">Month 7 · one new food every 3 days</div>
+    <div class="agetabs" style="margin-bottom:12px">
+      <div class="agetab">M6</div><div class="agetab on">M7</div><div class="agetab">M8–9</div><div class="agetab">M10–12</div>
+    </div>
+
+    <div class="dayrow"><div class="dnum">1</div><svg width="25" height="25"><use href="#peanut"/></svg>
+      <div><div style="font-size:12px;font-weight:800">Peanut</div><div style="font-size:9px;color:var(--amber);font-weight:700">Allergen · first exposure</div></div>
+      <div class="pips"><span class="pip on"></span><span class="pip"></span><span class="pip"></span></div></div>
+    <div class="dayrow"><div class="dnum">4</div><svg width="25" height="25"><use href="#malunggay"/></svg>
+      <div><div style="font-size:12px;font-weight:800">Malunggay</div><div style="font-size:9px;color:var(--calyx);font-weight:700">Iron</div></div>
+      <div class="pips"><span class="pip"></span><span class="pip"></span><span class="pip"></span></div></div>
+    <div class="dayrow"><div class="dnum">7</div><svg width="25" height="25"><use href="#dilis"/></svg>
+      <div><div style="font-size:12px;font-weight:800">Tilapia</div><div style="font-size:9px;color:var(--amber);font-weight:700">Allergen · fish</div></div>
+      <div class="pips"><span class="pip"></span><span class="pip"></span><span class="pip"></span></div></div>
+    <div class="dayrow"><div class="dnum">13</div><svg width="25" height="25"><use href="#egg"/></svg>
+      <div><div style="font-size:12px;font-weight:800">Plain yogurt</div><div style="font-size:9px;color:var(--amber);font-weight:700">Allergen · dairy</div></div>
+      <div class="pips"><span class="pip"></span><span class="pip"></span><span class="pip"></span></div></div>
+
+    <div class="eyebrow" style="margin:15px 0 7px">From month 8 — the cycle repeats</div>
+    <div class="dayrow"><div class="cyc">A</div><svg width="25" height="25"><use href="#kamote"/></svg>
+      <div><div style="font-size:12px;font-weight:800">Liver lugaw day</div><div style="font-size:9px;color:var(--ink-soft)">Peanut · liver 1 of 2</div></div></div>
+    <div class="dayrow"><div class="cyc">B</div><svg width="25" height="25"><use href="#dilis"/></svg>
+      <div><div style="font-size:12px;font-weight:800">Dilis + beef day</div><div style="font-size:9px;color:var(--ink-soft)">Dairy · wheat</div></div></div>
+    <div class="dayrow"><div class="cyc">C</div><svg width="25" height="25"><use href="#egg"/></svg>
+      <div><div style="font-size:12px;font-weight:800">Egg + fish day</div><div style="font-size:9px;color:var(--ink-soft)">Egg · fish</div></div></div>
+    <div class="note" style="margin-top:11px">The cycle repeats on purpose — familiar food is what he learns to eat, and it keeps every allergen coming round weekly.</div>
+  </div></div>
+  <div class="tabbar"><div class="tab"><i>◗</i>Today</div><div class="tab on"><i>▤</i>Plan</div>
+    <div class="tab"><i>❋</i>Foods</div><div class="tab"><i>◍</i>Mateo</div></div>
+</div></div>
+
+</div></body></html>
