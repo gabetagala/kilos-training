@@ -19,8 +19,8 @@ function clearedBefore(n) {
 }
 
 /** During the trial months there's one designated meal; cleared foods ride along. */
-function trialMeals(id, food, cleared) {
-  const hands = food.cut[9]?.[1]
+function trialMeals(id, food, cleared, band) {
+  const hands = food.cut[band]?.[1]
   return {
     lunch: {
       spoon: `${food.name} — ${food.cut[6][0]}`,
@@ -37,7 +37,7 @@ function trialMeals(id, food, cleared) {
  * From day 70 a 7-day cycle repeats — deliberately, so allergens come round
  * weekly and liver never lands more than twice.
  */
-export function dayPlan(n) {
+export function dayPlan(n, band = 9) {
   if (n <= M8) {
     const [month, list, offset] =
       n <= M6 ? [6, TRIALS[6], 0] : n <= M7 ? [7, TRIALS[7], M6] : [8, TRIALS[8], M7]
@@ -49,7 +49,7 @@ export function dayPlan(n) {
       mode: 'trial', month, day: n,
       trialDay: ((n - offset - 1) % TRIAL_LEN) + 1, trialLen: TRIAL_LEN,
       foodId: trial.food, food, note: trial.note, allergen: food.allergen,
-      cleared, meals: trialMeals(trial.food, food, cleared),
+      cleared, meals: trialMeals(trial.food, food, cleared, band),
     }
   }
   const c = CYCLE[(n - M8 - 1) % CYCLE.length]

@@ -2,7 +2,7 @@
 // Vanilla, localStorage-first, no framework. Renders whole screens; the state
 // is small enough that diffing would cost more than it saves.
 import { SPRITE, cutGlyph, icon } from './art.js'
-import { ALLERGENS, AMOUNTS, EXPOSURE_TARGET, FOODS, MILK, REACTION, ROTATION_DAYS } from './data.js'
+import { ALLERGENS, AMOUNTS, EXPOSURE_TARGET, FOODS, HAND_GUIDE, MILK, REACTION, ROTATION_DAYS } from './data.js'
 import { dayPlan, ironToday } from './plan.js'
 import * as store from './store.js'
 
@@ -10,6 +10,7 @@ const app = document.getElementById('app')
 document.body.insertAdjacentHTML('afterbegin', SPRITE)
 
 const esc = (s = '') => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+const possessive = (n) => (!n ? "Baby's" : /[sz]$/i.test(n) ? `${n}\u2019` : `${n}\u2019s`)
 const MEAL_ORDER = ['breakfast', 'snack', 'lunch', 'dinner']
 const TITLE = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' }
 
@@ -19,7 +20,9 @@ let view = { tab: 'today', food: null, age: null, sheet: null, openMeal: null }
 const today = () => {
   const s = store.get()
   const day = store.planDay()
-  return { s, day, plan: dayPlan(day), age: store.ageOf(s.profile.birthdate) }
+  const age = store.ageOf(s.profile.birthdate)
+  const band = ageBand(age.months)
+  return { s, day, age, band, plan: dayPlan(day, band) }
 }
 
 function allergenRows() {
@@ -53,33 +56,35 @@ function serveBlock(id, band) {
 }
 
 function screenToday() {
-  const { s, day, plan, age } = today()
-  const band = ageBand(age.months)
+  const { s, day, plan, age, band } = today()
   const due = allergenRows().filter((a) => a.state === 'due')
   const iron = ironToday(plan)
   const logged = s.log[store.todayISO()] || {}
   const amt = amountFor(day)
 
+  const who = possessive(s.profile.name)
   const hero = plan.mode === 'trial'
-    ? `<div class="hero">
-        <div class="bg">${icon(plan.food.art, 112)}</div>
-        <div class="eyebrow" style="color:var(--tomato-soft)">New today${plan.note ? ` · ${esc(plan.note)}` : ''}</div>
-        <h1>${esc(plan.food.name)}</h1>
-        <div class="row" style="gap:6px;flex-wrap:wrap">
-          <span class="pill" style="background:rgba(251,243,228,.2);color:var(--cream)">Day ${plan.trialDay} of ${plan.trialLen}</span>
+    ? `<header class="hero">
+        <h1 class="greeting">Today in ${esc(who)} plate is <em>${esc(plan.food.name)}</em></h1>
+        <div class="hero-art">${icon(plan.food.art, 132)}</div>
+        <div class="row pills">
+          <span class="pill solid">Day ${plan.trialDay} of ${plan.trialLen}</span>
           ${plan.allergen ? '<span class="pill allergen">Allergen</span>' : ''}
           ${plan.food.ironMg >= 1 ? '<span class="pill iron">Iron</span>' : ''}
           ${plan.food.choking !== 'low' ? `<span class="pill due">${plan.food.choking} choking risk</span>` : ''}
         </div>
+        ${plan.note ? `<p class="hero-note">${esc(plan.note)}</p>` : ''}
         ${plan.allergen && plan.trialDay === 1
           ? '<div class="band"><b>First exposure.</b> Morning, at home, only if he\u2019s well. Two hours free to watch. Tip of the spoon, wait 10 minutes, then the rest.</div>' : ''}
-      </div>`
-    : `<div class="hero">
-        <div class="bg">${icon('logo', 112)}</div>
-        <div class="eyebrow" style="color:var(--tomato-soft)">Cycle day ${plan.cycle} · repeating</div>
-        <h1>Day ${plan.day}</h1>
-        <div class="band">${esc(plan.iron)}</div>
-      </div>`
+      </header>`
+    : `<header class="hero">
+        <h1 class="greeting">Today in ${esc(who)} plate</h1>
+        <div class="hero-art">${icon(FOODS[plan.meals.dinner.foods[0]]?.art || 'logo', 132)}</div>
+        <div class="row pills">
+          <span class="pill solid">Cycle day ${plan.cycle}</span>
+          <span class="pill iron">${esc(plan.iron)}</span>
+        </div>
+      </header>`
 
   // In the trial months the new food IS the day — show its full prep inline,
   // no tapping through.
@@ -118,10 +123,9 @@ function screenToday() {
   }).join('')
 
   return `<div class="scroll stack">
-    <div class="row" style="margin-bottom:2px">
-      <div><div class="eyebrow">Day ${day} of the plan</div>
-        <h1 style="margin-top:3px">${esc(s.profile.name || 'Baby')} <span class="soft" style="font-size:14px;font-weight:600">· ${age.label}</span></h1></div>
-      <div style="margin-left:auto">${icon('logo', 34)}</div>
+    <div class="row topbar">
+      ${icon('logo', 28)}
+      <div class="eyebrow">Day ${day} · ${age.label}</div>
     </div>
     ${hero}
     <div class="row" style="gap:6px;flex-wrap:wrap">
@@ -131,7 +135,8 @@ function screenToday() {
     ${inlinePrep}
     <div class="card"><div class="eyebrow" style="margin-bottom:5px">How much to offer</div>
       <div style="font-size:14px;font-weight:800">${esc(amt.offer)}</div>
-      <div class="soft" style="font-size:11px;margin-top:3px">${esc(amt.meals)}. This is what to <i>offer</i>, never what he has to finish — stop when he turns away.</div></div>
+      <div class="soft" style="font-size:11px;margin-top:3px">${esc(amt.meals)}. This is what to <i>offer</i>, never what he has to finish — stop when he turns away.</div>
+      <button class="link" data-hands style="margin-top:6px">No measuring spoons? Use your hands →</button></div>
     <div><div class="eyebrow" style="margin-bottom:8px">Today\u2019s meals${plan.mode === 'cycle' ? ' · tap for how to make it' : ''}</div>${meals}</div>
     ${due.length ? `<div class="note"><b style="color:var(--ink)">Due back in rotation:</b> ${due.map((d) => `${esc(d.name)} (${d.since}d)`).join(', ')}. Once an allergen is in, it stays in — at least weekly, for good.</div>` : ''}
   </div>`
@@ -139,9 +144,10 @@ function screenToday() {
 
 function screenPlan() {
   const cur = store.planDay()
+  const { band } = today()
   const rows = []
   for (let d = 1; d <= 120; d += 1) {
-    const p = dayPlan(d)
+    const p = dayPlan(d, band)
     if (p.mode === 'trial' && p.trialDay !== 1) continue
     if (p.mode === 'cycle' && d > 76) break
     const isNow = d <= cur && cur < d + (p.mode === 'trial' ? 3 : 1)
@@ -297,6 +303,17 @@ function sheetLog(ctx) {
   </div></div>`
 }
 
+function sheetHands() {
+  return `<div class="scrim" data-close><div class="sheet stack" data-stop>
+    <div class="grab"></div>
+    <h2>Sizing by hand</h2>
+    <p class="soft" style="font-size:12px;line-height:1.5">Everything in this app is measured against a hand, not a ruler. Yours for amounts, his for portions.</p>
+    ${HAND_GUIDE.map(([k, v]) => `<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:2px">${esc(k)}</div>
+      <div class="soft" style="font-size:11.5px;line-height:1.5">${esc(v)}</div></div>`).join('')}
+    <button class="btn ghost" data-close>Got it</button>
+  </div></div>`
+}
+
 function sheetReaction() {
   return `<div class="scrim" data-close><div class="sheet stack" data-stop>
     <div class="grab"></div>
@@ -309,7 +326,7 @@ function sheetReaction() {
 }
 
 /* ── render + events ─────────────────────────────────────────────────────── */
-const TABS = [['today', '◗', 'Today'], ['plan', '▤', 'Plan'], ['foods', '❋', 'Foods'], ['baby', '◍', 'Baby']]
+const TABS = [['today', '●', 'Today'], ['plan', '▤', 'Plan'], ['foods', '❋', 'Foods'], ['baby', '◍', 'Baby']]
 
 function render() {
   if (!store.isOnboarded()) { app.innerHTML = screenOnboard(); return }
@@ -320,12 +337,20 @@ function render() {
     : screenToday()
   const bar = view.food ? '' : `<nav class="tabbar">${TABS.map(([id, ic, label]) =>
     `<button data-tab="${id}" class="${view.tab === id ? 'on' : ''}"><i>${ic}</i>${label}</button>`).join('')}</nav>`
-  app.innerHTML = body + bar + (view.sheet ? (view.sheet.kind === 'reaction' ? sheetReaction() : sheetLog(view.sheet)) : '')
+  const sheetEl = !view.sheet ? '' : view.sheet.kind === 'reaction' ? sheetReaction() : view.sheet.kind === 'hands' ? sheetHands() : sheetLog(view.sheet)
+  app.innerHTML = body + bar + sheetEl
 }
 
 app.addEventListener('click', (e) => {
   const hit = (sel) => e.target.closest(sel)
   const sheet = view.sheet
+
+  // Every interaction re-renders the sheet, which recreates the textarea —
+  // grab whatever is typed BEFORE that happens or the note is lost.
+  if (view.sheet?.kind === 'log') {
+    const ta = document.getElementById('log-note')
+    if (ta) view.sheet.note = ta.value
+  }
 
   if (hit('[data-onboard]')) {
     const name = document.getElementById('ob-name').value.trim()
@@ -337,6 +362,7 @@ app.addEventListener('click', (e) => {
   }
   if (hit('[data-tab]')) { view.tab = hit('[data-tab]').dataset.tab; view.food = null; return render() }
   if (hit('[data-back]')) { view.food = null; return render() }
+  if (hit('[data-hands]')) { view.sheet = { kind: 'hands' }; return render() }
   if (hit('[data-food]')) { view.food = hit('[data-food]').dataset.food; view.age ??= ageBand(today().age.months); return render() }
   if (hit('[data-age]')) { view.age = +hit('[data-age]').dataset.age; return render() }
   if (hit('[data-day]')) { view.tab = 'today'; return render() }
@@ -345,7 +371,7 @@ app.addEventListener('click', (e) => {
   const th = hit('[data-log]')
   if (th) {
     const key = th.dataset.log
-    const plan = dayPlan(store.planDay())
+    const plan = dayPlan(store.planDay(), today().band)
     const m = plan.meals[key] || { spoon: plan.snack, foods: [] }
     view.sheet = { kind: 'log', key, label: m.spoon, foods: m.foods || [], verdict: th.dataset.v, amount: '', note: '' }
     return render()
@@ -365,13 +391,13 @@ app.addEventListener('click', (e) => {
     if (hit('[data-v]')) { sheet.verdict = hit('[data-v]').dataset.v; return render() }
     if (hit('[data-amt]')) { sheet.amount = hit('[data-amt]').dataset.amt; return render() }
     if (hit('[data-save]')) {
-      const note = document.getElementById('log-note')?.value || ''
-      store.logMeal({ key: sheet.key, verdict: sheet.verdict || 'up', amount: sheet.amount, note, foods: sheet.foods })
+      store.logMeal({ key: sheet.key, verdict: sheet.verdict || 'up', amount: sheet.amount, note: sheet.note || '', foods: sheet.foods })
       for (const id of sheet.foods) if (FOODS[id]?.allergen) store.markAllergen(FOODS[id].allergen)
       view.sheet = null
       return render()
     }
-    if (hit('[data-close]') && !hit('[data-stop]')) { view.sheet = null; return render() }
+    // backdrop, or any explicit close button (which lives inside [data-stop])
+    if (e.target.classList.contains('scrim') || hit('button[data-close]')) { view.sheet = null; return render() }
   }
 
   if (hit('[data-export]')) {
