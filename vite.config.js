@@ -30,13 +30,15 @@ export default defineConfig({
   build: {
     rollupOptions: {
       // Multi-page: Kilos SPA + the Tomato Cam baby-monitor sub-app (tomato/SCOPE.md §2)
-      // + Tayô, the desk-break coach (own URL, deliberately unlinked from home)
+      // + Tayô, the desk-break coach + Tomato Plate, the feeding app
+      // (all own URLs, deliberately unlinked from home)
       input: {
         main: page('index.html'),
         'tomato-home': page('tomato/index.html'),
         'tomato-cam': page('tomato/cam.html'),
         'tomato-view': page('tomato/view.html'),
         tayo: page('tayo/index.html'),
+        'tomato-plate': page('tomato-plate/index.html'),
       },
     },
   },
