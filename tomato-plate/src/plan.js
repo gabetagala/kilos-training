@@ -32,7 +32,9 @@ export function planSlots(swaps = {}) {
   const queued = []
   for (const start of Object.keys(swaps).map(Number).sort((a, b) => a - b)) {
     const incoming = swaps[start]
-    if (!incoming || !at.has(start)) continue
+    // A swap can outlive the food it points at (data changes, an old save).
+    // Ignore it rather than taking the whole plan down.
+    if (!incoming || !FOODS[incoming] || !at.has(start)) continue
     const outgoing = at.get(start)
     if (outgoing === incoming) continue
     let otherStart = null
@@ -99,7 +101,8 @@ export function dayPlan(n, band = 9, swaps = {}) {
   const slots = planSlots(swaps)
   const slot = slots.find((s) => n >= s.start && n < s.start + TRIAL_LEN)
   if (slot) {
-    const food = FOODS[slot.food]
+    const food = FOODS[slot.food] || FOODS[slot.original]
+    if (!food) return { mode: 'cycle', month: 8, day: n, cycle: CYCLE[0].id, snack: CYCLE[0].snack, iron: CYCLE[0].iron, meals: CYCLE[0].meals }
     const cleared = clearedBefore(n, swaps)
     return {
       mode: 'trial', month: slot.start <= M6 ? 6 : slot.start <= M7 ? 7 : 8, day: n,

@@ -12,7 +12,7 @@ const app = document.getElementById('app')
 document.body.insertAdjacentHTML('afterbegin', SPRITE)
 
 const esc = (s = '') => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
-const possessive = (n) => (!n ? "Baby's" : /[sz]$/i.test(n) ? `${n}\u2019` : `${n}\u2019s`)
+const possessive = (n) => (!n ? 'Baby\u2019s' : /[sz]$/i.test(n) ? `${n}\u2019` : `${n}\u2019s`)
 /** Pull the eye to timings and to the words that matter for safety. */
 const emphasise = (s) => s
   .replace(/(\d+\s?[–-]\s?\d+\s?min|\d+\s?min(?:utes)?|overnight)/gi, '<b>$1</b>')
@@ -247,7 +247,12 @@ function screenFoods() {
       ${chip('tried', 'Tried', rows.filter((r) => r.tried).length)}
       ${chip('allergens', 'Allergens', rows.filter((r) => r.f.allergen).length)}
     </div>
-    <div class="foodgrid">${shown.map(card).join('')}</div>
+    ${shown.length
+      ? `<div class="foodgrid">${shown.map(card).join('')}</div>`
+      : `<div class="note" style="text-align:center;padding:28px 18px">${
+          F === 'tried' ? 'Nothing logged yet. Foods appear here once you tick one off on the Today tab.'
+          : F === 'todo' ? 'Every food has been tried at least once. Worth a look at the allergen board.'
+          : 'Nothing here yet.'}</div>`}
     ${Object.keys(moved).length ? `<div class="note"><b>Dates swapped.</b> ${Object.entries(moved).map(([id, d]) => `${esc(FOODS[id].name)} → day ${d}`).join(', ')}. Nothing is dropped — the two just traded places.</div>` : ''}
     <div class="note"><b>Green dot</b> is iron-rich, <b>amber</b> is one of the nine allergens. Tap any food for how to cut it at his age.</div>
   </div>`
@@ -506,7 +511,7 @@ app.addEventListener('click', (e) => {
     return render()
   }
   const sw = hit('[data-swap]')
-  if (sw) {
+  if (sw && (!sw.dataset.swap || FOODS[sw.dataset.swap])) {
     const { slot } = today()
     if (slot) store.setSwap(slot.start, sw.dataset.swap || null)
     view.sheet = null
@@ -538,7 +543,8 @@ app.addEventListener('click', (e) => {
   if (hit('[data-meal]')) { const k = hit('[data-meal]').dataset.meal; view.openMeal = view.openMeal === k ? null : k; return render() }
 
   if (sheet) {
-    if (hit('[data-reaction]')) { view.sheet = { kind: 'reaction' }; return render() }
+    // keep the log underneath — opening this used to discard a half-filled entry
+    if (hit('[data-reaction]')) { view.sheet = { kind: 'reaction', back: sheet }; return render() }
     if (hit('[data-v]')) { sheet.verdict = hit('[data-v]').dataset.v; return render() }
     if (hit('[data-amt]')) { sheet.amount = hit('[data-amt]').dataset.amt; return render() }
     if (hit('[data-save]')) {
@@ -548,7 +554,10 @@ app.addEventListener('click', (e) => {
       return render()
   }
     // backdrop, or any explicit close button (which lives inside [data-stop])
-    if (e.target.classList.contains('scrim') || hit('button[data-close]')) { view.sheet = null; return render() }
+    if (e.target.classList.contains('scrim') || hit('button[data-close]')) {
+      view.sheet = sheet.back || null
+      return render()
+    }
   }
 
   const upd = hit('[data-update]')

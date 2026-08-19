@@ -99,6 +99,8 @@ export function ageOf(birthdate, now = new Date()) {
   const b = new Date(`${birthdate}T00:00:00`)
   let months = (now.getFullYear() - b.getFullYear()) * 12 + (now.getMonth() - b.getMonth())
   if (now.getDate() < b.getDate()) months -= 1
+  // A birthdate in the future is a typo, not a negative age.
+  if (months < 0) return { months: 0, weeks: 0, label: 'not born yet' }
   const anchor = new Date(b)
   anchor.setMonth(b.getMonth() + months)
   const weeks = Math.floor((now - anchor) / 604800000)
