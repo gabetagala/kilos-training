@@ -1,7 +1,7 @@
 // ─── TOMATO PLATE — app shell ───────────────────────────────────────────────
 // Vanilla, localStorage-first, no framework. Renders whole screens; the state
 // is small enough that diffing would cost more than it saves.
-import { SPRITE, cutGlyph, icon } from './art.js'
+import { SPRITE, cutGlyph, icon, stepGlyph } from './art.js'
 import { ALLERGENS, AMOUNTS, EXPOSURE_TARGET, FOODS, HAND_GUIDE, MILK, REACTION, ROTATION_DAYS, TAKEN } from './data.js'
 import { dayPlan, ironToday, scheduleIndex, slotOf, swapOptions } from './plan.js'
 import * as store from './store.js'
@@ -13,6 +13,11 @@ document.body.insertAdjacentHTML('afterbegin', SPRITE)
 
 const esc = (s = '') => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
 const possessive = (n) => (!n ? "Baby's" : /[sz]$/i.test(n) ? `${n}\u2019` : `${n}\u2019s`)
+/** Pull the eye to timings and to the words that matter for safety. */
+const emphasise = (s) => s
+  .replace(/(\d+\s?[–-]\s?\d+\s?min|\d+\s?min(?:utes)?|overnight)/gi, '<b>$1</b>')
+  .replace(/\b(NO pink|NEVER|CHECK FOR BONES AGAIN|FRESH|AT LEAST 10 minutes|WHOLE)\b/g, '<b class="warn">$1</b>')
+
 const MEAL_ORDER = ['breakfast', 'snack', 'lunch', 'dinner']
 const TITLE = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' }
 
@@ -53,8 +58,11 @@ function serveBlock(id, band, { solo = false } = {}) {
       <div class="cut">${icon(cutGlyph(spoon), 52)}<b>On the spoon</b><span>${esc(spoon)}</span></div>
       <div class="cut hands">${icon(cutGlyph(hands), 52)}<b>In his hands</b><span>${esc(hands)}</span></div>
     </div>
-    ${f.prep.length ? `<div style="margin-top:12px"><div class="eyebrow" style="margin-bottom:6px">Prepare it</div>
-      <ol class="prep">${f.prep.map((p) => `<li>${esc(p)}</li>`).join('')}</ol></div>` : ''}
+    ${f.prep.length ? `<div style="margin-top:14px"><div class="eyebrow ruled" style="margin-bottom:12px">Prepare it</div>
+      <ol class="steps">${f.prep.map((p, i) => `<li>
+        <span class="step-n">${i + 1}</span>
+        <span class="step-i">${icon(stepGlyph(p), 22)}</span>
+        <span class="step-t">${emphasise(esc(p))}</span></li>`).join('')}</ol></div>` : ''}
     ${solo
       ? '<div class="note" style="margin-top:12px"><b>On its own for these three days.</b> No mixing yet — if something flares up, one ingredient means you know which.</div>'
       : f.pairing ? `<div class="note" style="margin-top:12px"><b>Goes well with</b> ${esc(f.pairing)}</div>` : ''}
@@ -80,8 +88,10 @@ function screenToday() {
           ${plan.food.ironMg >= 1 ? '<span class="pill iron">Iron</span>' : ''}
           ${plan.food.choking !== 'low' ? `<span class="pill due">${plan.food.choking} choking risk</span>` : ''}
         </div>
-        ${plan.rescheduled ? `<p class="hero-note">${esc(plan.note)}</p>` : plan.swappedFrom ? `<p class="hero-note">Swapped in for ${esc(FOODS[plan.swappedFrom].name)} — that one moved to a later slot</p>` : plan.note ? `<p class="hero-note">${esc(plan.note)}</p>` : ''}
-        <button class="link" data-swapopen style="display:block;margin:10px auto 0">Don’t have ${esc(plan.food.name.toLowerCase())}? Swap it →</button>
+        ${plan.rescheduled ? `<p class="hero-note">${esc(plan.note)}</p>` : plan.note && !plan.swappedFrom ? `<p class="hero-note">${esc(plan.note)}</p>` : ''}
+        <button class="swapline" data-swapopen>${plan.swappedFrom
+          ? `Swapped for ${esc(FOODS[plan.swappedFrom].name)} · <b>change</b>`
+          : 'Not in the house? <b>Swap it</b>'}</button>
         ${plan.allergen && plan.trialDay === 1
           ? '<div class="band"><b>First exposure.</b> Morning, at home, only if he\u2019s well. Two hours free to watch. Tip of the spoon, wait 10 minutes, then the rest.</div>' : ''}
       </header>`
@@ -134,7 +144,7 @@ function screenToday() {
   return `<div class="scroll stack">
     <div class="row topbar">
       ${icon('logo', 28)}
-      <div class="eyebrow">Day ${day} · ${age.label}</div>
+      <div class="meta">Day ${day} · ${esc(age.label)}</div>
     </div>
     ${hero}
     <div class="row" style="gap:6px;flex-wrap:wrap">
@@ -202,7 +212,10 @@ function screenFood(id) {
   const band = view.age || 9
   const serveBlockInline = serveBlock(id, band)
   const notes = store.notesFor(id)
-  const tint = f.allergen ? 'var(--amber)' : f.ironMg >= 1 ? 'var(--calyx)' : 'var(--tomato-soft)'
+  // Tint the header by what the food IS, so a sweet potato never reads pink.
+  const TINT = { vegetable: '#E4EEE7', fruit: '#FAEEDB', protein: '#FAE5DF',
+                 legume: '#E9EDE2', grain: '#F2EDE1', dairy: '#EEF1F7' }
+  const tint = f.allergen ? '#F9EEDA' : TINT[f.cat] || 'var(--surface-2)'
   return `<div class="scroll" style="padding:0">
     <div style="background:${tint};height:150px;display:grid;place-items:center;position:relative">
       <button class="link" data-back style="position:absolute;left:14px;top:12px;font-size:20px;text-decoration:none;color:var(--cream)">‹</button>

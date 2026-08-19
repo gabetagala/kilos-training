@@ -140,7 +140,12 @@ h2 { font-family: var(--font-display); font-size: 22px; font-weight: 600; letter
 }
 .hero .band b { color: var(--ink); font-weight: 650; }
 .topbar { padding-bottom: 2px; }
-.topbar .eyebrow { margin-left: auto; }
+.meta { margin-left: auto; font-size: 13px; font-weight: 500; color: var(--ink-3); letter-spacing: -.01em; }
+.swapline {
+  display: block; margin: 12px auto 0; border: 0; background: none; cursor: pointer;
+  font: inherit; font-size: 12.5px; font-weight: 500; color: var(--ink-3); letter-spacing: -.005em;
+}
+.swapline b { color: var(--green-2); font-weight: 650; }
 
 /* ── meals ────────────────────────────────────────────────────────────── */
 .meal {
@@ -243,9 +248,25 @@ h2 { font-family: var(--font-display); font-size: 22px; font-weight: 600; letter
 .fcard svg { margin: 0 auto; }
 
 /* ── prep, notes ──────────────────────────────────────────────────────── */
-.prep { font-size: 14px; line-height: 1.7; padding-left: 20px; color: var(--ink-2); }
-.prep li + li { margin-top: 4px; }
-.prep b { color: var(--ink); font-weight: 650; }
+.steps { list-style: none; position: relative; }
+.steps li {
+  display: grid; grid-template-columns: 26px 30px 1fr; align-items: start;
+  gap: 10px; padding: 9px 0; position: relative;
+}
+/* a rail down the numbers, so the sequence reads as a sequence */
+.steps li:not(:last-child)::before {
+  content: ''; position: absolute; left: 13px; top: 32px; bottom: -4px;
+  width: 1.5px; background: var(--line); border-radius: 2px;
+}
+.step-n {
+  width: 26px; height: 26px; border-radius: 999px; display: grid; place-items: center;
+  background: var(--green-soft); color: var(--green);
+  font-size: 12px; font-weight: 700; z-index: 1;
+}
+.step-i { display: grid; place-items: center; padding-top: 1px; opacity: .9; }
+.step-t { font-size: 14px; line-height: 1.5; color: var(--ink-2); padding-top: 3px; }
+.step-t b { color: var(--ink); font-weight: 650; }
+.step-t b.warn { color: var(--tomato); font-weight: 750; }
 .mealdetail { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
 .mealnote {
   font-size: 13px; font-style: italic; color: var(--ink-2); margin-top: 8px;

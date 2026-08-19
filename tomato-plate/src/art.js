@@ -41,6 +41,18 @@ ${s('cut-cube', `<rect x="12" y="11" width="11" height="11" rx="3" fill="#D4763C
 ${s('cut-spear', `<path d="M14 34c6-16 20-24 32-24 2 0 3 2 1 4-10 6-18 14-22 24-1 3-12 0-11-4z" fill="#F0C64E"/>`, '0 0 60 44')}
 ${s('cut-flake', `<g fill="#7C93A8"><ellipse cx="20" cy="20" rx="9" ry="5" transform="rotate(-15 20 20)"/><ellipse cx="38" cy="24" rx="9" ry="5" transform="rotate(12 38 24)"/><ellipse cx="28" cy="32" rx="9" ry="5" transform="rotate(-6 28 32)"/></g>`, '0 0 60 44')}
 ${s('cut-none', `<circle cx="30" cy="22" r="15" fill="none" stroke="#D8CBB6" stroke-width="3" stroke-dasharray="5 5"/>`, '0 0 60 44')}
+
+${s('s-cut', `<path d="M4 17 17 4l3 3L7 20z" fill="none" stroke="#0F4A35" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 7l3 3" stroke="#0F4A35" stroke-width="1.8"/>`, '0 0 24 24')}
+${s('s-heat', `<path d="M4 11h16v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z" fill="none" stroke="#0F4A35" stroke-width="1.8"/><path d="M9 7c0-1.5 1.5-1.5 1.5-3M14 7c0-1.5 1.5-1.5 1.5-3" stroke="#0F4A35" stroke-width="1.6" stroke-linecap="round"/>`, '0 0 24 24')}
+${s('s-blend', `<path d="M7 4h10l-1.5 12a2 2 0 0 1-2 2h-3a2 2 0 0 1-2-2z" fill="none" stroke="#0F4A35" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 21h8" stroke="#0F4A35" stroke-width="1.8" stroke-linecap="round"/><path d="M9 9h6" stroke="#0F4A35" stroke-width="1.4"/>`, '0 0 24 24')}
+${s('s-mash', `<path d="M7 3v7M11 3v7M15 3v7" stroke="#0F4A35" stroke-width="1.8" stroke-linecap="round"/><path d="M5 10h12v2a3 3 0 0 1-3 3h-6a3 3 0 0 1-3-3z" fill="none" stroke="#0F4A35" stroke-width="1.8"/><path d="M11 15v6" stroke="#0F4A35" stroke-width="1.8" stroke-linecap="round"/>`, '0 0 24 24')}
+${s('s-thin', `<path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z" fill="none" stroke="#0F4A35" stroke-width="1.8" stroke-linejoin="round"/>`, '0 0 24 24')}
+${s('s-cool', `<path d="M3 9c3-3 6 3 9 0s6-3 9 0M3 16c3-3 6 3 9 0s6-3 9 0" fill="none" stroke="#0F4A35" stroke-width="1.8" stroke-linecap="round"/>`, '0 0 24 24')}
+${s('s-check', `<circle cx="10" cy="10" r="6.5" fill="none" stroke="#C0442A" stroke-width="1.8"/><path d="M15 15l5 5" stroke="#C0442A" stroke-width="1.8" stroke-linecap="round"/><path d="M7.5 10l2 2 3.5-4" fill="none" stroke="#C0442A" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>`, '0 0 24 24')}
+${s('s-soak', `<path d="M4 12h16v4a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z" fill="none" stroke="#0F4A35" stroke-width="1.8"/><path d="M4 15c3-2 5 2 8 0s5-2 8 0" fill="none" stroke="#0F4A35" stroke-width="1.5"/><path d="M17 7a3.2 3.2 0 1 1-3.6-3.2A2.6 2.6 0 0 0 17 7z" fill="#0F4A35"/>`, '0 0 24 24')}
+${s('s-stir', `<circle cx="12" cy="13" r="7.5" fill="none" stroke="#0F4A35" stroke-width="1.8"/><path d="M15 3l-4 9" stroke="#0F4A35" stroke-width="1.8" stroke-linecap="round"/>`, '0 0 24 24')}
+${s('s-aside', `<rect x="3" y="8" width="8" height="9" rx="2" fill="none" stroke="#0F4A35" stroke-width="1.8"/><rect x="14" y="5" width="7" height="7" rx="2" fill="#0F4A35" opacity=".85"/><path d="M14 19h7" stroke="#0F4A35" stroke-width="1.6" stroke-linecap="round"/>`, '0 0 24 24')}
+${s('s-dot', `<circle cx="12" cy="12" r="4" fill="#0F4A35" opacity=".5"/>`, '0 0 24 24')}
 </defs></svg>`
 
 // Which cut-state glyph a serving description implies.
@@ -53,6 +65,24 @@ export function cutGlyph(text = '') {
   if (/flake|shred|minced/.test(t)) return 'cut-flake'
   if (/mash|lump|coarse/.test(t)) return 'cut-mash'
   return 'cut-puree'
+}
+
+/** Which action a prep step is — order matters, most specific first. */
+export function stepGlyph(text = '') {
+  const t = text.toLowerCase()
+  // Order is the whole trick: "cooking water" must not read as cooking, and
+  // "mash, thinning with…" is a mash, not a thin.
+  if (/soak/.test(t)) return 's-soak'
+  if (/bone|devein|shell completely/.test(t)) return 's-check'
+  if (/set aside|keep the cooking water/.test(t)) return 's-aside'
+  if (/peel|cut into|trim|chop|slice/.test(t)) return 's-cut'
+  if (/\bmash/.test(t)) return 's-mash'
+  if (/\bblend/.test(t)) return 's-blend'
+  if (/thin|loosen|hot water/.test(t)) return 's-thin'
+  if (/boil|steam|simmer|poach|cooked through|cook it/.test(t)) return 's-heat'
+  if (/cool|lukewarm|wrist/.test(t)) return 's-cool'
+  if (/stir|mix|serve|offer|start with/.test(t)) return 's-stir'
+  return 's-dot'
 }
 
 export const icon = (id, size = 40, cls = '') =>

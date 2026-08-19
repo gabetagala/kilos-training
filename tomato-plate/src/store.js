@@ -102,7 +102,9 @@ export function ageOf(birthdate, now = new Date()) {
   const anchor = new Date(b)
   anchor.setMonth(b.getMonth() + months)
   const weeks = Math.floor((now - anchor) / 604800000)
-  return { months, weeks, label: `${months} mo${weeks ? `, ${weeks} wk` : ''}` }
+  const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`
+  const label = weeks ? `${plural(months, 'month')}, ${plural(weeks, 'week')}` : plural(months, 'month')
+  return { months, weeks, label }
 }
 
 /** 1-based day index into the plan. */
