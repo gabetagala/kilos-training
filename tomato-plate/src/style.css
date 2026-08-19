@@ -252,33 +252,36 @@ h2 { font-family: var(--font-display); font-size: 22px; font-weight: 600; letter
 .notelog { background: var(--surface-2); border-radius: var(--r-sm); padding: 13px 15px; }
 .notelog + .notelog { margin-top: 9px; }
 
-/* ── tab bar: floats above the home indicator, hugs its content ───────── */
+/* ── tab bar: floating glass pill, every label always visible ─────────── */
 .tabbar {
   position: absolute; z-index: 100;
   bottom: max(14px, calc(env(safe-area-inset-bottom) - 6px));
   left: 50%; transform: translateX(-50%);
-  display: flex; align-items: center; gap: 4px; padding: 6px;
+  display: flex; align-items: center; gap: 2px; padding: 5px;
   border-radius: var(--r-pill);
-  background: rgba(255, 255, 255, .82);
+  background: rgba(255, 255, 255, .84);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid rgba(26, 43, 34, .07);
   box-shadow: 0 2px 8px rgba(26,43,34,.06), 0 12px 32px rgba(26,43,34,.10);
+  max-width: calc(100vw - 28px);
 }
 .tabbar button {
   border: 0; background: none; font: inherit; cursor: pointer;
-  display: flex; align-items: center; gap: 7px;
-  height: 44px; padding: 0 14px; border-radius: var(--r-pill);
-  font-size: 13px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink-2);
-  transition: background .3s cubic-bezier(.4,0,.2,1), color .2s, padding .3s cubic-bezier(.4,0,.2,1);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  height: 42px; padding: 0 13px; border-radius: var(--r-pill);
+  font-size: 13px; font-weight: 600; letter-spacing: -0.012em; color: var(--ink-2);
+  white-space: nowrap;
+  transition: background .28s cubic-bezier(.4,0,.2,1), color .2s;
 }
-.tabbar button i { font-style: normal; font-size: 13px; opacity: .5; }
-/* Inactive tabs collapse to the icon; the active one expands to show its label. */
-.tabbar button span { max-width: 0; overflow: hidden; white-space: nowrap; opacity: 0;
-  transition: max-width .3s cubic-bezier(.4,0,.2,1), opacity .2s, margin .3s; margin-left: -7px; }
-.tabbar button.on { background: var(--green); color: #fff; padding: 0 16px; }
+.tabbar button i { font-style: normal; font-size: 11px; opacity: .45; }
+.tabbar button.on { background: var(--green); color: #fff; }
 .tabbar button.on i { opacity: 1; }
-.tabbar button.on span { max-width: 90px; opacity: 1; margin-left: 0; }
+/* Narrow phones: drop the glyphs before the words — the words are the point. */
+@media (max-width: 379px) {
+  .tabbar button { padding: 0 11px; font-size: 12.5px; }
+  .tabbar button i { display: none; }
+}
 
 /* ── 2. build stamp — tiny, in the Baby footer; tap to pull the newest build */
 .buildstamp {
