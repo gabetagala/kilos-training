@@ -49,6 +49,23 @@ function allergenRows() {
 const ageBand = (months) => (months >= 12 ? 12 : months >= 9 ? 9 : 6)
 const amountFor = (day) => AMOUNTS.find((a) => day <= a.upTo) || AMOUNTS[AMOUNTS.length - 1]
 
+/**
+ * The hands column sometimes points at a different food — liver's reads
+ * "serve a kamote stick alongside". Draw the food it names, or you get red
+ * batons for liver. The spoon column is always the food itself: "mashed
+ * through lugaw" is still liver, lugaw is only the vehicle.
+ */
+function referencedFood(text, selfId) {
+  const t = (text || '').toLowerCase()
+  for (const [id, f] of Object.entries(FOODS)) {
+    if (id === selfId) continue
+    const names = [f.name, f.sub].filter(Boolean).map((n) => n.toLowerCase())
+    if (names.some((n) => n.length > 3 && t.includes(n))) return id
+  }
+  if (/\btoast\b|\bbread\b/.test(t)) return 'wheat'
+  return null
+}
+
 /** The whole "how do I actually make this" block — shared by Today and Food detail. */
 function serveBlock(id, band, { solo = false } = {}) {
   const f = FOODS[id]
@@ -56,7 +73,7 @@ function serveBlock(id, band, { solo = false } = {}) {
   const [spoon, hands] = f.cut[band] || f.cut[9]
   return `<div class="cuts">
       <div class="cut">${cutIcon(cutGlyph(spoon), id)}<b>On the spoon</b><span>${esc(spoon)}</span></div>
-      <div class="cut hands">${cutIcon(cutGlyph(hands), id)}<b>In his hands</b><span>${esc(hands)}</span></div>
+      <div class="cut hands">${cutIcon(cutGlyph(hands), referencedFood(hands, id) || id)}<b>In his hands</b><span>${esc(hands)}</span></div>
     </div>
     ${f.prep.length ? `<div style="margin-top:14px"><div class="eyebrow ruled" style="margin-bottom:12px">Prepare it</div>
       <ol class="steps">${f.prep.map((p, i) => `<li>

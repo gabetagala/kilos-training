@@ -78,6 +78,93 @@ ${s('cut-flake', `<ellipse cx="34" cy="41" rx="26" ry="5" fill="#00000010"/>
 ${s('cut-none', `<circle cx="34" cy="24" r="15" fill="none" stroke="#CFC3AC" stroke-width="2.5" stroke-dasharray="5 6" stroke-linecap="round"/>
 <path d="M27 20c3 0 5 2 5 4s-2 4-5 4-5-2-5-4 2-4 5-4z" fill="#CFC3AC" opacity=".45"/>
 <path d="M40 16c3 0 4 2 4 4s-1 3-3 3l1 10" stroke="#CFC3AC" stroke-width="2" fill="none" stroke-linecap="round"/>`, '0 0 68 48')}
+
+<!-- ── per-food cut diagrams: the shape is the information ─────────────── -->
+${s('cut-carrot-baton', `<ellipse cx="34" cy="43" rx="27" ry="4" fill="#00000010"/>
+<g fill="#E9963E"><path d="M12 9c3 0 5 1 5 3l-1 27c0 2-2 3-4 3s-4-1-4-3l-1-27c0-2 2-3 5-3z"/>
+<path d="M34 6c3 0 5 1 5 3l-1 30c0 2-2 3-4 3s-4-1-4-3l-1-30c0-2 2-3 5-3z"/>
+<path d="M56 11c3 0 5 1 5 3l-1 25c0 2-2 3-4 3s-4-1-4-3l-1-25c0-2 2-3 5-3z"/></g>
+<g stroke="#F0AB5E" stroke-width="1.3" stroke-linecap="round" opacity=".9">
+<path d="M9 18h6M9 26h6M31 15h6M31 24h6M31 32h6M53 20h6M53 29h6"/></g>`, '0 0 68 48')}
+${s('cut-kamote-baton', `<ellipse cx="34" cy="43" rx="27" ry="4" fill="#00000010"/>
+<g><rect x="7" y="11" width="13" height="30" rx="6.5" fill="#E09355"/><path d="M7 17.5a6.5 6.5 0 0 1 13 0v-1a6.5 6.5 0 0 0-13 0z" fill="#B85E2C"/><rect x="7" y="11" width="13" height="4" rx="2" fill="#B85E2C"/>
+<rect x="27" y="7" width="13" height="34" rx="6.5" fill="#E09355"/><rect x="27" y="7" width="13" height="4" rx="2" fill="#B85E2C"/>
+<rect x="47" y="13" width="13" height="28" rx="6.5" fill="#E09355"/><rect x="47" y="13" width="13" height="4" rx="2" fill="#B85E2C"/></g>`, '0 0 68 48')}
+${s('cut-kalabasa-baton', `<ellipse cx="34" cy="43" rx="27" ry="4" fill="#00000010"/>
+<g><path d="M9 12h11v27a4 4 0 0 1-4 4h-3a4 4 0 0 1-4-4z" fill="#E9963E"/><rect x="9" y="9" width="11" height="4" rx="2" fill="#2E6B44"/>
+<path d="M29 8h11v31a4 4 0 0 1-4 4h-3a4 4 0 0 1-4-4z" fill="#F0AB5E"/><rect x="29" y="5" width="11" height="4" rx="2" fill="#2E6B44"/>
+<path d="M49 14h11v25a4 4 0 0 1-4 4h-3a4 4 0 0 1-4-4z" fill="#E9963E"/><rect x="49" y="11" width="11" height="4" rx="2" fill="#2E6B44"/></g>`, '0 0 68 48')}
+${s('cut-lakatan-spear', `<ellipse cx="36" cy="43" rx="24" ry="4" fill="#00000010"/>
+<path d="M24 41c-3-13 3-27 18-33 3-1 5 1 4 4-6 13-11 22-16 29-2 3-5 3-6 0z" fill="#FCF0C9"/>
+<path d="M28 36c-1-10 4-20 15-25-5 11-9 18-15 25z" fill="#FDF8E4"/>
+<g fill="#F0C64E"><path d="M24 41c-6 3-11 2-13-2 4-3 10-3 13 2z"/><path d="M20 33c-6 1-10-1-11-5 5-1 10 1 11 5z"/><path d="M25 44c-4 4-9 5-12 2 3-4 8-5 12-2z"/></g>`, '0 0 68 48')}
+${s('cut-avocado-spear', `<ellipse cx="34" cy="43" rx="24" ry="4" fill="#00000010"/>
+<g><path d="M14 39c-2-12 5-24 19-29 3-1 4 1 3 4-5 11-10 19-16 25-2 2-5 2-6 0z" fill="#9FBF6A"/>
+<path d="M18 35c-1-9 5-17 14-21-4 9-8 15-14 21z" fill="#B8D188"/>
+<path d="M36 12c4-2 8 0 8 3s-4 6-8 6-6-3-5-6 3-2 5-3z" fill="#2E6B44"/></g>
+<ellipse cx="52" cy="30" rx="9" ry="10" fill="#8A5A2B"/><ellipse cx="50" cy="27" rx="3" ry="3.5" fill="#A67340"/>`, '0 0 68 48')}
+${s('cut-egg-spear', `<ellipse cx="34" cy="43" rx="25" ry="4" fill="#00000010"/>
+<g><rect x="9" y="10" width="14" height="31" rx="3" fill="#FCF6E9"/><rect x="12" y="16" width="8" height="19" rx="2" fill="#F2B266"/>
+<rect x="27" y="7" width="14" height="34" rx="3" fill="#FCF6E9"/><rect x="30" y="13" width="8" height="22" rx="2" fill="#E9963E"/>
+<rect x="45" y="13" width="14" height="28" rx="3" fill="#FCF6E9"/><rect x="48" y="19" width="8" height="16" rx="2" fill="#F2B266"/></g>`, '0 0 68 48')}
+${s('cut-tofu-cube', `<ellipse cx="34" cy="42" rx="26" ry="4" fill="#00000010"/>
+<g><path d="M9 20l8-4 8 4v9l-8 4-8-4z" fill="#F4EBD8"/><path d="M9 20l8 4 8-4-8-4z" fill="#FCF6E9"/>
+<path d="M28 26l8-4 8 4v9l-8 4-8-4z" fill="#F4EBD8"/><path d="M28 26l8 4 8-4-8-4z" fill="#FCF6E9"/>
+<path d="M45 17l8-4 8 4v9l-8 4-8-4z" fill="#F4EBD8"/><path d="M45 17l8 4 8-4-8-4z" fill="#FCF6E9"/></g>`, '0 0 68 48')}
+${s('cut-dilis-flake', `<ellipse cx="34" cy="41" rx="26" ry="5" fill="#00000010"/>
+<g fill="#9FB2C2"><path d="M6 24c6-6 16-6 21-1l5-4-1 5 1 5-5-4c-5 5-15 5-21-1z"/>
+<path d="M34 14c6-5 15-4 20 1l5-4-1 5 1 5-5-4c-5 5-14 4-20-3z"/>
+<path d="M18 34c6-4 14-3 18 2l5-3-1 4 1 4-5-3c-4 4-13 4-18-4z"/></g>
+<g fill="#2A1E19"><circle cx="24" cy="22" r="1.6"/><circle cx="51" cy="16" r="1.6"/><circle cx="34" cy="35" r="1.4"/></g>`, '0 0 68 48')}
+${s('cut-tilapia-flake', `<ellipse cx="34" cy="41" rx="26" ry="5" fill="#00000010"/>
+<g fill="#FCF6E9"><path d="M8 20c7-5 16-4 20 2 2 4-3 9-10 9-8 0-14-6-10-11z"/>
+<path d="M33 13c7-4 15-1 17 4 1 5-6 9-13 7-6-1-9-8-4-11z"/>
+<path d="M24 31c7-3 14 0 15 5 1 4-6 6-12 4-5-1-8-7-3-9z"/></g>
+<g stroke="#DFD3BC" stroke-width="1.3" fill="none" stroke-linecap="round">
+<path d="M12 22c5-2 10-1 13 2M37 17c4-1 8 0 10 3M28 34c4-1 8 0 10 3"/></g>`, '0 0 68 48')}
+${s('cut-papaya-spear', `<ellipse cx="34" cy="43" rx="25" ry="4" fill="#00000010"/>
+<g><path d="M10 38c-2-12 5-23 18-28 3-1 4 1 3 4-5 11-10 18-15 24-2 2-5 2-6 0z" fill="#E9963E"/>
+<path d="M14 34c-1-9 5-16 13-20-4 8-8 14-13 20z" fill="#F2B266"/>
+<path d="M40 34c-2-12 5-23 18-28 3-1 4 1 3 4-5 11-10 18-15 24-2 2-5 2-6 0z" fill="#E9963E"/></g>
+<g fill="#3A3684"><circle cx="24" cy="27" r="2"/><circle cx="20" cy="32" r="2"/><circle cx="28" cy="22" r="1.8"/></g>`, '0 0 68 48')}
+${s('cut-mangga-spear', `<ellipse cx="34" cy="43" rx="25" ry="4" fill="#00000010"/>
+<g><path d="M9 37c-1-12 6-22 18-26 3-1 4 1 3 4-5 10-10 17-15 22-2 2-5 2-6 0z" fill="#F0AB5E"/>
+<path d="M13 33c0-8 6-15 13-18-4 7-8 13-13 18z" fill="#F7C77E"/>
+<path d="M31 39c-1-13 6-24 19-28 3-1 4 1 3 4-5 11-11 19-16 24-2 2-5 2-6 0z" fill="#E9963E"/>
+<path d="M35 34c0-9 6-17 14-20-5 8-9 14-14 20z" fill="#F0AB5E"/></g>`, '0 0 68 48')}
+${s('cut-chicken-flake', `<ellipse cx="34" cy="41" rx="25" ry="5" fill="#00000010"/>
+<g fill="#F2DCBE"><rect x="7" y="18" width="22" height="6" rx="3" transform="rotate(-8 18 21)"/>
+<rect x="30" y="13" width="24" height="6" rx="3" transform="rotate(6 42 16)"/>
+<rect x="14" y="28" width="26" height="6" rx="3" transform="rotate(-3 27 31)"/>
+<rect x="38" y="26" width="20" height="6" rx="3" transform="rotate(10 48 29)"/></g>
+<g stroke="#E0C8A4" stroke-width="1.1" stroke-linecap="round"><path d="M10 21h16M33 16h18M18 31h18"/></g>`, '0 0 68 48')}
+${s('cut-meat-flake', `<ellipse cx="34" cy="42" rx="24" ry="4" fill="#00000010"/>
+<g><ellipse cx="22" cy="26" rx="15" ry="9" fill="#B84A33"/><ellipse cx="22" cy="23" rx="11" ry="5.5" fill="#D06A4E"/>
+<ellipse cx="47" cy="31" rx="12" ry="7" fill="#B84A33"/><ellipse cx="47" cy="29" rx="8" ry="4" fill="#D06A4E"/></g>
+<path d="M12 40h44" stroke="#0F4A35" stroke-width="1.3" stroke-linecap="round" opacity=".35"/>`, '0 0 68 48')}
+${s('cut-monggo-puree', `<ellipse cx="34" cy="41" rx="26" ry="7" fill="#00000010"/>
+<path d="M8 27h52a26 15 0 0 1-52 0z" fill="#7FAE72"/><ellipse cx="34" cy="27" rx="26" ry="8" fill="#4E9060"/>
+<g fill="#7FAE72"><ellipse cx="24" cy="25" rx="5" ry="3.4" transform="rotate(-18 24 25)"/>
+<ellipse cx="37" cy="28" rx="5" ry="3.4" transform="rotate(12 37 28)"/><ellipse cx="45" cy="24" rx="4.4" ry="3" transform="rotate(-8 45 24)"/>
+<ellipse cx="30" cy="30" rx="4.4" ry="3" transform="rotate(20 30 30)"/></g>
+<path d="M52 9c4 0 6 3 6 6s-2 5-5 5l1 19" stroke="#B9A88F" stroke-width="2.4" fill="none" stroke-linecap="round"/>`, '0 0 68 48')}
+${s('cut-liver-puree', `<ellipse cx="34" cy="41" rx="26" ry="7" fill="#00000010"/>
+<path d="M8 27h52a26 15 0 0 1-52 0z" fill="#B84A33"/><ellipse cx="34" cy="27" rx="26" ry="8" fill="#9A3520"/>
+<ellipse cx="32" cy="26" rx="17" ry="4.6" fill="#B84A33"/>
+<path d="M52 9c4 0 6 3 6 6s-2 5-5 5l1 19" stroke="#B9A88F" stroke-width="2.4" fill="none" stroke-linecap="round"/>`, '0 0 68 48')}
+${s('cut-pasta-cube', `<ellipse cx="34" cy="42" rx="26" ry="4" fill="#00000010"/>
+<g fill="none" stroke="#F0C64E" stroke-width="6" stroke-linecap="round">
+<path d="M12 20a7 7 0 0 1 12 5"/><path d="M30 26a7 7 0 0 1 12 5"/><path d="M45 16a7 7 0 0 1 12 5"/><path d="M20 33a7 7 0 0 1 12 4"/></g>
+<g fill="none" stroke="#E0B03A" stroke-width="2" stroke-linecap="round">
+<path d="M13 21a7 7 0 0 1 10 4"/><path d="M31 27a7 7 0 0 1 10 4"/></g>`, '0 0 68 48')}
+${s('cut-shrimp-flake', `<ellipse cx="34" cy="41" rx="24" ry="5" fill="#00000010"/>
+<g fill="#E8845E"><path d="M14 16c7-2 13 2 13 8 0 5-5 9-10 8-2 0-3-2-2-3 4-1 7-3 7-6 0-3-3-5-8-4-2 0-2-2 0-3z"/>
+<path d="M38 22c7-2 13 2 13 8 0 5-5 9-10 8-2 0-3-2-2-3 4-1 7-3 7-6 0-3-3-5-8-4-2 0-2-2 0-3z"/></g>
+<g fill="#F0A183"><path d="M18 19c4-1 7 1 7 4M42 25c4-1 7 1 7 4" stroke="#F0A183" stroke-width="2" fill="none" stroke-linecap="round"/></g>`, '0 0 68 48')}
+${s('cut-sayote-cube', `<ellipse cx="34" cy="42" rx="26" ry="4" fill="#00000010"/>
+<g><path d="M10 21l8-4 8 4v9l-8 4-8-4z" fill="#9FBF6A"/><path d="M10 21l8 4 8-4-8-4z" fill="#B8D188"/>
+<path d="M28 27l8-4 8 4v9l-8 4-8-4z" fill="#9FBF6A"/><path d="M28 27l8 4 8-4-8-4z" fill="#B8D188"/>
+<path d="M45 18l8-4 8 4v9l-8 4-8-4z" fill="#9FBF6A"/><path d="M45 18l8 4 8-4-8-4z" fill="#B8D188"/></g>`, '0 0 68 48')}
 ${s('s-cut', `<path d="M4 17 17 4l3 3L7 20z" fill="none" stroke="#0F4A35" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 7l3 3" stroke="#0F4A35" stroke-width="1.8"/>`, '0 0 24 24')}
 ${s('s-heat', `<path d="M4 11h16v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z" fill="none" stroke="#0F4A35" stroke-width="1.8"/><path d="M9 7c0-1.5 1.5-1.5 1.5-3M14 7c0-1.5 1.5-1.5 1.5-3" stroke="#0F4A35" stroke-width="1.6" stroke-linecap="round"/>`, '0 0 24 24')}
 ${s('s-blend', `<path d="M7 4h10l-1.5 12a2 2 0 0 1-2 2h-3a2 2 0 0 1-2-2z" fill="none" stroke="#0F4A35" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 21h8" stroke="#0F4A35" stroke-width="1.8" stroke-linecap="round"/><path d="M9 9h6" stroke="#0F4A35" stroke-width="1.4"/>`, '0 0 24 24')}
@@ -93,12 +180,16 @@ ${s('s-dot', `<circle cx="12" cy="12" r="4" fill="#0F4A35" opacity=".5"/>`, '0 0
 
 // Which cut-state glyph a serving description implies.
 export function cutGlyph(text = '') {
-  const t = text.toLowerCase()
-  if (/not yet|never|^—$|^-$/.test(t)) return 'cut-none'
+  const t = text.toLowerCase().trim()
+  // Only a genuine "not yet" gets the empty diagram — "never rings" is an
+  // instruction about shape, not an absence of one.
+  if (!t || t === '—' || t === '-' || /^not\b|^never\b/.test(t)) return 'cut-none'
   if (/baton|stick/.test(t)) return 'cut-baton'
-  if (/spear|wedge|strip/.test(t)) return 'cut-spear'
-  if (/cube|piece|chunk/.test(t)) return 'cut-cube'
-  if (/flake|shred|minced/.test(t)) return 'cut-flake'
+  // "finger" is ambiguous — "finger-length baton" is a baton, "finger food"
+  // is a category — so match the shape words, not the word finger.
+  if (/spear|wedge|strip|toast/.test(t)) return 'cut-spear'
+  if (/patty|flatten|shred|flake|mince|chopped/.test(t)) return 'cut-flake'
+  if (/cube|piece|chunk|bean|pasta/.test(t)) return 'cut-cube'
   if (/mash|lump|coarse/.test(t)) return 'cut-mash'
   return 'cut-puree'
 }
@@ -142,8 +233,44 @@ export const TINT = {
   lugaw: ['#E5D9C2', '#FCF6E9'],
 }
 
-/** A cut-state diagram, drawn in the food's own colours. */
+/** Foods that have their own drawn diagram rather than the tinted generic. */
+const DRAWN = new Set([
+  'cut-carrot-baton', 'cut-carrot-cube', 'cut-kamote-baton', 'cut-kamote-cube',
+  'cut-kalabasa-baton', 'cut-kalabasa-cube', 'cut-sayote-cube', 'cut-tofu-cube',
+  'cut-lakatan-spear', 'cut-lakatan-cube', 'cut-avocado-spear', 'cut-avocado-cube',
+  'cut-papaya-spear', 'cut-papaya-cube', 'cut-mangga-spear', 'cut-mangga-cube',
+  'cut-egg-spear', 'cut-egg-cube',
+  'cut-dilis-flake', 'cut-dilis-mash', 'cut-tilapia-flake', 'cut-tilapia-mash',
+  'cut-bangus-flake', 'cut-bangus-mash', 'cut-chicken-flake', 'cut-chicken-mash',
+  'cut-beef-flake', 'cut-beef-cube', 'cut-pork-flake', 'cut-pork-cube',
+  'cut-shrimp-flake', 'cut-shrimp-mash', 'cut-shrimp-cube',
+  'cut-monggo-puree', 'cut-monggo-mash', 'cut-monggo-cube',
+  'cut-liver-puree', 'cut-liver-mash', 'cut-wheat-cube', 'cut-wheat-mash',
+])
+/** Some foods share a drawing — bangus is tilapia, beef and pork are meat. */
+const ALIAS = {
+  'cut-bangus-flake': 'cut-tilapia-flake', 'cut-bangus-mash': 'cut-tilapia-flake',
+  'cut-beef-flake': 'cut-meat-flake', 'cut-pork-flake': 'cut-meat-flake',
+  'cut-beef-cube': 'cut-meat-flake', 'cut-pork-cube': 'cut-meat-flake',
+  'cut-wheat-cube': 'cut-pasta-cube', 'cut-wheat-mash': 'cut-pasta-cube',
+  'cut-liver-mash': 'cut-liver-puree', 'cut-monggo-mash': 'cut-monggo-puree',
+  'cut-monggo-cube': 'cut-monggo-puree', 'cut-tilapia-mash': 'cut-tilapia-flake',
+  'cut-dilis-mash': 'cut-dilis-flake', 'cut-chicken-mash': 'cut-chicken-flake',
+  'cut-shrimp-mash': 'cut-shrimp-flake', 'cut-shrimp-cube': 'cut-shrimp-flake',
+  'cut-papaya-cube': 'cut-papaya-spear', 'cut-mangga-cube': 'cut-mangga-spear',
+  'cut-lakatan-cube': 'cut-lakatan-spear', 'cut-avocado-cube': 'cut-avocado-spear',
+  'cut-kamote-cube': 'cut-kamote-baton', 'cut-carrot-cube': 'cut-carrot-baton',
+  'cut-kalabasa-cube': 'cut-kalabasa-baton', 'cut-egg-cube': 'cut-egg-spear',
+}
+
+/**
+ * A cut-state diagram. A food with its own drawing gets it; everything else
+ * falls back to the generic shape painted in that food's two tones.
+ */
 export const cutIcon = (glyph, foodId, w = 74) => {
+  const key = `cut-${foodId}-${glyph.replace('cut-', '')}`
+  const drawn = DRAWN.has(key) ? ALIAS[key] || key : null
   const [c1, c2] = TINT[foodId] || ['#D4763C', '#E09355']
-  return `<svg class="ic" width="${w}" height="${Math.round((w * 48) / 68)}" style="--c1:${c1};--c2:${c2}" aria-hidden="true"><use href="#a-${glyph}"/></svg>`
+  const h = Math.round((w * 48) / 68)
+  return `<svg class="ic" width="${w}" height="${h}" style="--c1:${c1};--c2:${c2}" aria-hidden="true"><use href="#a-${drawn || glyph}"/></svg>`
 }
