@@ -467,3 +467,59 @@ textarea::placeholder { color: var(--ink-3); }
 .step-final .step-t { color: var(--ink); }
 .step-final .step-t i { font-style: normal; font-size: 11px; font-weight: 700; color: var(--green);
   background: var(--green-soft); border-radius: 999px; padding: 2px 8px; margin-left: 4px; white-space: nowrap; }
+
+/* ─── Bigger screens ──────────────────────────────────────────────────────
+   Mobile-first stays the truth: this is a one-handed, mid-kitchen app. A
+   tablet just gets more room; a desktop gets an honest phone-shaped panel
+   rather than a 480px column stranded in a sea of cream.
+   ───────────────────────────────────────────────────────────────────────── */
+#desk-note { display: none; }
+
+/* iPad and large phones in landscape — touch, so it stays full-height. */
+@media (min-width: 700px) {
+  #app { max-width: 620px; }
+  .scroll { padding-left: 34px; padding-right: 34px; }
+  .foodgrid { grid-template-columns: repeat(4, 1fr); }
+  .cuts { gap: 16px; }
+  .greeting { font-size: 34px; max-width: 22ch; }
+  .sheet { padding-left: 34px; padding-right: 34px; }
+}
+
+/* Desktop with a mouse: present the app as the phone app it is. */
+@media (min-width: 1024px) and (pointer: fine) {
+  body {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 20px; padding: 32px 20px;
+    background:
+      radial-gradient(60% 50% at 50% 0%, rgba(15,74,53,.07), transparent 70%),
+      radial-gradient(50% 40% at 85% 100%, rgba(192,68,42,.05), transparent 70%),
+      var(--surface-2);
+  }
+  #app {
+    max-width: 430px;
+    height: min(900px, calc(100vh - 116px));
+    background: var(--bg);
+    border: 1px solid rgba(26,43,34,.10);
+    border-radius: 34px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(26,43,34,.06), 0 28px 70px rgba(26,43,34,.16);
+  }
+  /* The sheet belongs to the panel, not the desktop viewport. */
+  .scrim { position: absolute; border-radius: 34px; }
+  .sheet { border-radius: var(--r-lg) var(--r-lg) 0 0; max-height: 84%; }
+  .scroll { padding-left: 26px; padding-right: 26px; }
+  .foodgrid { grid-template-columns: repeat(3, 1fr); }
+  .greeting { font-size: 30px; max-width: 20ch; }
+
+  #desk-note {
+    display: flex; align-items: center; gap: 11px;
+    max-width: 430px; color: var(--ink-2); font-size: 12.5px; line-height: 1.5; text-align: left;
+  }
+  #desk-note b { color: var(--ink); font-weight: 650; }
+  #desk-note svg { flex: 0 0 auto; opacity: .9; }
+}
+
+/* Very tall desktop windows: don't let the panel become a ribbon. */
+@media (min-width: 1024px) and (pointer: fine) and (min-height: 1100px) {
+  #app { height: 900px; }
+}

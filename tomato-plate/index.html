@@ -19,6 +19,12 @@
 </head>
 <body>
   <div id="app"></div>
+  <!-- Desktop only. The app is a phone app; on a big screen we say so rather
+       than stretching it. Hidden below 1024px by CSS. -->
+  <footer id="desk-note">
+    <svg width="26" height="26" aria-hidden="true"><use href="#a-logo"/></svg>
+    <span><b>Tomato Plate</b> is built for a phone — add it to your home screen for the full thing.</span>
+  </footer>
   <script type="module" src="./src/app.js"></script>
 </body>
 </html>
