@@ -6,16 +6,57 @@ const M6 = TRIALS[6].length * TRIAL_LEN            // 30
 const M7 = M6 + TRIALS[7].length * TRIAL_LEN       // 60
 const M8 = M7 + TRIALS[8].length * TRIAL_LEN       // 69
 
-/** Every food already through its 3-day trial before day n. */
-function clearedBefore(n) {
-  const out = []
+/**
+ * Every 3-day trial slot, with swaps applied.
+ *
+ * A swap moves the WHOLE slot — a trial split between two ingredients tests
+ * neither. And the food that got displaced keeps a real date: being out of
+ * kalabasa this week is an availability problem, not a decision to skip it,
+ * so it re-queues onto the next free slot after the scheduled trials rather
+ * than dropping out of the plan.
+ */
+export function planSlots(swaps = {}) {
+  const slots = []
   for (const [month, list] of Object.entries(TRIALS)) {
     const offset = month === '6' ? 0 : month === '7' ? M6 : M7
     list.forEach((t, i) => {
-      if (offset + (i + 1) * TRIAL_LEN < n) out.push(t.food)
+      const start = offset + i * TRIAL_LEN + 1
+      slots.push({ start, original: t.food, food: swaps[start] || t.food, note: t.note })
     })
   }
-  return out
+  const scheduled = new Set(slots.map((s) => s.food))
+  const bumped = slots.filter((s) => s.food !== s.original && !scheduled.has(s.original))
+  bumped.forEach((s, i) => {
+    slots.push({
+      start: M8 + 1 + i * TRIAL_LEN,
+      original: s.original,
+      food: s.original,
+      note: `Moved from day ${s.start} — you were out of it`,
+      rescheduled: true,
+    })
+  })
+  return slots
+}
+
+/** The slot containing day n, or null once the trials are done. */
+export function slotOf(n, swaps = {}) {
+  return planSlots(swaps).find((s) => n >= s.start && n < s.start + TRIAL_LEN) || null
+}
+
+/** Where each food actually lands, once swaps and re-queues are applied. */
+export function scheduleIndex(swaps = {}) {
+  const schedule = {}
+  const moved = {}
+  for (const s of planSlots(swaps)) {
+    schedule[s.food] ??= s.start
+    if (s.rescheduled) moved[s.food] = s.start
+  }
+  return { schedule, moved }
+}
+
+/** Every food already through a trial that finished before day n. */
+function clearedBefore(n, swaps) {
+  return planSlots(swaps).filter((s) => s.start + TRIAL_LEN <= n).map((s) => s.food)
 }
 
 /** During the trial months there's one designated meal; cleared foods ride along. */
@@ -31,38 +72,30 @@ function trialMeals(id, food, cleared, band) {
   }
 }
 
-/** The 3-day trial slot containing day n (null once the cycle starts). */
-export function slotOf(n) {
-  if (n > M8) return null
-  const [list, offset] = n <= M6 ? [TRIALS[6], 0] : n <= M7 ? [TRIALS[7], M6] : [TRIALS[8], M7]
-  const i = Math.floor((n - offset - 1) / TRIAL_LEN)
-  return { start: offset + i * TRIAL_LEN + 1, foodId: list[i].food, note: list[i].note }
-}
-
 /**
- * What day `n` of the plan looks like.
- * Days 1–69 are 3-day single-ingredient trials (the pediatrician's rule).
- * From day 70 a 7-day cycle repeats — deliberately, so allergens come round
- * weekly and liver never lands more than twice.
+ * What day `n` looks like. Trials run until the slot list is exhausted (which
+ * a swap can extend), then a 7-day cycle repeats — deliberately, so every
+ * allergen comes round weekly and liver never lands more than twice.
  */
-export function dayPlan(n, band = 9, swapId = null) {
-  if (n <= M8) {
-    const [month, list, offset] =
-      n <= M6 ? [6, TRIALS[6], 0] : n <= M7 ? [7, TRIALS[7], M6] : [8, TRIALS[8], M7]
-    const i = Math.floor((n - offset - 1) / TRIAL_LEN)
-    const trial = list[i]
-    const foodId = swapId && FOODS[swapId] ? swapId : trial.food
-    const food = FOODS[foodId]
-    const cleared = clearedBefore(n)
+export function dayPlan(n, band = 9, swaps = {}) {
+  const slots = planSlots(swaps)
+  const slot = slots.find((s) => n >= s.start && n < s.start + TRIAL_LEN)
+  if (slot) {
+    const food = FOODS[slot.food]
+    const cleared = clearedBefore(n, swaps)
     return {
-      mode: 'trial', month, day: n,
-      trialDay: ((n - offset - 1) % TRIAL_LEN) + 1, trialLen: TRIAL_LEN,
-      foodId, food, note: trial.note, allergen: food.allergen,
-      swappedFrom: foodId !== trial.food ? trial.food : null,
-      cleared, meals: trialMeals(foodId, food, cleared, band),
+      mode: 'trial', month: slot.start <= M6 ? 6 : slot.start <= M7 ? 7 : 8, day: n,
+      trialDay: n - slot.start + 1, trialLen: TRIAL_LEN,
+      foodId: slot.food, food, note: slot.note, allergen: food.allergen,
+      swappedFrom: slot.food !== slot.original ? slot.original : null,
+      rescheduled: Boolean(slot.rescheduled),
+      slotStart: slot.start, cleared,
+      meals: trialMeals(slot.food, food, cleared, band),
     }
   }
-  const c = CYCLE[(n - M8 - 1) % CYCLE.length]
+  const last = slots[slots.length - 1]
+  const cycleStart = last.start + TRIAL_LEN
+  const c = CYCLE[Math.max(0, n - cycleStart) % CYCLE.length]
   return { mode: 'cycle', month: 8, day: n, cycle: c.id, snack: c.snack, iron: c.iron, meals: c.meals }
 }
 
@@ -72,14 +105,12 @@ export function ironToday(plan) {
   return ids.filter((id) => (FOODS[id]?.ironMg || 0) >= 1)
 }
 
-export const planLength = { M6, M7, M8 }
-
 /**
  * What can stand in when the day's ingredient isn't in the house.
- * The slot has a JOB, and the substitute has to do the same job:
- *   allergen day  -> only the same allergen (fish for fish), never a bystander
- *   iron day      -> another iron-rich food
- *   otherwise     -> the same food group, untried first
+ * The slot has a JOB and the substitute has to do the same job:
+ *   allergen day -> only the same allergen, never a bystander
+ *   iron day     -> another iron-rich food
+ *   otherwise    -> the same food group
  */
 export function swapOptions(foodId) {
   const f = FOODS[foodId]
@@ -90,24 +121,4 @@ export function swapOptions(foodId) {
   return rest.filter(([, x]) => x.cat === f.cat && !x.allergen).map(([id, x]) => ({ id, ...x, why: x.cat }))
 }
 
-/**
- * Which plan day each food actually lands on, once swaps are applied — and
- * which foods a swap pushed out of the plan. A displaced food is NOT dropped;
- * it has no date any more and the Foods tab says so, so it can be swapped back
- * in rather than quietly disappearing.
- */
-export function scheduleIndex(swaps = {}) {
-  const schedule = {}
-  const displaced = new Set()
-  for (const [month, list] of Object.entries(TRIALS)) {
-    const offset = month === '6' ? 0 : month === '7' ? M6 : M7
-    list.forEach((t, i) => {
-      const start = offset + i * TRIAL_LEN + 1
-      const actual = swaps[start] || t.food
-      schedule[actual] ??= start
-      if (actual !== t.food) displaced.add(t.food)
-    })
-  }
-  for (const id of displaced) if (schedule[id] !== undefined) displaced.delete(id)
-  return { schedule, displaced }
-}
+export const planLength = { M6, M7, M8 }

@@ -25,8 +25,8 @@ const today = () => {
   const day = store.planDay()
   const age = store.ageOf(s.profile.birthdate)
   const band = ageBand(age.months)
-  const slot = slotOf(day)
-  return { s, day, age, band, slot, plan: dayPlan(day, band, slot && s.swaps?.[slot.start]) }
+  const swaps = s.swaps || {}
+  return { s, day, age, band, swaps, slot: slotOf(day, swaps), plan: dayPlan(day, band, swaps) }
 }
 
 function allergenRows() {
@@ -77,7 +77,7 @@ function screenToday() {
           ${plan.food.ironMg >= 1 ? '<span class="pill iron">Iron</span>' : ''}
           ${plan.food.choking !== 'low' ? `<span class="pill due">${plan.food.choking} choking risk</span>` : ''}
         </div>
-        ${plan.swappedFrom ? `<p class="hero-note">Swapped in for ${esc(FOODS[plan.swappedFrom].name)}</p>` : plan.note ? `<p class="hero-note">${esc(plan.note)}</p>` : ''}
+        ${plan.rescheduled ? `<p class="hero-note">${esc(plan.note)}</p>` : plan.swappedFrom ? `<p class="hero-note">Swapped in for ${esc(FOODS[plan.swappedFrom].name)} — that one moved to a later slot</p>` : plan.note ? `<p class="hero-note">${esc(plan.note)}</p>` : ''}
         <button class="link" data-swapopen style="display:block;margin:10px auto 0">Don’t have ${esc(plan.food.name.toLowerCase())}? Swap it →</button>
         ${plan.allergen && plan.trialDay === 1
           ? '<div class="band"><b>First exposure.</b> Morning, at home, only if he\u2019s well. Two hours free to watch. Tip of the spoon, wait 10 minutes, then the rest.</div>' : ''}
@@ -150,13 +150,13 @@ function screenToday() {
 
 function screenFoods() {
   const { s, day, plan } = today()
-  const { schedule, displaced } = scheduleIndex(s.swaps || {})
+  const { schedule, moved } = scheduleIndex(s.swaps || {})
   const todayFood = plan.mode === 'trial' ? plan.foodId : null
   const rows = Object.entries(FOODS).map(([id, f]) => {
     const rec = s.foods[id]
     const on = schedule[id] || null
     const now = id === todayFood || (on && day >= on && day < on + 3)
-    return { id, f, rec, on, now, moved: displaced.has(id), tried: Boolean(rec) }
+    return { id, f, rec, on, now, moved: moved[id] || null, tried: Boolean(rec) }
   }).sort((x, y) => (x.on || 9e3) - (y.on || 9e3))
 
   const F = view.filter
@@ -171,7 +171,7 @@ function screenFoods() {
     const status = r.id === todayFood ? `Today · day ${today().plan.trialDay} of 3`
       : r.now ? `Day ${day - r.on + 1} of 3`
       : r.tried ? `${r.rec.exposures}× · ${since === 0 ? 'today' : `${since}d ago`}`
-      : r.moved ? 'moved — no date'
+      : r.moved ? `Moved to day ${r.moved}`
       : r.on ? `Day ${r.on}` : 'anytime'
     return `<div class="fcard ${r.now ? 'now' : ''} ${r.tried ? 'tried' : ''} ${r.moved ? 'moved' : ''}" data-food="${r.id}">
       ${r.f.allergen ? '<span class="fdot allergen"></span>' : r.f.ironMg >= 1 ? '<span class="fdot iron"></span>' : ''}
@@ -187,7 +187,7 @@ function screenFoods() {
       ${chip('allergens', 'Allergens', rows.filter((r) => r.f.allergen).length)}
     </div>
     <div class="foodgrid">${shown.map(card).join('')}</div>
-    ${displaced.size ? `<div class="note"><b>${[...displaced].map((id) => esc(FOODS[id].name)).join(', ')}</b> ${displaced.size > 1 ? 'were' : 'was'} swapped out and ${displaced.size > 1 ? 'have' : 'has'} no date now — nothing is dropped, so swap ${displaced.size > 1 ? 'them' : 'it'} back into a later slot when you have some.</div>` : ''}
+    ${Object.keys(moved).length ? `<div class="note"><b>${Object.keys(moved).map((id) => esc(FOODS[id].name)).join(', ')}</b> moved because you were out of ${Object.keys(moved).length > 1 ? 'them' : 'it'} — re-queued to the next free slot rather than dropped, so ${Object.keys(moved).length > 1 ? 'they still get their trials' : 'it still gets its trial'}.</div>` : ''}
     <div class="note"><b>Green dot</b> is iron-rich, <b>amber</b> is one of the nine allergens. Tap any food for how to cut it at his age.</div>
   </div>`
 }
@@ -383,7 +383,8 @@ function render() {
     : screenToday()
   const bar = view.food ? '' : `<nav class="tabbar">${TABS.map(([id, label]) =>
     `<button data-tab="${id}" class="${view.tab === id ? 'on' : ''}">${label}</button>`).join('')}</nav>`
-  const sheetEl = !view.sheet ? '' : view.sheet.kind === 'reaction' ? sheetReaction() : view.sheet.kind === 'hands' ? sheetHands() : view.sheet.kind === 'swap' ? sheetSwap(view.sheet) : sheetLog(view.sheet)
+  let sheetEl = !view.sheet ? '' : view.sheet.kind === 'reaction' ? sheetReaction() : view.sheet.kind === 'hands' ? sheetHands() : view.sheet.kind === 'swap' ? sheetSwap(view.sheet) : sheetLog(view.sheet)
+  if (sheetEl && !view.sheet._shown) { sheetEl = sheetEl.replace('class="scrim"', 'class="scrim enter"'); view.sheet._shown = true }
   app.innerHTML = body + bar + sheetEl
 }
 
@@ -436,7 +437,7 @@ app.addEventListener('click', (e) => {
   if (hit('[data-swapopen]')) {
     const { slot } = today()
     if (!slot) return
-    view.sheet = { kind: 'swap', foodId: slot.foodId, slot, swapped: Boolean(store.get().swaps?.[slot.start]) }
+    view.sheet = { kind: 'swap', foodId: slot.food, slot, swapped: Boolean(store.get().swaps?.[slot.start]) }
     return render()
   }
   const sw = hit('[data-swap]')
@@ -455,8 +456,8 @@ app.addEventListener('click', (e) => {
   const th = hit('[data-log]')
   if (th) {
     const key = th.dataset.log
-    const { day: d0, band: b0, slot: sl } = today()
-    const plan = dayPlan(d0, b0, sl && store.get().swaps?.[sl.start])
+    const { day: d0, band: b0, swaps: sw0 } = today()
+    const plan = dayPlan(d0, b0, sw0)
     const m = plan.meals[key] || { spoon: plan.snack, foods: [] }
     view.sheet = { kind: 'log', key, label: m.spoon, foods: m.foods || [], verdict: th.dataset.v, amount: '', note: '' }
     return render()

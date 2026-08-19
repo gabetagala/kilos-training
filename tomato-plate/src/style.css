@@ -290,14 +290,16 @@ h2 { font-family: var(--font-display); font-size: 22px; font-weight: 600; letter
 .scrim {
   position: fixed; inset: 0; background: rgba(26,43,34,.32); display: flex;
   align-items: flex-end; justify-content: center; z-index: 200;
-  animation: fade .18s ease;
 }
+/* Only the first paint animates. Re-rendering recreates these nodes, so an
+   unconditional animation replayed the whole slide-up on every tap. */
+.scrim.enter { animation: fade .18s ease; }
+.scrim.enter .sheet { animation: rise .26s cubic-bezier(.22,1,.36,1); }
 @keyframes fade { from { opacity: 0 } }
 .sheet {
   background: var(--bg); border-radius: var(--r-lg) var(--r-lg) 0 0;
   padding: 14px var(--pad) max(24px, env(safe-area-inset-bottom));
   width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto;
-  animation: rise .26s cubic-bezier(.22,1,.36,1);
 }
 @keyframes rise { from { transform: translateY(14px) } }
 .grab { width: 40px; height: 4px; background: var(--line-strong); border-radius: 9px; margin: 0 auto 18px; }
