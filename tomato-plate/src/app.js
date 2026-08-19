@@ -1,7 +1,7 @@
 // ─── TOMATO PLATE — app shell ───────────────────────────────────────────────
 // Vanilla, localStorage-first, no framework. Renders whole screens; the state
 // is small enough that diffing would cost more than it saves.
-import { SPRITE, cutGlyph, icon, stepGlyph } from './art.js'
+import { SPRITE, cutGlyph, cutIcon, icon, stepGlyph } from './art.js'
 import { ALLERGENS, AMOUNTS, EXPOSURE_TARGET, FOODS, HAND_GUIDE, MILK, REACTION, ROTATION_DAYS, TAKEN } from './data.js'
 import { dayPlan, ironToday, scheduleIndex, slotOf, swapOptions } from './plan.js'
 import * as store from './store.js'
@@ -55,8 +55,8 @@ function serveBlock(id, band, { solo = false } = {}) {
   if (!f) return ''
   const [spoon, hands] = f.cut[band] || f.cut[9]
   return `<div class="cuts">
-      <div class="cut">${icon(cutGlyph(spoon), 52)}<b>On the spoon</b><span>${esc(spoon)}</span></div>
-      <div class="cut hands">${icon(cutGlyph(hands), 52)}<b>In his hands</b><span>${esc(hands)}</span></div>
+      <div class="cut">${cutIcon(cutGlyph(spoon), id)}<b>On the spoon</b><span>${esc(spoon)}</span></div>
+      <div class="cut hands">${cutIcon(cutGlyph(hands), id)}<b>In his hands</b><span>${esc(hands)}</span></div>
     </div>
     ${f.prep.length ? `<div style="margin-top:14px"><div class="eyebrow ruled" style="margin-bottom:12px">Prepare it</div>
       <ol class="steps">${f.prep.map((p, i) => `<li>

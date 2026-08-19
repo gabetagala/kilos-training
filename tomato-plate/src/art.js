@@ -34,14 +34,50 @@ ${s('shrimp', `<path d="M42 16c-14 0-24 8-24 18 0 8 7 12 14 12 3 0 5-2 5-4s-2-3-
 ${s('monggo', `<g fill="#4E9060"><ellipse cx="22" cy="28" rx="7" ry="5" transform="rotate(-20 22 28)"/><ellipse cx="36" cy="26" rx="7" ry="5" transform="rotate(15 36 26)"/><ellipse cx="28" cy="38" rx="7" ry="5" transform="rotate(-8 28 38)"/><ellipse cx="40" cy="38" rx="7" ry="5" transform="rotate(25 40 38)"/></g>`)}
 ${s('mango', `<path d="M38 12c8 4 12 14 8 24-4 11-16 17-24 13-7-4-8-14-4-23 4-10 12-17 20-14z" fill="#E9963E"/><path d="M36 20c4 3 5 10 2 16-3 6-9 9-13 7 6-2 10-8 11-14 0-4 0-7 0-9z" fill="#F0AB5E"/>`)}
 ${s('lugaw', `<ellipse cx="30" cy="40" rx="22" ry="10" fill="#EDDFC6"/><ellipse cx="30" cy="36" rx="22" ry="10" fill="#FCF6E9"/><path d="M18 34c6-4 18-4 24 0" stroke="#EDDFC6" stroke-width="2.5" fill="none"/>`)}
-${s('cut-puree', `<ellipse cx="30" cy="30" rx="21" ry="9" fill="#D4763C"/><ellipse cx="30" cy="27" rx="21" ry="9" fill="#E09355"/><path d="M19 25c6-3 16-3 22 0" stroke="#D4763C" stroke-width="2" fill="none"/>`, '0 0 60 44')}
-${s('cut-mash', `<ellipse cx="30" cy="31" rx="21" ry="9" fill="#D4763C"/><ellipse cx="30" cy="28" rx="21" ry="9" fill="#E09355"/><circle cx="22" cy="26" r="3" fill="#D4763C"/><circle cx="32" cy="29" r="3.5" fill="#D4763C"/><circle cx="39" cy="25" r="2.5" fill="#D4763C"/>`, '0 0 60 44')}
-${s('cut-baton', `<rect x="10" y="10" width="10" height="26" rx="5" fill="#D4763C"/><rect x="25" y="10" width="10" height="26" rx="5" fill="#E09355"/><rect x="40" y="10" width="10" height="26" rx="5" fill="#D4763C"/>`, '0 0 60 44')}
-${s('cut-cube', `<rect x="12" y="11" width="11" height="11" rx="3" fill="#D4763C"/><rect x="27" y="17" width="11" height="11" rx="3" fill="#E09355"/><rect x="40" y="10" width="11" height="11" rx="3" fill="#D4763C"/><rect x="20" y="26" width="11" height="11" rx="3" fill="#E09355"/>`, '0 0 60 44')}
-${s('cut-spear', `<path d="M14 34c6-16 20-24 32-24 2 0 3 2 1 4-10 6-18 14-22 24-1 3-12 0-11-4z" fill="#F0C64E"/>`, '0 0 60 44')}
-${s('cut-flake', `<g fill="#7C93A8"><ellipse cx="20" cy="20" rx="9" ry="5" transform="rotate(-15 20 20)"/><ellipse cx="38" cy="24" rx="9" ry="5" transform="rotate(12 38 24)"/><ellipse cx="28" cy="32" rx="9" ry="5" transform="rotate(-6 28 32)"/></g>`, '0 0 60 44')}
-${s('cut-none', `<circle cx="30" cy="22" r="15" fill="none" stroke="#D8CBB6" stroke-width="3" stroke-dasharray="5 5"/>`, '0 0 60 44')}
-
+${s('cut-puree', `<ellipse cx="34" cy="40" rx="26" ry="7" fill="#00000010"/>
+<path d="M8 26h52a26 15 0 0 1-52 0z" fill="var(--c2,#E09355)"/>
+<ellipse cx="34" cy="26" rx="26" ry="8" fill="var(--c1,#D4763C)"/>
+<ellipse cx="34" cy="25" rx="20" ry="5.5" fill="var(--c2,#E09355)"/>
+<path d="M20 24c6-3 22-3 28 0" stroke="var(--c1,#D4763C)" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+<path d="M52 9c4 0 6 3 6 6s-2 5-5 5l1 18" stroke="#B9A88F" stroke-width="2.4" fill="none" stroke-linecap="round"/>`, '0 0 68 48')}
+${s('cut-mash', `<ellipse cx="34" cy="41" rx="26" ry="7" fill="#00000010"/>
+<path d="M8 27h52a26 15 0 0 1-52 0z" fill="var(--c2,#E09355)"/>
+<ellipse cx="34" cy="27" rx="26" ry="8" fill="var(--c1,#D4763C)"/>
+<g fill="var(--c2,#E09355)"><ellipse cx="25" cy="25" rx="6" ry="3.6"/><ellipse cx="38" cy="28" rx="7" ry="4"/><ellipse cx="46" cy="24" rx="5" ry="3"/><ellipse cx="31" cy="30" rx="5" ry="3"/></g>
+<path d="M52 9c4 0 6 3 6 6s-2 5-5 5l1 19" stroke="#B9A88F" stroke-width="2.4" fill="none" stroke-linecap="round"/>`, '0 0 68 48')}
+${s('cut-baton', `<ellipse cx="34" cy="43" rx="28" ry="4" fill="#00000010"/>
+<g>
+  <rect x="8" y="10" width="12" height="31" rx="6" fill="var(--c1,#D4763C)"/>
+  <rect x="10.5" y="13" width="4" height="22" rx="2" fill="var(--c2,#E09355)" opacity=".85"/>
+  <rect x="27" y="7" width="12" height="34" rx="6" fill="var(--c1,#D4763C)"/>
+  <rect x="29.5" y="10" width="4" height="25" rx="2" fill="var(--c2,#E09355)" opacity=".85"/>
+  <rect x="46" y="12" width="12" height="29" rx="6" fill="var(--c1,#D4763C)"/>
+  <rect x="48.5" y="15" width="4" height="20" rx="2" fill="var(--c2,#E09355)" opacity=".85"/>
+</g>
+<path d="M27 45h12" stroke="#0F4A35" stroke-width="1.4" stroke-linecap="round" opacity=".45"/>
+<path d="M27 43v4M39 43v4" stroke="#0F4A35" stroke-width="1.4" stroke-linecap="round" opacity=".45"/>`, '0 0 68 48')}
+${s('cut-cube', `<ellipse cx="34" cy="42" rx="27" ry="4" fill="#00000010"/>
+<g>
+  <path d="M10 20l7-4 7 4v8l-7 4-7-4z" fill="var(--c1,#D4763C)"/><path d="M10 20l7 4 7-4-7-4z" fill="var(--c2,#E09355)"/>
+  <path d="M27 26l7-4 7 4v8l-7 4-7-4z" fill="var(--c1,#D4763C)"/><path d="M27 26l7 4 7-4-7-4z" fill="var(--c2,#E09355)"/>
+  <path d="M44 18l7-4 7 4v8l-7 4-7-4z" fill="var(--c1,#D4763C)"/><path d="M44 18l7 4 7-4-7-4z" fill="var(--c2,#E09355)"/>
+  <path d="M19 33l7-4 7 4v6l-7 4-7-4z" fill="var(--c1,#D4763C)" opacity=".9"/><path d="M19 33l7 4 7-4-7-4z" fill="var(--c2,#E09355)"/>
+</g>`, '0 0 68 48')}
+${s('cut-spear', `<ellipse cx="34" cy="43" rx="26" ry="4" fill="#00000010"/>
+<path d="M18 40c-2-14 6-27 22-32 3-1 5 1 4 4-5 13-11 22-19 29-2 2-6 2-7-1z" fill="var(--c1,#D4763C)"/>
+<path d="M23 36c0-11 6-20 17-25-4 12-9 19-17 25z" fill="var(--c2,#E09355)"/>
+<path d="M18 40c-5 2-9 1-11-2 3-3 7-3 11 2zM14 34c-5 0-8-2-9-5 4-1 8 1 9 5z" fill="#C8B89E"/>`, '0 0 68 48')}
+${s('cut-flake', `<ellipse cx="34" cy="41" rx="26" ry="5" fill="#00000010"/>
+<g fill="var(--c1,#D4763C)">
+  <path d="M9 22c6-6 15-7 20-3 4 4 1 10-5 12-7 2-16-3-15-9z"/>
+  <path d="M34 14c7-3 14 0 15 5 1 6-6 10-13 8-6-2-8-10-2-13z"/>
+  <path d="M24 32c6-3 14-1 16 4 1 4-5 7-11 6-6-1-9-8-5-10z"/>
+</g>
+<g fill="var(--c2,#E09355)" opacity=".8">
+  <path d="M13 22c4-3 10-4 13-1-4 1-9 2-13 1zM38 17c4-1 8 0 9 3-3-1-7-2-9-3z"/></g>`, '0 0 68 48')}
+${s('cut-none', `<circle cx="34" cy="24" r="15" fill="none" stroke="#CFC3AC" stroke-width="2.5" stroke-dasharray="5 6" stroke-linecap="round"/>
+<path d="M27 20c3 0 5 2 5 4s-2 4-5 4-5-2-5-4 2-4 5-4z" fill="#CFC3AC" opacity=".45"/>
+<path d="M40 16c3 0 4 2 4 4s-1 3-3 3l1 10" stroke="#CFC3AC" stroke-width="2" fill="none" stroke-linecap="round"/>`, '0 0 68 48')}
 ${s('s-cut', `<path d="M4 17 17 4l3 3L7 20z" fill="none" stroke="#0F4A35" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 7l3 3" stroke="#0F4A35" stroke-width="1.8"/>`, '0 0 24 24')}
 ${s('s-heat', `<path d="M4 11h16v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z" fill="none" stroke="#0F4A35" stroke-width="1.8"/><path d="M9 7c0-1.5 1.5-1.5 1.5-3M14 7c0-1.5 1.5-1.5 1.5-3" stroke="#0F4A35" stroke-width="1.6" stroke-linecap="round"/>`, '0 0 24 24')}
 ${s('s-blend', `<path d="M7 4h10l-1.5 12a2 2 0 0 1-2 2h-3a2 2 0 0 1-2-2z" fill="none" stroke="#0F4A35" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 21h8" stroke="#0F4A35" stroke-width="1.8" stroke-linecap="round"/><path d="M9 9h6" stroke="#0F4A35" stroke-width="1.4"/>`, '0 0 24 24')}
@@ -87,3 +123,27 @@ export function stepGlyph(text = '') {
 
 export const icon = (id, size = 40, cls = '') =>
   `<svg class="ic ${cls}" width="${size}" height="${size}" aria-hidden="true"><use href="#a-${id}"/></svg>`
+
+/** Each food's two flat tones, so a cut diagram is drawn in the food's colour. */
+export const TINT = {
+  kamote: ['#D4763C', '#E09355'], carrot: ['#E9963E', '#F0AB5E'],
+  kalabasa: ['#E9963E', '#F0AB5E'], sayote: ['#9FBF6A', '#B8D188'],
+  chicken: ['#E8C9A0', '#F2DCBE'], avocado: ['#2E6B44', '#9FBF6A'],
+  liver: ['#9A3520', '#B84A33'], lakatan: ['#F0C64E', '#E0B03A'],
+  papaya: ['#E9963E', '#F2B266'], egg: ['#F2B266', '#FCF6E9'],
+  peanut: ['#D9A05B', '#C08840'], malunggay: ['#2E6B44', '#4E9060'],
+  tilapia: ['#7C93A8', '#9FB2C2'], beef: ['#B84A33', '#D06A4E'],
+  yogurt: ['#EDE4D2', '#FCF6E9'], oats: ['#D9A05B', '#E8C9A0'],
+  wheat: ['#F0C64E', '#E0B03A'], pork: ['#D08A7E', '#E0A79C'],
+  tofu: ['#EDE4D2', '#FCF6E9'], dilis: ['#7C93A8', '#9FB2C2'],
+  tahini: ['#D9A05B', '#E8C9A0'], cashew: ['#D9A05B', '#C08840'],
+  shrimp: ['#E8845E', '#F0A183'], monggo: ['#4E9060', '#7FAE72'],
+  mangga: ['#E9963E', '#F0AB5E'], bangus: ['#7C93A8', '#9FB2C2'],
+  lugaw: ['#E5D9C2', '#FCF6E9'],
+}
+
+/** A cut-state diagram, drawn in the food's own colours. */
+export const cutIcon = (glyph, foodId, w = 74) => {
+  const [c1, c2] = TINT[foodId] || ['#D4763C', '#E09355']
+  return `<svg class="ic" width="${w}" height="${Math.round((w * 48) / 68)}" style="--c1:${c1};--c2:${c2}" aria-hidden="true"><use href="#a-${glyph}"/></svg>`
+}

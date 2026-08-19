@@ -184,7 +184,7 @@ h2 { font-family: var(--font-display); font-size: 22px; font-weight: 600; letter
 .cut.hands { background: var(--green-tint); border-color: rgba(15,74,53,.1); }
 .cut b { display: block; font-size: 12px; font-weight: 700; margin-top: 10px; letter-spacing: -0.005em; }
 .cut span { font-size: 12px; color: var(--ink-2); display: block; line-height: 1.45; margin-top: 4px; }
-.cut svg { margin: 0 auto; }
+.cut svg { margin: 0 auto; filter: drop-shadow(0 4px 7px rgba(26,43,34,.10)); }
 
 /* ── callouts ─────────────────────────────────────────────────────────── */
 .note {
