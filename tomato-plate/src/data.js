@@ -133,7 +133,7 @@ export const FOODS = {
     prep: ['Soft or silken tofu, or plain taho with NO arnibal.', 'Mash with a fork — no cooking needed for silken.'],
     buy: 'Silken or soft tofu from the chiller, or tokwa from the wet market. Taho from a vendor is fine if you skip the arnibal entirely.',
     safety: 'NOT soy sauce for the soy introduction — toyo has almost no protein and an enormous salt load.' }),
-  dilis: f({ name: 'Dilis', sub: 'Fresh anchovy', cat: 'protein', art: 'fish', allergen: 'fish',
+  dilis: f({ name: 'Dilis', sub: 'Fresh anchovy', cat: 'protein', art: 'dilis', allergen: 'fish',
     ironMg: 3.25, choking: 'moderate',
     cut: { 6: ['Mashed completely smooth into lugaw', 'Not yet'], 9: ['Finely flaked', 'Serve a kalabasa baton alongside'],
            12: ['Flaked into family dishes', 'Flakes'] },

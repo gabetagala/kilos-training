@@ -10,30 +10,137 @@ ${s('logo', `<circle cx="50" cy="50" r="46" fill="#C0442A"/><circle cx="50" cy="
 <circle cx="50" cy="50" r="27" fill="#C0442A"/>
 <path d="M50 26c2 0 3 4 3 7 3-2 6-4 8-2s0 6-2 8c3 0 7 1 7 3s-4 3-7 3c2 2 4 5 2 7s-5 0-8-2c0 3-1 7-3 7s-3-4-3-7c-3 2-6 4-8 2s0-5 2-7c-3 0-7-1-7-3s4-3 7-3c-2-2-4-6-2-8s5 0 8 2c0-3 1-7 3-7z" fill="#2E6B44"/>
 <circle cx="50" cy="43" r="4" fill="#4E9060"/>`, '0 0 100 100')}
-${s('kamote', `<ellipse cx="30" cy="32" rx="21" ry="14" transform="rotate(-18 30 32)" fill="#D4763C"/><ellipse cx="24" cy="28" rx="6" ry="4" transform="rotate(-18 24 28)" fill="#E09355"/>`)}
-${s('carrot', `<path d="M30 54 18 20c-1-4 4-8 12-8s13 4 12 8z" fill="#E9963E"/><path d="M30 48 24 24c4-1 8-1 12 0z" fill="#F0AB5E"/><path d="M30 12c-3-6-9-6-11-2 4 0 6 2 7 4zM30 12c3-6 9-6 11-2-4 0-6 2-7 4z" fill="#2E6B44"/>`)}
-${s('kalabasa', `<ellipse cx="30" cy="35" rx="22" ry="18" fill="#E9963E"/><ellipse cx="30" cy="35" rx="8" ry="18" fill="#F0AB5E"/><ellipse cx="15" cy="35" rx="6" ry="15" fill="#DD8630"/><ellipse cx="45" cy="35" rx="6" ry="15" fill="#DD8630"/><rect x="27" y="12" width="6" height="9" rx="2" fill="#2E6B44"/>`)}
-${s('sayote', `<path d="M30 10c11 0 17 10 17 22 0 12-7 18-17 18s-17-6-17-18c0-12 6-22 17-22z" fill="#9FBF6A"/><path d="M30 18c6 0 10 8 10 16 0 8-4 12-10 12s-10-4-10-12c0-8 4-16 10-16z" fill="#B8D188"/>`)}
-${s('chicken', `<ellipse cx="30" cy="34" rx="19" ry="14" fill="#E8C9A0"/><ellipse cx="25" cy="30" rx="7" ry="5" fill="#F2DCBE"/><path d="M44 24c4-3 8-1 7 2s-5 4-8 3z" fill="#D9B187"/>`)}
-${s('avocado', `<path d="M30 8c11 0 19 12 19 26 0 11-8 18-19 18s-19-7-19-18C11 20 19 8 30 8z" fill="#2E6B44"/><path d="M30 14c8 0 14 10 14 21 0 8-6 13-14 13s-14-5-14-13c0-11 6-21 14-21z" fill="#9FBF6A"/><ellipse cx="30" cy="34" rx="8" ry="9" fill="#8A5A2B"/>`)}
-${s('liver', `<path d="M12 26c6-10 22-12 32-6 6 4 6 14 0 20-8 8-24 8-31 0-3-4-3-10-1-14z" fill="#9A3520"/><path d="M20 28c5-5 14-6 20-2-4 6-14 8-20 2z" fill="#B84A33"/>`)}
-${s('banana', `<path d="M14 16c2 18 14 30 32 30 3 0 5-3 3-5-14-3-24-12-27-26-1-3-8-2-8 1z" fill="#F0C64E"/><path d="M18 20c3 14 12 22 24 25-12 0-22-9-24-25z" fill="#E0B03A"/>`)}
-${s('papaya', `<path d="M30 8c12 0 20 12 20 24s-8 20-20 20-20-8-20-20S18 8 30 8z" fill="#E9963E"/><path d="M30 16c8 0 13 8 13 16s-5 13-13 13-13-5-13-13 5-16 13-16z" fill="#F2B266"/><g fill="#3A3684"><circle cx="30" cy="30" r="2.5"/><circle cx="26" cy="36" r="2.5"/><circle cx="34" cy="36" r="2.5"/><circle cx="30" cy="41" r="2.5"/></g>`)}
-${s('egg', `<ellipse cx="30" cy="32" rx="19" ry="23" fill="#FCF6E9"/><circle cx="30" cy="33" r="10" fill="#E9963E"/><circle cx="27" cy="30" r="3.5" fill="#F2B266"/>`)}
-${s('peanut', `<path d="M30 12c7 0 11 5 11 10 0 4-2 6-2 9s2 5 2 9c0 6-5 11-11 11s-11-5-11-11c0-4 2-6 2-9s-2-5-2-9c0-5 4-10 11-10z" fill="#D9A05B"/><circle cx="27" cy="22" r="3" fill="#C08840"/><circle cx="33" cy="41" r="3" fill="#C08840"/>`)}
-${s('malunggay', `<path d="M30 52V14" stroke="#2E6B44" stroke-width="3"/><g fill="#4E9060"><ellipse cx="21" cy="22" rx="7" ry="5"/><ellipse cx="39" cy="27" rx="7" ry="5"/><ellipse cx="21" cy="34" rx="7" ry="5"/><ellipse cx="39" cy="40" rx="7" ry="5"/><ellipse cx="30" cy="14" rx="6" ry="5"/></g>`)}
-${s('fish', `<path d="M10 30c8-9 24-11 34-4l6-5-1 9 1 9-6-5C34 41 18 39 10 30z" fill="#7C93A8"/><circle cx="38" cy="27" r="2.5" fill="#2A1E19"/><path d="M22 24c4 4 4 8 0 12" stroke="#5F7488" stroke-width="2" fill="none"/>`)}
-${s('meat', `<path d="M14 24c4-8 16-11 26-7 8 3 9 13 3 19-7 7-21 7-28 0-3-3-3-8-1-12z" fill="#B84A33"/><path d="M22 26c5-4 13-5 18-1-4 5-13 7-18 1z" fill="#D06A4E"/>`)}
-${s('yogurt', `<path d="M16 20h28l-3 28a4 4 0 0 1-4 4H23a4 4 0 0 1-4-4z" fill="#FCF6E9"/><rect x="14" y="14" width="32" height="8" rx="3" fill="#3A3684"/>`)}
-${s('oats', `<ellipse cx="30" cy="38" rx="20" ry="11" fill="#E8C9A0"/><ellipse cx="30" cy="35" rx="20" ry="11" fill="#F2DCBE"/><g fill="#D9A05B"><ellipse cx="24" cy="33" rx="4" ry="2.5"/><ellipse cx="35" cy="36" rx="4" ry="2.5"/><ellipse cx="30" cy="30" rx="4" ry="2.5"/></g>`)}
-${s('pasta', `<g fill="#F0C64E"><rect x="12" y="22" width="36" height="7" rx="3.5"/><rect x="12" y="32" width="36" height="7" rx="3.5"/><rect x="16" y="42" width="28" height="7" rx="3.5"/></g><rect x="12" y="22" width="36" height="7" rx="3.5" fill="#E0B03A"/>`)}
-${s('tofu', `<rect x="14" y="20" width="32" height="26" rx="4" fill="#FCF6E9"/><rect x="14" y="20" width="32" height="9" rx="4" fill="#F4E9D6"/><rect x="30" y="20" width="2" height="26" fill="#EDDFC6"/>`)}
-${s('tahini', `<path d="M18 22h24l-2 26a4 4 0 0 1-4 4H24a4 4 0 0 1-4-4z" fill="#E8C9A0"/><rect x="16" y="16" width="28" height="8" rx="3" fill="#8A5A2B"/>`)}
-${s('nut', `<path d="M30 10c10 0 16 8 16 18 0 12-7 22-16 22s-16-10-16-22c0-10 6-18 16-18z" fill="#D9A05B"/><path d="M30 18c6 0 9 6 9 12 0 8-4 14-9 14s-9-6-9-14c0-6 3-12 9-12z" fill="#C08840"/>`)}
-${s('shrimp', `<path d="M42 16c-14 0-24 8-24 18 0 8 7 12 14 12 3 0 5-2 5-4s-2-3-4-3c-4 0-7-2-7-6 0-6 7-11 16-11z" fill="#E8845E"/><circle cx="41" cy="20" r="2.5" fill="#2A1E19"/>`)}
-${s('monggo', `<g fill="#4E9060"><ellipse cx="22" cy="28" rx="7" ry="5" transform="rotate(-20 22 28)"/><ellipse cx="36" cy="26" rx="7" ry="5" transform="rotate(15 36 26)"/><ellipse cx="28" cy="38" rx="7" ry="5" transform="rotate(-8 28 38)"/><ellipse cx="40" cy="38" rx="7" ry="5" transform="rotate(25 40 38)"/></g>`)}
-${s('mango', `<path d="M38 12c8 4 12 14 8 24-4 11-16 17-24 13-7-4-8-14-4-23 4-10 12-17 20-14z" fill="#E9963E"/><path d="M36 20c4 3 5 10 2 16-3 6-9 9-13 7 6-2 10-8 11-14 0-4 0-7 0-9z" fill="#F0AB5E"/>`)}
-${s('lugaw', `<ellipse cx="30" cy="40" rx="22" ry="10" fill="#EDDFC6"/><ellipse cx="30" cy="36" rx="22" ry="10" fill="#FCF6E9"/><path d="M18 34c6-4 18-4 24 0" stroke="#EDDFC6" stroke-width="2.5" fill="none"/>`)}
+${s('kamote', `<ellipse cx="30" cy="52" rx="19" ry="3.4" fill="#00000012"/>
+<path d="M11 34c-3-8 4-16 15-18 12-2 22 3 24 10 2 8-6 15-17 16-10 1-19-2-22-8z" fill="#C97038"/>
+<path d="M15 32c-1-5 5-10 13-11 9-1 16 2 18 7-9-1-22 0-31 4z" fill="#DE8A50"/>
+<path d="M9 33c-3-2-5-5-4-7 3-1 6 1 7 4zM50 25c3-3 7-3 8-1-1 3-4 5-7 4z" fill="#9C5427"/>
+<path d="M27 15c-1-5 2-9 6-10 1 4-1 8-4 10z" fill="#3F7A4E"/>`)}
+${s('carrot', `<ellipse cx="30" cy="53" rx="13" ry="3.4" fill="#00000012"/>
+<path d="M30 52c-2 0-3-2-4-5l-6-27c-1-4 4-7 10-7s11 3 10 7l-6 27c-1 3-2 5-4 5z" fill="#E9963E"/>
+<path d="M26 20c3-1 5-1 8 0l-4 26z" fill="#F4B472"/>
+<g stroke="#CF7C29" stroke-width="1.3" stroke-linecap="round"><path d="M23 22h5M32 26h5M25 31h4M31 36h4"/></g>
+<path d="M30 13c-2-6 1-10 5-11 1 5-1 9-3 11zM30 13c-3-5-7-6-10-4 2 4 6 6 9 5zM30 13c1-6 5-8 8-7-1 4-4 7-7 7z" fill="#3F7A4E"/>`)}
+${s('kalabasa', `<ellipse cx="30" cy="52" rx="20" ry="3.4" fill="#00000012"/>
+<ellipse cx="30" cy="36" rx="22" ry="16" fill="#E08A32"/>
+<ellipse cx="30" cy="36" rx="9" ry="16" fill="#F2A957"/>
+<ellipse cx="14" cy="36" rx="6.5" ry="13.5" fill="#CE7A26"/>
+<ellipse cx="46" cy="36" rx="6.5" ry="13.5" fill="#CE7A26"/>
+<path d="M27 20h6l-1 4h-4z" fill="#4A6B2E"/><rect x="26" y="14" width="8" height="8" rx="3" fill="#3F7A4E"/>
+<path d="M36 17c5-3 9-1 9 2-3 2-7 2-9-2z" fill="#4E9060"/>`)}
+${s('sayote', `<ellipse cx="30" cy="52" rx="15" ry="3.4" fill="#00000012"/>
+<path d="M30 12c11 0 18 11 18 22 0 11-7 18-18 18s-18-7-18-18c0-11 7-22 18-22z" fill="#8FB35C"/>
+<path d="M30 18c6 0 11 8 11 17 0 8-4 12-11 12s-11-4-11-12c0-9 5-17 11-17z" fill="#A9C97C"/>
+<g stroke="#7A9C4A" stroke-width="1.6" stroke-linecap="round" fill="none"><path d="M24 26c2 8 2 14 0 20M36 26c-2 8-2 14 0 20M30 24v24"/></g>
+<path d="M28 12c0-3 4-3 4 0z" fill="#5F7F3A"/>`)}
+${s('chicken', `<ellipse cx="30" cy="52" rx="17" ry="3.4" fill="#00000012"/>
+<path d="M13 33c2-9 12-14 23-13 10 1 15 7 13 14-2 8-13 12-24 10-9-2-14-6-12-11z" fill="#EBD3B0"/>
+<path d="M18 31c3-5 10-8 18-7-6 2-13 5-18 7z" fill="#F7E7CE"/>
+<path d="M44 40c5 1 8 4 7 7-3 2-7 0-9-4z" fill="#D9B98E"/>
+<g stroke="#D9B98E" stroke-width="1.4" stroke-linecap="round"><path d="M20 38c5 1 10 1 15 0M22 43c5 1 9 1 13 0"/></g>`)}
+${s('avocado', `<ellipse cx="30" cy="53" rx="16" ry="3.4" fill="#00000012"/>
+<path d="M30 9c11 0 19 12 19 26 0 11-8 18-19 18s-19-7-19-18C11 21 19 9 30 9z" fill="#3F7A4E"/>
+<path d="M30 15c8 0 14 10 14 21 0 8-6 13-14 13s-14-5-14-13c0-11 6-21 14-21z" fill="#A9C97C"/>
+<ellipse cx="30" cy="35" rx="8.5" ry="9.5" fill="#8A5A2B"/><ellipse cx="27.5" cy="32" rx="3" ry="3.4" fill="#A67340"/>
+<path d="M30 9c-1-4 1-6 3-6 1 3 0 5-2 6z" fill="#5F7F3A"/>`)}
+${s('liver', `<ellipse cx="30" cy="51" rx="19" ry="3.4" fill="#00000012"/>
+<path d="M10 28c5-11 22-14 33-8 8 4 8 16 0 22-10 8-27 7-33-2-3-4-3-8 0-12z" fill="#8E3220"/>
+<path d="M17 28c5-5 15-7 22-3-5 6-16 9-22 3z" fill="#B04A32"/>
+<path d="M43 20c4-2 8 0 8 3-3 2-7 2-8-3z" fill="#7A2717"/>
+<path d="M22 40c6 2 13 2 18-1" stroke="#7A2717" stroke-width="1.6" fill="none" stroke-linecap="round"/>`)}
+${s('banana', `<ellipse cx="32" cy="52" rx="18" ry="3.4" fill="#00000012"/>
+<path d="M12 15c3 20 16 32 34 32 3 0 4-3 2-5-15-4-25-13-28-28-1-3-8-2-8 1z" fill="#F0C64E"/>
+<path d="M17 19c4 15 13 24 26 27-13 0-24-10-26-27z" fill="#F9DC86"/>
+<path d="M46 47c4 0 6 1 6 3-2 1-5 1-6-3z" fill="#C9A02F"/>
+<path d="M12 15c-3-3-3-6-1-7 2 1 3 4 1 7z" fill="#6B5A2A"/>`)}
+${s('papaya', `<ellipse cx="30" cy="52" rx="18" ry="3.4" fill="#00000012"/>
+<path d="M30 9c12 0 21 12 21 25s-9 21-21 21S9 47 9 34 18 9 30 9z" fill="#E08A32"/>
+<path d="M30 16c8 0 14 9 14 19s-6 15-14 15-14-5-14-15 6-19 14-19z" fill="#F2A957"/>
+<g fill="#3A3684"><circle cx="30" cy="30" r="2.6"/><circle cx="25" cy="36" r="2.6"/><circle cx="35" cy="36" r="2.6"/><circle cx="30" cy="42" r="2.6"/><circle cx="25" cy="27" r="2"/><circle cx="35" cy="27" r="2"/></g>
+<path d="M28 9c0-3 4-3 4 0z" fill="#4E9060"/>`)}
+${s('egg', `<ellipse cx="28" cy="53" rx="15" ry="3.4" fill="#00000012"/>
+<ellipse cx="27" cy="32" rx="18" ry="22" fill="#FCF6E9"/>
+<ellipse cx="22" cy="24" rx="6" ry="8" fill="#FFFDF7"/>
+<ellipse cx="45" cy="38" rx="13" ry="14" fill="#F6EEDD"/>
+<circle cx="45" cy="38" r="7" fill="#E9963E"/><circle cx="43" cy="36" r="2.6" fill="#F4B472"/>`)}
+${s('peanut', `<ellipse cx="30" cy="53" rx="16" ry="3.4" fill="#00000012"/>
+<path d="M22 10c7 0 11 5 11 10 0 4-2 6-2 9s2 5 2 9c0 6-5 11-11 11S11 44 11 38c0-4 2-6 2-9s-2-5-2-9c0-5 4-10 11-10z" transform="translate(6,0)" fill="#D9A05B"/>
+<g stroke="#B98B44" stroke-width="1.2" fill="none"><path d="M22 18c5 2 8 2 13 0M21 30c5 2 9 2 14 0M22 42c5 2 8 2 13 0"/></g>
+<ellipse cx="47" cy="42" rx="7" ry="9" transform="rotate(24 47 42)" fill="#E8C9A0"/>
+<path d="M44 37c3-1 5 0 6 2-2 2-5 1-6-2z" fill="#C08840"/>`)}
+${s('malunggay', `<ellipse cx="30" cy="53" rx="15" ry="3.4" fill="#00000012"/>
+<path d="M30 53V12" stroke="#3F7A4E" stroke-width="2.6" stroke-linecap="round"/>
+<g fill="#4E9060"><ellipse cx="20" cy="20" rx="7.5" ry="5.5" transform="rotate(-18 20 20)"/><ellipse cx="40" cy="25" rx="7.5" ry="5.5" transform="rotate(18 40 25)"/>
+<ellipse cx="19" cy="32" rx="7.5" ry="5.5" transform="rotate(-14 19 32)"/><ellipse cx="41" cy="37" rx="7.5" ry="5.5" transform="rotate(14 41 37)"/>
+<ellipse cx="21" cy="43" rx="6.5" ry="4.8" transform="rotate(-10 21 43)"/><ellipse cx="30" cy="13" rx="6.5" ry="5"/></g>
+<g fill="#6FA97F"><ellipse cx="18" cy="19" rx="3" ry="2.2" transform="rotate(-18 18 19)"/><ellipse cx="38" cy="24" rx="3" ry="2.2" transform="rotate(18 38 24)"/></g>`)}
+${s('fish', `<ellipse cx="30" cy="50" rx="21" ry="3.4" fill="#00000012"/>
+<path d="M7 30c9-11 27-13 38-5l8-7-2 12 2 12-8-7C34 43 16 41 7 30z" fill="#7C93A8"/>
+<path d="M11 30c8-8 22-10 31-5-9 6-23 8-31 5z" fill="#9FB2C2"/>
+<circle cx="41" cy="26" r="2.6" fill="#2A1E19"/><circle cx="42" cy="25" r=".9" fill="#fff"/>
+<path d="M24 22c5 5 5 11 0 16" stroke="#63798C" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+<path d="M26 17c4-4 9-3 11 0-4 1-8 1-11 0z" fill="#63798C"/>`)}
+${s('dilis', `<ellipse cx="30" cy="50" rx="22" ry="3.4" fill="#00000012"/>
+<g fill="#9FB2C2"><path d="M5 22c8-6 19-6 25-1l6-4-1 5 1 5-6-4c-6 5-17 5-25-1z"/>
+<path d="M22 38c8-6 19-6 25-1l6-4-1 5 1 5-6-4c-6 5-17 5-25-1z"/></g>
+<g fill="#B9C8D4"><path d="M9 22c6-4 14-4 19-1-6 3-14 4-19 1zM26 38c6-4 14-4 19-1-6 3-14 4-19 1z"/></g>
+<g fill="#2A1E19"><circle cx="27" cy="20" r="1.7"/><circle cx="44" cy="36" r="1.7"/></g>`)}
+${s('meat', `<ellipse cx="30" cy="51" rx="19" ry="3.4" fill="#00000012"/>
+<path d="M11 30c4-10 18-14 30-10 9 3 11 14 3 20-9 7-25 7-32 0-3-3-3-7-1-10z" fill="#B04A32"/>
+<path d="M18 29c5-5 15-7 22-3-6 5-16 7-22 3z" fill="#CB6549"/>
+<g fill="#E8C9A0" opacity=".75"><ellipse cx="24" cy="36" rx="4" ry="2.2" transform="rotate(-12 24 36)"/><ellipse cx="35" cy="33" rx="3.4" ry="2" transform="rotate(8 35 33)"/><ellipse cx="30" cy="41" rx="3" ry="1.8"/></g>`)}
+${s('yogurt', `<ellipse cx="30" cy="53" rx="16" ry="3.4" fill="#00000012"/>
+<path d="M15 22h30l-3 27a5 5 0 0 1-5 4H23a5 5 0 0 1-5-4z" fill="#FCF6E9"/>
+<path d="M18 22h24l-2 20a4 4 0 0 1-4 3h-12a4 4 0 0 1-4-3z" fill="#F2ECDC"/>
+<rect x="12" y="15" width="36" height="9" rx="4" fill="#3A3684"/>
+<path d="M24 32c4-3 10-3 13 0" stroke="#E3DAC5" stroke-width="2" fill="none" stroke-linecap="round"/>`)}
+${s('oats', `<ellipse cx="30" cy="52" rx="20" ry="3.4" fill="#00000012"/>
+<path d="M8 34h44a22 13 0 0 1-44 0z" fill="#E3D6BC"/>
+<ellipse cx="30" cy="34" rx="22" ry="8" fill="#F2E7D2"/>
+<g fill="#D9C4A0"><ellipse cx="22" cy="32" rx="4.6" ry="2.8" transform="rotate(-20 22 32)"/><ellipse cx="34" cy="35" rx="4.6" ry="2.8" transform="rotate(14 34 35)"/>
+<ellipse cx="41" cy="31" rx="4" ry="2.4" transform="rotate(-8 41 31)"/><ellipse cx="27" cy="37" rx="4" ry="2.4" transform="rotate(22 27 37)"/></g>
+<g fill="#C9B48E"><ellipse cx="50" cy="45" rx="4" ry="2.4" transform="rotate(28 50 45)"/><ellipse cx="12" cy="45" rx="4" ry="2.4" transform="rotate(-24 12 45)"/></g>`)}
+${s('pasta', `<ellipse cx="30" cy="52" rx="19" ry="3.4" fill="#00000012"/>
+<g fill="none" stroke="#F0C64E" stroke-width="8" stroke-linecap="round">
+<path d="M14 24a9 9 0 0 1 15 6"/><path d="M33 34a9 9 0 0 1 15 6"/><path d="M34 16a9 9 0 0 1 14 6"/></g>
+<g fill="none" stroke="#DFAF33" stroke-width="2.6" stroke-linecap="round">
+<path d="M15 25a9 9 0 0 1 12 5"/><path d="M35 17a9 9 0 0 1 11 5"/></g>
+<g fill="none" stroke="#F0C64E" stroke-width="8" stroke-linecap="round"><path d="M12 42a9 9 0 0 1 15 5"/></g>`)}
+${s('tofu', `<ellipse cx="30" cy="52" rx="18" ry="3.4" fill="#00000012"/>
+<path d="M10 26l20-9 20 9v16l-20 9-20-9z" fill="#F2ECDC"/>
+<path d="M10 26l20 9 20-9-20-9z" fill="#FCF6E9"/>
+<path d="M30 35v16l-20-9V26z" fill="#E6DDC8"/>
+<path d="M36 30l10-4.5v9L36 39z" fill="#FFFDF7" opacity=".6"/>`)}
+${s('tahini', `<ellipse cx="30" cy="53" rx="15" ry="3.4" fill="#00000012"/>
+<path d="M18 24h24l-2 25a5 5 0 0 1-5 4H25a5 5 0 0 1-5-4z" fill="#E8C9A0"/>
+<path d="M21 24h18l-2 19a3 3 0 0 1-3 3h-8a3 3 0 0 1-3-3z" fill="#F2DCBE"/>
+<rect x="15" y="16" width="30" height="9" rx="4" fill="#8A5A2B"/>
+<g fill="#C9A96F"><ellipse cx="24" cy="34" rx="2.4" ry="1.5"/><ellipse cx="33" cy="38" rx="2.4" ry="1.5"/><ellipse cx="29" cy="31" rx="2" ry="1.3"/></g>`)}
+${s('nut', `<ellipse cx="30" cy="52" rx="16" ry="3.4" fill="#00000012"/>
+<path d="M18 14c9-3 20 2 24 12 3 8-2 17-11 20-8 3-16-1-16-7 0-5 6-6 10-9 4-3 5-8 1-11-4-3-11-2-8-5z" fill="#D9A05B"/>
+<path d="M22 19c7-1 14 4 16 11-5-5-11-9-16-11z" fill="#E8C090"/>
+<path d="M20 40c4-2 8-1 9 2-3 2-7 2-9-2z" fill="#B98B44"/>`)}
+${s('shrimp', `<ellipse cx="30" cy="52" rx="17" ry="3.4" fill="#00000012"/>
+<path d="M44 12c-16 0-26 9-26 20 0 9 8 15 16 15 3 0 5-2 4-4-1-2-3-2-6-2-5 0-9-4-9-9 0-7 8-13 19-13z" fill="#E8845E"/>
+<path d="M42 17c-12 1-19 7-19 15 0 4 2 7 5 8-2-3-3-5-3-8 0-7 7-13 17-15z" fill="#F2A88C"/>
+<circle cx="42" cy="16" r="2.4" fill="#2A1E19"/>
+<path d="M46 10c4-2 8-1 9 2-3 2-7 2-9-2z" fill="#D06A4E"/>
+<path d="M35 45c4 2 7 5 6 8-4 0-7-3-8-6z" fill="#D06A4E"/>`)}
+${s('monggo', `<ellipse cx="30" cy="52" rx="18" ry="3.4" fill="#00000012"/>
+<path d="M9 27c10-8 30-8 42 0-2 8-12 13-21 13S11 35 9 27z" fill="#6B9B58"/>
+<path d="M13 28c9-6 25-6 34 0-9 4-25 4-34 0z" fill="#8FB874"/>
+<g fill="#4E9060"><ellipse cx="20" cy="43" rx="6" ry="4.4" transform="rotate(-18 20 43)"/><ellipse cx="32" cy="45" rx="6" ry="4.4" transform="rotate(12 32 45)"/><ellipse cx="43" cy="42" rx="5.4" ry="4" transform="rotate(-8 43 42)"/></g>
+<g fill="#7FAE72"><ellipse cx="19" cy="42" rx="2.4" ry="1.7" transform="rotate(-18 19 42)"/><ellipse cx="31" cy="44" rx="2.4" ry="1.7"/></g>`)}
+${s('mango', `<ellipse cx="30" cy="53" rx="17" ry="3.4" fill="#00000012"/>
+<path d="M40 11c9 5 13 17 8 28-5 12-18 18-27 14-8-4-9-16-4-27 5-11 14-19 23-15z" fill="#E9963E"/>
+<path d="M37 19c5 4 6 13 2 21-4 8-11 12-16 10 7-2 12-9 14-17 1-6 1-11 0-14z" fill="#F4B472"/>
+<path d="M43 11c1-4-1-6-4-6 0 3 1 5 4 6z" fill="#4E9060"/>
+<path d="M17 41c4 3 9 3 13 1" stroke="#D07E29" stroke-width="1.6" fill="none" stroke-linecap="round"/>`)}
+${s('lugaw', `<ellipse cx="30" cy="52" rx="21" ry="3.4" fill="#00000012"/>
+<path d="M7 32h46a23 14 0 0 1-46 0z" fill="#E3D6BC"/>
+<ellipse cx="30" cy="32" rx="23" ry="8.5" fill="#FCF6E9"/>
+<ellipse cx="30" cy="31" rx="17" ry="5.5" fill="#F2ECDC"/>
+<path d="M18 30c7-4 17-4 24 0" stroke="#E3D6BC" stroke-width="2" fill="none" stroke-linecap="round"/>
+<path d="M46 14c4 0 6 3 6 6s-2 5-5 5l1 12" stroke="#B9A88F" stroke-width="2.6" fill="none" stroke-linecap="round"/>`)}
 ${s('cut-puree', `<ellipse cx="34" cy="40" rx="26" ry="7" fill="#00000010"/>
 <path d="M8 26h52a26 15 0 0 1-52 0z" fill="var(--c2,#E09355)"/>
 <ellipse cx="34" cy="26" rx="26" ry="8" fill="var(--c1,#D4763C)"/>
