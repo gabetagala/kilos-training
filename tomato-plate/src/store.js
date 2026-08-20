@@ -9,7 +9,7 @@ const today = (d = new Date()) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
 const DEFAULT = {
-  profile: { name: '', birthdate: '', startDate: today(), preTried: [] },
+  profile: { name: '', birthdate: '', startDate: today(), preTried: [], pin: null, trusted: false },
   // { [isoDate]: { [mealOrFoodId]: { verdict:'up'|'down', amount, note, foods:[], ts } } }
   log: {},
   // { [foodId]: { exposures, lastServed, liked } }
@@ -136,6 +136,50 @@ export function notesFor(foodId) {
     }
   }
   return out.sort((a, b) => (a.date < b.date ? 1 : -1))
+}
+
+/**
+ * A 6-digit PIN, stored as a salted SHA-256 hash.
+ *
+ * Be clear about what this is: a privacy screen so a phone handed to someone
+ * else does not open straight onto the log. It is NOT encryption — the entries
+ * themselves sit in localStorage in the clear, and anyone with the unlocked
+ * device and a browser console can read them.
+ */
+const enc = new TextEncoder()
+async function hashPin(pin, salt) {
+  const buf = await crypto.subtle.digest('SHA-256', enc.encode(`${salt}:${pin}`))
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+export async function setPin(pin) {
+  const salt = [...crypto.getRandomValues(new Uint8Array(8))].map((b) => b.toString(16).padStart(2, '0')).join('')
+  state.profile.pin = { salt, hash: await hashPin(pin, salt) }
+  state.profile.trusted = true
+  persist()
+}
+
+/**
+ * This device stays unlocked once the PIN has been entered here — no asking
+ * again every time the app opens. Locking is deliberate: `lock()` before
+ * handing the phone over.
+ */
+export const isTrusted = () => Boolean(state.profile.trusted)
+export function trust() { state.profile.trusted = true; persist() }
+export function lock() { state.profile.trusted = false; persist() }
+
+export async function verifyPin(pin) {
+  const rec = state.profile.pin
+  if (!rec) return true
+  return (await hashPin(pin, rec.salt)) === rec.hash
+}
+
+export const hasPin = () => Boolean(state.profile.pin)
+
+export function clearPin() {
+  state.profile.pin = null
+  state.profile.trusted = false
+  persist()
 }
 
 export function reset() {

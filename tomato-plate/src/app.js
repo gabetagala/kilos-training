@@ -22,7 +22,8 @@ const MEAL_ORDER = ['breakfast', 'snack', 'lunch', 'dinner']
 const TITLE = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' }
 
 let view = { tab: 'today', food: null, age: null, sheet: null, openMeal: null, filter: 'all',
-  ob: { name: '', birthdate: '', startDate: '' }, pretried: new Set() }
+  ob: { name: '', birthdate: '', startDate: '' }, pretried: new Set(),
+  pin: null, unlocked: false }
 
 /* ── derived ─────────────────────────────────────────────────────────────── */
 const today = () => {
@@ -354,6 +355,7 @@ function screenBaby() {
       <div style="font-size:14px;font-weight:800">${milk.feeds} feeds a day · ${milk.meals} meal${milk.meals > 1 ? 's' : ''}</div>
       <div class="soft" style="font-size:11px;margin-top:3px">${esc(milk.note)}</div></div>
     <div class="note"><b style="color:var(--ink)">Not a reaction:</b> ${esc(REACTION.notReaction)}</div>
+    ${store.hasPin() ? '<button class="btn ghost" data-lock>Lock the app</button>' : ''}
     <button class="btn ghost" data-export>Export the log</button>
     <button class="buildstamp" data-update>${esc(BUILD)} · tap to update</button>
   </div>`
@@ -401,6 +403,15 @@ function screenOnboard() {
         ${icon(FOODS[id].art, 34)}<b>${esc(FOODS[id].name)}</b></button>`).join('')}</div>
     </div>
 
+    <div class="ob-card ob-pin">
+      <div>
+        <div style="font-size:14px;font-weight:650">${view.ob.pin ? 'PIN set' : 'Lock it with a PIN?'}</div>
+        <div class="soft" style="font-size:12.5px;margin-top:3px;line-height:1.45">${view.ob.pin
+          ? 'Set. This device stays unlocked — use “Lock the app” on his page before handing the phone over.'
+          : 'Optional. Six digits, entered once on this device — then it only asks again if you lock it deliberately.'}</div>
+      </div>
+      <button class="btn ghost" data-pin-start style="width:auto;padding:12px 18px;white-space:nowrap">${view.ob.pin ? 'Change' : 'Set PIN'}</button>
+    </div>
     <button class="btn ${ready ? '' : 'disabled'}" data-onboard>${ready ? 'Start the plan' : 'Add his birthday to start'}</button>
     <p class="ob-legal">Not medical advice. Always follow your pediatrician's guidance.</p>
   </div>`
@@ -493,39 +504,88 @@ function sheetReaction() {
 const TABS = [['today', 'Today'], ['foods', 'Foods'], ['baby', 'Baby']]
 const SCROLL_MEM = {}
 
+/**
+ * iOS-style PIN pad. Six dots that fill as you type and a numeric keypad —
+ * no keyboard, no password field, nothing to mistype invisibly.
+ */
+function pinPad({ title, sub, entered, error, showCancel, cancelLabel }) {
+  const dots = Array.from({ length: 6 }, (_, i) =>
+    `<span class="pin-dot ${i < entered.length ? 'on' : ''}"></span>`).join('')
+  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del']
+  return `<div class="scroll pinscreen">
+    <div class="pin-head">
+      ${icon('logo', 44)}
+      <h2>${esc(title)}</h2>
+      <p class="pin-sub">${sub}</p>
+    </div>
+    <div class="pin-dots ${error ? 'shake' : ''}">${dots}</div>
+    <p class="pin-err">${error ? esc(error) : ''}</p>
+    <div class="pin-pad">
+      ${keys.map((k) => k === ''
+        ? '<span></span>'
+        : `<button class="pin-key ${k === 'del' ? 'del' : ''}" data-pin="${k}">${k === 'del' ? '⌫' : k}</button>`).join('')}
+    </div>
+    ${showCancel ? `<button class="link pin-cancel" data-pin-cancel>${esc(cancelLabel || 'Skip for now')}</button>` : ''}
+  </div>`
+}
+
+/** Setting a PIN during onboarding: enter, then confirm. */
+function screenPinSet() {
+  const p = view.pin
+  const confirming = p.first !== null
+  return pinPad({
+    title: confirming ? 'Confirm your PIN' : 'Set a 6-digit PIN',
+    sub: confirming
+      ? 'Enter the same six digits again.'
+      : 'Entered once on this device, then only when you lock it yourself.<br><small>A privacy screen, not encryption — the entries are still readable on an unlocked phone.</small>',
+    entered: p.entry, error: p.error, showCancel: true,
+    cancelLabel: confirming ? 'Start over' : 'Skip — no PIN',
+  })
+}
+
+/** Unlocking on open. */
+function screenLock() {
+  return pinPad({
+    title: `${esc(store.get().profile.name || 'Baby')}\u2019s plate`,
+    sub: 'Enter your PIN',
+    entered: view.pin?.entry || '', error: view.pin?.error,
+    showCancel: true, cancelLabel: 'Forgot your PIN?',
+  })
+}
+
 /** The body HTML for a tab — the pager needs to build the neighbour screen. */
 function screenFor(tab) {
   return tab === 'foods' ? screenFoods() : tab === 'baby' ? screenBaby() : screenToday()
 }
 
 function render() {
-  // Same stage wrapper as every other screen, so .scroll always has its
-  // positioned containing block.
-  if (!store.isOnboarded()) { app.innerHTML = `<div class="stage">${screenOnboard()}</div>`; return }
-  const body = view.food ? screenFood(view.food) : screenFor(view.tab)
-  const bar = view.food ? '' : `<nav class="tabbar">${TABS.map(([id, label]) =>
-    `<button data-tab="${id}" class="${view.tab === id ? 'on' : ''}">${label}</button>`).join('')}</nav>`
-  // Remember where the reader was on each screen, so returning from a food
-  // detail lands back at the card they tapped instead of at the top.
+  // Scroll memory covers EVERY screen including onboarding — without it,
+  // tapping an already-tried chip re-rendered and threw you back to the top.
   const prevKey = app.dataset.screen
-  const key = view.food ? `food:${view.food}` : view.tab
+  const key = view.pin?.mode ? 'pin' : !store.isOnboarded() ? 'onboard' : store.hasPin() && !store.isTrusted() && !view.unlocked ? 'lock' : view.food ? `food:${view.food}` : view.tab
   if (prevKey) SCROLL_MEM[prevKey] = app.querySelector('.scroll')?.scrollTop || 0
   const keep = SCROLL_MEM[key] || 0
 
-  let sheetEl = !view.sheet ? '' : view.sheet.kind === 'reaction' ? sheetReaction() : view.sheet.kind === 'hands' ? sheetHands() : view.sheet.kind === 'swap' ? sheetSwap(view.sheet) : sheetLog(view.sheet)
-  if (sheetEl && !view.sheet._shown) { sheetEl = sheetEl.replace('class="scrim"', 'class="scrim enter"'); view.sheet._shown = true }
-  app.innerHTML = `<div class="stage">${body}</div>` + bar + sheetEl
-  app.dataset.screen = key
-  // innerHTML rebuilds the scroller, so put the reader back where they were —
-  // otherwise every tap below the fold snaps the page to the top. Deferred a
-  // frame: assigning scrollTop before layout settles silently clamps to 0.
-  if (keep) {
-    const sc = app.querySelector('.scroll')
-    if (sc) {
-      sc.scrollTop = keep
-      requestAnimationFrame(() => { sc.scrollTop = keep })
+  const paint = (html) => {
+    app.innerHTML = html
+    app.dataset.screen = key
+    if (keep) {
+      const sc = app.querySelector('.scroll')
+      if (sc) { sc.scrollTop = keep; requestAnimationFrame(() => { sc.scrollTop = keep }) }
     }
   }
+
+  if (view.pin?.mode === 'set') return paint(`<div class="stage">${screenPinSet()}</div>`)
+  if (!store.isOnboarded()) return paint(`<div class="stage">${screenOnboard()}</div>`)
+  if (store.hasPin() && !store.isTrusted() && !view.unlocked) return paint(`<div class="stage">${screenLock()}</div>`)
+
+  const body = view.food ? screenFood(view.food) : screenFor(view.tab)
+  const bar = view.food ? '' : `<nav class="tabbar">${TABS.map(([id, label]) =>
+    `<button data-tab="${id}" class="${view.tab === id ? 'on' : ''}">${label}</button>`).join('')}</nav>`
+
+  let sheetEl = !view.sheet ? '' : view.sheet.kind === 'reaction' ? sheetReaction() : view.sheet.kind === 'hands' ? sheetHands() : view.sheet.kind === 'swap' ? sheetSwap(view.sheet) : sheetLog(view.sheet)
+  if (sheetEl && !view.sheet._shown) { sheetEl = sheetEl.replace('class="scrim"', 'class="scrim enter"'); view.sheet._shown = true }
+  paint(`<div class="stage">${body}</div>` + bar + sheetEl)
 }
 
 app.addEventListener('click', (e) => {
@@ -561,6 +621,58 @@ app.addEventListener('click', (e) => {
   if (hit('[data-tab]')) { view.tab = hit('[data-tab]').dataset.tab; view.food = null; return render() }
   if (hit('[data-back]')) { view.food = null; return render() }
   if (hit('[data-hands]')) { view.sheet = { kind: 'hands' }; return render() }
+
+  // ── PIN entry ───────────────────────────────────────────────────────────
+  if (hit('[data-pin-start]')) { view.pin = { mode: 'set', entry: '', first: null, error: null }; return render() }
+  if (hit('[data-lock]')) { store.lock(); view.unlocked = false; view.pin = null; view.tab = 'today'; return render() }
+  if (hit('[data-pin-cancel]')) {
+    if (view.pin?.mode === 'set') {
+      // Mid-confirm this restarts; on the first screen it skips the PIN entirely.
+      view.pin = view.pin.first !== null ? { mode: 'set', entry: '', first: null, error: null } : null
+      return render()
+    }
+    // Unlock screen: honest about what a reset can and cannot do.
+    if (confirm('Clear the PIN?\n\nThe log itself is not encrypted, so this only removes the lock screen — nothing is deleted.')) {
+      store.clearPin(); view.unlocked = true; view.pin = null; return render()
+    }
+    return
+  }
+  const kp = hit('[data-pin]')
+  if (kp) {
+    view.pin ??= { entry: '', error: null }
+    const k = kp.dataset.pin
+    if (k === 'del') { view.pin.entry = view.pin.entry.slice(0, -1); view.pin.error = null; return render() }
+    if (view.pin.entry.length >= 6) return
+    view.pin.entry += k
+    view.pin.error = null
+    if (view.pin.entry.length < 6) return render()
+
+    const entered = view.pin.entry
+    if (view.pin.mode === 'set') {
+      if (view.pin.first === null) {
+        view.pin = { mode: 'set', entry: '', first: entered, error: null }
+        return render()
+      }
+      if (view.pin.first !== entered) {
+        view.pin = { mode: 'set', entry: '', first: null, error: 'Those did not match. Start again.' }
+        return render()
+      }
+      store.setPin(entered).then(() => {
+        view.ob.pin = true
+        view.pin = null
+        view.unlocked = true
+        render()
+      })
+      return render()
+    }
+    // unlocking
+    store.verifyPin(entered).then((ok) => {
+      if (ok) { store.trust(); view.unlocked = true; view.pin = null }
+      else view.pin = { entry: '', error: 'Wrong PIN' }
+      render()
+    })
+    return render()
+  }
   if (hit('[data-filter]')) { view.filter = hit('[data-filter]').dataset.filter; return render() }
   if (hit('[data-pretried]')) {
     const id = hit('[data-pretried]').dataset.pretried
