@@ -1,0 +1,237 @@
+{
+  "amorita-resort": {
+    "file": "amorita-resort.jpg",
+    "attribution": "Amorita Resort",
+    "attributionUri": "https://maps.google.com/maps/contrib/113492082125330875071"
+  },
+  "club-punta-fuego": {
+    "file": "club-punta-fuego.jpg",
+    "attribution": "Tourism Philippines",
+    "attributionUri": "https://maps.google.com/maps/contrib/112249586447140286691"
+  },
+  "kahuna-beach-resort-and-spa": {
+    "file": "kahuna-beach-resort-and-spa.jpg",
+    "attribution": "Kahuna Beach Resort and Spa",
+    "attributionUri": "https://maps.google.com/maps/contrib/116387477385293265460"
+  },
+  "shangri-la-boracay": {
+    "file": "shangri-la-boracay.jpg",
+    "attribution": "Mark Donald",
+    "attributionUri": "https://maps.google.com/maps/contrib/116794500948371485117"
+  },
+  "shangri-la-mactan-cebu": {
+    "file": "shangri-la-mactan-cebu.jpg",
+    "attribution": "Shangri-La Mactan",
+    "attributionUri": "https://maps.google.com/maps/contrib/112416286749388645328"
+  },
+  "balay-indang": {
+    "file": "balay-indang.jpg",
+    "attribution": "Gerly Cortez",
+    "attributionUri": "https://maps.google.com/maps/contrib/113350646208899562696"
+  },
+  "bantug-lake-ranch": {
+    "file": "bantug-lake-ranch.jpg",
+    "attribution": "Eight",
+    "attributionUri": "https://maps.google.com/maps/contrib/100962938131459246272"
+  },
+  "circa-1900": {
+    "file": "circa-1900.jpg",
+    "attribution": "Circa 1900",
+    "attributionUri": "https://maps.google.com/maps/contrib/112208530783353446418"
+  },
+  "feliza-jazz-grand-pavilion": {
+    "file": "feliza-jazz-grand-pavilion.jpg",
+    "attribution": "Yohan Salamat (Hanz.)",
+    "attributionUri": "https://maps.google.com/maps/contrib/108947145700549551163"
+  },
+  "la-chandelle-events-place": {
+    "file": "la-chandelle-events-place.jpg",
+    "attribution": "Sherard Yu",
+    "attributionUri": "https://maps.google.com/maps/contrib/115486065900676938265"
+  },
+  "mithi-resort-and-spa": {
+    "file": "mithi-resort-and-spa.jpg",
+    "attribution": "Mithi Resort and Spa",
+    "attributionUri": "https://maps.google.com/maps/contrib/117218220057355769767"
+  },
+  "serenescapes-bed-and-breakfast": {
+    "file": "serenescapes-bed-and-breakfast.jpg",
+    "attribution": "Serenescapes Bed and Breakfast",
+    "attributionUri": "https://maps.google.com/maps/contrib/102323922132726834156"
+  },
+  "the-emerald-events-place": {
+    "file": "the-emerald-events-place.jpg",
+    "attribution": "Janz Halley Valdellon",
+    "attributionUri": "https://maps.google.com/maps/contrib/111125629231962900978"
+  },
+  "the-mango-farm-events-place": {
+    "file": "the-mango-farm-events-place.jpg",
+    "attribution": "The Mango Farm Events Place",
+    "attributionUri": "https://maps.google.com/maps/contrib/115590385334500435411"
+  },
+  "conrad-manila": {
+    "file": "conrad-manila.jpg",
+    "attribution": "Conrad Manila",
+    "attributionUri": "https://maps.google.com/maps/contrib/112704623881678749542"
+  },
+  "fernwood-gardens": {
+    "file": "fernwood-gardens.jpg",
+    "attribution": "Ryan Angat",
+    "attributionUri": "https://maps.google.com/maps/contrib/107921435312822968043"
+  },
+  "gazebo-royale": {
+    "file": "gazebo-royale.jpg",
+    "attribution": "Cesar Pascual",
+    "attributionUri": "https://maps.google.com/maps/contrib/103865465225337332581"
+  },
+  "oasis-manila": {
+    "file": "oasis-manila.jpg",
+    "attribution": "Oasis Manila",
+    "attributionUri": "https://maps.google.com/maps/contrib/113176712755696313752"
+  },
+  "palacio-de-maynila": {
+    "file": "palacio-de-maynila.jpg",
+    "attribution": "Palacio de Maynila",
+    "attributionUri": "https://maps.google.com/maps/contrib/106595244986398048335"
+  },
+  "plaza-ibarra": {
+    "file": "plaza-ibarra.jpg",
+    "attribution": "Plaza Ibarra",
+    "attributionUri": "https://maps.google.com/maps/contrib/112802896914605804513"
+  },
+  "the-blue-leaf-cosmopolitan": {
+    "file": "the-blue-leaf-cosmopolitan.jpg",
+    "attribution": "The Blue Leaf Cosmopolitan",
+    "attributionUri": "https://maps.google.com/maps/contrib/112501521487573087874"
+  },
+  "the-blue-leaf-events-pavilion": {
+    "file": "the-blue-leaf-events-pavilion.jpg",
+    "attribution": "The Blue Leaf Events Pavilion",
+    "attributionUri": "https://maps.google.com/maps/contrib/105787413992295330613"
+  },
+  "the-manila-hotel": {
+    "file": "the-manila-hotel.jpg",
+    "attribution": "ボラカイ島 ハッピーウェディングフォト",
+    "attributionUri": "https://maps.google.com/maps/contrib/101957055893656356911"
+  },
+  "whitespace-manila": {
+    "file": "whitespace-manila.jpg",
+    "attribution": "Eryn",
+    "attributionUri": "https://maps.google.com/maps/contrib/112736508568906610894"
+  },
+  "alta-veranda-de-tibig": {
+    "file": "alta-veranda-de-tibig.jpg",
+    "attribution": "Jan Vincent Francisco",
+    "attributionUri": "https://maps.google.com/maps/contrib/110057374330294292387"
+  },
+  "aquila-crystal-palace": {
+    "file": "aquila-crystal-palace.jpg",
+    "attribution": "Aquila Crystal Palace Tagaytay",
+    "attributionUri": "https://maps.google.com/maps/contrib/105937134572580042043"
+  },
+  "balai-taal": {
+    "file": "balai-taal.jpg",
+    "attribution": "Vicente Bantolo",
+    "attributionUri": "https://maps.google.com/maps/contrib/109161842028594365018"
+  },
+  "farm-hills-garden": {
+    "file": "farm-hills-garden.jpg",
+    "attribution": "Farm Hills Garden",
+    "attributionUri": "https://maps.google.com/maps/contrib/117115802176595990380"
+  },
+  "hillcreek-gardens-tagaytay": {
+    "file": "hillcreek-gardens-tagaytay.jpg",
+    "attribution": "Hillcreek Gardens Tagaytay",
+    "attributionUri": "https://maps.google.com/maps/contrib/104760178164253008115"
+  },
+  "maharlika-events-tagaytay": {
+    "file": "maharlika-events-tagaytay.jpg",
+    "attribution": "Maharlika Events Tagaytay",
+    "attributionUri": "https://maps.google.com/maps/contrib/102941963778507177455"
+  },
+  "sonya-s-garden": {
+    "file": "sonya-s-garden.jpg",
+    "attribution": "Sonya's Garden",
+    "attributionUri": "https://maps.google.com/maps/contrib/105776570569252346745"
+  },
+  "the-glens-tagaytay": {
+    "file": "the-glens-tagaytay.jpg",
+    "attribution": "The Glens",
+    "attributionUri": "https://maps.google.com/maps/contrib/102604338053396031090"
+  },
+  "the-veranda-tagaytay": {
+    "file": "the-veranda-tagaytay.jpg",
+    "attribution": "Jo Maglente",
+    "attributionUri": "https://maps.google.com/maps/contrib/102233251010998339973"
+  },
+  "villa-ibarra": {
+    "file": "villa-ibarra.jpg",
+    "attribution": "Villa Ibarra",
+    "attributionUri": "https://maps.google.com/maps/contrib/116275490260492044104"
+  },
+  "ville-sommet": {
+    "file": "ville-sommet.jpg",
+    "attribution": "Ville Sommet",
+    "attributionUri": "https://maps.google.com/maps/contrib/108999441623057290344"
+  },
+  "el-nido-resorts": {
+    "file": "el-nido-resorts.jpg",
+    "attribution": "이종애",
+    "attributionUri": "https://maps.google.com/maps/contrib/106617473381949630223"
+  },
+  "movenpick-resort-and-spa-boracay": {
+    "file": "movenpick-resort-and-spa-boracay.jpg",
+    "attribution": "Mövenpick Resort & Spa Boracay",
+    "attributionUri": "https://maps.google.com/maps/contrib/111092506212801197097"
+  },
+  "south-palms-resort-panglao": {
+    "file": "south-palms-resort-panglao.jpg",
+    "attribution": "South Palms Resort and Spa Panglao - MGallery Collection",
+    "attributionUri": "https://maps.google.com/maps/contrib/116881359616822941799"
+  },
+  "thunderbird-resorts-poro-point": {
+    "file": "thunderbird-resorts-poro-point.jpg",
+    "attribution": "Thunderbird Resorts and Casinos Poro Point",
+    "attributionUri": "https://maps.google.com/maps/contrib/103227382738717655861"
+  },
+  "bale-de-angeles": {
+    "file": "bale-de-angeles.jpg",
+    "attribution": "Bale De Angeles",
+    "attributionUri": "https://maps.google.com/maps/contrib/110600382506480395655"
+  },
+  "chateau-de-busay": {
+    "file": "chateau-de-busay.jpg",
+    "attribution": "Edens Zulmé",
+    "attributionUri": "https://maps.google.com/maps/contrib/100139248947025739269"
+  },
+  "hacienda-solange": {
+    "file": "hacienda-solange.jpg",
+    "attribution": "Kat Dela Cruz",
+    "attributionUri": "https://maps.google.com/maps/contrib/116703804402247710351"
+  },
+  "leanel-s-garden": {
+    "file": "leanel-s-garden.jpg",
+    "attribution": "Brian Navales",
+    "attributionUri": "https://maps.google.com/maps/contrib/104537766616492792314"
+  },
+  "salome-s-garden": {
+    "file": "salome-s-garden.jpg",
+    "attribution": "Salome's Garden by Chippens",
+    "attributionUri": "https://maps.google.com/maps/contrib/107744927565688831748"
+  },
+  "glass-garden": {
+    "file": "glass-garden.jpg",
+    "attribution": "Glass Garden Events Venue",
+    "attributionUri": "https://maps.google.com/maps/contrib/104930515612439270927"
+  },
+  "light-of-love-events-place": {
+    "file": "light-of-love-events-place.jpg",
+    "attribution": "Light of Love Events Place, Quezon City",
+    "attributionUri": "https://maps.google.com/maps/contrib/115053326198423213044"
+  },
+  "okada-manila": {
+    "file": "okada-manila.jpg",
+    "attribution": "Tay Chin Kwee",
+    "attributionUri": "https://maps.google.com/maps/contrib/110959775857548412027"
+  }
+}

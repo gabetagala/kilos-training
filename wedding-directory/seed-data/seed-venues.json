@@ -1,0 +1,1147 @@
+[
+  {
+    "name": "Acuatico Beach Resort",
+    "area": "Laiya, San Juan, Batangas",
+    "cluster": "beach_destination",
+    "type": "beach_resort",
+    "capacity": null,
+    "starting_rate_php": null,
+    "rate_notes": "No published rate found (searched 2026): resort offers venue-rental-only and with-accommodation wedding packages per TripAdvisor reviews and brideworthy listing, but all pricing is quote-on-inquiry.",
+    "price_public": false,
+    "website": "https://www.acuaticoresort.com.ph",
+    "facebook": null,
+    "sources": [
+      "https://www.brideworthy.com/venues/acuatico-beach-resort/",
+      "https://www.tripadvisor.com/ShowUserReviews-g6620224-d1087789-r670876946-Acuatico_Beach_Resort-Laiya_San_Juan_Batangas_Province_Calabarzon_Region_Luzon.html"
+    ]
+  },
+  {
+    "name": "Amorita Resort",
+    "area": "Panglao Island (Alona Beach cliff), Bohol",
+    "cluster": "beach_destination",
+    "type": "cliff_garden",
+    "capacity": 200,
+    "starting_rate_php": 189000,
+    "rate_notes": "Spot.ph destination-wedding roundup (2019): packages from PHP 189,000 (ceremony + reception for 20 guests). An undated resort package sheet hosted by eventplannerphilippines.com lists PHP 372,750 for 100 guests (incl. 12% VAT, 1.5% municipal tax, 5% service charge; extra adult PHP 3,150), priced up to 200 guests, with 2-night pool villa stay for the couple.",
+    "price_public": true,
+    "website": "https://www.amoritaresort.com",
+    "facebook": null,
+    "sources": [
+      "https://www.spot.ph/things-to-do/weekend-guides/77744/beach-destination-weddings-philippines-a3242-20190504-lfrm",
+      "https://www.eventplannerphilippines.com/packages/AMORITA%20RESORT%20Wedding%20Packages.pdf"
+    ]
+  },
+  {
+    "name": "Balesin Island Club",
+    "area": "Balesin Island, Polillo, Quezon",
+    "cluster": "beach_destination",
+    "type": "island_resort",
+    "capacity": 250,
+    "starting_rate_php": 2500000,
+    "rate_notes": "~PHP 2.5M 'value package' for a 100-guest wedding announced Jan 2020 (Preview.ph / Alphaland), down from the previous ~PHP 6M 100-guest package; PEP.ph estimated a 250-guest, 3D2N wedding at ~PHP 7.35M incl. VAT and service charge. Members-only club; guests fly in (~PHP 8,960 round-trip pp).",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.preview.ph/culture/balesin-island-weddings-package-a00268-20200108",
+      "https://alphaland.com.ph/getting-married-in-balesin-island-has-just-been-made-more-affordable/",
+      "https://www.pep.ph/lifestyle/celebrations/37324/luxurious-celebration-the-cost-of-a-balesin-wedding"
+    ]
+  },
+  {
+    "name": "Bluewater Maribago Beach Resort",
+    "area": "Maribago, Mactan Island, Lapu-Lapu City, Cebu",
+    "cluster": "beach_destination",
+    "type": "beach_resort",
+    "capacity": null,
+    "starting_rate_php": null,
+    "rate_notes": "No published rate: official weddings page (accessed 2026) confirms customizable beach wedding packages but prices are quote-on-inquiry only; no reliable third-party figure found.",
+    "price_public": false,
+    "website": "https://bluewatermaribago.com.ph",
+    "facebook": null,
+    "sources": [
+      "https://bluewatermaribago.com.ph/bw-events/weddings/"
+    ]
+  },
+  {
+    "name": "Club Punta Fuego",
+    "area": "Nasugbu, Batangas",
+    "cluster": "beach_destination",
+    "type": "beach_resort",
+    "capacity": 200,
+    "starting_rate_php": null,
+    "rate_notes": "No public rate: venue quotes on inquiry/letter of intent (kasal.com and brideworthy listings, accessed 2026); package inclusions published (lights/sound, LED wall, styling, cake, sparkling wine) but no figures. A 2016-2018 package PDF exists on Scribd behind a login (not used). Ballroom seats up to 200; also Terrazas beach club, Upper/Lower Beach venues.",
+    "price_public": false,
+    "website": "https://www.clubpuntafuego.com.ph",
+    "facebook": null,
+    "sources": [
+      "http://kasal.com/philippine-wedding/Beach-Weddings/Club-Punta-Fuego/L10130.html",
+      "https://www.brideworthy.com/venues/club-punta-fuego/",
+      "https://www.clubpuntafuego.com.ph/events/"
+    ]
+  },
+  {
+    "name": "Crimson Resort and Spa Mactan",
+    "area": "Mactan Island, Lapu-Lapu City, Cebu",
+    "cluster": "beach_destination",
+    "type": "beach_resort",
+    "capacity": null,
+    "starting_rate_php": 136000,
+    "rate_notes": "Official site (accessed 2026): intimate wedding packages 'start at only Php 136,000 net'. The Post PH feature (2025 promo) lists Kalma Garden package PHP 98,000 and Beachfront package PHP 178,000, each for 50 persons incl. 2-hr venue use, sound system, photobooth, florals, officiant, villa stay.",
+    "price_public": true,
+    "website": "https://www.crimsonhotel.com/mactan",
+    "facebook": null,
+    "sources": [
+      "https://www.crimsonhotel.com/mactan/events-meetings/intimate-weddings-package",
+      "https://thepost.ph/lifestyle/beach-wedding-venue-crimson-mactan-cebu/"
+    ]
+  },
+  {
+    "name": "Discovery Shores Boracay",
+    "area": "Boracay Island (Station 1), Malay, Aklan",
+    "cluster": "beach_destination",
+    "type": "beach_resort",
+    "capacity": null,
+    "starting_rate_php": null,
+    "rate_notes": "No PHP figure published by the resort; My Overseas Wedding aggregator (accessed 2026) lists a basic wedding package at USD 9,900 for 30 guests. PHP rate left null since only a USD aggregator figure exists.",
+    "price_public": true,
+    "website": "https://www.discoveryshoresboracay.com",
+    "facebook": null,
+    "sources": [
+      "https://www.myoverseaswedding.com/wedding-destinations/philippines/discovery-shores-boracay",
+      "https://www.discoveryshoresboracay.com/meetings-events/boracay-beach-wedding"
+    ]
+  },
+  {
+    "name": "El Nido Resorts (Lagen Island)",
+    "area": "El Nido, Palawan",
+    "cluster": "beach_destination",
+    "type": "island_resort",
+    "capacity": null,
+    "starting_rate_php": 350000,
+    "rate_notes": "PalawanWedding.com planner directory (undated, blog active ~2019-2021): El Nido Resorts weddings 'start from 350k php for 30 guests'; rooms from PHP 25,000/night and all wedding guests must stay minimum 2 nights on the private islands. Third-party planner figure - resort itself publishes no rates.",
+    "price_public": true,
+    "website": "https://www.elnidoresorts.com",
+    "facebook": null,
+    "sources": [
+      "https://palawanwedding.com/wedding-venues-and-resorts",
+      "https://palawanwedding.com/palawan-wedding-planner-blog/2019/6/28/weddings-in-el-nido"
+    ]
+  },
+  {
+    "name": "Kahuna Beach Resort and Spa",
+    "area": "San Juan, La Union",
+    "cluster": "beach_destination",
+    "type": "beach_resort",
+    "capacity": 100,
+    "starting_rate_php": null,
+    "rate_notes": "No base package rate published: official wedding page (accessed 2026) lists 10/50/100-pax package tiers with full inclusions (ceremony styling, buffet reception, cake, honeymoon suite, coordination) and only add-on prices (e.g., hors d'oeuvres PHP 10,000/50 pax, corkage PHP 1,500/bottle); base rates quote-on-inquiry.",
+    "price_public": false,
+    "website": "https://kahunaresort.com",
+    "facebook": null,
+    "sources": [
+      "https://kahunaresort.com/wedding/",
+      "https://www.beta.kahunaresort.com/san-juan-la-union/kahuna-destination-wedding-package/"
+    ]
+  },
+  {
+    "name": "Movenpick Resort and Spa Boracay",
+    "area": "Boracay Island (Punta Bunga), Malay, Aklan",
+    "cluster": "beach_destination",
+    "type": "beach_resort",
+    "capacity": null,
+    "starting_rate_php": null,
+    "rate_notes": "No PHP figure published; Boracay Compass roundup (undated, ~2019-2021) lists the beach wedding package at ~USD 10,600 for the first 50 guests (~USD 150/extra pax) incl. ceremony, cocktails, reception, spa treatment, bridal buggy, cake - blog's USD approximation, so PHP left null.",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://boracaycompass.com/beach-wedding-packages/"
+    ]
+  },
+  {
+    "name": "Shangri-La Boracay",
+    "area": "Boracay Island (Punta Bunga), Malay, Aklan",
+    "cluster": "beach_destination",
+    "type": "beach_resort",
+    "capacity": null,
+    "starting_rate_php": 260150,
+    "rate_notes": "From PHP 260,150+++ for first 50 guests (Sunbird outdoor wedding package), requires guaranteed 10 guestrooms x 2 nights; current official package as mirrored by Great Destination Weddings listing (accessed 2026). Official 2021 package PDF showed 30-guest set-menu receptions from PHP 230,000+++ (low season) to PHP 380,000+++ (peak). +++ = excludes 12% VAT, 10% service charge, local tax.",
+    "price_public": true,
+    "website": "https://www.shangri-la.com/boracay/boracayresort/",
+    "facebook": null,
+    "sources": [
+      "https://www.greatdestinationweddings.com.au/directory/listings/shangri-la-boracay/",
+      "https://www.shangri-la.com/boracay/boracayresort/weddings-celebrations/packages/",
+      "https://sitecore-cd.shangri-la.com/-/media/Shangri-La/boracay_boracayresort/settings/weddings-celebrations/421fa788b0d74f84966923b45b5be4a1.pdf",
+      "https://www.nuptials.ph/small-intimate-wedding-venues/",
+      "https://www.nuptials.ph/luxury-wedding-venues-philippines/"
+    ]
+  },
+  {
+    "name": "Shangri-La Mactan, Cebu",
+    "area": "Mactan Island, Lapu-Lapu City, Cebu",
+    "cluster": "beach_destination",
+    "type": "beach_resort",
+    "capacity": 600,
+    "starting_rate_php": 75000,
+    "rate_notes": "Official 'A Vow of Always' 2025-2026 packages PDF: intimate ceremony (25 guests and below) PHP 75,000; standard ceremony (Ocean Pavilion/outdoor) PHP 125,000; intimate indoor reception PHP 85,000 for first 10 guests + PHP 5,000/pax; reception menus from PHP 4,050/pax. Rates +10% service charge and taxes, valid until Dec 31, 2026. Largest venue (The Marquee) seats 600 banquet.",
+    "price_public": true,
+    "website": "https://www.shangri-la.com/cebu/mactanresort/",
+    "facebook": "https://www.facebook.com/ShangrilaMactan",
+    "sources": [
+      "https://sitecore-cd.shangri-la.com/-/media/Shangri-La/cebu_mactanresort/weddings-celebrations/A-Vow-of-Always-by-Shangri-La-Mactan-_-Wedding-Packages-2025-2026.pdf",
+      "https://www.shangri-la.com/cebu/mactanresort/weddings-celebrations/wedding-packages/"
+    ]
+  },
+  {
+    "name": "South Palms Resort Panglao",
+    "area": "Panglao Island, Bohol",
+    "cluster": "beach_destination",
+    "type": "beach_resort",
+    "capacity": null,
+    "starting_rate_php": 25000,
+    "rate_notes": "Spot.ph roundup (2019): ceremony-only packages from PHP 25,000; reception/catering priced separately. Ceremony-only figure - full wedding cost is substantially higher; no newer public rate found.",
+    "price_public": true,
+    "website": "https://www.southpalmsresort.com",
+    "facebook": null,
+    "sources": [
+      "https://www.spot.ph/things-to-do/weekend-guides/77744/beach-destination-weddings-philippines-a3242-20190504-lfrm"
+    ]
+  },
+  {
+    "name": "The Bellevue Resort Bohol",
+    "area": "Panglao Island, Bohol",
+    "cluster": "beach_destination",
+    "type": "beach_resort",
+    "capacity": null,
+    "starting_rate_php": 350000,
+    "rate_notes": "PHP 350,000 for 100-guest package (buffet, 4-hr venue use, welcome drinks, one beverage round, bottle of Moet & Chandon); tiers to PHP 380,000/400,000 with extra offerings. Published rates are from a 2014 Female Network Bridal Book supplier feature - dated; no newer public rate found.",
+    "price_public": true,
+    "website": "https://www.thebellevuebohol.com",
+    "facebook": null,
+    "sources": [
+      "https://www.femalenetwork.com/bridalbook/articles/wedding-packages-from-the-bellevue-resort-bohol-bbsupplier"
+    ]
+  },
+  {
+    "name": "Thunderbird Resorts Poro Point",
+    "area": "Poro Point, San Fernando City, La Union",
+    "cluster": "beach_destination",
+    "type": "beach_resort",
+    "capacity": 350,
+    "starting_rate_php": 345000,
+    "rate_notes": "Premium Wedding Package at PHP 6,900 nett/person, minimum 50 guests (= PHP 345,000 minimum, computed) incl. 4-hr venue (Patio Santorini/poolside/beach club), buffet, 3-tier cake, flowers, styling, string quartet, 2-night suite stay - Female Network Bridal Book supplier feature (undated, ~2015-2017). Agora Events Hall holds ~350; Olives Garden seats 250 banquet.",
+    "price_public": true,
+    "website": "https://www.thunderbird-asia.com/poro-point-la-union-hotel/",
+    "facebook": null,
+    "sources": [
+      "https://www.femalenetwork.com/bridalbook/articles/thunderbird-poro-point-wedding-packages-bbsupplier",
+      "https://brideandbreakfast.ph/2016/09/01/venue-review-thunderbird-resorts-and-casinos-poro-point/"
+    ]
+  },
+  {
+    "name": "Aloha Hotel",
+    "area": "Malate, Manila, Metro Manila",
+    "cluster": "blog_sweep",
+    "type": "hotel",
+    "capacity": 100,
+    "starting_rate_php": 80400,
+    "rate_notes": "Gold package for 100 guests: 3-hr venue, accommodation for 2, cake, florals, styling, sound system; Diamond P100,200. 2020 rates.",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/affordable-wedding-venues-in-the-philippines/"
+    ]
+  },
+  {
+    "name": "Balay Indang",
+    "area": "Indang, Cavite",
+    "cluster": "blog_sweep",
+    "type": "garden/bed & breakfast",
+    "capacity": 200,
+    "starting_rate_php": 20000,
+    "rate_notes": "Venue hall rental only, 200 pax lunch slot; in-house catering P1,000/head lunch or P1,200/head dinner, +10% service charge; outside catering allowed. Nov 2024 rates.",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://tagaytaydreamweddings.com/affordable-tagaytay-wedding-reception-venues/"
+    ]
+  },
+  {
+    "name": "Bale de Angeles",
+    "area": "San Fernando, Pampanga",
+    "cluster": "blog_sweep",
+    "type": "events place",
+    "capacity": 200,
+    "starting_rate_php": 15000,
+    "rate_notes": "Function hall with in-house catering (150+ guests); P20,000 venue-only 4 hrs / 200 pax; garden ceremony P7,000 for 2 hrs. 2019 rates.",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/affordable-wedding-venues-in-the-philippines/"
+    ]
+  },
+  {
+    "name": "Bantug Lake Ranch",
+    "area": "Bacolod, Negros Occidental",
+    "cluster": "blog_sweep",
+    "type": "ranch/garden",
+    "capacity": 300,
+    "starting_rate_php": 11250,
+    "rate_notes": "Minimum spend for 25 pax; 200 indoor / 300 outdoor capacity. Jan 2024 article.",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/small-intimate-wedding-venues/"
+    ]
+  },
+  {
+    "name": "Bayview Park Hotel Manila",
+    "area": "Ermita, Manila, Metro Manila",
+    "cluster": "blog_sweep",
+    "type": "hotel",
+    "capacity": 50,
+    "starting_rate_php": 81888,
+    "rate_notes": "Civil Wedding Package for 50 guests: 4-hr function room, styling, catering, overnight stay for 2, bridal car, cake, drinks; Classic package P91,700-99,200. 2020 rates.",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/affordable-wedding-venues-in-the-philippines/"
+    ]
+  },
+  {
+    "name": "Casa Alegria Bed & Breakfast",
+    "area": "Tagaytay area, Cavite",
+    "cluster": "blog_sweep",
+    "type": "bed & breakfast",
+    "capacity": 150,
+    "starting_rate_php": 75000,
+    "rate_notes": "Wedding package incl. overnight stay and basic amenities, up to 150 guests. 2025 rates (article Jun 2025).",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/wedding-venue-ideas-on-a-budget/"
+    ]
+  },
+  {
+    "name": "Chateau de Busay",
+    "area": "Cebu City, Cebu",
+    "cluster": "blog_sweep",
+    "type": "garden/events place",
+    "capacity": 400,
+    "starting_rate_php": 75000,
+    "rate_notes": "Package for 100 pax minimum; up to 400 pax capacity. Jan 2024 article.",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/small-intimate-wedding-venues/"
+    ]
+  },
+  {
+    "name": "Circa 1900",
+    "area": "Cebu City, Cebu",
+    "cluster": "blog_sweep",
+    "type": "heritage house/restaurant",
+    "capacity": 120,
+    "starting_rate_php": 20000,
+    "rate_notes": "Plated service package for 20 pax minimum. Jan 2024 article.",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/small-intimate-wedding-venues/"
+    ]
+  },
+  {
+    "name": "Dakak Park & Beach Resort",
+    "area": "Dapitan, Zamboanga del Norte",
+    "cluster": "blog_sweep",
+    "type": "beach resort",
+    "capacity": null,
+    "starting_rate_php": 37500,
+    "rate_notes": "Minimum package for 25-49 pax. Jan 2024 article.",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/small-intimate-wedding-venues/"
+    ]
+  },
+  {
+    "name": "Elements at Eton Centris",
+    "area": "Quezon City, Metro Manila",
+    "cluster": "blog_sweep",
+    "type": "events place",
+    "capacity": 700,
+    "starting_rate_php": 54000,
+    "rate_notes": "Venue rental only, 4 hrs weekday in lean months; up to P196,000 for 10 hrs both halls in December. 2022 rates.",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/affordable-wedding-venues-in-quezon-city/"
+    ]
+  },
+  {
+    "name": "Felicidad Mansion Events Place",
+    "area": "Quezon City, Metro Manila",
+    "cluster": "blog_sweep",
+    "type": "events place",
+    "capacity": 300,
+    "starting_rate_php": 8000,
+    "rate_notes": "Venue-only smallest room (rooms range P8,000-110,000, 3-6 hrs, 30-300 guests); packages from P174,000. 2022 rates.",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/affordable-wedding-venues-in-quezon-city/"
+    ]
+  },
+  {
+    "name": "Feliza Jazz Grand Pavilion",
+    "area": "Malolos, Bulacan",
+    "cluster": "blog_sweep",
+    "type": "events place",
+    "capacity": null,
+    "starting_rate_php": 11500,
+    "rate_notes": "Venue rental per 6-hr slot (Fleur De Liz Garden weekday); pavilion up to P18,000 weekend; setup/AC/bond fees extra. ~2019 rates, author flagged as likely higher now.",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/affordable-wedding-venues-in-the-philippines/"
+    ]
+  },
+  {
+    "name": "Hacienda Solange",
+    "area": "Alfonso, Cavite (Tagaytay area)",
+    "cluster": "blog_sweep",
+    "type": "garden/hacienda",
+    "capacity": null,
+    "starting_rate_php": 108888,
+    "rate_notes": "Prime Wedding Package min 50 guests: venue, catering, overnight stay for 15, ceremony+reception setup, flowers, emcee, styling, drinks (2020). Moneymax (2023) lists P298,888 all-in package for 100 guests incl. officiant, catering, photo/video, coordination.",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/affordable-wedding-venues-in-the-philippines/",
+      "https://www.moneymax.ph/personal-finance/articles/cost-of-wedding-philippines"
+    ]
+  },
+  {
+    "name": "La Chandelle Events Place",
+    "area": "Quezon City, Metro Manila",
+    "cluster": "blog_sweep",
+    "type": "events place",
+    "capacity": null,
+    "starting_rate_php": 30000,
+    "rate_notes": "Weekday promo venue rate; P107,000 special package for 100 guests. 2022 rates (Aug-Nov 2022 promo).",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/affordable-wedding-venues-in-quezon-city/"
+    ]
+  },
+  {
+    "name": "Leanel's Garden",
+    "area": "Tagaytay, Cavite",
+    "cluster": "blog_sweep",
+    "type": "garden",
+    "capacity": 150,
+    "starting_rate_php": 75000,
+    "rate_notes": "Venue-only for 150 pax; standard packages with food+styling P189,000-269,000, semi all-in P323,000-408,000 (50-150 pax). Nov 2024 rates.",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://tagaytaydreamweddings.com/affordable-tagaytay-wedding-reception-venues/"
+    ]
+  },
+  {
+    "name": "Lemuria Gourmet Restaurant",
+    "area": "Quezon City, Metro Manila",
+    "cluster": "blog_sweep",
+    "type": "restaurant",
+    "capacity": 80,
+    "starting_rate_php": 15000,
+    "rate_notes": "Consumable minimum for 3 hrs (P15,000-55,000 by area, 8-80 guests). 2022 rates.",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/affordable-wedding-venues-in-quezon-city/"
+    ]
+  },
+  {
+    "name": "Lola Cafe",
+    "area": "Quezon City, Metro Manila",
+    "cluster": "blog_sweep",
+    "type": "restaurant",
+    "capacity": null,
+    "starting_rate_php": 35000,
+    "rate_notes": "Venue rental P35,000-60,000 depending on area/time slot. 2025 rates (article Jun 2025).",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/wedding-venue-ideas-on-a-budget/"
+    ]
+  },
+  {
+    "name": "Mithi Resort and Spa",
+    "area": "Panglao, Bohol",
+    "cluster": "blog_sweep",
+    "type": "resort",
+    "capacity": 100,
+    "starting_rate_php": 145000,
+    "rate_notes": "Wedding package min 50 pax: styling, bridal car, 2-layer fondant cake, complimentary couple accommodation. Jan 2024 article.",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/small-intimate-wedding-venues/"
+    ]
+  },
+  {
+    "name": "Ninyo Fusion Cuisine & Wine Lounge",
+    "area": "Quezon City, Metro Manila",
+    "cluster": "blog_sweep",
+    "type": "restaurant",
+    "capacity": null,
+    "starting_rate_php": 24000,
+    "rate_notes": "Intimate wedding package for 15 guests, 7-course degustation menu. 2025 rates (article Jun 2025).",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/wedding-venue-ideas-on-a-budget/"
+    ]
+  },
+  {
+    "name": "Radisson Blu Cebu",
+    "area": "Cebu City, Cebu",
+    "cluster": "blog_sweep",
+    "type": "hotel",
+    "capacity": null,
+    "starting_rate_php": 2500,
+    "rate_notes": "PER-HEAD buffet wedding package rate (article illustrates ~P250,000 for 100 guests). 2025 rates.",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://cebudailynews.inquirer.net/640846/planning-a-wedding-in-cebu-heres-how-much-itll-cost-you-in-2025"
+    ]
+  },
+  {
+    "name": "Salome's Garden",
+    "area": "Davao City, Davao del Sur",
+    "cluster": "blog_sweep",
+    "type": "garden",
+    "capacity": 300,
+    "starting_rate_php": 25000,
+    "rate_notes": "Plated service package for 20 pax; up to 300 pax capacity. Jan 2024 article.",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/small-intimate-wedding-venues/"
+    ]
+  },
+  {
+    "name": "Serenescapes Bed and Breakfast",
+    "area": "Alfonso, Cavite",
+    "cluster": "blog_sweep",
+    "type": "bed & breakfast",
+    "capacity": null,
+    "starting_rate_php": 94000,
+    "rate_notes": "'Relax' base package; tiers up to P272,000 (Relax, Celebrate & Unwind). Published rates valid Dec 2024-Nov 2025.",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://tagaytaydreamweddings.com/affordable-tagaytay-wedding-reception-venues/"
+    ]
+  },
+  {
+    "name": "The Emerald Events Place",
+    "area": "Antipolo, Rizal",
+    "cluster": "blog_sweep",
+    "type": "events place",
+    "capacity": null,
+    "starting_rate_php": 25000,
+    "rate_notes": "Packages P25,000-60,000, inclusions vary. 2025 rates (article Jun 2025).",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/wedding-venue-ideas-on-a-budget/"
+    ]
+  },
+  {
+    "name": "The Mango Farm Events Place",
+    "area": "Antipolo, Rizal",
+    "cluster": "blog_sweep",
+    "type": "garden/farm",
+    "capacity": 200,
+    "starting_rate_php": 70000,
+    "rate_notes": "Venue rental from P70,000, catering packages separate (2025). Earlier published package: P99,500 +12% VAT for up to 200 pax, AC glass pavilion or alfresco (2020-2021 rates).",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/wedding-venue-ideas-on-a-budget/",
+      "https://www.nuptials.ph/small-intimate-wedding-venues/"
+    ]
+  },
+  {
+    "name": "The Sulo Riviera Hotel",
+    "area": "Quezon City, Metro Manila",
+    "cluster": "blog_sweep",
+    "type": "hotel",
+    "capacity": null,
+    "starting_rate_php": 50000,
+    "rate_notes": "Function room venue rental P50,000-90,000. 2025 rates (article Jun 2025).",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/wedding-venue-ideas-on-a-budget/"
+    ]
+  },
+  {
+    "name": "The View",
+    "area": "Davao City, Davao del Sur",
+    "cluster": "blog_sweep",
+    "type": "events place",
+    "capacity": 400,
+    "starting_rate_php": 50000,
+    "rate_notes": "Package for 50 pax; up to 400 pax capacity. Jan 2024 article.",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/small-intimate-wedding-venues/"
+    ]
+  },
+  {
+    "name": "Conrad Manila",
+    "area": "Pasay (Mall of Asia Complex), Metro Manila",
+    "cluster": "metro_manila",
+    "type": "hotel",
+    "capacity": null,
+    "starting_rate_php": 315000,
+    "rate_notes": "Published 2026 'Divine Wedding Package' brochure: set menus from ₱3,150/person nett (inclusive of 12% VAT, 10% service charge, LGU tax), priced for the first 100 persons — i.e. ≈₱315,000 minimum for 100 guests (derived: 3,150 x 100). Buffet menus from ₱3,360/person. Includes 2-night suite stay, bridal car, cake, photo booth, string trio. Rate published 2025/2026; hotel has also advertised an all-in intimate package at ₱6,000/person for up to 30 guests.",
+    "price_public": true,
+    "website": "https://www.hilton.com/en/hotels/mnlcici-conrad-manila/",
+    "facebook": "https://www.facebook.com/ConradManilaPH",
+    "sources": [
+      "https://www.yumpu.com/en/document/view/70910814/conrad-manila-2026-divine-wedding-package",
+      "https://www.facebook.com/ConradManilaPH/posts/our-elegant-wedding-packages-express-dynamic-modern-and-traditional-predilection/1116218131877525/"
+    ]
+  },
+  {
+    "name": "EDSA Shangri-La, Manila",
+    "area": "Mandaluyong (Ortigas), Metro Manila",
+    "cluster": "metro_manila",
+    "type": "hotel",
+    "capacity": 700,
+    "starting_rate_php": null,
+    "rate_notes": "No public number found. Hotel publishes Signature Wedding packages (Elegance, Glamour, Indulgence, Extravaganza; 3 ballrooms up to 700 guests) on a minimum-event-spend model (20% due at signing), but the 2023 'Breathe In Love' brochure PDF is image-only and pricing pages carry no figures. Checked 2026.",
+    "price_public": false,
+    "website": "https://www.shangri-la.com/manila/edsashangrila/",
+    "facebook": null,
+    "sources": [
+      "https://www.shangri-la.com/manila/edsashangrila/weddings-celebrations/",
+      "https://www.shangri-la.com/-/media/Shangri-La/manila_edsashangrila/meetings-events/offers/20221105_2023-Breathe-In-Love-Wedding-Packages.pdf",
+      "https://elitetraveler.com/travel/travel-news/signature-weddings-at-edsa-shangri-la-manila"
+    ]
+  },
+  {
+    "name": "Fernwood Gardens",
+    "area": "Quezon City (Sanville, Culiat), Metro Manila",
+    "cluster": "metro_manila",
+    "type": "garden",
+    "capacity": 550,
+    "starting_rate_php": 90000,
+    "rate_notes": "Venue promo 'starting at ₱90,000' for Aug–Nov 2022 events (venue-only; garden with sky dome, 200–550 pax) — published in nuptials.ph Quezon City roundup, August 2022. Regular/current rates are quote-on-inquiry; older public rates date to 2008–2011.",
+    "price_public": true,
+    "website": "http://fernwoodgarden.com",
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/affordable-wedding-venues-in-quezon-city/",
+      "http://fernwoodgarden.com/",
+      "https://juancarlo.ph/venues/fernwood-quezon-city/"
+    ]
+  },
+  {
+    "name": "Gazebo Royale",
+    "area": "Quezon City (Visayas Ave area), Metro Manila",
+    "cluster": "metro_manila",
+    "type": "events_place",
+    "capacity": 1000,
+    "starting_rate_php": null,
+    "rate_notes": "No verifiable published number. Three halls (Bamboo Grove 60 / Phoenix Hall 280 / Champagne Hall up to 1,000 pax) with built-in stage, sound and bridal suite; nuptials.ph (2022) lists it as prices-upon-request, and third-party figures found were inconsistent/unattributable. Checked 2026.",
+    "price_public": false,
+    "website": null,
+    "facebook": "https://www.facebook.com/GazeboRoyaleSpecialEventsVenue/",
+    "sources": [
+      "https://www.nuptials.ph/affordable-wedding-venues-in-quezon-city/",
+      "https://www.facebook.com/GazeboRoyaleSpecialEventsVenue/",
+      "https://www.brideworthy.com/venues/gazebo-royale/"
+    ]
+  },
+  {
+    "name": "Glass Garden",
+    "area": "Pasig, Metro Manila",
+    "cluster": "metro_manila",
+    "type": "garden",
+    "capacity": 350,
+    "starting_rate_php": 161000,
+    "rate_notes": "Wedding package ₱161,000–₱217,000 covering 5-hour use of Emerald or Diamond Garden, buffet catering, and event styling; all-in 'Comprehensive' package ₱248,500–₱305,000 — per Female Network Bridal Book supplier feature (undated, believed mid-2010s; treat as indicative). A 2025 venue rate sheet circulates publicly on Scribd ('Glass Garden Venue Rates 2025') but its figures are image-locked. Air-conditioned glass-walled garden venue, ~100–350 pax.",
+    "price_public": true,
+    "website": "https://www.glassgardenevents.com",
+    "facebook": null,
+    "sources": [
+      "https://www.femalenetwork.com/bridalbook/articles/wedding-packages-from-the-glass-garden-bbsupplier",
+      "https://www.scribd.com/document/825804545/25-01-01-2025-Glass-Garden-Wedding-Package",
+      "https://www.glassgardenevents.com"
+    ]
+  },
+  {
+    "name": "Light of Love Events Place",
+    "area": "Quezon City (Santol, Sampaloc border), Metro Manila",
+    "cluster": "metro_manila",
+    "type": "garden",
+    "capacity": 400,
+    "starting_rate_php": 76000,
+    "rate_notes": "₱76,000–₱250,000 for 4-hour venue use, 100–350 pax, plus ₱95/head corkage for non-accredited caterers — published in a 2018 venue-rates blog roundup (dated; venue's own 2024 site lists packages without prices, quote-on-inquiry). Two-hectare garden venue, up to 400 guests.",
+    "price_public": true,
+    "website": "https://lightoflove.com.ph",
+    "facebook": null,
+    "sources": [
+      "http://weddingpreps101.blogspot.com/2018/05/wedding-venue-rates-packages-2018.html",
+      "https://lightoflove.com.ph/wedding-packages/"
+    ]
+  },
+  {
+    "name": "Manila Marriott Hotel",
+    "area": "Pasay (Newport World Resorts), Metro Manila",
+    "cluster": "metro_manila",
+    "type": "hotel",
+    "capacity": null,
+    "starting_rate_php": null,
+    "rate_notes": "No published PHP rate found; Marriott's Philippines wedding pages route to inquiry with certified wedding planners, and the ballroom package PDFs surfacing in search belong to Singapore Marriott (USD/GST), not Manila. Checked 2026.",
+    "price_public": false,
+    "website": "https://www.marriott.com/en-us/hotels/mnlap-manila-marriott-hotel-at-newport-world-resorts/",
+    "facebook": null,
+    "sources": [
+      "https://www.marriott.com/en-us/hotels/mnlap-manila-marriott-hotel-at-newport-world-resorts/events/",
+      "https://www.marriott.com/en-us/offers/packages/Philippines-Wedding.mi"
+    ]
+  },
+  {
+    "name": "Oasis Manila",
+    "area": "San Juan (Aurora Blvd), Metro Manila",
+    "cluster": "metro_manila",
+    "type": "events_place",
+    "capacity": 400,
+    "starting_rate_php": 55000,
+    "rate_notes": "Venue-only rental ₱55,000–₱90,000 for 4–5 hours (weeknight; Orchard 200 / Verandah 350 / Pavilion 400 pax; ₱30,000 corkage for non-accredited caterers) per 2018 rates roundup; weeknight packages with accredited caterer from ₱219,500 for 150 pax per undated directory listings. Dated figures — verify before quoting.",
+    "price_public": true,
+    "website": "https://oasismanila.squarespace.com",
+    "facebook": "https://www.facebook.com/TheOasisManila/",
+    "sources": [
+      "http://weddingpreps101.blogspot.com/2018/05/wedding-venue-rates-packages-2018.html",
+      "https://www.brideworthy.com/venues/oasis-manila/"
+    ]
+  },
+  {
+    "name": "Okada Manila",
+    "area": "Parañaque (Entertainment City), Metro Manila",
+    "cluster": "metro_manila",
+    "type": "hotel",
+    "capacity": 1200,
+    "starting_rate_php": null,
+    "rate_notes": "No published number found. Official events pages list Grand Ballroom (up to ~1,200 guests, 1,955 sqm), Golden Ballroom (300 pax) and Glass Ballroom (200 pax) with all rental fees 'available upon request'; only unverifiable social-media figures (e.g. ~₱7k/plate) circulate. Checked 2026.",
+    "price_public": false,
+    "website": "https://okadamanila.com",
+    "facebook": null,
+    "sources": [
+      "https://okadamanila.com/events/occasions/weddings/",
+      "https://okadamanila.com/events/venues/grand-ballroom/",
+      "https://www.brideworthy.com/venues/okada-manila/"
+    ]
+  },
+  {
+    "name": "Palacio de Maynila",
+    "area": "Malate, Manila (Roxas Blvd), Metro Manila",
+    "cluster": "metro_manila",
+    "type": "events_place",
+    "capacity": 650,
+    "starting_rate_php": 254240,
+    "rate_notes": "Package 1: ₱254,240 for 150 pax (VAT-inclusive; venue, buffet, 2-night hotel stay for two, sounds and lights, 3-hour photo booth); ₱305,760/200 pax; ₱383,040/300 pax — per Female Network Bridal Book feature (undated, believed mid-2010s; treat as indicative). Venue's own site (2017 copyright) lists the same inclusions without prices. 800-sqm venue, 400–650 pax.",
+    "price_public": true,
+    "website": "https://www.palaciodemaynila.com",
+    "facebook": "https://www.facebook.com/Palacio-de-Maynila-153276305244504",
+    "sources": [
+      "https://www.femalenetwork.com/bridalbook/articles/reception-packages-from-palacio-de-maynila",
+      "https://www.palaciodemaynila.com/?page=wedpackage1",
+      "https://juancarlo.ph/venues/palacio-de-maynila/"
+    ]
+  },
+  {
+    "name": "Plaza Ibarra (Ibarra's Party Venues)",
+    "area": "Quezon City (Timog Ave), Metro Manila",
+    "cluster": "metro_manila",
+    "type": "events_place",
+    "capacity": null,
+    "starting_rate_php": 30000,
+    "rate_notes": "Venue-only rental: ₱30,000 off-season Sun–Thu, ₱60,000 Fri–Sat and peak season (Dec–Jan) — published in nuptials.ph affordable-venues roundup, February 2020. Ibarra's full wedding packages (venue + catering across its QC/Manila venues) advertised at ₱165,000–₱260,000 per moneymax/nuptials citations of the same era.",
+    "price_public": true,
+    "website": "https://www.ibarraspartyvenues.com.ph",
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/affordable-wedding-venues-in-the-philippines/",
+      "https://www.ibarraspartyvenues.com.ph/",
+      "https://www.moneymax.ph/personal-finance/articles/cost-of-wedding-philippines"
+    ]
+  },
+  {
+    "name": "The Blue Leaf Cosmopolitan",
+    "area": "Quezon City (Robinsons Bridgetowne), Metro Manila",
+    "cluster": "metro_manila",
+    "type": "events_place",
+    "capacity": 330,
+    "starting_rate_php": 225000,
+    "rate_notes": "₱225,000 per hall venue-only (5 hours, with AC, LCD projector, stage, caterer's area); wedding packages with catering from ₱620,000 for 200 pax — published in nuptials.ph Quezon City roundup, August 2022. Three 530-sqm halls (Monet, Picasso, Matisse), 330 guests each.",
+    "price_public": true,
+    "website": "https://www.theblueleaf.com",
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/affordable-wedding-venues-in-quezon-city/",
+      "https://www.theblueleaf.com"
+    ]
+  },
+  {
+    "name": "The Blue Leaf Events Pavilion",
+    "area": "Taguig (McKinley Hill), Metro Manila",
+    "cluster": "metro_manila",
+    "type": "events_place",
+    "capacity": 500,
+    "starting_rate_php": 480000,
+    "rate_notes": "₱480,000–₱735,000 for 150 guests including venue, accredited catering, and basic wedding essentials, per nuptials.ph luxury-venues roundup published April 2024. Three halls (Banyan 300 / Silk 250 / Jade 200 pax; ~500 combined). Older venue-only rental: ₱130k–150k per hall (2013).",
+    "price_public": true,
+    "website": "https://www.theblueleaf.com/events-pavilion/",
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/luxury-wedding-venues-philippines/",
+      "https://www.theblueleaf.com/events-pavilion/",
+      "https://brideandbreakfast.ph/2021/09/11/the-blue-leaf-2021-special-rates/"
+    ]
+  },
+  {
+    "name": "The Manila Hotel",
+    "area": "Manila, Metro Manila",
+    "cluster": "metro_manila",
+    "type": "hotel",
+    "capacity": 1000,
+    "starting_rate_php": null,
+    "rate_notes": "No published number found. Hotel markets all-inclusive wedding packages (Fiesta Pavilion seats up to 1,000; divisible into 3 rooms) but all pricing is quote-on-inquiry via its Banquet Sales Team; a Feb 2025 Wedding Essentials feature also carries no rates. Checked 2026.",
+    "price_public": false,
+    "website": "https://www.manila-hotel.com.ph",
+    "facebook": null,
+    "sources": [
+      "https://www.manila-hotel.com.ph/events/weddings/",
+      "https://www.manila-hotel.com.ph/function-rooms/fiesta-pavilion/",
+      "https://weddingessentials.mb.com.ph/2025/02/22/a-grand-setting-for-unforgettable-weddings-at-the-manila-hotel/"
+    ]
+  },
+  {
+    "name": "Whitespace Manila",
+    "area": "Makati (Chino Roces Ext), Metro Manila",
+    "cluster": "metro_manila",
+    "type": "events_place",
+    "capacity": 450,
+    "starting_rate_php": 35000,
+    "rate_notes": "Venue-only rental: ₱35,000 for the lobby (~60 guests) up to ₱175,000 for the entire building (Lobby + Halls A&B, ~450 guests); bare industrial space, no corkage for outside suppliers — published in nuptials.ph luxury-venues roundup, April 2024.",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.nuptials.ph/luxury-wedding-venues-philippines/"
+    ]
+  },
+  {
+    "name": "Alta Veranda de Tibig",
+    "area": "Silang, Cavite",
+    "cluster": "tagaytay",
+    "type": "events_place",
+    "capacity": 350,
+    "starting_rate_php": 158000,
+    "rate_notes": "El Pabelion de Jardin package starts PHP 158,000 (150–350 pax); Plaza Guevarra from PHP 208,000 (up to 250 pax); includes overnight stay for two, prep rooms, basic lights/sound, bridal car — published June 2024 (PEP.ph/Cosmo.ph after Charlie Dizon–Carlo Aquino wedding)",
+    "price_public": true,
+    "website": null,
+    "facebook": "https://www.facebook.com/AltaVerandadeTibig/",
+    "sources": [
+      "https://www.pep.ph/lifestyle/lifestyle/181183/charlie-dizon-carlo-aquino-wedding-venue-a721-20240610",
+      "https://www.cosmo.ph/lifestyle/travel/alta-veranda-de-tibig-silang-cavite-details-photos-rates-a254-20240611"
+    ]
+  },
+  {
+    "name": "Anya Resort Tagaytay",
+    "area": "Tagaytay City, Cavite",
+    "cluster": "tagaytay",
+    "type": "hotel",
+    "capacity": 120,
+    "starting_rate_php": 385000,
+    "rate_notes": "Official wedding packages PDF dated 8.8.2018: Cosmos PHP 385,000 (reception, 100 pax buffet, suite stays), Lily PHP 395,000, Iris PHP 455,000 — dated source, current rates by inquiry; Nilaya Ballroom max ~120 pax",
+    "price_public": true,
+    "website": "https://www.anyaresorts.com/meetings-weddings-events/",
+    "facebook": null,
+    "sources": [
+      "https://www.anyaresorts.com/wp-content/uploads/2019/01/Wedding_Packages-8.8.18.pdf",
+      "https://www.brideworthy.com/venues/anya-resort-tagaytay/"
+    ]
+  },
+  {
+    "name": "Aquila Crystal Palace",
+    "area": "Tagaytay City, Cavite",
+    "cluster": "tagaytay",
+    "type": "events_place",
+    "capacity": 200,
+    "starting_rate_php": null,
+    "rate_notes": "No stable published rate; social-media promos (TikTok/FB, 2024–2025) cite conflicting all-in figures for 100 pax (~PHP 198k vs 298k), and the Juan Carlo venue page lists inclusions (6-hr aircon venue, styling, garden ceremony) with no price — treated as inquiry-only",
+    "price_public": false,
+    "website": null,
+    "facebook": "https://www.facebook.com/AquilaCrystalPalace/",
+    "sources": [
+      "https://juancarlo.ph/venues/aquila-crystal-palace-tagaytay/",
+      "https://www.facebook.com/AquilaCrystalPalaceEventPlace/"
+    ]
+  },
+  {
+    "name": "Balai Taal",
+    "area": "Tagaytay City, Cavite (Ligaya Drive, Brgy. Sungay)",
+    "cluster": "tagaytay",
+    "type": "garden",
+    "capacity": 200,
+    "starting_rate_php": 102000,
+    "rate_notes": "From a circulated package sheet (Scribd, c.2019): Package D PHP 102,000 (120 pax, 1 garden + house overnight) up to Package A PHP 238,000 (200 pax, 2 gardens + 2 nights accommodations) — likely outdated; no current rates on 2024 roundup or Juan Carlo page",
+    "price_public": true,
+    "website": null,
+    "facebook": null,
+    "sources": [
+      "https://www.scribd.com/document/413772556/Balai-Taal-Packages",
+      "https://tagaytaydreamweddings.com/scenic-lake-view-venues/",
+      "https://juancarlo.ph/venues/balai-taal/",
+      "https://www.nuptials.ph/wedding-venue-ideas-on-a-budget/"
+    ]
+  },
+  {
+    "name": "Escala Tagaytay",
+    "area": "Tagaytay City, Cavite",
+    "cluster": "tagaytay",
+    "type": "hotel",
+    "capacity": 300,
+    "starting_rate_php": null,
+    "rate_notes": "No published price found; boutique hotel with ~300-seat pavilion and Taal-view balconies (per Juan Carlo/2024 roundup listing 120–300 pax) — inquiry-only",
+    "price_public": false,
+    "website": null,
+    "facebook": "https://www.facebook.com/EscalaTagaytay1",
+    "sources": [
+      "https://juancarlo.ph/venues/escala-hotel/",
+      "https://tagaytaydreamweddings.com/scenic-lake-view-venues/"
+    ]
+  },
+  {
+    "name": "Farm Hills Garden",
+    "area": "Silang, Cavite (Brgy. Ulat)",
+    "cluster": "tagaytay",
+    "type": "garden",
+    "capacity": null,
+    "starting_rate_php": null,
+    "rate_notes": "Own site advertises customizable all-in packages but publishes no numbers; TikTok clips (2025) cite a ~PHP 298k all-in package, unverifiable against any stable public source — inquiry-only",
+    "price_public": false,
+    "website": "https://farmhillsgarden.com/",
+    "facebook": null,
+    "sources": [
+      "https://farmhillsgarden.com/weddings-events/",
+      "https://farmhillsgarden.com/cpt-weddings/all-in-packages/",
+      "https://www.brideworthy.com/venues/farm-hills-garden/"
+    ]
+  },
+  {
+    "name": "Hillcreek Gardens Tagaytay",
+    "area": "Alfonso, Cavite",
+    "cluster": "tagaytay",
+    "type": "garden",
+    "capacity": 400,
+    "starting_rate_php": 150000,
+    "rate_notes": "Venue-only package from PHP 150,000 (max 200 pax); all-inclusive packages ~PHP 318,900 (50 pax) up to ~614,600 — per 2024 roundup; venue's own site lists Premier/Prestige inclusions (venue, lights/sounds, styling, catering, bridal suite) but no prices as of Jan 2026 page",
+    "price_public": true,
+    "website": "https://www.hillcreekgardenstagaytay.com/",
+    "facebook": null,
+    "sources": [
+      "https://tagaytaydreamweddings.com/affordable-tagaytay-wedding-reception-venues/",
+      "https://www.hillcreekgardenstagaytay.com/news/perfect-packages-for-any-type-of-wedding/",
+      "https://www.brideworthy.com/venues/hillcreek-gardens/",
+      "https://www.nuptials.ph/wedding-venue-ideas-on-a-budget/"
+    ]
+  },
+  {
+    "name": "La Bella Tagaytay (La Bella Boutique Hotel & Residences)",
+    "area": "Tagaytay City, Cavite",
+    "cluster": "tagaytay",
+    "type": "hotel",
+    "capacity": null,
+    "starting_rate_php": null,
+    "rate_notes": "Santorini-inspired hotel used for weddings/prenups; only prenup photoshoot-with-room packages are published (PHP 9,100–14,980), no wedding venue/package price found",
+    "price_public": false,
+    "website": "http://hotelbooking.labellatagaytay.com/",
+    "facebook": null,
+    "sources": [
+      "https://thequeensescape.com/la-bella-boutique-hotel-and-residences-a-santorini-inspired-hotel-in-tagaytay-city/",
+      "http://hotelbooking.labellatagaytay.com/request-availability/"
+    ]
+  },
+  {
+    "name": "Maharlika Events Tagaytay",
+    "area": "Alfonso, Cavite (Brgy. Lucsuhin)",
+    "cluster": "tagaytay",
+    "type": "events_place",
+    "capacity": 150,
+    "starting_rate_php": 188888,
+    "rate_notes": "Own site (updated Jul 2025): all-in Bronze PHP 188,888 for 50 pax (venue for ceremony+reception, buffet catering, styling, accommodations) up to Diamond PHP 278,888 for 150 pax; a 2024 roundup listed the older PHP 138,888 start",
+    "price_public": true,
+    "website": "https://maharlikaeventstagaytay.com/",
+    "facebook": "https://www.facebook.com/maharlikaevents/",
+    "sources": [
+      "https://maharlikaeventstagaytay.com/wedding-package/",
+      "https://tagaytaydreamweddings.com/affordable-tagaytay-wedding-reception-venues/"
+    ]
+  },
+  {
+    "name": "Sonya's Garden",
+    "area": "Alfonso, Cavite (Brgy. Buck Estate)",
+    "cluster": "tagaytay",
+    "type": "garden",
+    "capacity": 400,
+    "starting_rate_php": 85000,
+    "rate_notes": "No lump-sum venue package published; own site (rates current as of 2025) prices weddings per head — Classic Country Fare PHP 1,065/pax, Filipino Specialties PHP 1,550/pax — plus venue spaces Morning Glory (300), Sunflower (200), Conservatory (80)",
+    "price_public": true,
+    "website": "https://sonyasgarden.com/weddings/",
+    "facebook": "https://www.facebook.com/sonyasgardentagaytay/",
+    "sources": [
+      "https://sonyasgarden.com/weddings/",
+      "https://www.brideworthy.com/venues/sonyas-garden/",
+      "https://www.nuptials.ph/wedding-venue-ideas-on-a-budget/"
+    ]
+  },
+  {
+    "name": "Taal Vista Hotel",
+    "area": "Tagaytay City, Cavite",
+    "cluster": "tagaytay",
+    "type": "hotel",
+    "capacity": 500,
+    "starting_rate_php": 341000,
+    "rate_notes": "All-in hotel wedding packages starting ~PHP 341,000 per 2024 roundup; official site publishes a wedding e-brochure/packages PDF (2023) but no on-page prices — inquiry-driven",
+    "price_public": true,
+    "website": "https://www.taalvistahotel.com/",
+    "facebook": null,
+    "sources": [
+      "https://tagaytaydreamweddings.com/scenic-lake-view-venues/",
+      "https://www.taalvistahotel.com/events/wedding-package/"
+    ]
+  },
+  {
+    "name": "The Glens Tagaytay",
+    "area": "Tagaytay City, Cavite",
+    "cluster": "tagaytay",
+    "type": "garden",
+    "capacity": 500,
+    "starting_rate_php": 65000,
+    "rate_notes": "Venue rental only from PHP 65,000, open-air 3-hectare venue for 250–500 pax (2024 roundup; corroborated by Hizon's Catering venue listing)",
+    "price_public": true,
+    "website": "http://www.theglenstagaytay.com/",
+    "facebook": "https://www.facebook.com/TheGlensTagaytay/",
+    "sources": [
+      "https://tagaytaydreamweddings.com/affordable-tagaytay-wedding-reception-venues/",
+      "https://hizonscatering.com/venue/the-glens-tagaytay/"
+    ]
+  },
+  {
+    "name": "The Veranda Tagaytay",
+    "area": "Tagaytay City, Cavite (Pungol St.)",
+    "cluster": "tagaytay",
+    "type": "garden",
+    "capacity": 120,
+    "starting_rate_php": 28000,
+    "rate_notes": "Garden & pavilion venue from PHP 28,000 for up to 120 pax incl. pool use and overnight stay, no corkage (2024 roundup; venue books via Facebook/Instagram)",
+    "price_public": true,
+    "website": null,
+    "facebook": "https://www.facebook.com/VerandaTagaytay/",
+    "sources": [
+      "https://tagaytaydreamweddings.com/affordable-tagaytay-wedding-reception-venues/",
+      "https://kasal.com/veranda-bella-rosa-farm-silangs-best-kept-secret"
+    ]
+  },
+  {
+    "name": "Twin Lakes Hotel",
+    "area": "Laurel, Batangas (Tagaytay–Nasugbu Hwy)",
+    "cluster": "tagaytay",
+    "type": "hotel",
+    "capacity": 500,
+    "starting_rate_php": null,
+    "rate_notes": "No published price found; own weddings page and 2024 roundup (60–500 pax ballroom/indoor venues) direct couples to inquire",
+    "price_public": false,
+    "website": "https://www.twinlakeshotel.com.ph/weddings",
+    "facebook": null,
+    "sources": [
+      "https://www.twinlakeshotel.com.ph/weddings",
+      "https://tagaytaydreamweddings.com/scenic-lake-view-venues/"
+    ]
+  },
+  {
+    "name": "Villa Ibarra",
+    "area": "Tagaytay City, Cavite (Gen. E. Aguinaldo Hwy, Maharlika East)",
+    "cluster": "tagaytay",
+    "type": "events_place",
+    "capacity": 200,
+    "starting_rate_php": 219450,
+    "rate_notes": "Package from ~PHP 219,450 incl. ceremony+reception venue, cake, wine, rooms (2024 roundup); own site (villaibarra.com/banquet) publishes no prices, function rooms up to 200 pax; sister brand's 2020 'Anastasia' intimate package was PHP 75,000/50 pax across Ibarra venues",
+    "price_public": true,
+    "website": "https://villaibarra.com/",
+    "facebook": null,
+    "sources": [
+      "https://tagaytaydreamweddings.com/affordable-tagaytay-wedding-reception-venues/",
+      "https://villaibarra.com/banquet/",
+      "https://brideandbreakfast.ph/2020/09/15/casa-ibarra-75k-anastasia-package/"
+    ]
+  },
+  {
+    "name": "Ville Sommet",
+    "area": "Tagaytay City, Cavite",
+    "cluster": "tagaytay",
+    "type": "events_place",
+    "capacity": null,
+    "starting_rate_php": 140000,
+    "rate_notes": "Wedding venue package PHP 140,000 for 4 hours, food not included (exclusive use, GlassHouse + Parkland ceremony, chalet day-use, genset, parking) per weddingsinthephilippines.com (year not stated, likely pre-2025); a 'Ville Sommet 2025' package sheet circulates on Scribd — verify before relying",
+    "price_public": true,
+    "website": "https://www.villesommet.ph/",
+    "facebook": null,
+    "sources": [
+      "http://weddingsinthephilippines.com/ville-sommet-tagaytay/",
+      "https://www.scribd.com/document/790423163/Ville-Sommet-2025",
+      "https://juancarlo.ph/venues/ville-sommet-tagaytay/"
+    ]
+  }
+]

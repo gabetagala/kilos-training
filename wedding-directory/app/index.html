@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#FFFFFF">
+  <title>Philippine Wedding Planner — beta</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- GATE -->
+  <section id="gate" class="screen">
+    <p class="eyebrow">Philippine weddings · beta</p>
+    <div class="gate-center">
+      <div>
+        <h1 class="display">Nagpaplano ba<br>kayo ng kasal?</h1>
+        <p class="gate-sub">Okay lang din tumingin-tingin muna.</p>
+      </div>
+      <div class="gate-actions">
+        <button class="btn btn-primary" id="btn-couple">
+          Oo, kami nga
+          <span class="btn-sub">start our plan</span>
+        </button>
+        <button class="btn btn-ghost" id="btn-looking">
+          Tumitingin lang muna
+          <span class="btn-sub">browse venues</span>
+        </button>
+      </div>
+      <div class="gate-strip">
+        <div class="gate-shots" id="gate-shots"></div>
+        <p class="gate-caption">Totoong venues, totoong presyo — hindi na kailangang mag-PM.</p>
+      </div>
+    </div>
+    <p class="gate-foot" id="gate-foot"></p>
+  </section>
+
+  <!-- ONBOARDING -->
+  <section id="ask-names" class="screen hidden">
+    <p class="eyebrow">Ang saya!</p>
+    <div class="gate-center">
+      <h1 class="display display-sm">Anong itatawag<br>namin sa inyo?</h1>
+      <form id="names-form" class="step-form">
+        <label class="field-label" for="names-input">Your names</label>
+        <input id="names-input" class="field" type="text" placeholder="e.g. Paolo &amp; Ria"
+               autocomplete="off" maxlength="60">
+        <button class="btn btn-primary" type="submit">Continue</button>
+        <button class="btn-text" type="button" id="skip-names">Later na</button>
+      </form>
+    </div>
+  </section>
+
+  <section id="ask-date" class="screen hidden">
+    <p class="eyebrow">Huling tanong na</p>
+    <div class="gate-center">
+      <h1 class="display display-sm">Kailan ang<br>big day?</h1>
+      <form id="date-form" class="step-form">
+        <label class="field-label" for="date-input">Wedding date · kung meron na</label>
+        <input id="date-input" class="field" type="date">
+        <button class="btn btn-primary" type="submit">Continue</button>
+        <button class="btn-text" type="button" id="skip-date">Wala pang date</button>
+      </form>
+      <p class="step-note">Maraming couples, venue muna bago ang date. Okay lang 'yan.</p>
+    </div>
+  </section>
+
+  <!-- APP -->
+  <section id="home" class="screen app-screen hidden" data-view="plan">
+    <header class="masthead">
+      <p class="eyebrow" id="masthead-title">Philippine weddings · beta</p>
+      <a href="#" class="masthead-link hidden" id="setup-link">Start your plan →</a>
+    </header>
+
+    <div class="app-body">
+      <aside class="rail">
+        <nav class="tabbar" aria-label="Main">
+          <button class="tab" data-view="plan">Plan</button>
+          <button class="tab" data-view="venues">Venues</button>
+          <button class="tab" data-view="ask">Ask</button>
+        </nav>
+        <div class="rail-identity" id="rail-identity"></div>
+      </aside>
+
+      <div class="app-main">
+        <main id="view-plan" class="view">
+          <div id="plan-head"></div>
+          <div id="plan-list"></div>
+        </main>
+
+        <main id="view-venues" class="view hidden">
+          <div id="venue-filters"></div>
+          <p class="list-meta" id="list-meta"></p>
+          <div id="list"></div>
+        </main>
+
+        <main id="view-ask" class="view hidden">
+          <div id="ask-thread" class="ask-thread"></div>
+          <div class="ask-dock">
+            <div class="ask-chips" id="ask-chips"></div>
+            <form id="ask-form" class="ask-form">
+              <label class="sr-only" for="ask-input">Ask about the venues or your plan</label>
+              <input id="ask-input" class="field field-sm" type="text"
+                     placeholder="Magtanong tungkol sa presyo…" autocomplete="off">
+              <button class="btn btn-primary btn-sm" type="submit">Ask</button>
+            </form>
+          </div>
+        </main>
+      </div>
+
+      <aside class="panel hidden" id="panel" aria-label="Details" tabindex="-1">
+        <div class="panel-head">
+          <button class="panel-close" id="panel-close" aria-label="Isara">← Balik</button>
+        </div>
+        <div class="panel-body" id="panel-body"></div>
+      </aside>
+    </div>
+
+    <footer class="colophon">
+      <p>Presyo galing sa public sources — laging may petsa at pinagmulan.
+         Mali o luma na? <a href="#" id="feedback-link">Sabihan kami</a>.</p>
+      <p class="colophon-meta" id="colophon-meta"></p>
+      <p><a href="#" id="reset-link">Start over</a></p>
+    </footer>
+  </section>
+
+  <dialog id="confirm-dialog" class="confirm">
+    <p class="confirm-text" id="confirm-text"></p>
+    <p class="confirm-sub" id="confirm-sub"></p>
+    <div class="confirm-actions">
+      <button class="btn btn-primary btn-sm" id="confirm-yes">Alisin</button>
+      <button class="btn btn-ghost btn-sm" id="confirm-no">Huwag muna</button>
+    </div>
+  </dialog>
+
+  <dialog id="prompt-dialog" class="confirm">
+    <form method="dialog" id="prompt-form">
+      <p class="confirm-text" id="prompt-text"></p>
+      <p class="confirm-sub" id="prompt-sub"></p>
+      <input id="prompt-input" class="field field-sm" style="margin-top: 0.875rem" autocomplete="off">
+      <div class="confirm-actions">
+        <button class="btn btn-primary btn-sm" value="ok" id="prompt-ok">Save</button>
+        <button class="btn btn-ghost btn-sm" value="cancel">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

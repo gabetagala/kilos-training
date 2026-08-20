@@ -9,7 +9,7 @@ const page = (p) => fileURLToPath(new URL(p, import.meta.url))
 // fallback serves the Kilos shell instead — silently, with a 200 — so the
 // dev server sends the bare path to the slashed one. Prod does this in
 // vercel.json rewrites.
-const SUB_APPS = ['tomato-plate', 'tomatito', 'hotmum', 'tomato', 'tayo', 'coach-cilyn']
+const SUB_APPS = ['hotmum', 'tayo', 'coach-cilyn']
 const subAppTrailingSlash = () => ({
   name: 'subapp-trailing-slash',
   configureServer(server) {
@@ -48,20 +48,14 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      // Multi-page: Kilos SPA + the Tomato Cam baby-monitor sub-app (tomato/SCOPE.md §2)
-      // + Tayô, the desk-break coach + Tomato Plate, the feeding app
-      // (all own URLs, deliberately unlinked from home)
+      // Multi-page: Kilos SPA + Tayô, the desk-break coach, + HOTMUM.
+      // (The Tomato apps moved to their own repo: github.com/gabetagala/tomatito)
       input: {
         main: page('index.html'),
-        'tomato-home': page('tomato/index.html'),
-        'tomato-cam': page('tomato/cam.html'),
-        'tomato-view': page('tomato/view.html'),
         tayo: page('tayo/index.html'),
         // HOTMUM — Sam's app. Own page, own icon, own localStorage namespace;
         // shares only the step engine and the fonts (hotmum/PLAN.md §4).
         hotmum: page('hotmum/index.html'),
-        'tomato-plate': page('tomato-plate/index.html'),
-        tomatito: page('tomatito/index.html'),
       },
     },
   },
@@ -84,9 +78,6 @@ export default defineConfig({
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [
           /^\/coach-/,
-          /^\/bantay/,
-          /^\/tomato/,
-          /^\/tomatito/,
           /^\/tayo/,
           /^\/hotmum/,
         ],

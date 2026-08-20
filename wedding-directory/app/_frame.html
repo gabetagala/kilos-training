@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>frame</title>
+<style>html,body{margin:0;background:#fff}iframe{border:0;display:block}</style>
+<body>
+<script>
+  const p = new URLSearchParams(location.search);
+  const w = p.get('w') || '390', h = p.get('h') || '1400';
+  const tab = p.get('tab'), venue = p.get('venue');
+  const d = new Date(Date.now() + 208 * 86400000).toISOString().slice(0, 10);
+  const soon = new Date(Date.now() + 9 * 86400000).toISOString().slice(0, 10);
+  localStorage.setItem('wd-profile', JSON.stringify({ mode: 'couple', names: 'Gabe & Sam', date: d, guests: 120, target: 600000 }));
+  localStorage.setItem('wd-plan', JSON.stringify({
+    v: 3, cats: ['Venue', 'Catering', 'Photo & Video', 'Hair & Makeup', 'Attire', 'Rings', 'Ceremony & Fees', 'Paperwork'],
+    items: [
+      { id: 'a1', cat: 'Venue', name: 'Hillcreek Gardens Tagaytay', price: 318900, status: 'booked',
+        thread: [{ who: 'Sam', text: 'Kaya ba natin ito?', ts: Date.now() }],
+        payments: [{ id: 'p1', label: 'Down payment', amount: 63780, due: '2026-08-10', paid: true },
+                   { id: 'p2', label: 'Balance', amount: 255120, due: soon, paid: false }] },
+      { id: 'a2', cat: 'Catering', name: 'Juan Carlo', price: 144000, status: 'canvassing', thread: [], payments: [] },
+    ],
+  }));
+  const f = document.createElement('iframe');
+  f.width = w; f.height = h; f.src = 'index.html';
+  document.body.appendChild(f);
+  f.onload = () => setTimeout(() => {
+    const doc = f.contentDocument;
+    if (tab) doc.querySelector(`.tab[data-view="${tab}"]`)?.click();
+    if (venue) setTimeout(() => {
+      const cards = [...doc.querySelectorAll('.venue')];
+      (cards.find((c) => c.textContent.includes(venue)) || cards[0])?.click();
+    }, 200);
+  }, 500);
+</script>
+</body>

@@ -1,0 +1,26 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "title": "1 · Gate", "x": 0, "y": 0, "w": 390, "h": 844 },
+    { "file": "Plan.dc.html", "title": "2 · Planner", "x": 470, "y": 0, "w": 390, "h": 1240 },
+    { "file": "Venues.dc.html", "title": "3 · Venues", "x": 940, "y": 0, "w": 390, "h": 1180 },
+    { "file": "Detail.dc.html", "title": "4 · Venue page", "x": 1410, "y": 0, "w": 390, "h": 1100 },
+    { "file": "Desktop.dc.html", "title": "5 · Laptop", "x": 0, "y": 1360, "w": 1280, "h": 860 }
+  ],
+  "annotations": [
+    {
+      "id": "brief",
+      "x": 0,
+      "y": -190,
+      "w": 430,
+      "text": "Photo-led pass — the missing ingredient vs. Bridebook.\nPhotos come live from Google Places (attribution required, never rehosted).\nEverything else is our real scraped data: real venues, real rates, real verified dates."
+    },
+    {
+      "id": "redacted",
+      "x": 1410,
+      "y": 1150,
+      "w": 390,
+      "text": "The signature move: venues that hide their rate get the redacted smudge instead of a price.\nThat absence is the whole product thesis, made visible."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}
