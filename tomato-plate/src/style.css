@@ -64,7 +64,10 @@ body {
 #app {
   /* height, not min-height: the shell is exactly the viewport and .scroll does
      the scrolling inside it, so the floating nav can anchor to the true bottom. */
-  max-width: 480px; margin: 0 auto; height: 100%; overflow: hidden;
+  /* width:100% matters: .scroll is absolutely positioned so .stage has no
+     in-flow content, and as a flex item on desktop #app would otherwise
+     shrink-to-fit and collapse to a couple of pixels. */
+  width: 100%; max-width: 480px; margin: 0 auto; height: 100%; overflow: hidden;
   display: flex; flex-direction: column; position: relative;
 }
 
@@ -80,12 +83,14 @@ body::before {
    status bar reads as a stuck coloured bar. The page is one flat cream now;
    the grain above is the only texture. */
 #app { z-index: 2; }
+.stage {
+  /* Holds the current screen and, mid-swipe, the one coming in. */
+  flex: 1; min-height: 0; position: relative; overflow: hidden;
+}
 .scroll {
-  /* min-height:0 lets a flex child shrink below its content and scroll itself,
-     instead of stretching the shell past the viewport. */
-  flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  position: absolute; inset: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  padding: max(20px, env(safe-area-inset-top)) var(--pad) 26px;
+  padding: max(20px, env(safe-area-inset-top)) var(--pad) calc(92px + env(safe-area-inset-bottom));
 }
 .stack > * + * { margin-top: 22px; }
 .ic { display: block; flex: 0 0 auto; }
@@ -291,8 +296,12 @@ h2 { font-family: var(--font-display); font-size: 22px; font-weight: 600; letter
    floating look: a centred glass pill on a transparent bar.
    ───────────────────────────────────────────────────────────────────────── */
 .tabbar {
-  flex: 0 0 auto; align-self: center; z-index: 100;
-  margin: 0 auto max(12px, env(safe-area-inset-bottom));
+  /* Floating again: absolute inside #app, which is now capped to the visible
+     viewport (max-height:100dvh), so it cannot be pushed off screen the way it
+     was when the shell could outgrow the display. */
+  position: absolute; z-index: 100;
+  left: 50%; transform: translateX(-50%);
+  bottom: max(12px, calc(env(safe-area-inset-bottom) - 4px));
   display: flex; align-items: center; gap: 2px; padding: 5px;
   border-radius: var(--r-pill);
   background: rgba(255, 255, 255, .84);
@@ -580,3 +589,5 @@ textarea::placeholder { color: var(--ink-3); }
   white-space: pre; pointer-events: none;
 }
 #diag-mark { position: fixed; left: 0; right: 0; bottom: 0; height: 3px; background: #ff00c8; z-index: 9999; }
+
+.pager-ghost { z-index: 1; background: var(--bg); }

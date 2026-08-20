@@ -493,12 +493,16 @@ function sheetReaction() {
 const TABS = [['today', 'Today'], ['foods', 'Foods'], ['baby', 'Baby']]
 const SCROLL_MEM = {}
 
+/** The body HTML for a tab — the pager needs to build the neighbour screen. */
+function screenFor(tab) {
+  return tab === 'foods' ? screenFoods() : tab === 'baby' ? screenBaby() : screenToday()
+}
+
 function render() {
-  if (!store.isOnboarded()) { app.innerHTML = screenOnboard(); return }
-  const body = view.food ? screenFood(view.food)
-    : view.tab === 'foods' ? screenFoods()
-    : view.tab === 'baby' ? screenBaby()
-    : screenToday()
+  // Same stage wrapper as every other screen, so .scroll always has its
+  // positioned containing block.
+  if (!store.isOnboarded()) { app.innerHTML = `<div class="stage">${screenOnboard()}</div>`; return }
+  const body = view.food ? screenFood(view.food) : screenFor(view.tab)
   const bar = view.food ? '' : `<nav class="tabbar">${TABS.map(([id, label]) =>
     `<button data-tab="${id}" class="${view.tab === id ? 'on' : ''}">${label}</button>`).join('')}</nav>`
   // Remember where the reader was on each screen, so returning from a food
@@ -510,7 +514,7 @@ function render() {
 
   let sheetEl = !view.sheet ? '' : view.sheet.kind === 'reaction' ? sheetReaction() : view.sheet.kind === 'hands' ? sheetHands() : view.sheet.kind === 'swap' ? sheetSwap(view.sheet) : sheetLog(view.sheet)
   if (sheetEl && !view.sheet._shown) { sheetEl = sheetEl.replace('class="scrim"', 'class="scrim enter"'); view.sheet._shown = true }
-  app.innerHTML = body + bar + sheetEl
+  app.innerHTML = `<div class="stage">${body}</div>` + bar + sheetEl
   app.dataset.screen = key
   // innerHTML rebuilds the scroller, so put the reader back where they were —
   // otherwise every tap below the fold snaps the page to the top. Deferred a
@@ -688,16 +692,27 @@ app.addEventListener('change', (e) => {
   reader.readAsDataURL(file)
 })
 
-// ── 2: swipe between tabs ────────────────────────────────────────────────
-// Only on a plain tab screen, only when the gesture is clearly horizontal, so
-// vertical scrolling and the sheets are untouched.
+// ── Swipe between tabs, as a pager ───────────────────────────────────────
+// The next screen is built up-front and follows your finger, so you can see
+// where you are going and abandon halfway. Only on a plain tab screen, only
+// on clear horizontal intent, so vertical scrolling is untouched.
 {
-  let g = null
   const order = TABS.map(([id]) => id)
+  const THRESHOLD = 0.26
+  let g = null
+
+  const stage = () => app.querySelector('.stage')
+  const cleanup = () => {
+    for (const el of app.querySelectorAll('.pager-ghost')) el.remove()
+    const cur = stage()?.querySelector('.scroll')
+    if (cur) { cur.style.transition = ''; cur.style.transform = ''; cur.style.willChange = '' }
+  }
+
   app.addEventListener('touchstart', (e) => {
     if (e.touches.length !== 1 || view.sheet || view.food) return
-    g = { x: e.touches[0].clientX, y: e.touches[0].clientY, on: false }
+    g = { x: e.touches[0].clientX, y: e.touches[0].clientY, on: false, dx: 0 }
   }, { passive: true })
+
   app.addEventListener('touchmove', (e) => {
     if (!g) return
     const dx = e.touches[0].clientX - g.x
@@ -706,20 +721,47 @@ app.addEventListener('change', (e) => {
       if (Math.abs(dx) < 12 && Math.abs(dy) < 12) return
       if (Math.abs(dy) >= Math.abs(dx)) { g = null; return } // vertical — let it scroll
       g.on = true
+      g.dir = dx < 0 ? 1 : -1
+      g.next = order[order.indexOf(view.tab) + g.dir]
+      g.cur = stage()?.querySelector('.scroll')
+      g.w = stage()?.getBoundingClientRect().width || 1
+      if (g.next && g.cur) {
+        const ghost = document.createElement('div')
+        ghost.className = 'scroll pager-ghost'
+        ghost.innerHTML = screenFor(g.next)
+        ghost.style.transform = `translate3d(${g.dir > 0 ? 100 : -100}%,0,0)`
+        stage().appendChild(ghost)
+        g.ghost = ghost
+        g.cur.style.willChange = 'transform'
+      }
     }
-    g.dx = dx
+    if (!g.cur) return
+    // Rubber-band at the ends instead of pretending there is a page there.
+    g.dx = g.next ? dx : dx * 0.3
+    g.cur.style.transform = `translate3d(${g.dx}px,0,0)`
+    if (g.ghost) g.ghost.style.transform = `translate3d(calc(${g.dir > 0 ? 100 : -100}% + ${g.dx}px),0,0)`
   }, { passive: true })
-  const end = () => {
-    if (!g?.on) { g = null; return }
-    const { dx } = g
+
+  const settle = () => {
+    if (!g?.on || !g.cur) { g = null; return }
+    const { dx, dir, next, cur, ghost, w } = g
     g = null
-    if (Math.abs(dx) < 60) return
-    const i = order.indexOf(view.tab)
-    const next = order[Math.min(order.length - 1, Math.max(0, i + (dx < 0 ? 1 : -1)))]
-    if (next !== view.tab) { view.tab = next; view.openMeal = null; render() }
+    const commit = next && Math.abs(dx) > w * THRESHOLD
+    const ease = 'transform .26s cubic-bezier(.22,1,.36,1)'
+    cur.style.transition = ease
+    if (ghost) ghost.style.transition = ease
+    if (commit) {
+      cur.style.transform = `translate3d(${dir > 0 ? -w : w}px,0,0)`
+      if (ghost) ghost.style.transform = 'translate3d(0,0,0)'
+      setTimeout(() => { view.tab = next; view.openMeal = null; cleanup(); render() }, 250)
+    } else {
+      cur.style.transform = 'translate3d(0,0,0)'
+      if (ghost) ghost.style.transform = `translate3d(${dir > 0 ? 100 : -100}%,0,0)`
+      setTimeout(cleanup, 260)
+    }
   }
-  app.addEventListener('touchend', end, { passive: true })
-  app.addEventListener('touchcancel', end, { passive: true })
+  app.addEventListener('touchend', settle, { passive: true })
+  app.addEventListener('touchcancel', settle, { passive: true })
 }
 
 // ── on-device diagnostic ─────────────────────────────────────────────────
