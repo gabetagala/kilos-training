@@ -68,6 +68,7 @@ body {
      in-flow content, and as a flex item on desktop #app would otherwise
      shrink-to-fit and collapse to a couple of pixels. */
   width: 100%; max-width: 480px; margin: 0 auto; height: 100%; overflow: hidden;
+  background: var(--bg);
   display: flex; flex-direction: column; position: relative;
 }
 
@@ -86,8 +87,13 @@ body::before {
 .stage {
   /* Holds the current screen and, mid-swipe, the one coming in. */
   flex: 1; min-height: 0; position: relative; overflow: hidden;
+  background: var(--bg);
 }
 .scroll {
+  /* Opaque on purpose: a transform/will-change promotes this to its own
+     compositing layer, and a transparent layer paints nothing behind itself —
+     which read as the background vanishing mid-swipe. */
+  background: var(--bg);
   position: absolute; inset: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   padding: max(20px, env(safe-area-inset-top)) var(--pad) calc(92px + env(safe-area-inset-bottom));
@@ -626,10 +632,10 @@ textarea::placeholder { color: var(--ink-3); }
    drag feel heavy on a phone. They are decoration; drop them for the ~300ms a
    swipe lasts and the gesture rides on the GPU.
    ───────────────────────────────────────────────────────────────────────── */
-#app.paging ~ * , body:has(#app.paging)::before { display: none; }
+body:has(#app.paging)::before { display: none; }
 #app.paging .tabbar { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(255,255,255,.96); }
-#app.paging .scroll { overflow-y: hidden; will-change: transform; contain: layout paint; }
-#app.paging .pager-ghost { will-change: transform; contain: layout paint; }
+#app.paging .scroll { overflow-y: hidden; will-change: transform; contain: layout; }
+#app.paging .pager-ghost { will-change: transform; contain: layout; }
 
 /* ─── Photo cropper ───────────────────────────────────────────────────── */
 .cropper { position: relative; width: 100%; aspect-ratio: 1; border-radius: var(--r-md);
