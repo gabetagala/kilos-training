@@ -3,7 +3,6 @@ import {
   blockForDay,
   blockWorkSecs,
   dayNumber,
-  daysToAfter,
   daysToGo,
   DOSES,
   estimateMins,
@@ -258,12 +257,14 @@ describe('season — a hundred days, not a streak', () => {
     expect(dayNumber(SEASON.endDate)).toBe(100);
   });
 
-  // Christmas used to BE the deadline. The hundred days replaced it, and the
-  // two don't line up — so Christmas became the payoff, and it has to still
-  // land after the finish line or the story stops making sense.
-  it('finishes clear of Christmas, with time to spare', () => {
-    expect(daysToAfter(SEASON.endDate)).toBeGreaterThan(14);
-    expect(new Date(SEASON.after.date) > new Date(SEASON.endDate)).toBe(true);
+  // Christmas used to BE the deadline, and the two never lined up (20 Aug to
+  // Christmas is 128 days). It's gone, not demoted to a second milestone —
+  // ONE finish line is the entire reason the mechanic works, and a stray
+  // second date would quietly put it back.
+  it('has exactly one finish line and no leftover Christmas', () => {
+    expect(SEASON.after).toBeUndefined();
+    expect(JSON.stringify(SEASON)).not.toMatch(/christmas|12-25/i);
+    expect(SEASON.name).toBe('100 Days of Showing Up');
   });
 
   it('the blocks tile the season with no gaps and no overlaps', () => {
@@ -718,7 +719,7 @@ describe('profile — greeting and units', () => {
     expect(greeting('Sam')).toMatch(/hot mum/i);
   });
 
-  it('counts the hundred days, not the old countdown to Christmas', () => {
+  it('counts the hundred days, and never a date beyond them', () => {
     expect(subGreeting({ doneToday: false, day: 1, days: 100 })).toMatch(
       /Day one of 100/,
     );

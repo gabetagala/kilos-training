@@ -408,10 +408,11 @@ export const HOTMUM_EXERCISES = {
 // has no streaks anywhere (PLAN.md §2.0).
 //
 // It used to count down to Christmas. Her rewritten plan counts 100 days
-// instead, and the two don't line up — so the 100 days win and Christmas
-// becomes the payoff rather than the finish line: starting 20 Aug 2026, day
-// 100 lands on Friday 27 Nov, four clear weeks before Christmas Day. She
-// finishes the work, then gets a month of wearing the result.
+// instead, and the two never lined up — 20 Aug to Christmas is 128 days, so a
+// "100 days" that was really 128 had a lie in it. The hundred won and the
+// Christmas framing is GONE, not demoted: day 100 is Friday 27 Nov and that's
+// the whole story. Don't reintroduce a second deadline — one finish line is
+// the entire reason this mechanic works.
 
 export const SEASON = {
   id: 'hundred-days',
@@ -420,7 +421,6 @@ export const SEASON = {
   startDate: '2026-08-20',
   endDate: '2026-11-27', // day 100 — derived, and a test proves it
   days: 100,
-  after: { date: '2026-12-25', name: 'Christmas' },
   // Five blocks of twenty days. Load moves LAST: with fixed dumbbells it's the
   // bluntest lever she has, so tempo and reps get used up first.
   //
@@ -479,10 +479,6 @@ const asDate = (d) =>
 /** Whole days from `today` to the end of the 100. Never negative. */
 export const daysToGo = (today = new Date()) =>
   Math.max(0, Math.ceil((asDate(SEASON.endDate) - asDate(today)) / DAY_MS));
-
-/** Whole days from `today` to whatever comes after the season (Christmas). */
-export const daysToAfter = (today = new Date()) =>
-  Math.max(0, Math.ceil((asDate(SEASON.after.date) - asDate(today)) / DAY_MS));
 
 /** Which of the 100 days it is, 1-based and clamped to both ends. */
 export function dayNumber(today = new Date()) {

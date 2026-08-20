@@ -15,8 +15,11 @@
 > SHOWING UP** in place of the countdown to Christmas. The program is now
 > **SEASON 01 :: 100 DAYS** (§2.0). Three things were added on top of her
 > plan rather than taken from it: the knee doctrine (§2.9), EASY KNEE (§2.9),
-> and "another movement" (§2.0.2). Christmas is still in here — it just moved
-> from the deadline to the payoff.
+> and "another movement" (§2.0.2).
+>
+> **Christmas is OUT — 2026-08-20.** Not demoted to a second milestone: gone.
+> It's no longer the season name, the countdown, the share card, the manifest
+> or the app description. One finish line, and it's day 100.
 
 ---
 
@@ -157,13 +160,17 @@ one we invented for her:
 
 > *Every day = 30 minutes of movement. 100 days of showing up.*
 
-**Why the 100 days replaced the countdown to Christmas.** The two don't line
+**Why the 100 days replaced the countdown to Christmas.** The two never lined
 up — 20 Aug to Christmas is 128 days, and a "100 days" that's actually 128 is
-just a number with a lie in it. So the hundred wins, and **Christmas becomes
-the payoff instead of the finish line**: day 100 is Friday 27 Nov, which leaves
-**28 clear days** to wear the result through December. That's a better story
-than the original anyway — she finishes the work *before* the parties, not on
-the morning of the last one.
+just a number with a lie in it.
+
+**And Christmas didn't survive as a second milestone either.** The first pass
+kept it as a payoff — *day 100, then 28 days to wear it* — and that was one
+finish line too many. The whole reason a countdown beats a streak is that
+there's a single, unambiguous thing being counted down to; adding "…and then
+this other date" dilutes exactly the thing that makes it work, and it quietly
+re-attaches the program to a deadline she didn't ask for. **It's day 100. That
+is the entire story.** A test asserts no second date creeps back in.
 
 Everything the deadline was doing, the hundred still does:
 
@@ -178,8 +185,8 @@ Everything the deadline was doing, the hundred still does:
 a row is exactly one twenty-day training block. The picture of the season and
 the structure of the season are the same shape.
 
-**Do NOT make the palette Christmassy.** No red and green. Magenta/ember/cream
-stays exactly as it is.
+**The palette was never Christmassy and now there's no excuse for it to be.**
+No red and green. Magenta/ember/cream stays exactly as it is.
 
 ### 2.0.1 Periodisation across the 100 days
 

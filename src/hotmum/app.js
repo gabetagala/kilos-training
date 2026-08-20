@@ -30,7 +30,6 @@ import {
 import {
   blockForDay,
   dayNumber,
-  daysToAfter,
   daysToGo,
   getMovement,
   getSession,
@@ -377,8 +376,8 @@ function renderProgram() {
       </div>
       <div class="season">${seasonRail()}</div>
       <p class="fine">${SEASON.days} days, ${prettyDate(SEASON.startDate)} to
-        ${prettyDate(SEASON.endDate)} — and then ${daysToAfter(SEASON.endDate)}
-        days to ${esc(SEASON.after.name)} to wear it.</p>
+        ${prettyDate(SEASON.endDate)}. Thirty minutes of movement on every one
+        of them.</p>
 
       <div class="pane pane-a">
         <h2 class="sec-h">The five blocks</h2>
@@ -863,8 +862,9 @@ async function autoApplyUpdate() {
 // ─── Home ──────────────────────────────────────────────────────────────────
 // ─── Home ──────────────────────────────────────────────────────────────────
 // KILOS' shape: wordmark, greeting, a grid of boxes, then a card you tap to
-// open the day. Hers counts boxes to Christmas rather than days in a month —
-// the season IS the motivation, so it's the thing the page is mostly made of.
+// open the day. Hers counts boxes across the hundred rather than days in a
+// month — the season IS the motivation, so it's the thing the page is mostly
+// made of.
 
 const DAY_MS = 86400000;
 

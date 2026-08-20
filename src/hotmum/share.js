@@ -198,12 +198,12 @@ const mmss = (s) => {
 
 function drawCountdown(ctx, d) {
   field(ctx);
-  rail(ctx, d.seasonLabel, 'TONED CHRISTMAS', '2026');
+  rail(ctx, d.seasonLabel, '100 DAYS', '2026');
 
   ctx.fillStyle = INK;
   display(ctx, String(d.daysToGo), W / 2, H * 0.47, 400, 'center');
   ctx.fillStyle = CREAM;
-  tracked(ctx, 'DAYS TO CHRISTMAS', W / 2, H * 0.47 + 56, 26, 0.22, 'center');
+  tracked(ctx, 'DAYS TO GO', W / 2, H * 0.47 + 56, 26, 0.22, 'center');
 
   ctx.fillStyle = INK;
   display(ctx, d.activity, W / 2, H * 0.68, 132, 'center');
@@ -282,7 +282,7 @@ function drawWorkout(ctx, d) {
 
 function drawMark(ctx, d) {
   field(ctx, true);
-  rail(ctx, d.seasonLabel, 'TONED CHRISTMAS', '2026');
+  rail(ctx, d.seasonLabel, '100 DAYS', '2026');
 
   ctx.save();
   ctx.fillStyle = INK;
