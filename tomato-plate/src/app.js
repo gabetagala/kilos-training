@@ -361,21 +361,48 @@ function screenBaby() {
 
 function screenOnboard() {
   view.ob.startDate ||= store.todayISO()
-  return `<div class="scroll stack" style="justify-content:center;display:flex;flex-direction:column">
-    <div style="text-align:center">
-      ${icon('logo', 72, 'ic')}
-      <div class="wordmark" style="margin-top:12px"><span class="l1">TOMATO</span><span class="l2">PLATE</span></div>
-      <p class="soft" style="font-size:13px;margin:16px 0 4px;line-height:1.5">Every food, how to cut it,<br>and what he thought of it.</p>
+  const ready = Boolean(view.ob.birthdate)
+  // A handful of first foods, illustrated — the same cards as the rest of the
+  // app rather than a wall of text chips.
+  const FIRSTS = ['kamote', 'carrot', 'kalabasa', 'sayote', 'avocado', 'lakatan', 'papaya', 'chicken', 'egg']
+  return `<div class="scroll onboard">
+    <header class="ob-hero">
+      <div class="ob-art">
+        ${icon('kalabasa', 44, 'ob-f1')}${icon('avocado', 38, 'ob-f2')}${icon('dilis', 40, 'ob-f3')}
+        ${icon('logo', 76, 'ob-logo')}
+        ${icon('lakatan', 40, 'ob-f4')}${icon('malunggay', 36, 'ob-f5')}${icon('egg', 34, 'ob-f6')}
+      </div>
+      <div class="wordmark"><span class="l1">TOMATO</span><span class="l2">PLATE</span></div>
+      <p class="ob-tag">Every food, how to cut it,<br>and what he thought of it.</p>
+    </header>
+
+    <div class="ob-card">
+      <label class="ob-field">
+        <span class="eyebrow">His name</span>
+        <input type="text" id="ob-name" placeholder="Baby's name" autocomplete="off"
+               enterkeyhint="next" value="${esc(view.ob.name)}">
+      </label>
+      <label class="ob-field">
+        <span class="eyebrow">Birthday</span>
+        <input type="date" id="ob-dob" value="${esc(view.ob.birthdate)}" max="${store.todayISO()}">
+        <small>Everything — the plan, the cut sizes — follows his age from this.</small>
+      </label>
+      <label class="ob-field">
+        <span class="eyebrow">First day of solids</span>
+        <input type="date" id="ob-start" value="${esc(view.ob.startDate)}">
+        <small>Already started? Put the real date and the plan catches up.</small>
+      </label>
     </div>
-    <div><div class="eyebrow" style="margin-bottom:6px">His name</div><input type="text" id="ob-name" placeholder="Baby's name" autocomplete="off" value="${esc(view.ob.name)}"></div>
-    <div><div class="eyebrow" style="margin-bottom:6px">Birthday</div><input type="date" id="ob-dob" value="${esc(view.ob.birthdate)}"></div>
-    <div><div class="eyebrow" style="margin-bottom:6px">First day of solids</div><input type="date" id="ob-start" value="${esc(view.ob.startDate)}"></div>
-    <div><div class="eyebrow" style="margin-bottom:8px">Already tried any of these?</div>
-      <div class="chips wrap">${Object.entries(FOODS).slice(0, 12).map(([id, f]) =>
-        `<button class="chip ${view.pretried.has(id) ? 'on' : ''}" data-pretried="${id}">${esc(f.name)}</button>`).join('')}</div>
-      <div class="soft" style="font-size:12px;margin-top:8px">Tap any he has already had — they’ll show as done instead of coming up.</div></div>
-    <button class="btn" data-onboard>Start the plan</button>
-    <p class="soft" style="font-size:10px;text-align:center;line-height:1.5">Not medical advice. Always follow your pediatrician's guidance.</p>
+
+    <div class="ob-card">
+      <div class="eyebrow ruled" style="margin-bottom:4px">Anything he has already had?</div>
+      <p class="ob-hint">Tap them and they'll show as done instead of coming up.</p>
+      <div class="ob-grid">${FIRSTS.map((id) => `<button class="ob-food ${view.pretried.has(id) ? 'on' : ''}" data-pretried="${id}">
+        ${icon(FOODS[id].art, 34)}<b>${esc(FOODS[id].name)}</b></button>`).join('')}</div>
+    </div>
+
+    <button class="btn ${ready ? '' : 'disabled'}" data-onboard>${ready ? 'Start the plan' : 'Add his birthday to start'}</button>
+    <p class="ob-legal">Not medical advice. Always follow your pediatrician's guidance.</p>
   </div>`
 }
 
@@ -655,8 +682,7 @@ app.addEventListener('change', (e) => {
       const h = img.height * scale
       c.getContext('2d').drawImage(img, (size - w) / 2, (size - h) / 2, w, h)
       store.saveProfile({ photo: c.toDataURL('image/jpeg', 0.82) })
-      render()
-    }
+          }
     img.src = reader.result
   }
   reader.readAsDataURL(file)
@@ -694,6 +720,42 @@ app.addEventListener('change', (e) => {
   }
   app.addEventListener('touchend', end, { passive: true })
   app.addEventListener('touchcancel', end, { passive: true })
+}
+
+// ── on-device diagnostic ─────────────────────────────────────────────────
+// A desktop browser cannot reproduce iOS standalone geometry. Open
+// /tomato-plate/?diag=1 on the phone and screenshot the panel.
+if (new URLSearchParams(location.search).has('diag')) {
+  const el = document.createElement('div')
+  el.id = 'diag'
+  const mark = document.createElement('div')
+  mark.id = 'diag-mark'
+  document.body.append(el, mark)
+  const px = (v) => Math.round(v)
+  const read = () => {
+    const cs = getComputedStyle(document.documentElement)
+    const probe = document.createElement('div')
+    probe.style.cssText = 'position:fixed;top:0;height:100vh;width:0'
+    document.body.appendChild(probe)
+    const vh100 = probe.getBoundingClientRect().height
+    probe.style.height = '100dvh'
+    const dvh = probe.getBoundingClientRect().height
+    probe.remove()
+    const app = document.getElementById('app').getBoundingClientRect()
+    const nav = document.querySelector('.tabbar')?.getBoundingClientRect()
+    el.textContent = [
+      `standalone   ${matchMedia('(display-mode: standalone)').matches}`,
+      `innerHeight  ${px(innerHeight)}   screen ${px(screen.height)}`,
+      `100vh        ${px(vh100)}   100dvh ${px(dvh)}`,
+      `safe top/bot ${cs.getPropertyValue('--sat-probe') || getComputedStyle(document.body).paddingTop} / ${getComputedStyle(document.body).paddingBottom}`,
+      `#app         ${px(app.top)} → ${px(app.bottom)}  h ${px(app.height)}`,
+      nav ? `nav          ${px(nav.top)} → ${px(nav.bottom)}` : 'nav          (none)',
+      `gap below    ${px(innerHeight - (nav ? nav.bottom : app.bottom))}`,
+    ].join('\n')
+  }
+  read()
+  addEventListener('resize', read)
+  setInterval(read, 1200)
 }
 
 render()

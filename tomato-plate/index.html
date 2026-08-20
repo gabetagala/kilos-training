@@ -9,7 +9,12 @@
        bar so the cream page runs under it (safe-area padding does the rest). -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <!-- black-translucent lets the cream page run UNDER the status bar so there
+       is no separate white strip; color-scheme:light tells iOS to draw the
+       clock and battery in dark ink over it. With "default" iOS paints its own
+       white bar, which is what made the top look like a different colour. -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="color-scheme" content="light" />
   <meta name="apple-mobile-web-app-title" content="Plate" />
   <link rel="manifest" href="/tomato-plate.webmanifest" />
   <link rel="apple-touch-icon" href="/plate-icon-180.png" />
