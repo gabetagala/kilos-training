@@ -26,6 +26,14 @@
       "destination": "/coach-cilyn/index.html"
     },
     {
+      "source": "/tomatito",
+      "destination": "/tomatito/index.html"
+    },
+    {
+      "source": "/tomatito/",
+      "destination": "/tomatito/index.html"
+    },
+    {
       "source": "/tomato-plate",
       "destination": "/tomato-plate/index.html"
     },
@@ -58,7 +66,7 @@
       "destination": "/tayo/index.html"
     },
     {
-      "source": "/((?!coach-cilyn|hotmum|tomato|bantay|tayo).*)",
+      "source": "/((?!coach-cilyn|tomatito|hotmum|tomato|bantay|tayo).*)",
       "destination": "/index.html"
     }
   ]

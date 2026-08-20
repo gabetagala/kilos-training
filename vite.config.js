@@ -9,7 +9,7 @@ const page = (p) => fileURLToPath(new URL(p, import.meta.url))
 // fallback serves the Kilos shell instead — silently, with a 200 — so the
 // dev server sends the bare path to the slashed one. Prod does this in
 // vercel.json rewrites.
-const SUB_APPS = ['tomato-plate', 'hotmum', 'tomato', 'tayo', 'coach-cilyn']
+const SUB_APPS = ['tomato-plate', 'tomatito', 'hotmum', 'tomato', 'tayo', 'coach-cilyn']
 const subAppTrailingSlash = () => ({
   name: 'subapp-trailing-slash',
   configureServer(server) {
@@ -61,6 +61,7 @@ export default defineConfig({
         // shares only the step engine and the fonts (hotmum/PLAN.md §4).
         hotmum: page('hotmum/index.html'),
         'tomato-plate': page('tomato-plate/index.html'),
+        tomatito: page('tomatito/index.html'),
       },
     },
   },
@@ -85,6 +86,7 @@ export default defineConfig({
           /^\/coach-/,
           /^\/bantay/,
           /^\/tomato/,
+          /^\/tomatito/,
           /^\/tayo/,
           /^\/hotmum/,
         ],

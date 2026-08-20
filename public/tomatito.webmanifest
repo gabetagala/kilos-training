@@ -1,0 +1,15 @@
+{
+  "name": "Tomatito",
+  "short_name": "Tomatito",
+  "description": "Everything made for Tomás, in one place.",
+  "start_url": "/tomatito/",
+  "scope": "/tomatito/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAF8F2",
+  "theme_color": "#FAF8F2",
+  "icons": [
+    { "src": "/tomatito-icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/tomatito-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
