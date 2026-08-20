@@ -1507,6 +1507,7 @@ function renderPlayer() {
       <div class="pl-top">
         <div class="ex-name">${esc(isWalk ? getMovement(run.moveId).name.toUpperCase() : exName(st.exId))}</div>
         <div class="pl-tools">
+          <span class="sess-clock" id="sess" aria-label="Session time">0:00</span>
           <button class="icon-btn voice-btn${voiceOn ? '' : ' muted'}" id="pl-voice" aria-pressed="${voiceOn}" aria-label="Coach voice">♪</button>
           <button class="icon-btn" id="quit" aria-label="End session">✕</button>
         </div>
@@ -1515,7 +1516,9 @@ function renderPlayer() {
       ${teach ? `<div class="pl-stage"><div class="hm-demo${teaching ? ' teaching' : ''}" id="demo"></div></div>` : ''}
 
       <div class="pl-mid">
-        <div class="timer" id="timer">0:00</div>
+        <div class="timer${st.tempo ? ' as-reps' : ''}" id="timer">${
+          st.tempo ? `1<i>/${st.tempo.reps}</i>` : '0:00'
+        }</div>
         <div class="phase" id="phase">${esc(st.phase || '')}</div>
         <p class="cue" id="cue">${esc(cue)}</p>
         <span class="lbl lbl-sm" id="meta">${esc(st.meta || '')}</span>
@@ -1603,17 +1606,26 @@ function tick() {
     const e = elapsedMs();
     const total = (st.secs ?? 0) * 1000;
 
+    // THE ONLY CLOCK IS THE SMALL ONE UP TOP. It counts UP across the whole
+    // session — completed steps plus wherever she is in this one, so a pause
+    // doesn't inflate it.
+    const sess = app.querySelector('#sess');
+    if (sess) sess.textContent = mmss(run.totals.secs + e / 1000);
+
     const timer = app.querySelector('#timer');
-    if (timer) timer.textContent = mmss((total - e) / 1000);
+    // A hold, a rest and a get-set ARE durations — there is nothing else to
+    // show. A tempo set is reps, and the hero says so (painted below).
+    if (timer && !st.tempo) timer.textContent = mmss((total - e) / 1000);
 
     const pl = app.querySelector('#pl');
     if (st.tempo) {
       const ts = tempoStateAt(st.tempo, e);
       const phase = app.querySelector('#phase');
       if (phase) phase.textContent = ts.label;
+      // The rep count IS the hero now, so the meta line stops repeating it.
+      if (timer) timer.innerHTML = `${ts.rep}<i>/${st.tempo.reps}</i>`;
       const meta = app.querySelector('#meta');
-      if (meta)
-        meta.textContent = `${st.meta} · REP ${ts.rep} OF ${st.tempo.reps}`;
+      if (meta) meta.textContent = st.meta || '';
       if (pl) pl.className = `screen player ${ts.label.toLowerCase()}`;
       const stage = app.querySelector('#demo .hm-art');
       if (stage)

@@ -250,14 +250,36 @@ weekly target, the sync key and all her existing history keep counting it;
 Her plan is written in sets × reps. She trains better on time. So:
 
 > **A set is a countdown, not a count.** Set length = `reps × seconds-per-rep`.
-> The coach speaks the tempo (*lift… squeeze… lower*) and **says the rep number
-> out loud** on every rep. She moves with the voice and the set ends when it
-> ends.
+> The app paces it and **says the rep number out loud** on every rep. She moves
+> with the voice and the set ends when it ends.
 
 She gets the time-based feel *and* keeps the rep accountability — the app does
 the counting. This is not a new mechanism: the KILOS guided player already does
 exactly this (`mode: 'tempo'` in [rehab.js](src/workout/rehab.js), rep counting
 added in commit `4c7328d`).
+
+**REVISED 2026-08-20 — the countdown is the MECHANIC, not the display.** Two
+changes, and they're the same change:
+
+- **Alice stopped calling the phase.** She used to say *down… hold… up* on
+  every beat — a word every second and a half for twenty minutes, narrating
+  something already on screen in 50px type with the whole canvas warming and
+  cooling behind it. Now the only thing she says inside a set is the rep
+  number. (This forced number clips out to twenty; they stopped at ten, so a
+  20-rep set would have counted to ten and gone quiet.)
+- **The screen stopped showing the countdown.** The hero was a 168px timer of
+  the SET falling toward zero. It competed with the voice, and a number falling
+  toward zero is a *deadline* — it makes her watch a clock instead of move. The
+  hero is now the rep she's on (`2/6`), so the screen and the voice say the
+  same thing, and the only clock is small, in the corner, counting the whole
+  session upward.
+
+**Nothing about the programming changed.** The set is still a fixed duration
+underneath, the tempo still drives the beat, the canvas still warms and cools,
+and time under tension is still the progression lever (§2.0.1). A countdown is
+still exactly what a set IS — she just isn't handed a stopwatch to watch while
+she does it. Holds, rests and the get-set still show seconds, because for those
+the seconds *are* the exercise.
 
 **It also fixes a real problem in her plan.** She owns fixed 10/15/20 lb
 dumbbells. Going 15 → 20 lb is a **33% jump** — far too big to be the next
@@ -575,8 +597,10 @@ one device, so cross-platform drift never arises.
 
 - **Home** — plum-dark canvas, one magenta block for the next session, and a
   tracked-mono strip in poster grammar: `WK 04 · LOWER A · 34 MIN`.
-- **Player** — the number owns the screen. Timer in Teko at display size, the
-  phase word (`LOWER` / `SQUEEZE`) in magenta beneath it, everything else gone.
+- **Player** — the number owns the screen. Since 2026-08-20 that number is the
+  REP (`2/6`) rather than a countdown (§2.1), in Teko at display size, with the
+  phase word (`DOWN` / `SQUEEZE`) beneath it. On a phone the figure sits above
+  it; on a desktop the screen splits 50/50, pose left and detail right.
   The canvas **warms toward magenta on the work phase and cools back to plum on
   rest**, so she reads the *colour* from across the room, not the text — the
   dark version of the original light/magenta flip, and it works better because

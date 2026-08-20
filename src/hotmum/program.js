@@ -447,8 +447,10 @@ export const SEASON = {
   id: 'hundred-days',
   label: 'SEASON 01',
   name: '100 Days of Showing Up',
-  startDate: '2026-08-20',
-  endDate: '2026-11-27', // day 100 — derived, and a test proves it
+  // Monday 24 Aug — her plan is written Monday-to-Sunday, so day 1 is a
+  // Monday and every twenty-day block starts on one. Day 100 is Tue 1 Dec.
+  startDate: '2026-08-24',
+  endDate: '2026-12-01', // day 100 — derived, and a test proves it
   days: 100,
   // Five blocks of twenty days. Load moves LAST: with fixed dumbbells it's the
   // bluntest lever she has, so tempo and reps get used up first.

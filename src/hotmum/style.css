@@ -1610,7 +1610,7 @@ body {
 .hm-demo {
   width: 100%;
   max-width: 320px;
-  height: 92px;
+  height: 118px;
   flex-shrink: 0;
   /* GROUND, shadows and the action lines all paint with currentColor */
   color: var(--hot);
@@ -1625,7 +1625,7 @@ body {
 /* Setting up, or resting: she's looking rather than moving, so the figure
    gets the room and the timer gives some back. */
 .hm-demo.teaching {
-  height: 154px;
+  height: 176px;
 }
 .hm-demo.teaching + .timer {
   font-size: clamp(64px, 22vw, 96px);
@@ -1842,10 +1842,10 @@ body {
    the timer or the buttons. */
 @media (max-height: 660px) {
   .hm-demo {
-    height: 66px;
+    height: 88px;
   }
   .hm-demo.teaching {
-    height: 112px;
+    height: 132px;
   }
   .ex-demo {
     height: 120px;
@@ -1931,4 +1931,40 @@ body {
   border-radius: 1px;
   background: currentColor;
   transform: rotate(-45deg);
+}
+
+/* ─── Reps, not a countdown ────────────────────────────────────────────────
+   The player used to lead with a 168px countdown of the SET. Two problems:
+   it competed with Alice, who now counts the reps aloud and nothing else, and
+   a number falling toward zero is a deadline — it makes her watch a clock
+   instead of move. So the hero is the rep she's on, the two agree, and the
+   only actual clock is small and up in the corner counting the whole session.
+
+   The tempo itself is untouched: the set is still a fixed duration underneath
+   (PLAN.md §2.1), the phase still drives the beat and the canvas still warms
+   and cools. She just isn't shown the stopwatch any more. */
+
+.sess-clock {
+  font-family: var(--grot);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  align-self: center;
+  padding-right: 4px;
+}
+.timer.as-reps {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  line-height: 0.8;
+}
+.timer.as-reps i {
+  font-style: normal;
+  font-size: 0.36em;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+  align-self: center;
 }

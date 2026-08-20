@@ -252,7 +252,7 @@ describe('doses — same program, three exits', () => {
 describe('season — a hundred days, not a streak', () => {
   it('runs a hundred days in five twenty-day blocks', () => {
     expect(SEASON.days).toBe(100);
-    expect(SEASON.startDate).toBe('2026-08-20');
+    expect(SEASON.startDate).toBe('2026-08-24');
     expect(SEASON.blocks.map((b) => b.name)).toEqual([
       'GROOVE',
       'EXTEND',
@@ -293,16 +293,22 @@ describe('season — a hundred days, not a streak', () => {
   });
 
   it('counts down to day one hundred and clamps at zero after it', () => {
-    expect(daysToGo('2026-08-20')).toBe(99);
-    expect(daysToGo('2026-11-26')).toBe(1);
+    expect(daysToGo('2026-08-24')).toBe(99);
+    expect(daysToGo('2026-11-30')).toBe(1);
     expect(daysToGo('2027-01-05')).toBe(0);
   });
 
   it('reports the day number, clamped at both ends', () => {
-    expect(dayNumber('2026-08-20')).toBe(1);
-    expect(dayNumber('2026-08-21')).toBe(2);
+    expect(dayNumber('2026-08-24')).toBe(1);
+    expect(dayNumber('2026-08-25')).toBe(2);
     expect(dayNumber('2026-07-01')).toBe(1); // before the start
     expect(dayNumber('2027-03-01')).toBe(100); // long after the end
+  });
+
+  // Her plan is written Monday-to-Sunday, so day 1 has to BE a Monday —
+  // otherwise the twenty-day blocks drift across her weeks.
+  it('starts on a Monday', () => {
+    expect(new Date(`${SEASON.startDate}T00:00:00`).getDay()).toBe(1);
   });
 
   it('maps a day to its training block', () => {
