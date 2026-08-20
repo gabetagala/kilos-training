@@ -158,8 +158,8 @@ function footer(ctx, right) {
 export function buildShareData({
   record,
   session,
-  week,
-  weeks,
+  day,
+  days,
   daysToGo,
   seasonLabel,
   seasonName,
@@ -168,7 +168,7 @@ export function buildShareData({
   return {
     activity:
       record?.kind === 'walk'
-        ? 'WALK'
+        ? (record.moveName || 'WALK').toUpperCase()
         : session
           ? session.name.toUpperCase()
           : 'HOTMUM',
@@ -177,8 +177,8 @@ export function buildShareData({
     sets: record?.sets || 0,
     tut: record?.tut || 0,
     dose: record?.dose ? record.dose.toUpperCase() : '',
-    week,
-    weeks,
+    day,
+    days,
     daysToGo,
     seasonLabel,
     seasonName,
@@ -210,7 +210,7 @@ function drawCountdown(ctx, d) {
   ctx.fillStyle = 'rgba(255,255,255,.85)';
   tracked(
     ctx,
-    `WK ${d.week} OF ${d.weeks}`,
+    `DAY ${d.day} OF ${d.days}`,
     W / 2,
     H * 0.68 + 44,
     22,
@@ -223,7 +223,7 @@ function drawCountdown(ctx, d) {
 
 function drawWorkout(ctx, d) {
   field(ctx);
-  rail(ctx, d.seasonLabel, `WK ${d.week} OF ${d.weeks}`, '2026');
+  rail(ctx, d.seasonLabel, `DAY ${d.day} OF ${d.days}`, '2026');
 
   ctx.fillStyle = INK;
   display(ctx, d.activity, PAD, PAD + 190, 150);
@@ -300,7 +300,7 @@ function drawMark(ctx, d) {
   tracked(ctx, `${d.daysToGo} DAYS TO GO`, PAD, H - PAD - 8, 20, 0.18);
   tracked(
     ctx,
-    `WK ${d.week} OF ${d.weeks}`,
+    `DAY ${d.day} OF ${d.days}`,
     W - PAD,
     H - PAD - 8,
     20,

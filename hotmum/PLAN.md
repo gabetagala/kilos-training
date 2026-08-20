@@ -5,9 +5,18 @@
 > counts; she never counts), on her own home-screen icon with her own coach
 > voice.
 >
-> **LOCKED 2026-08-05 — the app is HOTMUM, the program is SAM'S TONED
-> CHRISTMAS** (§1.1, §2.0). MUM, not MOM. Tagline: *"hot as in strong."*
-> Coach voice: Alice (§5). Micro-label type: system grotesque (§3.6).
+> **LOCKED 2026-08-05 — the app is HOTMUM.** MUM, not MOM. Tagline:
+> *"hot as in strong."* Coach voice: Alice (§5). Micro-label type: system
+> grotesque (§3.6).
+>
+> **REWRITTEN 2026-08-20 — Sam handed back a restructured plan, and it wins.**
+> Mon/Wed/Fri instead of Tue/Thu/Sat, a hard 30-minute session, an explicit
+> knee-strength block, standing core instead of floor core, and **100 DAYS OF
+> SHOWING UP** in place of the countdown to Christmas. The program is now
+> **SEASON 01 :: 100 DAYS** (§2.0). Three things were added on top of her
+> plan rather than taken from it: the knee doctrine (§2.9), EASY KNEE (§2.9),
+> and "another movement" (§2.0.2). Christmas is still in here — it just moved
+> from the deadline to the payoff.
 
 ---
 
@@ -137,68 +146,97 @@ anyone can see it. That's a yes-or-no only she can give.
 
 ### 2.0 Two names, two things
 
-**HOTMUM is the app. SAM'S TONED CHRISTMAS is the program inside it.** Same
-relationship KILOS has with Density 40 and the rehab protocol — the app outlives
-any one block of training.
+**HOTMUM is the app. The program inside it is a SEASON.** Same relationship
+KILOS has with Density 40 and the rehab protocol — the app outlives any one
+block of training.
 
-That makes the program a **season**, and seasons have a start and an end:
+> **SEASON 01 :: 100 DAYS OF SHOWING UP — 20 Aug → 27 Nov 2026.**
 
-> **SEASON 01 :: TONED CHRISTMAS — 20 weeks, Aug → Dec, ending 25 Dec 2026.**
+Her rewritten plan ends with its own rule, and it's a better mechanic than the
+one we invented for her:
 
-Starting Tue 11 Aug gives **19.4 weeks**; from today it's **142 days**. Call it
-a 20-week block — which is a genuinely well-sized training cycle, not a number
-picked to fit the joke.
+> *Every day = 30 minutes of movement. 100 days of showing up.*
 
-**Why the deadline is the best thing to happen to this app:**
+**Why the 100 days replaced the countdown to Christmas.** The two don't line
+up — 20 Aug to Christmas is 128 days, and a "100 days" that's actually 128 is
+just a number with a lie in it. So the hundred wins, and **Christmas becomes
+the payoff instead of the finish line**: day 100 is Friday 27 Nov, which leaves
+**28 clear days** to wear the result through December. That's a better story
+than the original anyway — she finishes the work *before* the parties, not on
+the morning of the last one.
 
-- It replaces the streak. A countdown to a fixed date motivates without
-  punishing a missed day, which matters enormously with a newborn (§7 had this
-  as an open question — the season answers it).
+Everything the deadline was doing, the hundred still does:
+
+- It replaces the streak. A countdown to a fixed day motivates without
+  punishing a missed one, which matters enormously with a newborn.
 - It has an **end**. She isn't signing up for forever, and there's a defined
   moment to celebrate and decide what Season 02 is.
-- It gives the poster grammar real content. The reference poster's own device is
-  a date range — `APRIL – OCTOBER`. Hers is `AUG — DEC`, `WK 04 OF 20`,
-  `142 DAYS`. The identity and the programming say the same thing.
+- It gives the poster grammar real content: `DAY 12 OF 100`, `88 LEFT`,
+  `SEASON 01`.
 
-**Do NOT make the palette Christmassy.** No red and green. The countdown is the
-only Christmas reference; magenta/ember/cream stays exactly as it is.
+**The grid is 20 columns wide**, so the hundred lands as five clean rows — and
+a row is exactly one twenty-day training block. The picture of the season and
+the structure of the season are the same shape.
 
-### 2.0.1 Periodisation across the 20 weeks
+**Do NOT make the palette Christmassy.** No red and green. Magenta/ember/cream
+stays exactly as it is.
+
+### 2.0.1 Periodisation across the 100 days
 
 Fixed 10/15/20 lb dumbbells mean load is a blunt lever (§2.1), so the season
 progresses through tempo and volume first, and load only where the jump is
-survivable. Five four-week blocks:
+survivable. Five twenty-day blocks:
 
-| Block | Weeks | Name | What changes |
+| Block | Days | Name | What changes |
 |---|---|---|---|
-| 1 | 1–4 | **GROOVE** | Her plan exactly as written. Learn the tempos, 3×10. |
-| 2 | 5–8 | **EXTEND** | Reps 10 → 12 at the same tempo. A 50s set becomes 60s. |
-| 3 | 9–12 | **SLOW** | Lengthen the eccentric (`3-1-1` → `4-1-1`), reps back to 10. |
-| 4 | 13–16 | **LOAD** | 15 → 20 lb on hinge, thrust and squat only. Reps drop to 8. |
-| 5 | 17–20 | **PEAK** | Best tempo + best load, 4th set on the main lift. Week 20 lighter. |
+| 1 | 1–20 | **GROOVE** | Her plan exactly as written. Learn the tempos and the depth limits. |
+| 2 | 21–40 | **EXTEND** | +2 reps a set at the same tempo, 10s less rest. |
+| 3 | 41–60 | **SLOW** | +1s on every eccentric, one rep back off. |
+| 4 | 61–80 | **LOAD** | 15 → 20 lb on RDL, goblet and sumo only. Reps drop to 8. |
+| 5 | 81–100 | **PEAK** | Best tempo + best load + a 4th set on the opener. |
 
-**No scheduled deload.** With a newborn the miss rate supplies it. Instead: if
-she completes three full weeks back-to-back, the app *offers* an easy week —
-suggested, never imposed.
+**These are APPLIED, not decorative.** The first version of this shipped as
+copy: the app promised "same tempo, more reps" on day 21 and then handed her
+the identical session, because nothing ever read the deltas. `progress()` in
+[program.js](../src/hotmum/program.js) now rewrites the session for the day
+she's on, and a test walks every block to prove the work actually changed.
 
-### 2.0.2 Walk days
+**Two things never progress:** the warm-up, and the knee block. A knee-strength
+dose that creeps upward every twenty days is how a knee protocol turns back
+into a knee problem (§2.9).
 
-**30-minute walks on the four days between sessions** — Mon, Wed, Fri, Sun. With
-the three lifting days that's something every day, which is the whole retention
-mechanic: the app becomes a daily open rather than a thrice-weekly one.
+**No scheduled deload.** With a newborn the miss rate supplies it.
 
-It's also the right training call. Walking is the NEAT lever that actually moves
-body composition alongside lifting, it's the one thing that stays possible on no
-sleep, and it's stroller-compatible.
+### 2.0.2 The other four days — and "another movement"
+
+**Her plan puts a 30-minute walk on the four non-lifting days** — Tue, Thu, Sat,
+and an easy/recovery walk Sunday. With the three lifting days that's something
+every day, which is the whole retention mechanic: the app is a daily open
+rather than a thrice-weekly one.
+
+It's also the right training call. Walking is the NEAT lever that actually
+moves body composition alongside lifting, it's the one thing that stays
+possible on no sleep, and it's stroller-compatible.
+
+**ADDED 2026-08-20 — "another movement."** A small, quiet button on the session
+sheet and a row in the day picker. It opens onto walk, easy walk, yoga,
+pilates, a 15-minute stretch, or "something else". It exists for the day she
+opens Monday's session and she isn't home, or her knee has said no.
+
+The reasoning is the same one behind having no streaks: **the season is a
+hundred days of MOVEMENT, not a hundred days of dumbbells.** An app that only
+credits its own sessions quietly teaches her that a morning at her mum's with
+a walk in it was a failure. Every movement is stored with `kind: 'walk'` so the
+weekly target, the sync key and all her existing history keep counting it;
+`moveId` carries which one it actually was.
 
 **Build it as small as it deserves:**
 
-- A 30:00 countdown that survives the screen locking, plus a **"log it"** tap for
-  walks already done — she'll often walk without opening the app first.
-- **No GPS, no map, no route, no step count.** That's a different app, it breaks
-  the offline/local-first model, and it turns a two-tap habit into a chore.
-- Walks count toward the season rail but are visibly lighter weight than a
-  session — a walk is not a workout and the UI shouldn't pretend otherwise.
+- A countdown that survives the screen locking, plus a **"log it"** tap for
+  things already done — she'll often walk without opening the app first.
+- **No GPS, no map, no route, no step count.** That's a different app, it
+  breaks the offline/local-first model, and it turns a two-tap habit into a
+  chore.
 
 ### 2.1 The rule
 
@@ -230,112 +268,119 @@ this is the shape the engine already takes:
   tempo: [['LOWER', 3], ['PAUSE', 1], ['LIFT', 1]] }   // → a 50s set
 ```
 
-### 2.3 Warm-up (all three days)
+### 2.3 Warm-ups — two of them now
 
-Her plan lists it under Tuesday only — it should open every session.
+Her rewrite splits them, and she's right: arm circles do nothing for a squat.
 
-| Move | Tempo | Set |
-|---|---|---|
-| Bodyweight squat | 2-0-1 | 10 reps → **30s** |
-| Glute bridge | 1s up / 1s squeeze / 2s down | 10 reps → **40s** |
-| Bird dog | 8s hold | 5/side → **40s per side** |
-| Hip circles | free | **30s** |
+**Lower days (Mon, Fri) — hips, knees and ankles.** Bodyweight squat `2-1`,
+standing hip hinge `2-1`, standing knee lifts `1-1`, hip circles 30s, slow calf
+raises `1-1-1`.
 
-### 2.4 Tuesday — Lower A
+**Upper day (Wed) — shoulders and the mid-back.** Arm circles 40s, shoulder
+rolls 30s, standing torso rotations 30s, bodyweight good mornings `2-1`.
 
-| # | Exercise | Load | Tempo | Set length | Sets | Rest |
-|---|---|---|---|---|---|---|
-| 1 | Romanian deadlift | 15 lb ×2 | 3-1-1 | **50s** | 3 | 60s |
-| 2 | Lunge | 15 lb ×2 | 2-1-1 | **40s / side** | 3 | 60s |
-| 3 | Hip thrust | 20 lb | 1 up / 2 squeeze / 2 down | **50s** | 3 | 60s |
-| 4 | Goblet squat | 15 lb | 3-1-1 | **50s** | 3 | 60s |
-| 5 | Standing calf raise | BW | 1 up / 2 squeeze / 2 down | **75s** | 2 | 45s |
-| 6 | Lateral raise | 10 lb ×2 | 1 up / 1 hold / 3 down | **75s** | 2 | 45s |
-| 7 | Rear delt fly | 10 lb ×2 | 1 up / 1 hold / 3 down | **75s** | 2 | 45s |
-| 8 | Side plank | BW | 30s hold | **30s / side** | 2 | 30s |
-| 9 | Dead bug | BW | 2 out / 1 / 2 back | **50s** | 2 | 40s |
+### 2.4 Monday — Lower Body + Knee
 
-### 2.5 Thursday — Upper
+| Block | Move | Tempo | Sets × reps |
+|---|---|---|---|
+| Main | Romanian Deadlift | `3-1-1` | 3 × 8 @ 15 lb × 2 |
+| Main | Goblet Squat **to a chair** | `3-1-1` | 3 × 8 @ 15 lb |
+| Main | Sumo Squat | `3-1-1` | 2 × 10 @ 20 lb |
+| Main | **Supported** Reverse Lunge | `2-1-1` | 2 × 8/side @ 15 lb × 2 |
+| Main | Standing Calf Raise | `1-2-2` | 2 × 12 |
+| 🦵 Knee | Wall Sit | hold | 2 × 30s |
+| 🦵 Knee | Controlled Sit-to-Stand | `2-1-1` | 2 × 8 |
+| 🦵 Knee | Standing Hip Abduction | `1-1-2` | 2 × 6/side |
+| Core | Standing Knee-to-Elbow | `1-1-1` | 1 × 20 |
+| Core | Suitcase Hold | hold | 30s/side @ 20 lb |
 
-| # | Exercise | Load | Tempo | Set length | Sets | Rest |
-|---|---|---|---|---|---|---|
-| 1 | Shoulder press | 15 lb ×2 | 1 up / 3 down | **40s** | 3 | 60s |
-| 2 | One-arm row | 15 lb | 1 up / 1 squeeze / 3 down | **50s / side** | 3 | 60s |
-| 3 | Floor chest press | 15 lb ×2 | 3-1-1 | **50s** | 3 | 60s |
-| 4 | Lateral raise | 10 lb ×2 | 1 / 1 / 3 | **60s** | 3 | 45s |
-| 5 | Bicep curl | 10–15 lb | 1 up / 1 squeeze / 3 down | **60s** | 3 | 45s |
-| 6 | Overhead tricep ext. | 15 lb | 3 down / 1 up | **48s** | 3 | 45s |
-| 7 | Farmer carry | 20 lb ×2 | — | **40s** | 3 | 60s |
-| 8 | Bird dog | BW | 8s hold | **40s / side** | 2 | 30s |
-| 9 | Side plank | BW | 30s hold | **30s / side** | 2 | 30s |
+### 2.5 Wednesday — Upper Body + Core
 
-### 2.6 Saturday — Lower B
+| Block | Move | Tempo | Sets × reps |
+|---|---|---|---|
+| Main | Shoulder Press | `1-3` | 3 × 8 @ 15 lb × 2 |
+| Main | One-Arm Row | `1-1-3` | 2 × 8/side @ 15 lb |
+| Main | Standing Squeeze Press | `1-2-2` | 2 × 10 @ 10 lb × 2 |
+| Main | Lateral Raise | `1-1-3` | 2 × 10 @ 10 lb × 2 |
+| Main | Rear Delt Fly | `1-1-3` | 2 × 10 @ 10 lb × 2 |
+| Arms + carry | Bicep Curl | `1-1-3` | 2 × 10 @ 10 lb × 2 |
+| Arms + carry | Overhead Tricep Extension | `3-1` | 2 × 10 @ 15 lb |
+| Arms + carry | Farmer Carry | hold | 2 × 40s @ 20 lb × 2 |
+| Arms + carry | Cross-Body Knee Drive | `1-1-1` | 2 × 16 |
+| Core | Standing Knee-to-Elbow + Suitcase Hold | — | as Monday |
 
-| # | Exercise | Load | Tempo | Set length | Sets | Rest |
-|---|---|---|---|---|---|---|
-| 1 | Hip thrust | 20 lb | 1 / 2 / 2 | **50s** | 4 | 60s |
-| 2 | Reverse lunge | 15 lb ×2 | 2-1-1 | **40s / side** | 3 | 60s |
-| 3 | Goblet squat | 15 lb | 3-1-1 | **50s** | 3 | 60s |
-| 4 | Step-up | 15 lb ×2 | 1 up / 2 down | **30s / side** | 3 | 60s |
-| 5 | Glute bridge burnout | BW | 1-1-1 continuous | **60s** | 2 | 45s |
-| 6 | Shoulder press | 10–15 lb | 1 up / 3 down | **48s** | 2 | 45s |
-| 7 | One-arm row | 15 lb | 1 / 1 / 3 | **60s / side** | 2 | 45s |
-| 8 | Heel slides | BW | 2 out / 1 / 2 back | **50s** | 2 | 40s |
-| 9 | Dead bug | BW | 2 / 1 / 2 | **50s** | 2 | 40s |
+**The arms moved out of the main block** and into the offered stage. Her plan
+lists curls and extensions in the 4:00–25:00 strength window, but SHORT has to
+stay a genuine escape hatch (§2.7), and a curl is the most droppable thing in
+the session. Nothing is cut — only the order in which she's asked.
 
-### 2.7 Session length — and the honest trade-off
+### 2.6 Friday — Full Body + Knee
 
-Tempo sets take **longer than rushed sets**. That's the point — more time under
-tension at a light fixed load — but it costs real minutes. So the session picker
-offers **three doses**, chosen at the start. Same program, three exits: she
-never has to choose between "all of it" and "nothing", the failure mode that
-actually kills consistency.
+| Block | Move | Tempo | Sets × reps |
+|---|---|---|---|
+| Main | Romanian Deadlift | `3-1-1` | 3 × 8 @ 15 lb × 2 |
+| Main | Goblet Squat to a chair | `3-1-1` | 2 × 8 @ 15 lb |
+| Main | One-Arm Row | `1-1-3` | 2 × 8/side @ 15 lb |
+| Main | Standing Squeeze Press | `1-2-2` | 2 × 8 @ 10 lb × 2 |
+| Main | Supported Reverse Lunge | `2-1-1` | 2 × 6/side @ 15 lb × 2 |
+| Main | Shoulder Press | `1-3` | 2 × 8 @ 15 lb × 2 |
+| 🦵 Knee | Slow Calf Raise → Wall Sit → Sit-to-Stand | — | calf-led, as she wrote it |
+| Core | Standing Knee-to-Elbow + Suitcase Hold | — | as Monday |
+
+### 2.7 Session length — the thirty-minute promise
+
+Her rewrite puts the clock **in** the plan: 0:00–5:00 warm-up, 5:00–23:00
+strength, 23:00–28:00 knee, 28:00–30:00 core. That's a specification, not a
+guess, and it's the single biggest change from Season 01's first draft — which
+measured **41–46 minutes** and was honest about being longer than promised.
 
 **MEASURED, not estimated** (`npm test` computes these from the data, and the
-suite guards the bands):
+suite guards the band on *every* session at *every* point in the season —
+the progression blocks add reps and sets, so the cap has to hold in PEAK too):
 
-| Session | FULL | SHORT | CORE | Under tension | Sets |
+| Session | FULL | SHORT | MINI | Under tension | Sets |
 |---|---|---|---|---|---|
-| Lower A | **41 min** | 28 min | 6 min | 26 min | 32 |
-| Upper | **46 min** | 25 min | 7 min | 28 min | 37 |
-| Lower B | **43 min** | 31 min | 5 min | 27 min | 36 |
+| MON — Lower + Knee | **28 min** | 20 min | 8 min | 18 min | 30 |
+| WED — Upper + Core | **29 min** | 18 min | 12 min | 19 min | 28 |
+| FRI — Full Body + Knee | **29 min** | 21 min | 9 min | 19 min | 31 |
 
-**These are longer than the 34–40 min first estimated.** The honest read: her
-plan is 9 exercises plus core, and under tempo that's a 41–46 minute session.
-Nothing is padded — 26–28 of those minutes are actual time under tension.
+Across all five blocks the band is **26–31 min**. The test fails outside 26–32.
 
-**DECIDED — SHORT is the default; the session GROWS instead of shrinking.**
+**How it got from 45 to 30 without cutting her plan:** fewer sets on the
+accessories (3 → 2), shorter working sets (10 → 8 reps at the same tempo),
+45s rests instead of 60s, and the arms re-tiered into the offered stage. Time
+under tension only fell from ~27 to ~19 minutes — most of what went was
+standing about.
+
+**UNCHANGED — SHORT is the default; the session GROWS instead of shrinking.**
 
 The instinct is to make her pick a dose at minute zero. That's the wrong moment
-to ask: **she doesn't yet know how long the baby will sleep.** Asking her to
-commit to 45 minutes up front means she either over-promises and quits at 30 —
-which reads as failure — or under-picks and leaves work on the table.
+to ask: **she doesn't yet know how long the baby will sleep.** So invert it:
 
-So invert it:
-
-1. **SHORT (25–31 min) starts by default.** One tap, no decision.
+1. **SHORT (18–21 min) starts by default.** One tap, no decision.
 2. **When the main work is done, the app offers to keep going** — *"Add the
-   finishers? +13 min"*, then *"Add the core? +6 min"*.
+   knee strength? +6 min"*, then *"Add the standing core? +3 min"*. The offer
+   is named after what THIS session calls that stage, so the thing her plan is
+   organised around isn't hidden behind the word "finishers".
 3. Every exit point is a **complete session**, not an abandoned one.
 
-She ends up doing more work this way, not less, because every extra block is a
-yes she chooses when she already knows she has the time. The FULL/SHORT/CORE
-picker stays for the days she does know up front. Nothing is cut from her plan —
-only the order in which she's asked.
+**MINI replaced the old CORE-only cut.** Under a 30-minute session the core
+block is two minutes long, which is not something anyone opens an app for.
+MINI is the knee work *plus* the standing core — 8–12 minutes, and on a bad
+day it is genuinely the most useful thing she could do.
 
-**One programming decision still open:** SHORT saves 46% on Upper but only 28%
-on Lower B, landing at 31 min because that day's main block is enormous.
-Cleanest fix is re-tiering the **step-up** as a finisher — it duplicates the
-reverse-lunge pattern already covered that day — which brings Lower B's SHORT to
-~25 min and lines all three days up. That's a call on her program, so it stays
-flagged rather than applied.
+**RESOLVED — the Lower B / step-up question from the first draft.** It's gone:
+her rewrite drops the step-up entirely, which was also the right knee call
+(§2.9). SHORT now saves 29–38% on all three days.
 
 ### 2.8 Postpartum layer
 
-Her exercise selection is already postpartum-sane — dead bug, bird dog, heel
-slides, side plank are exactly the right list, and there's no crunching or
-loaded twisting anywhere. Two things the *tempo* format specifically adds, and
-one screen:
+Her exercise selection is postpartum-sane: no loaded twisting, no crunching on
+the floor, nothing that asks the midline to brace against a lever it can't yet
+hold. The rewrite swapped the floor core (dead bug, bird dog, heel slide, side
+plank) for **standing** core — knee-to-elbow, suitcase holds, carries — which
+is a lateral move on safety and a clear win on whether it actually gets done
+(§2.10). Two things the *tempo* format specifically adds, and one screen:
 
 1. **Breathe out on the effort.** A slow, long set means a longer window of
    raised intra-abdominal pressure, so the exhale cue matters more here than it
@@ -347,6 +392,74 @@ one screen:
    just the three signs worth knowing.
 3. She should have an OB/pelvic-floor clear for loaded training. Ask once at
    setup, store the answer, never ask again.
+
+### 2.9 The knee doctrine — ADDED 2026-08-20
+
+Sam's knees are the binding constraint on this program. Her own plan has a
+KNEE RULE at the bottom, and the brief that came with the rewrite was *"be
+careful — focus on unilateral rather than continuous movements."*
+
+**Half of that is right, and the half that isn't matters.** Single-leg work
+is not automatically kind to a knee: a deep lunge or a tall step-up puts
+*more* load through one kneecap than a shallow squat spreads across two. What
+unilateral work genuinely buys is symmetry — and carrying a baby on one hip
+all day builds a lot of asymmetry — but it buys it at a price unless the
+movement is supported and the depth is capped.
+
+So the doctrine the program is actually built on, in priority order:
+
+1. **CAP THE DEPTH, KEEP THE TEMPO.** Load through a knee climbs steeply past
+   roughly a chair-height bend. Slow eccentrics are good for the joint; slow
+   eccentrics at the *bottom* of a deep squat are the exact dose that irritates
+   it. So every squat pattern has a **physical depth stop — a chair** — rather
+   than a cue to "go to a comfortable depth", which is advice nobody follows on
+   rep nine. The chair is drawn into the illustration for the same reason.
+2. **THE HIPS DO THE BUILDING.** Hinges (RDL, sumo) and hip abduction carry the
+   muscle-building load. Glute strength is the best-evidenced knee intervention
+   there is, and none of it bends the knee under load. **Standing hip abduction
+   was added to her plan** — it's the glute-medius work that stops the knee
+   caving inward, it's unilateral, and it loads the knee at zero degrees.
+3. **UNILATERAL, BUT SUPPORTED.** Reverse, never forward. Hand on the chair,
+   always — the support takes the wobble off the knee so it isn't stabilising
+   a balance problem on top of carrying the weight.
+4. **ISOMETRICS ARE THE MEDICINE, NOT THE RISK.** Wall sits and controlled
+   sit-to-stands stay exactly as she wrote them. Holds at a tolerable angle
+   *settle* an angry knee — this is the one place a long continuous hold is
+   precisely right, and dropping it on a sore day would be the wrong reflex.
+
+**What's NOT in the program, and why:** step-ups and forward lunges (deep,
+high patellofemoral load on one leg), jumping anything, and any loaded squat
+without a chair behind it.
+
+**EASY KNEE — her rule, made into a switch.** Her plan says *"reduce intensity
+if your knee is irritated"*, which is a sentence she has to remember at 6am.
+It's a toggle on the session sheet instead — on the sheet and not in settings,
+because the answer changes day to day. It swaps:
+
+| Normal | Easy knee | Why |
+|---|---|---|
+| Goblet Squat | Controlled Sit-to-Stand | Same pattern, chair-capped, bodyweight |
+| Sumo Squat | Romanian Deadlift | Pure hinge, no knee flexion |
+| Supported Reverse Lunge | Standing Hip Abduction | Still unilateral, zero bend |
+
+The wall sit and the sit-to-stand **stay** (see rule 4). An easy-knee session
+is still 28–30 minutes — it's a different session, not a rest day.
+
+Every knee-relevant movement also carries a one-line `knee` note that renders
+in hot magenta under the figure mid-set, because the rule she'll follow is the
+rule that's already on screen.
+
+### 2.10 Standing only — ADDED 2026-08-20
+
+Her rewrite has **no floor work in it at all**, and reading it as an oversight
+would be a mistake. Getting down and back up with a baby in the house is the
+tax that stops a session starting. Everything here can be done in shoes, next
+to a chair, with a baby monitor in view.
+
+So the core is standing (knee-to-elbow, suitcase hold, carries) rather than
+planks and dead bugs, the chest press is a standing squeeze press rather than a
+floor press, and the glute work is hinges rather than hip thrusts. A test
+enforces it. **Don't reintroduce floor work without asking her.**
 
 ---
 
@@ -416,7 +529,7 @@ No new fonts, and no downloads for the small stuff:
 - **Teko** (self-hosted, already in the repo) — the timer, rep counts, session
   titles, the stacked wordmark. Every number and display line.
 - **System grotesque**, tracked ~0.18em, uppercase — every micro-label
-  (`SEASON 01`, `ATTN ::`, `WK 04 OF 20`). See §3.6 for why this beat Space
+  (`SEASON 01`, `ATTN ::`, `DAY 04 OF 100`). See §3.6 for why this beat Space
   Mono.
 
 Zero extra download and zero cold-start flash.
@@ -493,6 +606,17 @@ makes this cheap:
 - [tempoCues.js](src/workout/tempoCues.js) — what the coach says on each beat
 - `streak.js`, `progression.js`
 - `scripts/generate-voice.mjs` (needs a `--voice` flag added)
+- **[rehabDemos.js](src/workout/rehabDemos.js) — the figure rig** (added
+  2026-08-20). KILOS draws its exercise illustrations with a jointed
+  forward-kinematics rig: poses are per-joint angles, animated in-SVG with
+  SMIL, no video and no network. Rather than fork it, that file now **exports
+  its primitives** and paints with `var(--fig-*, <the KILOS grey>)`, so the
+  identical rig renders grey on his black and warm plum-and-magenta on hers.
+  [demos.js](src/hotmum/demos.js) aliases a KILOS pose where the movement is
+  genuinely the same (a box squat and a controlled sit-to-stand are one
+  picture) and authors the rest — the chair-supported work, the knee block, the
+  standing core. Dumbbells are placed by running the rig's own transform chain
+  (`hand()`), not by eye.
 
 **Not shared:** [main.js](src/main.js) is 7,553 lines wired to `index.html`'s
 DOM and carries CrossFit, coaches, legends, WODs, muscle maps, share cards —
@@ -510,6 +634,13 @@ KILOS has a sibling that doesn't use kilos. Another point for a new name.)
 
 **Sync: skip for v1.** localStorage only, `sam-*` key prefix. Supabase can come
 later; it's a background concern and shouldn't gate her using it next week.
+
+**One session, one door.** A session is never played raw: `sessionForToday()`
+applies the day's progression block (§2.0.1) and the EASY KNEE swaps (§2.9)
+before anything else sees it, so the sheet, the estimate, the player and the
+finish card cannot disagree about what she actually did. The season day is
+**pinned onto the run** rather than read live — a session started at 11:55pm
+must not re-prescribe itself when the date rolls over mid-set.
 
 ---
 
@@ -569,7 +700,9 @@ into the voice dir overrides everything, no API needed.
 
 Clips needed: the 23-phrase core pack (get set / go / hold / rest / switch sides
 / lift / squeeze / lower / one–ten / last three / last one / halfway / session
-complete) **plus ~20 exercise names** and her form cues. Same pipeline as the
+complete) **plus one name clip per exercise** — 27 after the 2026-08-20 rewrite;
+`--pack hotmum` derives them from `HOTMUM_EXERCISES` and skips what already
+exists, so a new movement costs one command. Same pipeline as the
 Brian pack — trim, 0.89 peak, AAC 48k mono — output to `public/voice-hotmum/`.
 iOS silences `speechSynthesis` mid-session, so **every** spoken phrase must
 ship as a clip; a missing one is mute on her iPhone.
@@ -587,7 +720,8 @@ ship as a clip; a missing one is mute on her iPhone.
 | **P4** | Player | the timed session, tempo, rest, crash-safe resume | — |
 | **P5** | Voice pack | Alice, full clip set | — |
 | **P6** | Install | icons, manifest, on her phone, first real session | ✅ yes |
-| **P7** | Extras | history, streak, finish card, breath cues, progression prompts | — |
+| **P7** | Extras | history, finish card, breath cues, progression prompts | — |
+| **P8** | Her rewrite (2026-08-20) | Mon/Wed/Fri 30-min sessions, 100 days, knee doctrine + EASY KNEE, another movement, exercise figures | ✅ she wrote it |
 
 **P1–P4 is the usable app.** P0 and P5 are the only things that need her in the
 room.
@@ -598,16 +732,34 @@ room.
 
 1. ~~Name~~ — **DECIDED: HOTMUM** (MUM, not MOM). Tagline *"hot as in strong."*
 2. ~~Coach voice~~ — **decided: Alice.** (§5)
-3. **Tue/Thu/Sat fixed, or "3 sessions a week, any day"?** Now that walk days
-   fill Mon/Wed/Fri/Sun (§2.0.2), the week has a shape and fixed days make more
-   sense than they did. Still recommend the schedule be a *suggestion* — a
-   missed Tuesday should slide, not vanish.
+3. ~~Fixed days, or "3 sessions a week, any day"?~~ **Her rewrite fixes them:
+   Mon / Wed / Fri.** The app still shows all three plus a walk on every day —
+   the schedule is the shape, not a gate. A missed Monday slides, it doesn't
+   vanish.
 4. ~~Does she want streaks at all?~~ **Answered by the season (§2.0).** The
-   20-week countdown to Christmas motivates without punishing a missed day.
-   No streaks anywhere.
-5. **Progression** — auto-suggest (*"RDL felt easy twice — go 12 reps"*) or
-   leave it manual for v1? Recommend a suggestion she can accept, never an
-   automatic change.
+   hundred days motivate without punishing a missed one. No streaks anywhere.
+5. ~~Progression — auto or manual?~~ **The season blocks do it, on a fixed
+   twenty-day cadence** (§2.0.1) — no per-lift judgement call, nothing to
+   accept or dismiss, and the knee work never moves.
 6. ~~Space Mono or system grotesque~~ — **DECIDED: system grotesque** (§3.6).
 7. **Photos/measurements** — in scope, or deliberately out? Body-comp tracking
    is a different product and a different emotional register postpartum.
+
+### Open after the 2026-08-20 rewrite
+
+8. **The start date is hard-coded to 20 Aug 2026.** If she doesn't start for a
+   week, the first boxes are just empty — non-punishing by design, same as a
+   missed day. If she'd rather day 1 be the day she actually starts, that's a
+   small change to `SEASON.startDate` (or a profile field).
+9. **Does she want the knee block to progress at all?** It's frozen on purpose
+   (§2.0.1). If her knees are fine by day 60, the wall sit staying at 2 × 30s
+   for a hundred days is the conservative choice, not the correct one — that's
+   a call to make with how she actually feels, not in advance.
+10. **The figures are the shared KILOS rig** (§4) — good enough to teach the
+   shape, not a photo. If any movement reads wrong to her, poses are angles in
+   `src/hotmum/demos.js` and are cheap to fix.
+11. **Nine voice clips are now orphans** (`name-lunge`, `name-hip-thrust`,
+   `name-step-up`, `name-glute-bridge`, `name-floor-press`, `name-side-plank`,
+   `name-dead-bug`, `name-heel-slide`, `name-bird-dog`). Left in place — they
+   cost ~150KB of precache and would have to be regenerated if any of those
+   movements ever come back.

@@ -1,17 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import {
-  blockForWeek,
+  blockForDay,
   blockWorkSecs,
+  dayNumber,
+  daysToAfter,
   daysToGo,
   DOSES,
   estimateMins,
+  getMovement,
   getSession,
+  hasKneeSwap,
   HOTMUM_EXERCISES,
   HOTMUM_SESSIONS,
+  kneeEasy,
   loadLabel,
+  MOVEMENTS,
+  progress,
   SEASON,
-  seasonWeek,
   sessionAtDose,
+  sessionForToday,
   setTotal,
   tempoLabel,
   tempoSecs,
@@ -19,6 +26,7 @@ import {
   WEEK,
   WEEKLY_TARGET,
 } from '../../src/hotmum/program.js';
+import { HOTMUM_DEMOS } from '../../src/hotmum/demos.js';
 import {
   buildStepQueue,
   estimateSessionMins,
@@ -45,12 +53,8 @@ const allBlocks = HOTMUM_SESSIONS.flatMap((s) => s.blocks);
 
 describe('program data', () => {
   it('is the three days from her plan, on the right weekdays', () => {
-    expect(HOTMUM_SESSIONS.map((s) => s.id)).toEqual([
-      'lower-a',
-      'upper',
-      'lower-b',
-    ]);
-    expect(HOTMUM_SESSIONS.map((s) => s.day)).toEqual(['TUE', 'THU', 'SAT']);
+    expect(HOTMUM_SESSIONS.map((s) => s.id)).toEqual(['lower', 'upper', 'full']);
+    expect(HOTMUM_SESSIONS.map((s) => s.day)).toEqual(['MON', 'WED', 'FRI']);
   });
 
   it('every block references a known exercise', () => {
@@ -103,8 +107,8 @@ describe('program data', () => {
     expect(words('bw-squat')).toEqual(['DOWN', 'UP']);
     expect(words('rdl')).toEqual(['DOWN', 'HOLD', 'UP']);
     expect(words('shoulder-press')).toEqual(['UP', 'DOWN']);
-    expect(words('dead-bug')[0]).toBe('OUT');
-    expect(words('dead-bug').at(-1)).toBe('BACK');
+    expect(words('hip-abduction')[0]).toBe('OUT');
+    expect(words('hip-abduction').at(-1)).toBe('BACK');
     // nothing anywhere still says the barbell words
     const all = allBlocks.flatMap((b) => (b.tempo || []).map(([l]) => l));
     expect(all).not.toContain('LIFT');
@@ -135,56 +139,67 @@ describe('program data', () => {
 
 describe('tempo maths — a set is a countdown', () => {
   it('set length = reps × secs-per-rep', () => {
-    const rdl = getSession('lower-a').blocks.find((b) => b.ex === 'rdl');
+    const rdl = getSession('lower').blocks.find((b) => b.ex === 'rdl');
     expect(tempoSecs(rdl.tempo)).toBe(5); // 3 lower + 1 pause + 1 lift
     expect(tempoLabel(rdl.tempo)).toBe('3-1-1');
-    expect(rdl.reps * tempoSecs(rdl.tempo)).toBe(50);
+    expect(rdl.reps * tempoSecs(rdl.tempo)).toBe(40);
   });
 
   it('the per-side blocks cost double — one side at a time', () => {
-    const lunge = getSession('lower-a').blocks.find((b) => b.ex === 'lunge');
+    const lunge = getSession('lower').blocks.find(
+      (b) => b.ex === 'reverse-lunge',
+    );
     expect(lunge.perSide).toBe(true);
-    // 3 sets × 2 sides × 10 reps × 4s
-    expect(blockWorkSecs(lunge)).toBe(240);
+    // 2 sets × 2 sides × 8 reps × 4s
+    expect(blockWorkSecs(lunge)).toBe(128);
   });
 
-  it('holds and per-rep holds are counted too', () => {
-    const plank = getSession('lower-a').blocks.find((b) => b.ex === 'side-plank');
-    expect(blockWorkSecs(plank)).toBe(120); // 2 sets × 2 sides × 30s
+  it('holds are counted too', () => {
+    const wall = getSession('lower').blocks.find((b) => b.ex === 'wall-sit');
+    expect(blockWorkSecs(wall)).toBe(60); // 2 sets × 30s
 
-    // bird dog appears twice per session at different doses — the warm-up
-    // single set and the core double. Find by dose, never by exercise alone.
-    const blocks = getSession('upper').blocks.filter((b) => b.ex === 'bird-dog');
-    expect(blocks.map((b) => b.dose)).toEqual(['warmup', 'core']);
-    expect(blockWorkSecs(blocks[0])).toBe(80); // 1 × 2 sides × 5 reps × 8s
-    expect(blockWorkSecs(blocks[1])).toBe(160); // 2 × 2 × 5 × 8s
+    // the calf raise appears twice on Friday at different doses — the warm-up
+    // single set and the knee finisher. Find by dose, never by exercise alone.
+    const blocks = getSession('full').blocks.filter(
+      (b) => b.ex === 'calf-raise',
+    );
+    expect(blocks.map((b) => b.dose)).toEqual(['warmup', 'finisher']);
+    expect(blockWorkSecs(blocks[0])).toBe(36); // 1 × 12 × 3s
+    expect(blockWorkSecs(blocks[1])).toBe(120); // 2 × 12 × 5s
   });
 });
 
 describe('doses — same program, three exits', () => {
-  it('FULL is everything; SHORT drops finishers and core; CORE is core alone', () => {
-    const s = getSession('lower-a');
+  it('FULL is everything; SHORT drops finishers and core; MINI is the pair', () => {
+    const s = getSession('lower');
     expect(sessionAtDose(s, 'full').blocks.length).toBe(s.blocks.length);
+    expect(sessionAtDose(s, 'short').blocks.every((b) => b.dose !== 'core')).toBe(
+      true,
+    );
     expect(
-      sessionAtDose(s, 'short').blocks.every((b) => b.dose !== 'core'),
+      sessionAtDose(s, 'mini').blocks.every((b) =>
+        ['finisher', 'core'].includes(b.dose),
+      ),
     ).toBe(true);
-    expect(
-      sessionAtDose(s, 'core').blocks.every((b) => b.dose === 'core'),
-    ).toBe(true);
+    // and MINI is worth opening the app for, which the old core-only cut wasn't
+    expect(estimateMins(s, 'mini')).toBeGreaterThanOrEqual(6);
   });
 
-  // These bounds are the MEASURED cost of her plan under tempo, not a target.
-  // FULL came in at 41–46 min (PLAN.md §2.7) — longer than the 34 first
-  // estimated, because tempo sets take longer than rushed ones. The band is
-  // wide enough to be honest and tight enough to catch a data error that
-  // doubles a session.
-  it('each dose lands in its measured band', () => {
+  // THE THIRTY-MINUTE PROMISE. Her rewritten plan writes the clock into the
+  // session — 0:00–5:00 warm-up, 5:00–23:00 strength, 23:00–28:00 knee,
+  // 28:00–30:00 core — so a session that runs to forty is not her plan any
+  // more. This guards it on every session AND at every point in the season,
+  // because the progression blocks add reps and sets.
+  it('every session is about thirty minutes, all season long', () => {
     for (const s of HOTMUM_SESSIONS) {
-      const full = estimateMins(s, 'full');
-      expect(full, `${s.id} full`).toBeGreaterThanOrEqual(35);
-      expect(full, `${s.id} full`).toBeLessThanOrEqual(50);
-      expect(estimateMins(s, 'short'), `${s.id} short`).toBeLessThanOrEqual(35);
-      expect(estimateMins(s, 'core'), `${s.id} core`).toBeLessThanOrEqual(12);
+      for (const b of SEASON.blocks) {
+        const p = progress(s, b.days[0]);
+        const full = estimateMins(p, 'full');
+        expect(full, `${s.id} full @ ${b.name}`).toBeGreaterThanOrEqual(26);
+        expect(full, `${s.id} full @ ${b.name}`).toBeLessThanOrEqual(32);
+      }
+      expect(estimateMins(s, 'short'), `${s.id} short`).toBeLessThanOrEqual(24);
+      expect(estimateMins(s, 'mini'), `${s.id} mini`).toBeLessThanOrEqual(14);
     }
   });
 
@@ -195,28 +210,34 @@ describe('doses — same program, three exits', () => {
   it('SHORT is a genuine escape hatch on every session', () => {
     for (const s of HOTMUM_SESSIONS) {
       const saved = 1 - estimateMins(s, 'short') / estimateMins(s, 'full');
-      expect(saved, `${s.id} saves ${Math.round(saved * 100)}%`).toBeGreaterThan(0.25);
+      expect(saved, `${s.id} saves ${Math.round(saved * 100)}%`).toBeGreaterThan(
+        0.25,
+      );
     }
   });
 
   it('a shorter dose is never longer than a fuller one', () => {
     for (const s of HOTMUM_SESSIONS) {
-      expect(estimateMins(s, 'core')).toBeLessThanOrEqual(estimateMins(s, 'short'));
-      expect(estimateMins(s, 'short')).toBeLessThanOrEqual(estimateMins(s, 'full'));
+      expect(estimateMins(s, 'mini')).toBeLessThanOrEqual(
+        estimateMins(s, 'short'),
+      );
+      expect(estimateMins(s, 'short')).toBeLessThanOrEqual(
+        estimateMins(s, 'full'),
+      );
     }
   });
 
   it('counts sets and time-under-tension for the finish card', () => {
-    const s = getSession('lower-a');
+    const s = getSession('lower');
     expect(setTotal(s, 'full')).toBeGreaterThan(20);
-    expect(timeUnderTension(s, 'full')).toBeGreaterThan(15 * 60);
+    expect(timeUnderTension(s, 'full')).toBeGreaterThan(12 * 60);
   });
 });
 
-describe('season — the countdown, not a streak', () => {
-  it('runs 20 weeks and ends on Christmas', () => {
-    expect(SEASON.weeks).toBe(20);
-    expect(SEASON.endDate).toBe('2026-12-25');
+describe('season — a hundred days, not a streak', () => {
+  it('runs a hundred days in five twenty-day blocks', () => {
+    expect(SEASON.days).toBe(100);
+    expect(SEASON.startDate).toBe('2026-08-20');
     expect(SEASON.blocks.map((b) => b.name)).toEqual([
       'GROOVE',
       'EXTEND',
@@ -226,42 +247,291 @@ describe('season — the countdown, not a streak', () => {
     ]);
   });
 
+  // The end date is written down (the countdown and the grid both read it) but
+  // it is DERIVED — day 1 plus 99. This catches the two drifting apart.
+  it('the end date really is day one hundred', () => {
+    const start = new Date(`${SEASON.startDate}T00:00:00`);
+    const day100 = new Date(start);
+    day100.setDate(day100.getDate() + SEASON.days - 1);
+    const iso = `${day100.getFullYear()}-${String(day100.getMonth() + 1).padStart(2, '0')}-${String(day100.getDate()).padStart(2, '0')}`;
+    expect(iso).toBe(SEASON.endDate);
+    expect(dayNumber(SEASON.endDate)).toBe(100);
+  });
+
+  // Christmas used to BE the deadline. The hundred days replaced it, and the
+  // two don't line up — so Christmas became the payoff, and it has to still
+  // land after the finish line or the story stops making sense.
+  it('finishes clear of Christmas, with time to spare', () => {
+    expect(daysToAfter(SEASON.endDate)).toBeGreaterThan(14);
+    expect(new Date(SEASON.after.date) > new Date(SEASON.endDate)).toBe(true);
+  });
+
   it('the blocks tile the season with no gaps and no overlaps', () => {
-    for (let week = 1; week <= SEASON.weeks; week++) {
+    for (let day = 1; day <= SEASON.days; day++) {
       const hits = SEASON.blocks.filter(
-        (b) => week >= b.weeks[0] && week <= b.weeks[1],
+        (b) => day >= b.days[0] && day <= b.days[1],
       );
-      expect(hits.length, `week ${week}`).toBe(1);
+      expect(hits.length, `day ${day}`).toBe(1);
     }
   });
 
-  it('counts down to Christmas and clamps at zero after it', () => {
-    expect(daysToGo('2026-08-05')).toBe(142);
-    expect(daysToGo('2026-12-24')).toBe(1);
+  it('counts down to day one hundred and clamps at zero after it', () => {
+    expect(daysToGo('2026-08-20')).toBe(99);
+    expect(daysToGo('2026-11-26')).toBe(1);
     expect(daysToGo('2027-01-05')).toBe(0);
   });
 
-  it('reports the season week, clamped at both ends', () => {
-    expect(seasonWeek('2026-08-11')).toBe(1); // day one
-    expect(seasonWeek('2026-08-17')).toBe(1); // still week one
-    expect(seasonWeek('2026-08-18')).toBe(2);
-    expect(seasonWeek('2026-07-01')).toBe(1); // before the start
-    expect(seasonWeek('2027-03-01')).toBe(20); // long after the end
+  it('reports the day number, clamped at both ends', () => {
+    expect(dayNumber('2026-08-20')).toBe(1);
+    expect(dayNumber('2026-08-21')).toBe(2);
+    expect(dayNumber('2026-07-01')).toBe(1); // before the start
+    expect(dayNumber('2027-03-01')).toBe(100); // long after the end
   });
 
-  it('maps a week to its training block', () => {
-    expect(blockForWeek(1).name).toBe('GROOVE');
-    expect(blockForWeek(4).name).toBe('GROOVE');
-    expect(blockForWeek(5).name).toBe('EXTEND');
-    expect(blockForWeek(20).name).toBe('PEAK');
+  it('maps a day to its training block', () => {
+    expect(blockForDay(1).name).toBe('GROOVE');
+    expect(blockForDay(20).name).toBe('GROOVE');
+    expect(blockForDay(21).name).toBe('EXTEND');
+    expect(blockForDay(100).name).toBe('PEAK');
   });
 
   it('loads up only where the 15 → 20 lb jump is survivable', () => {
-    const load = SEASON.blocks.find((b) => b.name === 'LOAD');
-    expect(load.loadUp).toEqual(['rdl', 'hip-thrust', 'goblet-squat']);
-    // never on the single-leg or light-isolation work
-    expect(load.loadUp).not.toContain('lunge');
-    expect(load.loadUp).not.toContain('lateral-raise');
+    for (const b of SEASON.blocks.filter((x) => x.loadUp)) {
+      expect(b.loadUp).toEqual(['rdl', 'goblet-squat', 'sumo-squat']);
+      // never on the single-leg or light-isolation work
+      expect(b.loadUp).not.toContain('reverse-lunge');
+      expect(b.loadUp).not.toContain('lateral-raise');
+    }
+  });
+});
+
+// The blocks used to be COPY. The app promised "same tempo, more reps" on day
+// 21 and then handed her the identical session, because nothing ever applied
+// the deltas. These are the tests that stop that regressing.
+describe('the season actually progresses', () => {
+  const opener = (s) => s.blocks.find((b) => b.dose === 'main');
+
+  it('EXTEND adds reps and shortens the rest', () => {
+    const a = opener(progress(getSession('lower'), 1));
+    const b = opener(progress(getSession('lower'), 21));
+    expect(b.reps).toBe(a.reps + 2);
+    expect(b.restSecs).toBeLessThan(a.restSecs);
+  });
+
+  it('SLOW lengthens the eccentric', () => {
+    const a = opener(progress(getSession('lower'), 1));
+    const b = opener(progress(getSession('lower'), 41));
+    const down = (t) => t.find(([l]) => l === 'DOWN')[1];
+    expect(down(b.tempo)).toBe(down(a.tempo) + 1);
+  });
+
+  it('LOAD puts 20 lb on the hinges and squats, and nothing else', () => {
+    const s = progress(getSession('lower'), 61);
+    const at = (id) => s.blocks.find((b) => b.ex === id && b.dose === 'main');
+    expect(at('rdl').load.lb).toBe(20);
+    expect(at('goblet-squat').load.lb).toBe(20);
+    expect(at('reverse-lunge').load.lb).toBe(15);
+  });
+
+  it('PEAK adds a set to the opener, and only the opener', () => {
+    const base = getSession('lower');
+    const peak = progress(base, 81);
+    expect(opener(peak).sets).toBe(opener(base).sets + 1);
+    const second = peak.blocks.filter((b) => b.dose === 'main')[1];
+    const baseSecond = base.blocks.filter((b) => b.dose === 'main')[1];
+    expect(second.sets).toBe(baseSecond.sets);
+  });
+
+  // The knee block is medicine at a fixed dose. A knee protocol that creeps
+  // upward every twenty days is how a knee protocol becomes a knee problem.
+  it('never progresses the warm-up or the knee work', () => {
+    for (const s of HOTMUM_SESSIONS) {
+      for (const day of [21, 41, 61, 81]) {
+        const before = s.blocks.filter((b) => b.dose !== 'main');
+        const after = progress(s, day).blocks.filter((b) => b.dose !== 'main');
+        expect(after, `${s.id} @ day ${day}`).toEqual(before);
+      }
+    }
+  });
+});
+
+// ─── The knee doctrine ──────────────────────────────────────────────────────
+// Sam's knees are the binding constraint on this program (program.js header).
+// These are the rules that must not quietly regress in a later edit.
+describe('the knee doctrine', () => {
+  const lowerDays = ['lower', 'full'].map(getSession);
+
+  it('gives both lower days a knee block and a standing core', () => {
+    for (const s of lowerDays) {
+      expect(s.stages.finisher, s.id).toMatch(/KNEE/);
+      expect(
+        s.blocks.some((b) => b.dose === 'finisher' && b.ex === 'wall-sit'),
+        s.id,
+      ).toBe(true);
+      expect(
+        s.blocks.some((b) => b.dose === 'finisher' && b.ex === 'sit-to-stand'),
+        s.id,
+      ).toBe(true);
+    }
+  });
+
+  // Depth is capped by a CHAIR, not by a cue nobody follows on rep nine — and
+  // the deep, high-load knee patterns are simply not in the program.
+  it('has no deep or unsupported knee-dominant work in it', () => {
+    const banned = ['step-up', 'lunge', 'jump-squat', 'pistol', 'split-squat'];
+    for (const b of allBlocks) expect(banned, b.ex).not.toContain(b.ex);
+    // the lunge that IS here steps BACK, with a hand on a chair
+    expect(HOTMUM_EXERCISES['reverse-lunge'].name).toMatch(/Supported/);
+    expect(HOTMUM_EXERCISES['reverse-lunge'].cue).toMatch(/chair/i);
+    expect(HOTMUM_EXERCISES['goblet-squat'].cue).toMatch(/chair/i);
+  });
+
+  it('carries the glute-medius work that stops the knee caving in', () => {
+    expect(
+      getSession('lower').blocks.some((b) => b.ex === 'hip-abduction'),
+    ).toBe(true);
+    expect(HOTMUM_EXERCISES['hip-abduction'].why).toMatch(/glute medius/i);
+  });
+
+  it('puts a knee note on every knee-relevant movement', () => {
+    for (const id of [
+      'goblet-squat',
+      'sumo-squat',
+      'reverse-lunge',
+      'wall-sit',
+      'sit-to-stand',
+      'hip-abduction',
+      'calf-raise',
+      'rdl',
+    ]) {
+      expect(HOTMUM_EXERCISES[id].knee, id).toBeTruthy();
+    }
+  });
+
+  it('EASY KNEE swaps the knee-dominant work for hip work', () => {
+    const s = kneeEasy(getSession('lower'));
+    const at = (id) => s.blocks.filter((b) => b.ex === id);
+    expect(at('goblet-squat')).toHaveLength(0);
+    expect(at('sumo-squat')).toHaveLength(0);
+    expect(s.blocks.some((b) => b.swappedFrom === 'goblet-squat')).toBe(true);
+    expect(s.blocks.some((b) => b.swappedFrom === 'reverse-lunge')).toBe(true);
+    // every swap lands on a real, playable exercise
+    for (const b of s.blocks) expect(HOTMUM_EXERCISES[b.ex], b.ex).toBeTruthy();
+  });
+
+  // Isometric holds at a tolerable angle SETTLE an irritated knee. Dropping
+  // them on a sore day would be the exact wrong reflex.
+  it('keeps the wall sit and the sit-to-stand on an easy-knee day', () => {
+    const s = kneeEasy(getSession('lower'));
+    expect(s.blocks.some((b) => b.ex === 'wall-sit')).toBe(true);
+    expect(s.blocks.some((b) => b.ex === 'sit-to-stand')).toBe(true);
+  });
+
+  it('offers the swap on the lower days and needs none on the upper', () => {
+    expect(hasKneeSwap(getSession('lower'))).toBe(true);
+    expect(hasKneeSwap(getSession('full'))).toBe(true);
+    expect(hasKneeSwap(getSession('upper'))).toBe(false);
+  });
+
+  it('an easy-knee session is still a real session, not a rest day', () => {
+    for (const id of ['lower', 'full']) {
+      const easy = estimateMins(kneeEasy(getSession(id)), 'full');
+      expect(easy, id).toBeGreaterThanOrEqual(24);
+      expect(easy, id).toBeLessThanOrEqual(32);
+    }
+  });
+});
+
+// ─── Standing only ─────────────────────────────────────────────────────────
+// Her plan has no floor work in it, and that's deliberate: getting down and
+// back up with a baby in the house is the tax that stops a session starting.
+describe('everything is done standing', () => {
+  it('has no floor work anywhere in the program', () => {
+    const floor = [
+      'side-plank',
+      'dead-bug',
+      'heel-slide',
+      'bird-dog',
+      'glute-bridge',
+      'glute-bridge-burnout',
+      'hip-thrust',
+      'floor-press',
+    ];
+    for (const b of allBlocks) expect(floor, b.ex).not.toContain(b.ex);
+  });
+
+  it('trains the core standing up instead', () => {
+    for (const s of HOTMUM_SESSIONS) {
+      const core = s.blocks.filter((b) => b.dose === 'core').map((b) => b.ex);
+      expect(core, s.id).toContain('knee-to-elbow');
+      expect(core, s.id).toContain('suitcase-hold');
+    }
+  });
+});
+
+// ─── The illustrations ─────────────────────────────────────────────────────
+describe('every movement has a figure', () => {
+  it('draws all of them — a missing demo is a blank panel mid-set', () => {
+    for (const id of Object.keys(HOTMUM_EXERCISES)) {
+      expect(HOTMUM_DEMOS[id], `no demo for ${id}`).toBeTruthy();
+      expect(HOTMUM_DEMOS[id], id).toContain('<svg');
+    }
+  });
+
+  it('has no demo for an exercise that does not exist', () => {
+    for (const id of Object.keys(HOTMUM_DEMOS)) {
+      expect(HOTMUM_EXERCISES[id], `stale demo: ${id}`).toBeTruthy();
+    }
+  });
+
+  // The player strips <animate*> under prefers-reduced-motion, which freezes
+  // each figure at whatever pose the static attributes hold. So the drawn pose
+  // has to BE the working position, with the animation running back to the
+  // start — not forward to it.
+  it('animates without needing to, so reduced motion still teaches', () => {
+    for (const [id, svg] of Object.entries(HOTMUM_DEMOS)) {
+      const frozen = svg.replace(/<animate[^>]*\/>/g, '');
+      expect(frozen, id).toContain('<path');
+    }
+  });
+});
+
+// ─── Another movement ──────────────────────────────────────────────────────
+describe('the other thirty minutes', () => {
+  it('offers a walk and the things that replace one', () => {
+    const ids = MOVEMENTS.map((m) => m.id);
+    expect(ids[0]).toBe('walk');
+    for (const id of ['easy-walk', 'yoga', 'pilates']) {
+      expect(ids, id).toContain(id);
+    }
+  });
+
+  it('every movement is a named, timed, loggable thing', () => {
+    for (const m of MOVEMENTS) {
+      expect(m.name, m.id).toBeTruthy();
+      expect(m.blurb, m.id).toBeTruthy();
+      expect(m.mins, m.id).toBeGreaterThan(0);
+    }
+  });
+
+  it('falls back to the walk rather than breaking on an unknown id', () => {
+    expect(getMovement('nope').id).toBe('walk');
+    expect(getMovement(undefined).id).toBe('walk');
+    expect(getMovement('yoga').name).toBe('Yoga');
+  });
+});
+
+// ─── One door for the player ───────────────────────────────────────────────
+describe('sessionForToday', () => {
+  it('applies the day and the knee switch together', () => {
+    const s = sessionForToday(getSession('lower'), { day: 81, easyKnee: true });
+    expect(s.easyKnee).toBe(true);
+    expect(s.block).toBe('PEAK');
+    expect(s.blocks.some((b) => b.swappedFrom)).toBe(true);
+  });
+
+  it('survives a session that does not exist', () => {
+    expect(sessionForToday(null)).toBeNull();
   });
 });
 
@@ -286,6 +556,13 @@ describe('the recommended rhythm', () => {
       expect(getSession(day.id), day.id).toBeTruthy();
     }
   });
+
+  it('is the Monday / Wednesday / Friday rhythm her plan is written on', () => {
+    expect(
+      WEEK.filter((d) => d.kind === 'session').map((d) => d.day),
+    ).toEqual(['MON', 'WED', 'FRI']);
+    expect(WEEK.at(-1)).toMatchObject({ day: 'SUN', move: 'easy-walk' });
+  });
 });
 
 // The whole point of building on rehab.js: her data drives the shipped engine.
@@ -305,25 +582,27 @@ describe('drives the shipped step engine', () => {
   });
 
   it('paces an RDL set beat by beat, and the coach counts the reps', () => {
-    const queue = buildStepQueue(getSession('lower-a'));
+    const queue = buildStepQueue(getSession('lower'));
     const set = queue.find((st) => st.exId === 'rdl' && st.kind === 'work');
-    expect(set.secs).toBe(50);
-    expect(set.tempo.reps).toBe(10);
+    expect(set.secs).toBe(40);
+    expect(set.tempo.reps).toBe(8);
 
     // first beat of rep 1, mid-set, and the last beat of rep 10
     expect(tempoStateAt(set.tempo, 0).label).toBe('DOWN');
     expect(tempoStateAt(set.tempo, 3000).label).toBe('HOLD');
     expect(tempoStateAt(set.tempo, 4000).label).toBe('UP');
     expect(tempoStateAt(set.tempo, 5000).rep).toBe(2);
-    expect(tempoStateAt(set.tempo, 49000).rep).toBe(10);
+    expect(tempoStateAt(set.tempo, 39000).rep).toBe(8);
 
     // A rep is counted when it's FINISHED, and an RDL finishes on the way up.
     expect(beatSlug(tempoStateAt(set.tempo, 0), set.tempo)).toBe('down');
     expect(beatSlug(tempoStateAt(set.tempo, 3000), set.tempo)).toBe('hold');
     expect(beatSlug(tempoStateAt(set.tempo, 4000), set.tempo)).toBe('one');
     expect(beatSlug(tempoStateAt(set.tempo, 9000), set.tempo)).toBe('two');
-    expect(beatSlug(tempoStateAt(set.tempo, 39000), set.tempo)).toBe('last-three');
-    expect(beatSlug(tempoStateAt(set.tempo, 49000), set.tempo)).toBe('last-one');
+    expect(beatSlug(tempoStateAt(set.tempo, 29000), set.tempo)).toBe(
+      'last-three',
+    );
+    expect(beatSlug(tempoStateAt(set.tempo, 39000), set.tempo)).toBe('last-one');
     // nothing between phase changes — the old in-phase pacing collided with it
     expect(beatSlug(tempoStateAt(set.tempo, 1000), set.tempo)).toBeNull();
     expect(beatSlug(tempoStateAt(set.tempo, 2000), set.tempo)).toBeNull();
@@ -338,12 +617,11 @@ describe('drives the shipped step engine', () => {
     };
     expect(at('goblet-squat').count).toBe('UP'); // pattern starts DOWN
     expect(at('rdl').count).toBe('UP'); // starts DOWN
-    expect(at('hip-thrust').count).toBe('UP'); // starts UP — was already right
-    expect(at('glute-bridge').count).toBe('UP');
+    expect(at('calf-raise').count).toBe('UP'); // starts UP — was already right
+    expect(at('sit-to-stand').count).toBe('UP');
     expect(at('shoulder-press').count).toBe('UP');
-    // returning is what completes a dead bug
-    expect(at('dead-bug').count).toBe('BACK');
-    expect(at('heel-slide').count).toBe('BACK');
+    // returning the leg is what completes a hip abduction
+    expect(at('hip-abduction').count).toBe('BACK');
 
     // every tempo block in the program counts on a real, speakable phase
     for (const b of allBlocks.filter((x) => x.tempo)) {
@@ -363,21 +641,21 @@ describe('drives the shipped step engine', () => {
         expect(row.detail).toBeTruthy();
       }
     }
-    const overview = sessionOverview(getSession('lower-a'));
+    const overview = sessionOverview(getSession('lower'));
     expect(overview.map((r) => r.title)).toContain('Romanian Deadlift');
     expect(overview.find((r) => r.title === 'Romanian Deadlift').detail).toBe(
-      '3 × 10 tempo',
+      '3 × 8 tempo',
     );
   });
 
   it('tells her what is coming during a rest, by name and side', () => {
-    const queue = buildStepQueue(getSession('lower-a'));
+    const queue = buildStepQueue(getSession('lower'));
     const restIdx = queue.findIndex((st) => st.kind === 'rest');
     expect(nextWorkLabel(queue, restIdx)).not.toMatch(/^[a-z0-9-]+$/);
     expect(nextWorkLabel(queue, queue.length - 1)).toBe('FINISH');
     // per-side work announces the side
     const lungeRest = queue.findIndex(
-      (st) => st.exId === 'lunge' && st.phase === 'SWITCH SIDES',
+      (st) => st.exId === 'reverse-lunge' && st.phase === 'SWITCH SIDES',
     );
     expect(nextWorkLabel(queue, lungeRest)).toContain('Lunge');
   });
@@ -397,13 +675,15 @@ describe('drives the shipped step engine', () => {
   });
 
   it('splits per-side work into left and right with a switch between', () => {
-    const queue = buildStepQueue(getSession('lower-a'));
+    const queue = buildStepQueue(getSession('lower'));
     const sides = queue
-      .filter((st) => st.exId === 'lunge' && st.kind === 'work')
+      .filter((st) => st.exId === 'reverse-lunge' && st.kind === 'work')
       .map((st) => st.side);
     expect(sides.slice(0, 2)).toEqual(['LEFT', 'RIGHT']);
     expect(
-      queue.some((st) => st.exId === 'lunge' && st.phase === 'SWITCH SIDES'),
+      queue.some(
+        (st) => st.exId === 'reverse-lunge' && st.phase === 'SWITCH SIDES',
+      ),
     ).toBe(true);
   });
 });
@@ -427,15 +707,27 @@ describe('profile — greeting and units', () => {
     const lines = [
       greeting('Sam'),
       greeting('Sam', new Date(), true),
-      ...['walk', 'session'].flatMap((kind) =>
+      ...[1, 42, 100].flatMap((day) =>
         [true, false].map((doneToday) =>
-          subGreeting({ kind, doneToday, daysToGo: 100 }),
+          subGreeting({ doneToday, day, days: 100 }),
         ),
       ),
     ];
     for (const line of lines) expect(line, line).not.toMatch(appearance);
     // …and the brand name survives, so the ban never quietly eats the greeting
     expect(greeting('Sam')).toMatch(/hot mum/i);
+  });
+
+  it('counts the hundred days, not the old countdown to Christmas', () => {
+    expect(subGreeting({ doneToday: false, day: 1, days: 100 })).toMatch(
+      /Day one of 100/,
+    );
+    expect(subGreeting({ doneToday: false, day: 42, days: 100 })).toMatch(
+      /Day 42 of 100/,
+    );
+    expect(subGreeting({ doneToday: true, day: 42, days: 100 })).toBe(
+      "That's today done.",
+    );
   });
 
   it('formats load in her unit, and bodyweight as words', () => {
@@ -475,9 +767,9 @@ describe('dates are LOCAL, not UTC', () => {
     expect(morning).toBe(evening);
   });
 
-  it('the season week is the same all day', () => {
-    expect(seasonWeek(new Date(2026, 8, 1, 6, 0, 0))).toBe(
-      seasonWeek(new Date(2026, 8, 1, 23, 0, 0)),
+  it('the day number is the same all day', () => {
+    expect(dayNumber(new Date(2026, 8, 1, 6, 0, 0))).toBe(
+      dayNumber(new Date(2026, 8, 1, 23, 0, 0)),
     );
   });
 });
