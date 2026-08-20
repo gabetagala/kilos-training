@@ -182,6 +182,30 @@ export function clearPin() {
   persist()
 }
 
+/**
+ * Replace everything from an exported file. Deliberately a REPLACE, not a
+ * merge: two phones that have both been logging have no safe automatic
+ * resolution, and silently interleaving them would invent history.
+ */
+export function importAll(raw) {
+  const incoming = typeof raw === 'string' ? JSON.parse(raw) : raw
+  if (!incoming?.profile || typeof incoming.profile !== 'object') throw new Error('That does not look like a Tomato Plate backup.')
+  state = { ...structuredClone(DEFAULT), ...incoming }
+  persist()
+  return state
+}
+
+/** A quick summary so the user can see what they are about to overwrite. */
+export function describe(raw) {
+  const d = typeof raw === 'string' ? JSON.parse(raw) : raw
+  // Validate BEFORE the caller offers to overwrite anything.
+  if (!d?.profile || typeof d.profile !== 'object' || !('birthdate' in d.profile))
+    throw new Error('That does not look like a Tomato Plate backup.')
+  const foods = Object.keys(d.foods || {}).length
+  const days = Object.keys(d.log || {}).length
+  return { name: d.profile?.name || 'Baby', birthdate: d.profile?.birthdate || '?', foods, days }
+}
+
 export function reset() {
   state = structuredClone(DEFAULT)
   persist()

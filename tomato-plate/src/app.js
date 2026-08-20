@@ -328,10 +328,11 @@ function screenBaby() {
   const pct = Math.round((tried / total) * 138)
   return `<div class="scroll stack">
     <div style="text-align:center;padding:8px 0 4px">
-      <button class="avatar" data-photo aria-label="Change photo">
-        ${s.profile.photo ? `<img src="${s.profile.photo}" alt="">` : '<span>👶</span>'}
+      <button class="avatar" data-photo aria-label="${s.profile.photo ? 'Change photo' : 'Add photo'}">
+        ${s.profile.photo ? `<img src="${esc(s.profile.photo)}" alt="">` : '<span>👶</span>'}
         <i class="avatar-edit">${s.profile.photo ? 'Change' : 'Add photo'}</i>
       </button>
+      ${s.profile.original ? '<button class="link" data-recrop style="display:block;margin:-4px auto 8px;text-align:center">Reposition photo</button>' : ''}
       <input type="file" id="photo-input" accept="image/*" hidden>
       <h1>${esc(s.profile.name || 'Baby')}</h1>
       <div class="soft" style="font-size:12px;margin-top:3px">${age.label}${s.profile.birthdate ? ` · born ${esc(s.profile.birthdate)}` : ''}</div>
@@ -356,7 +357,13 @@ function screenBaby() {
       <div class="soft" style="font-size:11px;margin-top:3px">${esc(milk.note)}</div></div>
     <div class="note"><b style="color:var(--ink)">Not a reaction:</b> ${esc(REACTION.notReaction)}</div>
     ${store.hasPin() ? '<button class="btn ghost" data-lock>Lock the app</button>' : ''}
-    <button class="btn ghost" data-export>Export the log</button>
+    <div class="card">
+      <div class="eyebrow ruled" style="margin-bottom:10px">Moving to another phone</div>
+      <p class="soft" style="font-size:12.5px;line-height:1.5;margin-bottom:12px">Everything lives on this phone only — there is no account. Export a file here, open it on the new phone, and restore. Two phones logging at once will drift apart; there is no merge.</p>
+      <button class="btn ghost" data-export style="margin-bottom:9px">Export a backup</button>
+      <button class="btn ghost" data-import>Restore from a backup</button>
+      <input type="file" id="import-input" accept="application/json,.json" hidden>
+    </div>
     <button class="buildstamp" data-update>${esc(BUILD)} · tap to update</button>
   </div>`
 }
@@ -478,6 +485,31 @@ function sheetSwap(ctx) {
   </div></div>`
 }
 
+/**
+ * Circular photo crop. The picture moves under a fixed circle rather than the
+ * circle moving over the picture — the same model as iOS, and it means the
+ * result is always exactly what is inside the ring.
+ */
+function sheetCrop(ctx) {
+  return `<div class="scrim"><div class="sheet stack" data-stop>
+    <div class="grab"></div>
+    <h2>Position the photo</h2>
+    <p class="soft" style="font-size:13px;line-height:1.5">Drag to move it, and use the slider to zoom. Whatever sits inside the circle is what you get.</p>
+    <div class="cropper" id="crop-stage">
+      <img id="crop-img" src="${ctx.src}" alt="" draggable="false">
+      <div class="crop-mask"></div>
+    </div>
+    <label class="crop-zoom">
+      <span class="eyebrow">Zoom</span>
+      <input type="range" id="crop-scale" min="1" max="3" step="0.01" value="${ctx.scale || 1}">
+    </label>
+    <div class="row">
+      <button class="link" data-crop-cancel>Cancel</button>
+      <button class="btn" data-crop-save style="margin-left:auto;width:auto;padding:14px 32px">Use photo</button>
+    </div>
+  </div></div>`
+}
+
 function sheetHands() {
   return `<div class="scrim"><div class="sheet stack" data-stop>
     <div class="grab"></div>
@@ -573,6 +605,7 @@ function render() {
       const sc = app.querySelector('.scroll')
       if (sc) { sc.scrollTop = keep; requestAnimationFrame(() => { sc.scrollTop = keep }) }
     }
+    if (view.sheet?.kind === 'crop') wireCropper()
   }
 
   if (view.pin?.mode === 'set') return paint(`<div class="stage">${screenPinSet()}</div>`)
@@ -583,7 +616,7 @@ function render() {
   const bar = view.food ? '' : `<nav class="tabbar">${TABS.map(([id, label]) =>
     `<button data-tab="${id}" class="${view.tab === id ? 'on' : ''}">${label}</button>`).join('')}</nav>`
 
-  let sheetEl = !view.sheet ? '' : view.sheet.kind === 'reaction' ? sheetReaction() : view.sheet.kind === 'hands' ? sheetHands() : view.sheet.kind === 'swap' ? sheetSwap(view.sheet) : sheetLog(view.sheet)
+  let sheetEl = !view.sheet ? '' : view.sheet.kind === 'reaction' ? sheetReaction() : view.sheet.kind === 'hands' ? sheetHands() : view.sheet.kind === 'swap' ? sheetSwap(view.sheet) : view.sheet.kind === 'crop' ? sheetCrop(view.sheet) : sheetLog(view.sheet)
   if (sheetEl && !view.sheet._shown) { sheetEl = sheetEl.replace('class="scrim"', 'class="scrim enter"'); view.sheet._shown = true }
   paint(`<div class="stage">${body}</div>` + bar + sheetEl)
 }
@@ -701,6 +734,28 @@ app.addEventListener('click', (e) => {
     return render()
   }
   if (hit('[data-photo]')) { document.getElementById('photo-input')?.click(); return }
+  if (hit('[data-import]')) { document.getElementById('import-input')?.click(); return }
+  if (hit('[data-recrop]')) {
+    const s = store.get().profile
+    if (s.original) { view.sheet = { kind: 'crop', src: s.original, scale: s.crop?.scale || 1, x: s.crop?.x || 0, y: s.crop?.y || 0 }; return render() }
+    return
+  }
+  if (hit('[data-crop-cancel]')) { view.sheet = null; return render() }
+  if (hit('[data-crop-save]')) {
+    const st = view.sheet
+    const img = document.getElementById('crop-img')
+    const stage = document.getElementById('crop-stage')
+    const OUT = 320
+    const box = stage.getBoundingClientRect()
+    const r = img.getBoundingClientRect()
+    const c = document.createElement('canvas')
+    c.width = c.height = OUT
+    const k = OUT / box.width
+    c.getContext('2d').drawImage(img, (r.left - box.left) * k, (r.top - box.top) * k, r.width * k, r.height * k)
+    store.saveProfile({ photo: c.toDataURL('image/jpeg', 0.85), original: st.src, crop: { scale: st.scale, x: st.x, y: st.y } })
+    view.sheet = null
+    return render()
+  }
   if (hit('[data-food]')) { view.food = hit('[data-food]').dataset.food; view.age ??= ageBand(today().age.months); return render() }
   if (hit('[data-age]')) { view.age = +hit('[data-age]').dataset.age; return render() }
   if (hit('[data-day]')) { view.tab = 'today'; return render() }
@@ -783,6 +838,27 @@ app.addEventListener('click', (e) => {
 // Photos are downscaled to 320px before storing — a raw camera frame would
 // blow the localStorage quota and take the log down with it.
 app.addEventListener('change', (e) => {
+  if (e.target.id === 'import-input') {
+    const f = e.target.files?.[0]
+    e.target.value = ''
+    if (!f) return
+    const r = new FileReader()
+    r.onload = () => {
+      try {
+        const d = store.describe(r.result)
+        const ok = confirm(`Restore ${d.name}'s log?\n\nBorn ${d.birthdate} · ${d.foods} foods · ${d.days} days logged.\n\nThis REPLACES everything on this phone. It cannot be undone.`)
+        if (!ok) return
+        store.importAll(r.result)
+        view.unlocked = true
+        view.tab = 'today'
+        render()
+      } catch (err) {
+        alert(`Could not read that file.\n\n${err.message}`)
+      }
+    }
+    r.readAsText(f)
+    return
+  }
   if (e.target.id !== 'photo-input') return
   const file = e.target.files?.[0]
   if (!file) return
@@ -790,18 +866,21 @@ app.addEventListener('change', (e) => {
   reader.onload = () => {
     const img = new Image()
     img.onload = () => {
-      const size = 320
+      // Downscale the source before cropping — a raw camera frame would blow
+      // the localStorage quota — but keep it big enough to zoom into.
+      const max = 900
+      const k = Math.min(1, max / Math.max(img.width, img.height))
       const c = document.createElement('canvas')
-      c.width = c.height = size
-      const scale = Math.max(size / img.width, size / img.height)
-      const w = img.width * scale
-      const h = img.height * scale
-      c.getContext('2d').drawImage(img, (size - w) / 2, (size - h) / 2, w, h)
-      store.saveProfile({ photo: c.toDataURL('image/jpeg', 0.82) })
-          }
+      c.width = Math.round(img.width * k)
+      c.height = Math.round(img.height * k)
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
+      view.sheet = { kind: 'crop', src: c.toDataURL('image/jpeg', 0.86), scale: 1, x: 0, y: 0 }
+      render()
+    }
     img.src = reader.result
   }
   reader.readAsDataURL(file)
+  e.target.value = '' // so picking the same file twice still fires
 })
 
 // ── Swipe between tabs, as a pager ───────────────────────────────────────
@@ -815,6 +894,7 @@ app.addEventListener('change', (e) => {
 
   const stage = () => app.querySelector('.stage')
   const cleanup = () => {
+    app.classList.remove('paging')
     for (const el of app.querySelectorAll('.pager-ghost')) el.remove()
     const cur = stage()?.querySelector('.scroll')
     if (cur) { cur.style.transition = ''; cur.style.transform = ''; cur.style.willChange = '' }
@@ -837,6 +917,10 @@ app.addEventListener('change', (e) => {
       g.next = order[order.indexOf(view.tab) + g.dir]
       g.cur = stage()?.querySelector('.scroll')
       g.w = stage()?.getBoundingClientRect().width || 1
+      // Freeze the page under the finger: no vertical scroll mid-swipe, and
+      // drop the two full-screen composite effects (the blend-mode grain and
+      // the nav's backdrop blur) which make every dragged frame expensive.
+      app.classList.add('paging')
       if (g.next && g.cur) {
         const ghost = document.createElement('div')
         ghost.className = 'scroll pager-ghost'
@@ -848,11 +932,12 @@ app.addEventListener('change', (e) => {
       }
     }
     if (!g.cur) return
+    if (e.cancelable) e.preventDefault() // stops the scroller fighting the drag
     // Rubber-band at the ends instead of pretending there is a page there.
     g.dx = g.next ? dx : dx * 0.3
     g.cur.style.transform = `translate3d(${g.dx}px,0,0)`
     if (g.ghost) g.ghost.style.transform = `translate3d(calc(${g.dir > 0 ? 100 : -100}% + ${g.dx}px),0,0)`
-  }, { passive: true })
+  }, { passive: false })
 
   const settle = () => {
     if (!g?.on || !g.cur) { g = null; return }
@@ -912,6 +997,55 @@ if (new URLSearchParams(location.search).has('diag')) {
   read()
   addEventListener('resize', read)
   setInterval(read, 1200)
+}
+
+/**
+ * Drag + zoom for the crop sheet, wired after the sheet paints. The image is
+ * clamped so it can never pull away from the circle and leave a gap.
+ */
+function wireCropper() {
+  const img = document.getElementById('crop-img')
+  const stage = document.getElementById('crop-stage')
+  const range = document.getElementById('crop-scale')
+  if (!img || !stage || !range) return
+  const st = view.sheet
+
+  const apply = () => {
+    const box = stage.getBoundingClientRect()
+    if (!img.naturalWidth) return
+    const base = Math.max(box.width / img.naturalWidth, box.height / img.naturalHeight)
+    const s = base * st.scale
+    const w = img.naturalWidth * s
+    const h = img.naturalHeight * s
+    const maxX = Math.max(0, (w - box.width) / 2)
+    const maxY = Math.max(0, (h - box.height) / 2)
+    st.x = Math.min(maxX, Math.max(-maxX, st.x))
+    st.y = Math.min(maxY, Math.max(-maxY, st.y))
+    img.style.width = `${w}px`
+    img.style.height = `${h}px`
+    img.style.transform = `translate(calc(-50% + ${st.x}px), calc(-50% + ${st.y}px))`
+  }
+  if (img.complete && img.naturalWidth) apply()
+  img.addEventListener('load', apply)
+  range.addEventListener('input', () => { st.scale = +range.value; apply() })
+
+  let drag = null
+  const down = (e) => { const t = e.touches?.[0] || e; drag = { x: t.clientX - st.x, y: t.clientY - st.y } }
+  const move = (e) => {
+    if (!drag) return
+    const t = e.touches?.[0] || e
+    st.x = t.clientX - drag.x
+    st.y = t.clientY - drag.y
+    apply()
+    if (e.cancelable) e.preventDefault()
+  }
+  const up = () => { drag = null }
+  stage.addEventListener('touchstart', down, { passive: true })
+  stage.addEventListener('touchmove', move, { passive: false })
+  stage.addEventListener('touchend', up, { passive: true })
+  stage.addEventListener('mousedown', down)
+  addEventListener('mousemove', move)
+  addEventListener('mouseup', up)
 }
 
 render()
