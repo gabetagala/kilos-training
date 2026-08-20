@@ -751,6 +751,8 @@ if (new URLSearchParams(location.search).has('diag')) {
       `#app         ${px(app.top)} → ${px(app.bottom)}  h ${px(app.height)}`,
       nav ? `nav          ${px(nav.top)} → ${px(nav.bottom)}` : 'nav          (none)',
       `gap below    ${px(innerHeight - (nav ? nav.bottom : app.bottom))}`,
+      `vh vs dvh    ${px(vh100 - dvh)}  ${vh100 === dvh ? '(agree)' : '(DISAGREE — this is the bug)'}`,
+      `nav on screen ${nav ? (nav.bottom <= innerHeight ? 'YES' : 'NO — cut by ' + px(nav.bottom - innerHeight)) : 'n/a'}`,
     ].join('\n')
   }
   read()

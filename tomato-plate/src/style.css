@@ -53,8 +53,13 @@ body {
    leaves a dead strip under the page; only 100vh resolves to the true height.
    Phone widths only, so a desktop install keeps its framed shell. */
 @media (display-mode: standalone) and (max-width: 599px) {
-  html, body, #app { height: 100vh; }
-  body { min-height: 100vh; }
+  /* 100vh because iOS standalone's SMALL viewport under-reports (812 on an
+     874 screen), which used to leave a dead strip. But if vh ever OVER-reports
+     the visible area, the bottom of the shell — and the nav in it — goes off
+     screen. Capping at 100dvh means the worst case is a small gap below the
+     nav in the same cream, never a nav you cannot reach. */
+  html, body { height: 100vh; min-height: 100vh; }
+  #app { height: 100vh; max-height: 100dvh; }
 }
 #app {
   /* height, not min-height: the shell is exactly the viewport and .scroll does
@@ -70,13 +75,10 @@ body::before {
   opacity: .85; mix-blend-mode: multiply;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.075'/%3E%3C/svg%3E");
 }
-/* A warm bloom behind the hero so the top of the page has some depth. */
-body::after {
-  content: ''; position: fixed; inset: 0 0 auto; height: 42vh; z-index: 0; pointer-events: none;
-  background:
-    radial-gradient(120% 70% at 50% -8%, rgba(15,74,53,.08), transparent 68%),
-    radial-gradient(90% 50% at 8% 4%, rgba(192,68,42,.045), transparent 60%);
-}
+/* No top bloom. It was position:fixed, so it never scrolled and painted the
+   top of the page a different shade from the rest — which under a translucent
+   status bar reads as a stuck coloured bar. The page is one flat cream now;
+   the grain above is the only texture. */
 #app { z-index: 2; }
 .scroll {
   /* min-height:0 lets a flex child shrink below its content and scroll itself,
