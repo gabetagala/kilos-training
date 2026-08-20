@@ -457,6 +457,11 @@ body {
   opacity: 0.62;
 }
 
+.pl-tools {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
 .ex-name {
   font-family: var(--display);
   font-weight: 600;
@@ -1383,24 +1388,80 @@ body {
     border-radius: var(--r-sm);
   }
 
-  /* ── focus screens stay single-column and centred ── */
-  .screen.player,
+  /* ── the finish card stays single-column and centred ── */
   .screen.finish {
     display: flex;
     max-width: 820px;
     margin: 0 auto;
     padding: 56px 56px 48px;
   }
+
+  /* ── THE PLAYER IS 50/50 — pose left, details right (KILOS' grammar) ──
+     A phone has to stack the figure above the timer and shrink it to fit. A
+     laptop doesn't: there's a whole half-screen sitting empty, so the pose
+     gets it at full size and everything she reads gets the other half. The
+     guide stops being a prep/rest-only extra here and becomes the panel. */
+  .screen.player {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "top   top"
+      "stage mid"
+      "stage foot";
+    align-items: center;
+    gap: 0 56px;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 40px 56px 40px;
+  }
+  /* A walk has no pose — don't leave half the screen empty for it. */
+  .screen.player[data-stage="off"] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "top"
+      "mid"
+      "foot";
+    max-width: 820px;
+  }
+  .player .pl-top {
+    grid-area: top;
+  }
+  .player .pl-stage {
+    grid-area: stage;
+    height: 100%;
+    min-height: 0;
+  }
+  .player .pl-mid {
+    grid-area: mid;
+    justify-content: center;
+    padding: 0;
+  }
+  .player .pl-foot {
+    grid-area: foot;
+  }
+  /* The figure takes the column — the one place it can be seen properly. */
+  .player .pl-stage .hm-demo,
+  .player .pl-stage .hm-demo.teaching {
+    height: 100%;
+    max-height: 62vh;
+    max-width: none;
+    transition: none;
+  }
+  /* Halved column, so the numeral comes down from its full-width size. */
   .timer {
-    font-size: 220px;
+    font-size: clamp(110px, 11vw, 168px);
   }
   .phase {
-    font-size: 68px;
+    font-size: 52px;
   }
   .cue {
-    font-size: 17px;
-    max-width: 46ch;
+    font-size: 16px;
+    max-width: 40ch;
   }
+  /* NOTE: the desktop `.pl-guide` override lives at the END of this file —
+     the base `.pl-guide { display: none }` is declared after this media query
+     and would otherwise win on source order. */
   .screen.finish .day-name {
     font-size: 104px;
   }
@@ -1601,9 +1662,22 @@ body {
   width: 100%;
   max-width: 34ch;
   margin-top: 14px;
-  display: grid;
   gap: 6px;
   text-align: left;
+  /* On a phone: only while she's setting up or resting. Nobody reads prose
+     while counting a three-second lower, and the screen isn't big enough to
+     offer it anyway. The desktop rule below overrides this. */
+  display: none;
+}
+.pl-guide.teaching {
+  display: grid;
+}
+.pl-stage {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 .g-row {
   display: grid;
@@ -1776,4 +1850,85 @@ body {
   .ex-demo {
     height: 120px;
   }
+}
+
+/* ─── Illustrated art ──────────────────────────────────────────────────────
+   Generated flat-vector figures (scripts/generate-art.mjs --pack hotmum) that
+   replace the SVG rig wherever a file exists. Two-pose art holds -a and -b
+   stacked and cross-fades between them ON HER TEMPO — see atWorkingPose in
+   app.js — so the picture is at the bottom of the squat when she is. */
+
+.hm-art {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.hm-art-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* Anchored to the floor, not the middle: the figures share a ground line,
+     so centring them makes a squat appear to hover as it shortens. */
+  object-position: center bottom;
+  transition: opacity 0.22s ease;
+}
+.hm-art-img.b {
+  opacity: 0;
+}
+.hm-art.at-b .hm-art-img.a {
+  opacity: 0;
+}
+.hm-art.at-b .hm-art-img.b {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hm-art-img {
+    transition: none;
+  }
+}
+
+/* ─── Desktop: the guide is the details half ───────────────────────────────
+   Declared HERE, at the end, and not up in the main min-width:1000px block:
+   the base `.pl-guide { display: none }` comes after that block, and at equal
+   specificity the later rule wins. This one has to be later still.
+
+   On a phone the guide is prep/rest only — no room, and nobody reads prose
+   mid-set. On a desktop the right-hand column IS the detail panel, so it
+   stays put and dims out of the way during a set rather than disappearing. */
+
+@media (min-width: 1000px) {
+  .pl-guide {
+    display: grid;
+    opacity: 0.45;
+    max-width: 42ch;
+    transition: opacity 0.3s;
+  }
+  .pl-guide.teaching {
+    opacity: 1;
+  }
+}
+
+/* ─── Coach voice toggle ───────────────────────────────────────────────────
+   Muted used to render as "✕", which sat right next to the player's END
+   SESSION "✕" and read as a second close button. Same note either way, struck
+   through when she's silenced it. */
+
+.voice-btn {
+  position: relative;
+}
+.voice-btn.muted {
+  opacity: 0.5;
+}
+.voice-btn.muted::after {
+  content: "";
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  top: 50%;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+  transform: rotate(-45deg);
 }

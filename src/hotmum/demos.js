@@ -244,6 +244,40 @@ const SUITCASE_POSE = {
   armN: { at: [3, 27], sh: -176, el: 0 },
 };
 
+// Single-leg hinge: hand on the chair, free leg sweeping back as a
+// counterweight, dumbbell in the other hand. The horizontal line the torso
+// and the back leg make together IS the coaching point.
+const SL_RDL_POSE = {
+  root: { x: 106, y: 68, rot: 0 },
+  rootAnim: { a: '-5 -2', b: '0 0', ...T5 },
+  torso: 104,
+  torsoAnim: { a: 174, b: 104, ...T5 },
+  head: -4,
+  // near hand reaches to the chair, far hand hangs with the weight
+  armN: { at: [0, L.torso - 5], sh: -128, el: -30 },
+  armF: { at: SH, sh: -100, el: 2, anim: { a: -172, b: -100, ...T5 } },
+  legF: {
+    hip: 66,
+    knee: -8,
+    ankle: -66,
+    far: true,
+    anim: { a: 4, b: 66, ...T5 },
+  },
+  legN: { hip: 10, knee: -6, ankle: 84 },
+};
+
+const SL_CALF_POSE = {
+  root: { x: 100, y: 62, rot: 0 },
+  rootAnim: { a: '0 6', b: '0 0', ...T5 },
+  torso: 180,
+  head: 2,
+  armN: { at: [3, 27], sh: -122, el: -30 },
+  armF: { at: [-3, 27], sh: 176, el: 0 },
+  // free leg tucked behind, standing heel up
+  legF: { hip: 26, knee: -74, ankle: -30, far: true },
+  legN: { hip: -3, knee: -1, ankle: -44 },
+};
+
 const GOBLET = svg(
   GROUND +
     shadow(100, 44) +
@@ -262,6 +296,23 @@ const SUMO = svg(
     action(tick(78, 84, 66, 88, 2.6) + tick(122, 84, 134, 88, 2.6)),
 );
 
+const SL_RDL = svg(
+  GROUND +
+    shadow(96, 34) +
+    CHAIR(146) +
+    figure(SL_RDL_POSE) +
+    heldDB(SL_RDL_POSE, 'armF') +
+    action(swoosh('M 132 52 Q 146 56 152 66', 2.6)),
+);
+
+const SL_CALF = svg(
+  GROUND +
+    shadow(100, 24) +
+    CHAIR(140) +
+    figure(SL_CALF_POSE) +
+    action(tick(100, 24, 100, 14, 2.6)),
+);
+
 export const HOTMUM_DEMOS = {
   // ── ALIAS ─────────────────────────────────────────────────────────────────
   rdl: REHAB_DEMOS.rdl,
@@ -270,6 +321,8 @@ export const HOTMUM_DEMOS = {
   // A box squat and a controlled sit-to-stand are the same movement with
   // different intent — and the box IS the chair.
   'sit-to-stand': PROGRAM_DEMOS['box-squat'],
+  'sl-rdl': SL_RDL,
+  'sl-calf-raise': SL_CALF,
 
   // Authored rather than aliased: KILOS' carry and curl art draws the
   // dumbbells by eye and they land near the ankles. hand() puts them in the

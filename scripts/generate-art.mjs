@@ -29,25 +29,47 @@
 // it, check each pose against the manifest's ⚠ line, regenerate offenders
 // with --only <id> --force.
 
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
-import {
-  ART_MANIFEST,
-  BG_NOTE,
-  PAIR_LAYOUT,
-  REFERENCE_NOTE,
-  SINGLE_LAYOUT,
-  STACK_LAYOUT,
-  STYLE_PROMPT,
-} from './art-manifest.mjs';
 import { PROGRAM_EXERCISES } from '../src/workout/program.js';
 import { REHAB_EXERCISES } from '../src/workout/rehab.js';
+import { HOTMUM_EXERCISES } from '../src/hotmum/program.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const OUT_DIR = join(ROOT, 'public', 'rehab');
-const GUIDED = { ...REHAB_EXERCISES, ...PROGRAM_EXERCISES };
+
+// ── packs ────────────────────────────────────────────────────────────────────
+// Same pipeline, two catalogues. `kilos` is Gabe's guided player (a man, grey
+// on black); `hotmum` is Sam's (a woman, magenta on plum) — see
+// hotmum-art-manifest.mjs. The prompts, the character and the output dir all
+// come from the pack; everything below this line is pack-agnostic.
+const PACKS = {
+  kilos: {
+    manifest: './art-manifest.mjs',
+    dir: 'rehab',
+    exercises: { ...REHAB_EXERCISES, ...PROGRAM_EXERCISES },
+    ref: 'public/rehab/rdl-a.webp',
+    chroma: 'magenta',
+  },
+  hotmum: {
+    manifest: './hotmum-art-manifest.mjs',
+    dir: 'hotmum-art',
+    exercises: HOTMUM_EXERCISES,
+    // Seeds off a KILOS image for the RENDERING STYLE only — her manifest's
+    // REFERENCE_NOTE is written to stop the reference overriding the
+    // character. Once a good female figure exists, pass --ref <that file> so
+    // the rest of the catalogue matches it exactly.
+    ref: 'public/rehab/rdl-a.webp',
+    chroma: 'green',
+  },
+};
 
 // ── args ─────────────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
@@ -68,7 +90,45 @@ const DRY = flag('dry-run');
 // If this preview id is ever retired, fall back with --model.
 const MODEL = opt('model', 'gemini-3-pro-image-preview');
 const SIZE = opt('size', '2K'); // 1K | 2K | 4K — see generateImage
-const REF_PATH = resolve(ROOT, opt('ref', 'public/rehab/rdl-a.webp'));
+const PACK = opt('pack', 'kilos');
+if (!PACKS[PACK]) {
+  console.error(`Unknown --pack ${PACK}. Try: ${Object.keys(PACKS).join(', ')}`);
+  process.exit(1);
+}
+const {
+  ART_MANIFEST,
+  BG_NOTE,
+  PAIR_LAYOUT,
+  REFERENCE_NOTE,
+  SINGLE_LAYOUT,
+  STACK_LAYOUT,
+  STYLE_PROMPT,
+} = await import(PACKS[PACK].manifest);
+const GUIDED = PACKS[PACK].exercises;
+const OUT_DIR = join(ROOT, 'public', PACKS[PACK].dir);
+mkdirSync(OUT_DIR, { recursive: true });
+const REF_PATH = resolve(ROOT, opt('ref', PACKS[PACK].ref));
+
+// ── the chroma key ──────────────────────────────────────────────────────────
+// KILOS knocks out magenta; HOTMUM can't, because her kit IS magenta — it
+// keys green instead. `cast` is "how far toward the key colour is this pixel",
+// used both to clear background the sampled key missed and to measure how much
+// of the FIGURE the key has stained (a bad roll bleeds the key into the edges).
+const CHROMAS = {
+  magenta: {
+    note: '#FF00FF',
+    // high red AND blue, starved green
+    cast: (d, i) => Math.min(d[i], d[i + 2]) - d[i + 1],
+    saturated: (d, i) => d[i] - d[i + 1] > 100 && d[i + 2] - d[i + 1] > 50,
+  },
+  green: {
+    note: '#00FF00',
+    // high green, starved red AND blue
+    cast: (d, i) => d[i + 1] - Math.max(d[i], d[i + 2]),
+    saturated: (d, i) => d[i + 1] - d[i] > 90 && d[i + 1] - d[i + 2] > 60,
+  },
+};
+const CHROMA = CHROMAS[PACKS[PACK].chroma];
 
 // ── API key: env first, .env.local second (gitignored) ───────────────────────
 function apiKey() {
@@ -189,9 +249,12 @@ function sampleKey(data, w, h) {
     tally(w - 1, y);
   }
   const [top] = [...counts.entries()].sort((a, b) => b[1] - a[1]);
-  const [r, g, b] = top[0].split(',').map((v) => (v << 4) + 8);
-  if (!(r - g > 100 && b - g > 50)) return null;
-  return [r, g, b];
+  const rgb = top[0].split(',').map((v) => (v << 4) + 8);
+  // The commonest border colour has to actually BE the key — otherwise the
+  // model ignored the background instruction and knocking out would eat the
+  // figure. Pack-specific: KILOS keys magenta, HOTMUM keys green.
+  if (!CHROMA.saturated(rgb, 0)) return null;
+  return rgb;
 }
 
 async function knockOut(buffer) {
@@ -212,14 +275,13 @@ async function knockOut(buffer) {
   const BLEND = 140; // anti-aliased figure edge
   const cleared = new Uint8Array(w * h);
   // Global threshold, not flood-fill: the figure's palette contains no pink
-  // by design, and enclosed pockets (under a bridging torso, between legs)
+  // by design (see each manifest's BG_NOTE), and enclosed pockets (under a
   // must be cleared even though no border path reaches them. Saturated pink
   // ANYWHERE also clears — the model sometimes paints the ground shadow in a
   // second pink that sits outside the sampled key's tolerance.
-  const isPink = (d, i) =>
-    d[i] - d[i + 1] > 100 && d[i + 2] - d[i + 1] > 50;
   for (let p = 0; p < w * h; p++) {
-    if (keyDist(data, p * 4) <= FLOOD || isPink(data, p * 4)) cleared[p] = 1;
+    if (keyDist(data, p * 4) <= FLOOD || CHROMA.saturated(data, p * 4))
+      cleared[p] = 1;
   }
   // Despeckle: drop tiny opaque islands (model dust, border specks) — one
   // stray pixel at a corner otherwise defeats the content trim, and orphan
@@ -297,7 +359,7 @@ async function knockOut(buffer) {
 // A cast toward pink is unambiguous here: the palette (skin, grey, charcoal,
 // white) contains no pink by design, so anything pink is contamination.
 
-const pinkCast = (d, i) => Math.min(d[i], d[i + 2]) - d[i + 1];
+const pinkCast = (d, i) => CHROMA.cast(d, i);
 
 // (1) Repaint contaminated figure pixels from their clean neighbours.
 function deFringe(data, w, h, tint = 10, radius = 4, rounds = 5) {

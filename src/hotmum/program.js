@@ -28,10 +28,18 @@
 //   2. THE HIPS DO THE BUILDING. Hinges (RDL, sumo) and hip abduction carry
 //      the muscle-building load. Strong glutes are the best-evidenced knee
 //      intervention there is, and none of it bends the knee under load.
-//   3. UNILATERAL, BUT SUPPORTED. One leg at a time fixes the side-to-side
-//      asymmetry that carrying a baby on one hip builds — but a hand on a
-//      chair removes the balance demand, so the knee isn't stabilising a
-//      wobble on top of carrying the weight. Reverse, never forward.
+//   3. UNILATERAL LEADS — AND IT LEADS FROM THE HIP (revised 2026-08-20).
+//      One leg at a time fixes the side-to-side asymmetry that carrying a baby
+//      on one hip builds, and it's the priority, so it goes FIRST on the lower
+//      day while she's freshest — balance degrades with fatigue, and a
+//      single-leg movement done tired is a worse movement, not a harder one.
+//      The catch is WHICH unilateral: the way to do more of it without
+//      punishing a knee is to make the HIP work single-leg (single-leg RDL,
+//      hip abduction, single-leg calf raise — each loads one leg hard and
+//      bends the knee barely at all), not to make the knee work deeper.
+//      Everything with a bend in it stays SUPPORTED — a hand on a chair takes
+//      the balance demand off, so the knee isn't stabilising a wobble on top
+//      of carrying the weight. Reverse, never forward.
 //   4. ISOMETRICS ARE THE MEDICINE, NOT THE RISK. Wall sits and controlled
 //      sit-to-stands are in the plan because holds at a tolerable angle
 //      calm an angry knee down. They are the one place a "continuous" hold
@@ -217,6 +225,27 @@ export const HOTMUM_EXERCISES = {
     yt: 'dumbbell romanian deadlift form',
     repTempo: ECCENTRIC,
     breathe: true,
+  },
+  'sl-rdl': {
+    name: 'Single-Leg RDL',
+    feel: 'One hamstring and glute taking all of it, hip square to the floor',
+    avoid: 'Twisting open at the hip; rounding the back to reach lower',
+    cue: 'One hand on the chair, dumbbell in the other. Push the free leg straight back as your chest comes down. Stand tall.',
+    why: 'The most single-leg thing you can do — and it never bends the knee.',
+    knee: 'Almost no bend at the knee, and one leg carries everything. The best knee-to-benefit trade in the plan.',
+    yt: 'supported single leg romanian deadlift form',
+    repTempo: ECCENTRIC,
+    breathe: true,
+  },
+  'sl-calf-raise': {
+    name: 'Single-Leg Calf Raise',
+    feel: 'One calf doing all of it, hard, by rep six',
+    avoid: 'Bouncing; leaning on the chair to take weight off the leg',
+    cue: 'One hand on the chair for balance only. Up onto one toe as high as you can, hold, lower all the way down.',
+    why: 'Double the load per calf with no extra dumbbells — and it exposes the weaker side.',
+    knee: 'Standing knee soft but still. Nothing bends here.',
+    yt: 'single leg calf raise form',
+    repTempo: SQUEEZE,
   },
   'goblet-squat': {
     name: 'Goblet Squat',
@@ -454,7 +483,7 @@ export const SEASON = {
       name: 'LOAD',
       blurb: '15 → 20 lb on the hinges and squats. Reps drop to eight.',
       addReps: -2,
-      loadUp: ['rdl', 'goblet-squat', 'sumo-squat'],
+      loadUp: ['rdl', 'sl-rdl', 'goblet-squat', 'sumo-squat'],
     },
     {
       days: [81, 100],
@@ -464,7 +493,7 @@ export const SEASON = {
       addEccentric: 1,
       addSets: 1,
       lessRest: 10,
-      loadUp: ['rdl', 'goblet-squat', 'sumo-squat'],
+      loadUp: ['rdl', 'sl-rdl', 'goblet-squat', 'sumo-squat'],
     },
   ],
 };
@@ -683,20 +712,39 @@ export const HOTMUM_SESSIONS = [
     sub: 'Lower + Knee',
     day: 'MON',
     blurb:
-      'Hinge, squat, sumo, lunge — then the knee work that keeps it going.',
+      'Single-leg first, then the squats — and the knee work that keeps it going.',
     stages: { finisher: 'KNEE STRENGTH', core: 'STANDING CORE' },
     blocks: [
       ...WARMUP_LOWER,
+      // UNILATERAL LEADS (§2.9 rule 3). The single-leg hinge opens the day:
+      // it's the priority, it loads one leg hard, and it barely bends a knee.
       {
-        ex: 'rdl',
+        ex: 'sl-rdl',
         mode: 'tempo',
         dose: 'main',
         sets: 3,
-        reps: 8,
+        reps: 6,
         tempo: ECCENTRIC,
+        perSide: true,
+        switchSecs: 10,
+        restSecs: 40,
+        load: { lb: 15 },
+      },
+      {
+        ex: 'reverse-lunge',
+        mode: 'tempo',
+        dose: 'main',
+        sets: 2,
+        reps: 6,
+        tempo: ECCENTRIC_SHORT,
+        perSide: true,
+        switchSecs: 10,
         restSecs: 45,
         load: { lb: 15, each: true },
+        kneeSwap: { ex: 'hip-abduction', tempo: ABDUCT, load: 'BW' },
       },
+      // The bilateral anchor. Two legs still move the most total load, and
+      // cutting them entirely would cost her the strength the plan is for.
       {
         ex: 'goblet-squat',
         mode: 'tempo',
@@ -704,7 +752,7 @@ export const HOTMUM_SESSIONS = [
         sets: 3,
         reps: 8,
         tempo: ECCENTRIC,
-        restSecs: 45,
+        restSecs: 40,
         load: { lb: 15 },
         kneeSwap: { ex: 'sit-to-stand', tempo: ECCENTRIC_SHORT, load: 'BW' },
       },
@@ -713,32 +761,21 @@ export const HOTMUM_SESSIONS = [
         mode: 'tempo',
         dose: 'main',
         sets: 2,
-        reps: 10,
+        reps: 8,
         tempo: ECCENTRIC,
-        restSecs: 45,
+        restSecs: 40,
         load: { lb: 20 },
-        kneeSwap: { ex: 'rdl', tempo: ECCENTRIC, load: { lb: 15, each: true } },
+        kneeSwap: { ex: 'sl-rdl', tempo: ECCENTRIC, load: { lb: 15 } },
       },
       {
-        ex: 'reverse-lunge',
+        ex: 'sl-calf-raise',
         mode: 'tempo',
         dose: 'main',
         sets: 2,
         reps: 8,
-        tempo: ECCENTRIC_SHORT,
-        perSide: true,
-        switchSecs: 10,
-        restSecs: 45,
-        load: { lb: 15, each: true },
-        kneeSwap: { ex: 'hip-abduction', tempo: ABDUCT, load: 'BW' },
-      },
-      {
-        ex: 'calf-raise',
-        mode: 'tempo',
-        dose: 'main',
-        sets: 2,
-        reps: 12,
         tempo: SQUEEZE,
+        perSide: true,
+        switchSecs: 8,
         restSecs: 40,
         load: 'BW',
       },
@@ -946,6 +983,20 @@ export const HOTMUM_SESSIONS = [
         restSecs: 45,
         load: { lb: 15, each: true },
       },
+      // Straight after the hinge, while balance is still good (§2.9 rule 3).
+      {
+        ex: 'reverse-lunge',
+        mode: 'tempo',
+        dose: 'main',
+        sets: 2,
+        reps: 6,
+        tempo: ECCENTRIC_SHORT,
+        perSide: true,
+        switchSecs: 10,
+        restSecs: 45,
+        load: { lb: 15, each: true },
+        kneeSwap: { ex: 'hip-abduction', tempo: ABDUCT, load: 'BW' },
+      },
       {
         ex: 'goblet-squat',
         mode: 'tempo',
@@ -979,19 +1030,7 @@ export const HOTMUM_SESSIONS = [
         restSecs: 45,
         load: { lb: 10, each: true },
       },
-      {
-        ex: 'reverse-lunge',
-        mode: 'tempo',
-        dose: 'main',
-        sets: 2,
-        reps: 6,
-        tempo: ECCENTRIC_SHORT,
-        perSide: true,
-        switchSecs: 10,
-        restSecs: 45,
-        load: { lb: 15, each: true },
-        kneeSwap: { ex: 'hip-abduction', tempo: ABDUCT, load: 'BW' },
-      },
+
       {
         ex: 'shoulder-press',
         mode: 'tempo',

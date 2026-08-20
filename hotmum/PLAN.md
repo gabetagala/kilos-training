@@ -290,11 +290,11 @@ rolls 30s, standing torso rotations 30s, bodyweight good mornings `2-1`.
 
 | Block | Move | Tempo | Sets × reps |
 |---|---|---|---|
-| Main | Romanian Deadlift | `3-1-1` | 3 × 8 @ 15 lb × 2 |
+| Main | **Single-Leg RDL** (chair) | `3-1-1` | 3 × 6/side @ 15 lb |
+| Main | **Supported** Reverse Lunge | `2-1-1` | 2 × 6/side @ 15 lb × 2 |
 | Main | Goblet Squat **to a chair** | `3-1-1` | 3 × 8 @ 15 lb |
-| Main | Sumo Squat | `3-1-1` | 2 × 10 @ 20 lb |
-| Main | **Supported** Reverse Lunge | `2-1-1` | 2 × 8/side @ 15 lb × 2 |
-| Main | Standing Calf Raise | `1-2-2` | 2 × 12 |
+| Main | Sumo Squat | `3-1-1` | 2 × 8 @ 20 lb |
+| Main | **Single-Leg** Calf Raise | `1-2-2` | 2 × 8/side |
 | 🦵 Knee | Wall Sit | hold | 2 × 30s |
 | 🦵 Knee | Controlled Sit-to-Stand | `2-1-1` | 2 × 8 |
 | 🦵 Knee | Standing Hip Abduction | `1-1-2` | 2 × 6/side |
@@ -426,9 +426,17 @@ So the doctrine the program is actually built on, in priority order:
    there is, and none of it bends the knee under load. **Standing hip abduction
    was added to her plan** — it's the glute-medius work that stops the knee
    caving inward, it's unilateral, and it loads the knee at zero degrees.
-3. **UNILATERAL, BUT SUPPORTED.** Reverse, never forward. Hand on the chair,
-   always — the support takes the wobble off the knee so it isn't stabilising
-   a balance problem on top of carrying the weight.
+3. **UNILATERAL LEADS — AND IT LEADS FROM THE HIP** *(revised, his call)*.
+   Single-leg work is the priority, so it goes FIRST on the lower day while
+   she's freshest: balance degrades with fatigue, and a single-leg movement
+   done tired is a worse movement, not a harder one. The catch is *which*
+   unilateral. The way to do more of it without punishing a knee is to make
+   the **hip** work single-leg — the **Single-Leg RDL** now opens Monday, and
+   with hip abduction and the **Single-Leg Calf Raise** that's 3 of Monday's 5
+   main lifts on one leg, none of which bends a knee under load. Making the
+   *knee* work single-leg instead (deep lunges, step-downs) would have been
+   the same instinct with the opposite result. Everything that does bend stays
+   SUPPORTED — reverse, never forward, hand on the chair, always.
 4. **ISOMETRICS ARE THE MEDICINE, NOT THE RISK.** Wall sits and controlled
    sit-to-stands stay exactly as she wrote them. Holds at a tolerable angle
    *settle* an angry knee — this is the one place a long continuous hold is
@@ -446,7 +454,7 @@ because the answer changes day to day. It swaps:
 | Normal | Easy knee | Why |
 |---|---|---|
 | Goblet Squat | Controlled Sit-to-Stand | Same pattern, chair-capped, bodyweight |
-| Sumo Squat | Romanian Deadlift | Pure hinge, no knee flexion |
+| Sumo Squat | Single-Leg RDL | Pure hinge, no knee flexion, still one leg |
 | Supported Reverse Lunge | Standing Hip Abduction | Still unilateral, zero bend |
 
 The wall sit and the sit-to-stand **stay** (see rule 4). An easy-knee session

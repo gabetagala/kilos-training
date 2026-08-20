@@ -37,6 +37,7 @@ import {
   beatSlug,
   countdownSlug,
   countPhase,
+  NUM_SLUGS,
   PHASE_WORDS,
   phaseWord,
 } from '../../src/hotmum/cues.js';
@@ -116,6 +117,21 @@ describe('program data', () => {
   });
 
   // A hold, a carry or a rest used to simply stop with no warning.
+  // Every rep in the program must have a number clip. Before the coach went
+  // count-only this failed silently (NUM_SLUGS stopped at ten); now a set
+  // with no words in it is the whole bug.
+  it('owns a number for every rep of every set', () => {
+    const most = Math.max(
+      ...allBlocks.filter((b) => b.tempo).map((b) => b.reps),
+    );
+    expect(NUM_SLUGS.length - 1).toBeGreaterThanOrEqual(most);
+    for (const b of allBlocks.filter((x) => x.tempo)) {
+      for (let rep = 1; rep <= b.reps; rep++) {
+        expect(NUM_SLUGS[rep], `${b.ex} rep ${rep}`).toBeTruthy();
+      }
+    }
+  });
+
   it('counts 3-2-1 into the end of any plain timed step', () => {
     expect(countdownSlug(3)).toBe('three');
     expect(countdownSlug(2)).toBe('two');
@@ -138,7 +154,7 @@ describe('program data', () => {
 
 describe('tempo maths — a set is a countdown', () => {
   it('set length = reps × secs-per-rep', () => {
-    const rdl = getSession('lower').blocks.find((b) => b.ex === 'rdl');
+    const rdl = getSession('full').blocks.find((b) => b.ex === 'rdl');
     expect(tempoSecs(rdl.tempo)).toBe(5); // 3 lower + 1 pause + 1 lift
     expect(tempoLabel(rdl.tempo)).toBe('3-1-1');
     expect(rdl.reps * tempoSecs(rdl.tempo)).toBe(40);
@@ -149,8 +165,8 @@ describe('tempo maths — a set is a countdown', () => {
       (b) => b.ex === 'reverse-lunge',
     );
     expect(lunge.perSide).toBe(true);
-    // 2 sets × 2 sides × 8 reps × 4s
-    expect(blockWorkSecs(lunge)).toBe(128);
+    // 2 sets × 2 sides × 6 reps × 4s
+    expect(blockWorkSecs(lunge)).toBe(96);
   });
 
   it('holds are counted too', () => {
@@ -298,7 +314,7 @@ describe('season — a hundred days, not a streak', () => {
 
   it('loads up only where the 15 → 20 lb jump is survivable', () => {
     for (const b of SEASON.blocks.filter((x) => x.loadUp)) {
-      expect(b.loadUp).toEqual(['rdl', 'goblet-squat', 'sumo-squat']);
+      expect(b.loadUp).toEqual(['rdl', 'sl-rdl', 'goblet-squat', 'sumo-squat']);
       // never on the single-leg or light-isolation work
       expect(b.loadUp).not.toContain('reverse-lunge');
       expect(b.loadUp).not.toContain('lateral-raise');
@@ -329,7 +345,7 @@ describe('the season actually progresses', () => {
   it('LOAD puts 20 lb on the hinges and squats, and nothing else', () => {
     const s = progress(getSession('lower'), 61);
     const at = (id) => s.blocks.find((b) => b.ex === id && b.dose === 'main');
-    expect(at('rdl').load.lb).toBe(20);
+    expect(at('sl-rdl').load.lb).toBe(20);
     expect(at('goblet-squat').load.lb).toBe(20);
     expect(at('reverse-lunge').load.lb).toBe(15);
   });
@@ -583,12 +599,12 @@ describe('drives the shipped step engine', () => {
   });
 
   it('paces an RDL set beat by beat, and the coach counts the reps', () => {
-    const queue = buildStepQueue(getSession('lower'));
+    const queue = buildStepQueue(getSession('full'));
     const set = queue.find((st) => st.exId === 'rdl' && st.kind === 'work');
     expect(set.secs).toBe(40);
     expect(set.tempo.reps).toBe(8);
 
-    // first beat of rep 1, mid-set, and the last beat of rep 10
+    // the phases still run — they're on SCREEN, they're just not spoken
     expect(tempoStateAt(set.tempo, 0).label).toBe('DOWN');
     expect(tempoStateAt(set.tempo, 3000).label).toBe('HOLD');
     expect(tempoStateAt(set.tempo, 4000).label).toBe('UP');
@@ -596,17 +612,34 @@ describe('drives the shipped step engine', () => {
     expect(tempoStateAt(set.tempo, 39000).rep).toBe(8);
 
     // A rep is counted when it's FINISHED, and an RDL finishes on the way up.
-    expect(beatSlug(tempoStateAt(set.tempo, 0), set.tempo)).toBe('down');
-    expect(beatSlug(tempoStateAt(set.tempo, 3000), set.tempo)).toBe('hold');
     expect(beatSlug(tempoStateAt(set.tempo, 4000), set.tempo)).toBe('one');
     expect(beatSlug(tempoStateAt(set.tempo, 9000), set.tempo)).toBe('two');
     expect(beatSlug(tempoStateAt(set.tempo, 29000), set.tempo)).toBe(
       'last-three',
     );
     expect(beatSlug(tempoStateAt(set.tempo, 39000), set.tempo)).toBe('last-one');
-    // nothing between phase changes — the old in-phase pacing collided with it
-    expect(beatSlug(tempoStateAt(set.tempo, 1000), set.tempo)).toBeNull();
-    expect(beatSlug(tempoStateAt(set.tempo, 2000), set.tempo)).toBeNull();
+  });
+
+  // SHE COUNTS, SHE DOESN'T COACH (2026-08-20). Alice used to name the phase on
+  // every beat — a word every second and a half for twenty minutes, describing
+  // something already on screen in 50px type. Only the rep number survives.
+  it('says the rep number and NOTHING else during a set', () => {
+    for (const s of HOTMUM_SESSIONS) {
+      for (const st of buildStepQueue(s)) {
+        if (!st.tempo) continue;
+        const spoken = [];
+        for (let ms = 0; ms < st.secs * 1000; ms += 1000) {
+          const slug = beatSlug(tempoStateAt(st.tempo, ms), st.tempo);
+          if (slug) spoken.push(slug);
+        }
+        // never a phase word…
+        for (const word of Object.values(PHASE_WORDS)) {
+          expect(spoken, `${st.exId} said "${word}"`).not.toContain(word);
+        }
+        // …and exactly one count per rep
+        expect(spoken, `${st.exId} counts`).toHaveLength(st.tempo.reps);
+      }
+    }
   });
 
   // The bug: on a bridge the number landed on the way up (right), on a squat it
@@ -643,9 +676,9 @@ describe('drives the shipped step engine', () => {
       }
     }
     const overview = sessionOverview(getSession('lower'));
-    expect(overview.map((r) => r.title)).toContain('Romanian Deadlift');
-    expect(overview.find((r) => r.title === 'Romanian Deadlift').detail).toBe(
-      '3 × 8 tempo',
+    expect(overview.map((r) => r.title)).toContain('Single-Leg RDL');
+    expect(overview.find((r) => r.title === 'Single-Leg RDL').detail).toBe(
+      '3 × 6 tempo / side',
     );
   });
 

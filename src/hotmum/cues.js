@@ -6,8 +6,10 @@
 // the shared file would have changed his coach's mouth, so HOTMUM gets its own
 // vocabulary and his is left alone.
 
-// The closed set of words Alice owns. A label outside this map is silent
-// rather than mispronounced — see the test that walks every tempo pattern.
+// The closed set of phase labels. Alice owns a clip for each, but as of
+// 2026-08-20 she no longer SAYS them on the beat (see beatSlug) — these are
+// what the player prints on screen, and the map is what keeps a pattern from
+// inventing a label the app has no word for.
 export const PHASE_WORDS = {
   UP: 'up',
   DOWN: 'down',
@@ -17,6 +19,10 @@ export const PHASE_WORDS = {
   BACK: 'back',
 };
 
+// One to TWENTY. It stopped at ten while the phase words were also being
+// spoken, so the gap was covered — now that the rep number is the ONLY thing
+// Alice says during a set (see beatSlug), a 20-rep standing crunch would have
+// counted to ten and then gone silent for the rest of the set.
 export const NUM_SLUGS = [
   null,
   'one',
@@ -29,6 +35,16 @@ export const NUM_SLUGS = [
   'eight',
   'nine',
   'ten',
+  'eleven',
+  'twelve',
+  'thirteen',
+  'fourteen',
+  'fifteen',
+  'sixteen',
+  'seventeen',
+  'eighteen',
+  'nineteen',
+  'twenty',
 ];
 
 export const phaseWord = (label) => PHASE_WORDS[label] || null;
@@ -56,21 +72,31 @@ export function countPhase(tempo) {
 /**
  * The word for one tempo beat, or null for a silent one.
  *
- * One word per phase change, and nothing in between. The old version also
- * paced the inside of long phases ("down… two… three…"), which collided head-on
- * with the rep count — "two" meaning the second second of the descent and
- * "two" meaning the second rep, seconds apart. The phase word plus the rep
- * number is all the information there is; the rest was chatter.
+ * SHE COUNTS, SHE DOESN'T COACH (2026-08-20). Alice used to call the phase on
+ * every beat — "down… hold… up… two… down… hold… up… three" — which is a word
+ * roughly every second and a half for twenty minutes. Two problems: it's
+ * relentless, and it's redundant. The phase is ALREADY on screen in 50px type
+ * and the whole canvas warms on the lift and cools on the lower (PLAN.md §3),
+ * so the tempo is readable without a word for it. What the voice is genuinely
+ * needed for is the thing she can't see while she's moving: **where she is in
+ * the set**.
+ *
+ * So the only thing that lands on a tempo beat is the REP NUMBER, once per
+ * rep, at the top. Everything else Alice still says is transition, not
+ * coaching: "get set", the name of what's coming, "rest", "switch sides", and
+ * the 3-2-1 into the end of a hold.
+ *
+ * The phase words stay in PHASE_WORDS and stay on screen — they're the label
+ * set, and the clips are still on disk. This is a decision about how much the
+ * coach talks, not about deleting the vocabulary.
  */
 export function beatSlug(st, tempo) {
   if (st.phaseSec !== 0) return null;
-  if (st.label === countPhase(tempo)) {
-    const total = tempo.reps || 0;
-    if (total >= 6 && st.rep === total - 2) return 'last-three';
-    if (total >= 2 && st.rep === total) return 'last-one';
-    if (NUM_SLUGS[st.rep]) return NUM_SLUGS[st.rep];
-  }
-  return phaseWord(st.label);
+  if (st.label !== countPhase(tempo)) return null;
+  const total = tempo.reps || 0;
+  if (total >= 6 && st.rep === total - 2) return 'last-three';
+  if (total >= 2 && st.rep === total) return 'last-one';
+  return NUM_SLUGS[st.rep] || null;
 }
 
 /**
