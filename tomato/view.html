@@ -5,17 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#F2EEE7" />
   <title>Tomato Cam · With me</title>
+  <link rel="stylesheet" href="/family.css" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --bg: #F2EEE7; --card: #FFFFFF; --ink: #201D19; --soft: #8D8781;
-      --line: #E8E3DA; --tomato: #E23A1E; --leaf: #3A7D44;
-      --ok: #3A7D44; --bad: #A8290F; --live: #4CAF7D;
-      --shadow: 0 12px 32px rgba(46, 41, 34, 0.10);
+      /* Tokens from /family.css; these are this page's local aliases. */
+      --card: var(--surface); --soft: var(--ink-2); --leaf: var(--green);
+      --live: #2e8b63; --ok: var(--green); --bad: var(--tomato);
     }
     body {
       background: var(--bg); color: var(--ink); min-height: 100dvh;
-      font-family: ui-rounded, -apple-system, 'SF Pro Rounded', 'Segoe UI', sans-serif;
+      font-family: var(--font-ui);
       display: flex; flex-direction: column; gap: 14px;
       padding: max(12px, env(safe-area-inset-top)) 14px max(20px, env(safe-area-inset-bottom));
       max-width: 480px; margin: 0 auto;
@@ -23,7 +23,7 @@
     header { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
     .brand {
       display: flex; align-items: center; gap: 9px;
-      font-family: ui-serif, Georgia, 'Times New Roman', serif;
+      font-family: var(--font-display);
       font-weight: 700; font-size: 20px; letter-spacing: 0.005em;
     }
     .tomatomark {
@@ -134,7 +134,7 @@
       transform: rotate(8deg);
     }
     #gate .wordmark {
-      font-family: ui-serif, Georgia, 'Times New Roman', serif;
+      font-family: var(--font-display);
       font-size: 40px; font-weight: 700; line-height: 0.95; position: relative;
       padding-top: 44px;
     }

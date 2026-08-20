@@ -3,18 +3,21 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#E9EFE6" />
+  <meta name="theme-color" content="#FAF8F2" />
   <title>Tomato Cam</title>
+  <link rel="stylesheet" href="/family.css" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    /* Tokens come from /family.css — these are the local aliases the rest of
+       this page already uses. */
     :root {
-      --bg: #E9EFE6; --card: #FFFFFF; --ink: #201D19; --soft: #7C8078;
-      --tomato: #E23A1E; --leaf: #3A7D44; --cream: #F6F1E7;
-      --shadow: 0 12px 32px rgba(41, 46, 38, 0.12);
+      --card: var(--surface); --soft: var(--ink-2); --leaf: var(--green);
+      --cream: var(--surface-2);
+      --shadow: 0 2px 6px rgba(26,43,34,.05), 0 18px 44px rgba(26,43,34,.10);
     }
     body {
       background: var(--bg); color: var(--ink); min-height: 100dvh;
-      font-family: ui-rounded, -apple-system, 'SF Pro Rounded', 'Segoe UI', sans-serif;
+      font-family: var(--font-ui);
       display: flex; flex-direction: column; gap: 16px; justify-content: center;
       padding: max(20px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
       max-width: 480px; margin: 0 auto;
@@ -28,38 +31,39 @@
     }
     .hero .t.big {
       position: absolute; top: -68px; right: -52px; width: 250px; height: 250px;
-      transform: rotate(8deg);
+      transform: rotate(8deg); z-index: 0;
     }
     .hero h1 {
-      font-family: ui-serif, Georgia, 'Times New Roman', serif;
-      font-size: 52px; font-weight: 700; line-height: 0.95; letter-spacing: -0.01em;
-      position: relative;
+      font-family: var(--font-display);
+      font-size: 52px; font-weight: 600; line-height: .95; letter-spacing: -.03em;
+      position: relative; z-index: 2; color: var(--ink);
     }
-    .hero .tag { color: var(--soft); font-size: 15px; position: relative; }
-    .grain::after {
-      content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.08;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
-    }
+    /* z-index so the poster tomato never paints over the words. */
+    .hero .tag { color: var(--ink-2); font-size: 15px; line-height: 1.5;
+      position: relative; z-index: 2; max-width: 22ch; }
 
     a.role {
-      display: block; background: var(--card); border-radius: 24px; overflow: hidden;
+      display: block; background: var(--card); border: 1px solid var(--line);
+      border-radius: var(--r-lg); overflow: hidden;
       text-decoration: none; color: var(--ink); box-shadow: var(--shadow);
     }
     .art { height: 118px; position: relative; overflow: hidden; }
     .art.baby { background: var(--cream); }
-    .art.me { background: #DFE9DA; }
+    .art.me { background: var(--green-soft); }
     .art .t { position: absolute; }
     .art span {
       position: absolute; left: 12px; bottom: 12px; z-index: 2;
-      background: rgba(255, 255, 255, 0.72); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
-      padding: 8px 14px; border-radius: 999px; font-size: 14px; font-weight: 700;
+      background: rgba(255, 255, 255, .84); -webkit-backdrop-filter: blur(20px) saturate(180%);
+      backdrop-filter: blur(20px) saturate(180%); border: 1px solid var(--line);
+      padding: 9px 15px; border-radius: var(--r-pill); font-size: 13.5px; font-weight: 650;
+      letter-spacing: -.012em; color: var(--ink);
     }
-    .role p { padding: 14px 16px 16px; color: var(--soft); font-size: 14px; line-height: 1.45; }
-    .foot { text-align: center; color: var(--soft); font-size: 12.5px; }
+    .role p { padding: 15px 18px 18px; color: var(--ink-2); font-size: 13.5px; line-height: 1.5; }
+    .foot { text-align: center; color: var(--ink-3); font-size: 12.5px; line-height: 1.5; }
     .t { display: block; }
   </style>
 </head>
-<body>
+<body class="grain">
   <svg width="0" height="0" aria-hidden="true" style="position: absolute;">
     <defs>
       <g id="tom">

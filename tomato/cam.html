@@ -1,22 +1,24 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="night">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#121110" />
   <title>Tomato Cam · Baby's room</title>
+  <link rel="stylesheet" href="/family.css" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     /* Baby unit: dark family of the viewer's ivory. Big bright-enough
        preview for positioning; "Dim for the night" hides everything under
        a near-black overlay so the screen doesn't glow (SCOPE §3.9). */
     :root {
-      --bg: #121110; --card: #1B1917; --ink: #C7C0B6; --soft: #6E6962;
-      --line: #262421; --ok: #6E9A80; --bad: #D2705B;
+      /* .night on <html> supplies the palette from /family.css. */
+      --card: var(--surface); --soft: var(--ink-2);
+      --ok: var(--green); --bad: var(--tomato);
     }
     body {
       background: var(--bg); color: var(--ink); min-height: 100dvh;
-      font-family: ui-rounded, -apple-system, 'SF Pro Rounded', 'Segoe UI', sans-serif;
+      font-family: var(--font-ui);
       display: flex; flex-direction: column; gap: 12px;
       padding: max(12px, env(safe-area-inset-top)) 14px max(20px, env(safe-area-inset-bottom));
       max-width: 480px; margin: 0 auto;
@@ -24,7 +26,7 @@
     header { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
     .brand {
       display: flex; align-items: center; gap: 8px; color: var(--ink);
-      font-family: ui-serif, Georgia, 'Times New Roman', serif;
+      font-family: var(--font-display);
       font-weight: 700; font-size: 17px;
     }
     .tomatomark {

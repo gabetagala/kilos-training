@@ -3,37 +3,9 @@
    for things that need attention. Colour carries meaning: green = safe and
    done, amber = an allergen, tomato = look at this.
    ───────────────────────────────────────────────────────────────────────── */
+/* Colour, type and geometry tokens live in /family.css so every app in the
+   set shares one definition. Only what is specific to this app lives here. */
 :root {
-  /* ground */
-  --bg: #faf8f2;
-  --surface: #fff;
-  --surface-2: #f3f0e7;
-  --line: rgba(26, 43, 34, .09);
-  --line-strong: rgba(26, 43, 34, .16);
-
-  /* ink */
-  --ink: #1a2b22;
-  --ink-2: #5c6b62;
-  --ink-3: #697468;   /* 4.60:1 on the cream page — AA for small text */
-
-  /* deep green — the UI */
-  --green: #0f4a35;
-  --green-2: #16694a;
-  --green-soft: #e4eee7;
-  --green-tint: #f0f6f1;
-
-  /* tomato — brand + alert only */
-  --tomato: #c0442a;
-  --tomato-soft: #fae5df;
-  --amber: #b3701a;
-  --amber-soft: #f9eeda;
-
-  /* type */
-  --font-display: ui-serif, 'New York', 'Iowan Old Style', Georgia, serif;
-
-  /* geometry */
-  --r-xs: 10px; --r-sm: 14px; --r-md: 20px; --r-lg: 28px; --r-pill: 999px;
-  --pad: 22px;
   --shadow: 0 1px 2px rgba(26,43,34,.04), 0 8px 24px rgba(26,43,34,.05);
 }
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
