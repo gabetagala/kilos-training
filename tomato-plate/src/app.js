@@ -961,6 +961,113 @@ app.addEventListener('change', (e) => {
   app.addEventListener('touchcancel', settle, { passive: true })
 }
 
+// ── Getting out by gesture ───────────────────────────────────────────────
+// Two dead ends had no way out but a small target: a food detail (the back
+// chevron) and a sheet (the backdrop, or a button below the fold).
+{
+  const EDGE = 34          // px from the left edge that starts a back-swipe
+  const BACK = 0.3         // fraction of the width that commits it
+  const DISMISS = 110      // px of downward drag that closes a sheet
+  let b = null
+
+  // ---- swipe from the left edge to leave a food ------------------------
+  app.addEventListener('touchstart', (e) => {
+    if (!view.food || view.sheet || e.touches.length !== 1) return
+    const t = e.touches[0]
+    if (t.clientX > EDGE) return
+    b = { x: t.clientX, y: t.clientY, on: false, dx: 0 }
+  }, { passive: true })
+
+  app.addEventListener('touchmove', (e) => {
+    if (!b) return
+    const t = e.touches[0]
+    const dx = t.clientX - b.x
+    const dy = t.clientY - b.y
+    if (!b.on) {
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return
+      if (Math.abs(dy) > Math.abs(dx) || dx < 0) { b = null; return }
+      b.on = true
+      b.el = app.querySelector('.scroll')
+      b.w = app.querySelector('.stage')?.getBoundingClientRect().width || 1
+      app.classList.add('paging')
+      // the list you came from, sitting behind
+      const ghost = document.createElement('div')
+      ghost.className = 'scroll pager-ghost back-ghost'
+      ghost.innerHTML = screenFor(view.tab)
+      app.querySelector('.stage')?.prepend(ghost)
+      b.ghost = ghost
+    }
+    if (!b.el) return
+    b.dx = Math.max(0, dx)
+    b.el.style.transform = `translate3d(${b.dx}px,0,0)`
+    if (b.ghost) b.ghost.style.transform = `translate3d(${-0.25 * (b.w - b.dx)}px,0,0)`
+    if (e.cancelable) e.preventDefault()
+  }, { passive: false })
+
+  const endBack = () => {
+    if (!b?.on || !b.el) { b = null; return }
+    const { dx, el, ghost, w } = b
+    b = null
+    const go = dx > w * BACK
+    el.style.transition = 'transform .26s cubic-bezier(.22,1,.36,1)'
+    if (ghost) ghost.style.transition = 'transform .26s cubic-bezier(.22,1,.36,1)'
+    el.style.transform = go ? `translate3d(${w}px,0,0)` : 'translate3d(0,0,0)'
+    if (ghost) ghost.style.transform = go ? 'translate3d(0,0,0)' : `translate3d(${-0.25 * w}px,0,0)`
+    setTimeout(() => {
+      app.classList.remove('paging')
+      for (const el2 of app.querySelectorAll('.pager-ghost')) el2.remove()
+      if (go) { view.food = null; render() } else { el.style.transition = ''; el.style.transform = '' }
+    }, go ? 250 : 260)
+  }
+  app.addEventListener('touchend', endBack, { passive: true })
+  app.addEventListener('touchcancel', endBack, { passive: true })
+
+  // ---- drag a sheet down to close it ----------------------------------
+  let s = null
+  app.addEventListener('touchstart', (e) => {
+    if (!view.sheet || e.touches.length !== 1) return
+    const sheet = app.querySelector('.sheet')
+    if (!sheet || !sheet.contains(e.target)) return
+    // Only from the top of the sheet's own scroll, or the gesture would fight
+    // the sheet's content scrolling.
+    if (sheet.scrollTop > 2) return
+    s = { y: e.touches[0].clientY, on: false, dy: 0, sheet, scrim: app.querySelector('.scrim') }
+  }, { passive: true })
+
+  app.addEventListener('touchmove', (e) => {
+    if (!s) return
+    const dy = e.touches[0].clientY - s.y
+    if (!s.on) {
+      if (Math.abs(dy) < 8) return
+      if (dy < 0) { s = null; return }   // dragging up scrolls the sheet
+      s.on = true
+    }
+    s.dy = Math.max(0, dy)
+    s.sheet.style.transform = `translate3d(0,${s.dy}px,0)`
+    if (s.scrim) s.scrim.style.opacity = String(Math.max(0, 1 - s.dy / 400))
+    if (e.cancelable) e.preventDefault()
+  }, { passive: false })
+
+  const endSheet = () => {
+    if (!s?.on) { s = null; return }
+    const { dy, sheet, scrim } = s
+    s = null
+    sheet.style.transition = 'transform .24s cubic-bezier(.22,1,.36,1)'
+    if (scrim) scrim.style.transition = 'opacity .24s ease'
+    if (dy > DISMISS) {
+      sheet.style.transform = 'translate3d(0,110%,0)'
+      if (scrim) scrim.style.opacity = '0'
+      setTimeout(() => { view.sheet = view.sheet?.back || null; render() }, 200)
+    } else {
+      sheet.style.transform = 'translate3d(0,0,0)'
+      if (scrim) scrim.style.opacity = ''
+      setTimeout(() => { sheet.style.transition = ''; if (scrim) scrim.style.transition = '' }, 250)
+    }
+  }
+  app.addEventListener('touchend', endSheet, { passive: true })
+  app.addEventListener('touchcancel', endSheet, { passive: true })
+}
+
 // ── on-device diagnostic ─────────────────────────────────────────────────
 // A desktop browser cannot reproduce iOS standalone geometry. Open
 // /tomato-plate/?diag=1 on the phone and screenshot the panel.
