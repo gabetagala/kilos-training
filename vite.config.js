@@ -5,6 +5,26 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 const page = (p) => fileURLToPath(new URL(p, import.meta.url))
 
+// Sub-apps live at their own URLs. Without a trailing slash Vite's SPA
+// fallback serves the Kilos shell instead — silently, with a 200 — so the
+// dev server sends the bare path to the slashed one. Prod does this in
+// vercel.json rewrites.
+const SUB_APPS = ['tomato-plate', 'hotmum', 'tomato', 'tayo', 'coach-cilyn']
+const subAppTrailingSlash = () => ({
+  name: 'subapp-trailing-slash',
+  configureServer(server) {
+    server.middlewares.use((req, res, next) => {
+      const path = (req.url || '').split('?')[0]
+      if (SUB_APPS.some((a) => path === `/${a}`)) {
+        res.statusCode = 301
+        res.setHeader('Location', `${path}/`)
+        return res.end()
+      }
+      next()
+    })
+  },
+})
+
 const commit =
   process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ||
   (() => {
@@ -29,7 +49,8 @@ export default defineConfig({
   build: {
     rollupOptions: {
       // Multi-page: Kilos SPA + the Tomato Cam baby-monitor sub-app (tomato/SCOPE.md §2)
-      // + Tayô, the desk-break coach (own URL, deliberately unlinked from home)
+      // + Tayô, the desk-break coach + Tomato Plate, the feeding app
+      // (all own URLs, deliberately unlinked from home)
       input: {
         main: page('index.html'),
         'tomato-home': page('tomato/index.html'),
@@ -39,10 +60,12 @@ export default defineConfig({
         // HOTMUM — Sam's app. Own page, own icon, own localStorage namespace;
         // shares only the step engine and the fonts (hotmum/PLAN.md §4).
         hotmum: page('hotmum/index.html'),
+        'tomato-plate': page('tomato-plate/index.html'),
       },
     },
   },
   plugins: [
+    subAppTrailingSlash(),
     VitePWA({
       // Auto-activates new SW immediately — users always get the latest on next open
       registerType: 'autoUpdate',

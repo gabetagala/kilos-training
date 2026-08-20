@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#FAF8F2" />
+  <meta name="description" content="Every food, how to cut it, and what he thought of it." />
+  <!-- Installed as a standalone PWA: own manifest + icon, translucent status
+       bar so the cream page runs under it (safe-area padding does the rest). -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Plate" />
+  <link rel="manifest" href="/tomato-plate.webmanifest" />
+  <link rel="apple-touch-icon" href="/plate-icon-180.png" />
+  <link rel="icon" type="image/png" href="/plate-icon-180.png" />
+  <title>Tomato Plate</title>
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+  <div id="app"></div>
+  <!-- Desktop only. The app is a phone app; on a big screen we say so rather
+       than stretching it. Hidden below 1024px by CSS. -->
+  <footer id="desk-note">
+    <svg width="26" height="26" aria-hidden="true"><use href="#a-logo"/></svg>
+    <span><b>Tomato Plate</b> is built for a phone — add it to your home screen for the full thing.</span>
+  </footer>
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
