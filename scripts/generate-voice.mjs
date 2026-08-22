@@ -29,6 +29,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { FORM_CUES } from '../src/workout/formCues.js';
 import { HOTMUM_EXERCISES } from '../src/hotmum/program.js';
+import { NUM_SLUGS, SEC_SLUGS } from '../src/hotmum/cues.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const PACKS = {
@@ -99,8 +100,18 @@ function hotmumPhrases() {
     'last-one': 'Last one',
     'session-complete': 'Session complete. Nice work.',
   };
-  const nums = ['one','two','three','four','five','six','seven','eight','nine','ten'];
+  // one … TWENTY — the rep number is the only thing spoken during a set now
+  // (src/hotmum/cues.js), and her sets run to twenty reps.
+  const nums = NUM_SLUGS.filter(Boolean);
   for (const n of nums) out[n] = n[0].toUpperCase() + n.slice(1);
+  // "Six reps." / "Thirty seconds." — a set is announced as a sentence now
+  // (src/hotmum/cues.js setAnnounce), so the units and the hold lengths need
+  // clips of their own.
+  for (const w of Object.values(SEC_SLUGS)) {
+    out[w] = w[0].toUpperCase() + w.slice(1).replace('-', '-');
+  }
+  out.reps = 'reps';
+  out.seconds = 'seconds';
   for (const [id, ex] of Object.entries(HOTMUM_EXERCISES)) out[`name-${id}`] = ex.name;
   return out;
 }

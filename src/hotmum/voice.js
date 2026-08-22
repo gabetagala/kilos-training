@@ -21,7 +21,7 @@ const DIR = '/voice-hotmum/';
 let ctx = null;
 let gain = null;
 let current = null;
-let queued = null;
+let queued = [];
 let unlocked = false;
 const buffers = new Map(); // slug → AudioBuffer | null (null = known missing)
 
@@ -104,8 +104,7 @@ function start(buf) {
   src.connect(gain);
   src.onended = () => {
     if (current === src) current = null;
-    const next = queued;
-    queued = null;
+    const next = queued.shift();
     if (next) speak(next);
   };
   src.start();
@@ -115,23 +114,58 @@ function start(buf) {
 /** Say it now, cutting off whatever is mid-word. Beats are time-critical. */
 export function speak(slug) {
   if (!slug) return;
-  queued = null;
+  queued = [];
   const cached = buffers.get(slug);
   if (cached) return start(cached);
   if (cached === null && buffers.has(slug)) return; // known missing
   load(slug).then(start); // first time only — after this it's instant
 }
 
-/** Say it after the current clip — "get set" then the exercise name. */
+/**
+ * Say it after whatever is already playing or waiting.
+ *
+ * A QUEUE, not a single slot. It used to hold one pending phrase, which was
+ * enough for "get set" → the exercise name. A set is now announced as a
+ * SENTENCE — "Single-Leg RDL. Six reps." — which is three clips deep, and the
+ * old single slot silently dropped everything but the last.
+ */
 export function speakAfter(slug) {
   if (!slug) return;
-  if (current) queued = slug;
+  if (current) queued.push(slug);
   else speak(slug);
+}
+
+/**
+ * The 3-2-1 into the end of a step — a TONE, not a word.
+ *
+ * Synthesised rather than a clip on purpose. A countdown is the one sound in
+ * the app where timing has to be exact, and a decoded file arrives whenever it
+ * arrives; an oscillator starts on the sample. It also costs nothing to ship
+ * and can't be the missing-clip case.
+ *
+ * Routed through the same gain node as Alice, so the mute button silences it
+ * too — one control, no surprises.
+ */
+export function beep(freq = 880, ms = 110, vol = 0.3) {
+  const c = context();
+  if (!c || !gain) return;
+  const t = c.currentTime;
+  const osc = c.createOscillator();
+  const env = c.createGain();
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+  // Fast attack, exponential tail — a raw gate would click at both ends.
+  env.gain.setValueAtTime(0.0001, t);
+  env.gain.exponentialRampToValueAtTime(vol, t + 0.012);
+  env.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000);
+  osc.connect(env).connect(gain);
+  osc.start(t);
+  osc.stop(t + ms / 1000 + 0.02);
 }
 
 /** A step change makes a pending phrase wrong, not late. */
 export function hush() {
-  queued = null;
+  queued = [];
 }
 
 export function setMuted(muted) {

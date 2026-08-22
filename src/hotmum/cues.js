@@ -1,22 +1,13 @@
 // HOTMUM — what Alice says, and when.
 //
-// Deliberately NOT src/workout/tempoCues.js. That file maps UP → "lift" and
-// anything unrecognised → "lower", which is right for Gabe's barbell work and
-// wrong here: on a squat you go DOWN and UP, not "lower" and "lift". Changing
-// the shared file would have changed his coach's mouth, so HOTMUM gets its own
-// vocabulary and his is left alone.
-
-// The closed set of words Alice owns. A label outside this map is silent
-// rather than mispronounced — see the test that walks every tempo pattern.
-export const PHASE_WORDS = {
-  UP: 'up',
-  DOWN: 'down',
-  SQUEEZE: 'squeeze',
-  HOLD: 'hold',
-  OUT: 'out',
-  BACK: 'back',
-};
-
+// Deliberately NOT src/workout/tempoCues.js — that file is built around
+// calling a barbell rep phase by phase, which is exactly what HOTMUM stopped
+// doing (2026-08-22). A set here is a stretch of WORK with a rep target in it;
+// there are no phases left to name, so the phase vocabulary that used to live
+// here (UP / DOWN / SQUEEZE / HOLD / OUT / BACK) is gone with them.
+//
+// What survives is the short list of things worth saying between sets, and the
+// tone that closes one.
 export const NUM_SLUGS = [
   null,
   'one',
@@ -29,57 +20,74 @@ export const NUM_SLUGS = [
   'eight',
   'nine',
   'ten',
+  'eleven',
+  'twelve',
+  'thirteen',
+  'fourteen',
+  'fifteen',
+  'sixteen',
+  'seventeen',
+  'eighteen',
+  'nineteen',
+  'twenty',
 ];
 
-export const phaseWord = (label) => PHASE_WORDS[label] || null;
+// The hold lengths in the program, as words. Deliberately a lookup and not
+// arithmetic: a clip either exists or the number is simply not spoken, and a
+// test walks every hold in the program to catch one that isn't in here.
+export const SEC_SLUGS = {
+  10: 'ten',
+  15: 'fifteen',
+  20: 'twenty',
+  25: 'twenty-five',
+  30: 'thirty',
+  40: 'forty',
+  45: 'forty-five',
+  50: 'fifty',
+  60: 'sixty',
+};
 
 /**
- * WHICH BEAT CARRIES THE REP NUMBER.
+ * WHAT ALICE SAYS AT THE TOP OF A SET — the movement, then the dose.
  *
- * A rep is counted when it's FINISHED, and a rep finishes on the way up. On a
- * glute bridge the pattern starts on UP, so counting at the start of the rep
- * was already right. On a squat the pattern starts on DOWN — counting there
- * called the number as she descended, which is backwards from how anyone
- * counts a squat.
+ * "Single-Leg RDL. Six reps."   /   "Wall Sit. Thirty seconds."
  *
- * So the number always lands on the UP (or the BACK, on a dead bug or heel
- * slide, where returning is what completes the rep). Both now count in the
- * same place: at the top.
+ * NOTHING is spoken inside a set any more. The arc got here in two steps:
+ * first she stopped calling the phase on every beat (it narrated something
+ * already on screen in 50px type), then she stopped counting the reps too.
+ * What's left is the KILOS pattern — name the movement, name the dose, then
+ * be quiet and let her work. The rep counter on screen is the running total;
+ * a voice repeating it was a second copy of the same fact.
+ *
+ * Returns a list of slugs to speak in order, or [] if there's nothing to say.
  */
-export function countPhase(tempo) {
-  const labels = (tempo?.pattern || []).map(([l]) => l);
-  if (labels.includes('UP')) return 'UP';
-  if (labels.includes('BACK')) return 'BACK';
-  return labels[0] ?? null;
-}
-
-/**
- * The word for one tempo beat, or null for a silent one.
- *
- * One word per phase change, and nothing in between. The old version also
- * paced the inside of long phases ("down… two… three…"), which collided head-on
- * with the rep count — "two" meaning the second second of the descent and
- * "two" meaning the second rep, seconds apart. The phase word plus the rep
- * number is all the information there is; the rest was chatter.
- */
-export function beatSlug(st, tempo) {
-  if (st.phaseSec !== 0) return null;
-  if (st.label === countPhase(tempo)) {
-    const total = tempo.reps || 0;
-    if (total >= 6 && st.rep === total - 2) return 'last-three';
-    if (total >= 2 && st.rep === total) return 'last-one';
-    if (NUM_SLUGS[st.rep]) return NUM_SLUGS[st.rep];
+export function setAnnounce(work, block) {
+  if (!work) return [];
+  const name = `name-${work.exId}`;
+  // The rep target lives on the BLOCK, not the step — the engine's timed
+  // interval knows how many seconds it runs for and nothing else.
+  if (block?.reps) {
+    const n = NUM_SLUGS[block.reps];
+    return n ? [name, n, 'reps'] : [name];
   }
-  return phaseWord(st.label);
+  const n = SEC_SLUGS[work.secs];
+  return n ? [name, n, 'seconds'] : [name];
 }
 
 /**
- * The 3-2-1 into the end of a timed HOLD — a bird dog, a plank, a carry.
+ * The 3-2-1 into the end of ANY step, as three tones (see beep() in voice.js).
  *
- * Work only. A rest already says "rest" when it starts; counting it down again
- * turns a breather into a drill and fills the one quiet part of the set.
+ * It used to be Alice SAYING "three… two… one", and only on timed holds. Two
+ * changes: it's a tone now, because a countdown is the one sound in the app
+ * where exact timing matters more than warmth; and it fires on every step, not
+ * just holds, because "how long until this set ends" is the question the big
+ * countdown used to answer and no longer does (§2.1).
+ *
+ * Returns the pitch for the second, or null on a second that isn't counted.
+ * The last one is higher so "go" is audibly different from "nearly".
  */
-export function countdownSlug(secsLeft) {
+export function countdownTone(secsLeft) {
   const n = Math.ceil(secsLeft);
-  return n >= 1 && n <= 3 ? NUM_SLUGS[n] : null;
+  if (n < 1 || n > 3) return null;
+  return n === 1 ? 1180 : 880;
 }

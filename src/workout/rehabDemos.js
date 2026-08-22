@@ -22,29 +22,42 @@
 //   action    — .rd-action motion trails / emphasis ticks, gently pulsing.
 
 // ── Palette (dark background) ────────────────────────────────────────────────
-const SKIN = '#f1eee8';
-const SKIN_FAR = '#b9b5ae';
-const TOP = '#9c9c9c';
-const TOP_FAR = '#6e6e6e';
-const LEGS = '#5f5f5f';
-const LEGS_FAR = '#494949';
-const HAIR = '#7d7d7d';
-const SHOE = '#d6d3ce';
-const SHOE_FAR = '#a39f99';
+// Written as CSS custom properties with the KILOS greys as fallbacks, so the
+// SAME rig can wear a different palette elsewhere without a second copy of the
+// art: HOTMUM sets --fig-* on its player and gets plum-and-magenta figures
+// (src/hotmum/demos.js). Nothing changes here — unset vars fall back to the
+// exact greys these demos have always drawn with.
+const V = (name, fallback) => `var(--fig-${name}, ${fallback})`;
+const SKIN = V('skin', '#f1eee8');
+const SKIN_FAR = V('skin-far', '#b9b5ae');
+const TOP = V('top', '#9c9c9c');
+const TOP_FAR = V('top-far', '#6e6e6e');
+const LEGS = V('legs', '#5f5f5f');
+const LEGS_FAR = V('legs-far', '#494949');
+const HAIR = V('hair', '#7d7d7d');
+const SHOE = V('shoe', '#d6d3ce');
+const SHOE_FAR = V('shoe-far', '#a39f99');
 // Cut-out separation: every part carries a thin dark outline so overlapping
 // parts read as distinct shapes (head vs torso vs limbs) on the dark bg.
-const SEP = 'stroke="#191919" stroke-width="1.4"';
+const SEP = `stroke="${V('sep', '#191919')}" stroke-width="1.4"`;
 
 // ── Rig geometry ─────────────────────────────────────────────────────────────
-const L = { torso: 31, uarm: 14, farm: 16, thigh: 19, shin: 17, foot: 9 };
+export const L = {
+  torso: 31,
+  uarm: 14,
+  farm: 16,
+  thigh: 19,
+  shin: 17,
+  foot: 9,
+};
 
 // Tapered capsule from the joint (radius r1) to the far end (r2), hanging +y.
-const taper = (len, r1, r2, fill) =>
+export const taper = (len, r1, r2, fill) =>
   `<path d="M ${-r1} 0 A ${r1} ${r1} 0 0 1 ${r1} 0 L ${r2} ${len} A ${r2} ${r2} 0 0 1 ${-r2} ${len} Z" fill="${fill}" ${SEP}/>`;
 
 // Joint: translate to the attachment point, rotate, optionally animate the
 // rotation between pose A and B (static attribute holds B).
-function joint(x, y, rot, inner, anim) {
+export function joint(x, y, rot, inner, anim) {
   const a = anim
     ? `<animateTransform attributeName="transform" type="rotate" values="${anim.a};${anim.b};${anim.b};${anim.a};${anim.a}" keyTimes="${anim.kt || '0;.25;.65;.85;1'}" ${anim.ks || 'keySplines=".42 0 .2 1;0 0 1 1;.42 0 .2 1;0 0 1 1" calcMode="spline"'} dur="${anim.dur || '4.5s'}" repeatCount="indefinite"/>`
     : '';
@@ -55,7 +68,7 @@ function joint(x, y, rot, inner, anim) {
 // sleeve over the shoulder (separates arm from torso); legs wear shorts to the
 // knee with skin shins (separates thigh from shin). `hand` appends a plate
 // ring (RDL). Angles: sh/el, hip/knee/ankle; anims target sh (arms) / hip.
-function arm(x, y, sh, el, far, opts = {}) {
+export function arm(x, y, sh, el, far, opts = {}) {
   const skin = far ? SKIN_FAR : SKIN;
   const forearm = taper(L.farm, 3.8, 3, skin) + (opts.hand ? opts.hand : '');
   return joint(
@@ -68,7 +81,7 @@ function arm(x, y, sh, el, far, opts = {}) {
     opts.anim,
   );
 }
-function leg(x, y, hip, knee, ankle, far, opts = {}) {
+export function leg(x, y, hip, knee, ankle, far, opts = {}) {
   const shortsFill = far ? LEGS_FAR : LEGS;
   const skin = far ? SKIN_FAR : SKIN;
   const shoeFill = far ? SHOE_FAR : SHOE;
@@ -91,7 +104,7 @@ function leg(x, y, hip, knee, ankle, far, opts = {}) {
 
 // 3/4-style head, attached at the torso's shoulder end: full hair mass with
 // the face as an offset patch toward the front (-x) and chin (-y local).
-const headPart = (rot = 0) =>
+export const headPart = (rot = 0) =>
   joint(
     0,
     L.torso,
@@ -105,7 +118,7 @@ const headPart = (rot = 0) =>
 // legF, legN, wrap?, torsoAnim?, rootAnim?}. Legs may be null (drawn
 // separately, e.g. inside a CSS wrapper). Render order gives depth:
 // far leg → torso(far arm, head, near arm) → near leg.
-function figure(p) {
+export function figure(p) {
   const s = p.root.scale || 1;
   const rootAnim = p.rootAnim
     ? `<animateTransform attributeName="transform" type="translate" values="${p.rootAnim.a};${p.rootAnim.b};${p.rootAnim.b};${p.rootAnim.a};${p.rootAnim.a}" keyTimes="${p.rootAnim.kt || '0;.25;.65;.85;1'}" ${p.rootAnim.ks || 'keySplines=".42 0 .2 1;0 0 1 1;.42 0 .2 1;0 0 1 1" calcMode="spline"'} dur="${p.rootAnim.dur || '4.5s'}" repeatCount="indefinite"/>`
@@ -134,27 +147,27 @@ function figure(p) {
 }
 
 // Shoulder attachment (in torso-local coords, near the torso's shoulder end).
-const SH = [0, L.torso - 3];
+export const SH = [0, L.torso - 3];
 
 // ── Scene bits ───────────────────────────────────────────────────────────────
-const PROP =
+export const PROP =
   'stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none" opacity=".22"';
-const GROUND = `<line x1="16" y1="104" x2="184" y2="104" ${PROP}/>`;
-const shadow = (cx, rx) =>
+export const GROUND = `<line x1="16" y1="104" x2="184" y2="104" ${PROP}/>`;
+export const shadow = (cx, rx) =>
   `<ellipse cx="${cx}" cy="107" rx="${rx}" ry="3" fill="currentColor" opacity=".1"/>`;
 // Action lines instead of literal arrows: `swoosh` = a curved motion trail
 // (quadratic path), `tick` = a short emphasis stroke at a working/stretch
 // site. Grouped under .rd-action (gentle pulse via CSS).
-const swoosh = (d, w = 3) =>
+export const swoosh = (d, w = 3) =>
   `<path d="${d}" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" fill="none"/>`;
-const tick = (x1, y1, x2, y2, w = 3) =>
+export const tick = (x1, y1, x2, y2, w = 3) =>
   `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="currentColor" stroke-width="${w}" stroke-linecap="round"/>`;
-const action = (inner) => `<g class="rd-action">${inner}</g>`;
-const svg = (inner) =>
+export const action = (inner) => `<g class="rd-action">${inner}</g>`;
+export const svg = (inner) =>
   `<svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${inner}</svg>`;
 
 // Bridge timing (matches the 4s rep tempo: lift 1s, squeeze 2s, lower 1s).
-const T4 = {
+export const T4 = {
   kt: '0;.25;.75;1',
   ks: 'keySplines=".42 0 .2 1;0 0 1 1;.42 0 .2 1" calcMode="spline"',
   dur: '4s',
@@ -454,16 +467,16 @@ export const REHAB_DEMOS = {
 // ── Density 40 program demos (fallback until Gemini art lands) ───────────────
 // One representative pose per exercise on the shared rig; the player swaps in
 // public/rehab/<id>-a.webp art automatically when it exists.
-const DB = (x, y) =>
-  `<rect x="${x - 7}" y="${y - 3.5}" width="14" height="7" rx="2.5" fill="#3f3f3f" ${SEP}/>`;
-const CABLE = (x1, y1, x2, y2) =>
+export const DB = (x, y) =>
+  `<rect x="${x - 7}" y="${y - 3.5}" width="14" height="7" rx="2.5" fill="${V('iron', '#3f3f3f')}" ${SEP}/>`;
+export const CABLE = (x1, y1, x2, y2) =>
   `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" ${PROP}/>`;
-const BOX = (x, y, w, h) =>
-  `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="#2e2e2e" ${SEP}/>`;
-const PLATE = (x, y) =>
-  `<circle cx="${x}" cy="${y}" r="9" fill="none" stroke="#3f3f3f" stroke-width="5"/>`;
+export const BOX = (x, y, w, h) =>
+  `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="${V('prop', '#2e2e2e')}" ${SEP}/>`;
+export const PLATE = (x, y) =>
+  `<circle cx="${x}" cy="${y}" r="9" fill="none" stroke="${V('iron', '#3f3f3f')}" stroke-width="5"/>`;
 
-const standing = (over = {}) => ({
+export const standing = (over = {}) => ({
   root: { x: 100, y: 68, rot: 0, ...(over.root || {}) },
   torso: over.torso ?? 180,
   head: over.head ?? 2,

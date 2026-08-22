@@ -70,7 +70,8 @@ export function greeting(name, _date = new Date(), doneToday = false) {
  * The second line. There is no schedule — she chooses each day — so this
  * states the fact and gets out of the way rather than assigning her a session.
  */
-export function subGreeting({ doneToday, daysToGo }) {
+export function subGreeting({ doneToday, day, days }) {
   if (doneToday) return "That's today done.";
-  return `${daysToGo} days to Christmas. Today's yours to pick.`;
+  if (day === 1) return `Day one of ${days}. Today's yours to pick.`;
+  return `Day ${day} of ${days}. Today's yours to pick.`;
 }

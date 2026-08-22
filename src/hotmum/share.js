@@ -158,8 +158,8 @@ function footer(ctx, right) {
 export function buildShareData({
   record,
   session,
-  week,
-  weeks,
+  day,
+  days,
   daysToGo,
   seasonLabel,
   seasonName,
@@ -168,7 +168,7 @@ export function buildShareData({
   return {
     activity:
       record?.kind === 'walk'
-        ? 'WALK'
+        ? (record.moveName || 'WALK').toUpperCase()
         : session
           ? session.name.toUpperCase()
           : 'HOTMUM',
@@ -177,8 +177,8 @@ export function buildShareData({
     sets: record?.sets || 0,
     tut: record?.tut || 0,
     dose: record?.dose ? record.dose.toUpperCase() : '',
-    week,
-    weeks,
+    day,
+    days,
     daysToGo,
     seasonLabel,
     seasonName,
@@ -198,19 +198,19 @@ const mmss = (s) => {
 
 function drawCountdown(ctx, d) {
   field(ctx);
-  rail(ctx, d.seasonLabel, 'TONED CHRISTMAS', '2026');
+  rail(ctx, d.seasonLabel, '100 DAYS', '2026');
 
   ctx.fillStyle = INK;
   display(ctx, String(d.daysToGo), W / 2, H * 0.47, 400, 'center');
   ctx.fillStyle = CREAM;
-  tracked(ctx, 'DAYS TO CHRISTMAS', W / 2, H * 0.47 + 56, 26, 0.22, 'center');
+  tracked(ctx, 'DAYS TO GO', W / 2, H * 0.47 + 56, 26, 0.22, 'center');
 
   ctx.fillStyle = INK;
   display(ctx, d.activity, W / 2, H * 0.68, 132, 'center');
   ctx.fillStyle = 'rgba(255,255,255,.85)';
   tracked(
     ctx,
-    `WK ${d.week} OF ${d.weeks}`,
+    `DAY ${d.day} OF ${d.days}`,
     W / 2,
     H * 0.68 + 44,
     22,
@@ -223,7 +223,7 @@ function drawCountdown(ctx, d) {
 
 function drawWorkout(ctx, d) {
   field(ctx);
-  rail(ctx, d.seasonLabel, `WK ${d.week} OF ${d.weeks}`, '2026');
+  rail(ctx, d.seasonLabel, `DAY ${d.day} OF ${d.days}`, '2026');
 
   ctx.fillStyle = INK;
   display(ctx, d.activity, PAD, PAD + 190, 150);
@@ -282,7 +282,7 @@ function drawWorkout(ctx, d) {
 
 function drawMark(ctx, d) {
   field(ctx, true);
-  rail(ctx, d.seasonLabel, 'TONED CHRISTMAS', '2026');
+  rail(ctx, d.seasonLabel, '100 DAYS', '2026');
 
   ctx.save();
   ctx.fillStyle = INK;
@@ -300,7 +300,7 @@ function drawMark(ctx, d) {
   tracked(ctx, `${d.daysToGo} DAYS TO GO`, PAD, H - PAD - 8, 20, 0.18);
   tracked(
     ctx,
-    `WK ${d.week} OF ${d.weeks}`,
+    `DAY ${d.day} OF ${d.days}`,
     W - PAD,
     H - PAD - 8,
     20,

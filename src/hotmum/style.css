@@ -1,4 +1,4 @@
-/* HOTMUM — Season 01 :: Sam's Toned Christmas.
+/* HOTMUM — Season 01 :: 100 Days of Showing Up.
    Plum-dark with one hot magenta, per hotmum/PLAN.md §3.
 
    Deliberately NOT an extension of src/style.css: this is a separate app with
@@ -42,6 +42,27 @@
   --r-sm: 8px;
   --r-md: 14px;
   --r-pill: 999px;
+
+  /* THE FIGURE. src/workout/rehabDemos.js draws with var(--fig-*, <grey>), so
+     the identical rig renders grey in KILOS and warm here — one set of poses,
+     two apps, no forked art. Skin and shoes are the light notes, the top is
+     the hot magenta, the leggings are deep plum so the legs read against the
+     field, and --fig-sep is the canvas colour so every limb reads as a cut-out.
+     --fig-iron has to survive TWICE: as a dumbbell over the magenta top (needs
+     to be darker) and against the field (needs to be lighter). It sits between
+     the two on purpose. */
+  --fig-skin: #ffe9f2;
+  --fig-skin-far: #c99cb0;
+  --fig-top: #e0468a;
+  --fig-top-far: #a12a60;
+  --fig-legs: #5a2440;
+  --fig-legs-far: #421831;
+  --fig-hair: #8d3a63;
+  --fig-shoe: #ffd0e4;
+  --fig-shoe-far: #b98aa2;
+  --fig-sep: #14060e;
+  --fig-iron: #7a3055;
+  --fig-prop: #3a1628;
 }
 
 *,
@@ -282,40 +303,6 @@ body {
 
 /* ─── Controls ─────────────────────────────────────────────────────────── */
 
-.doses {
-  display: flex;
-  gap: 7px;
-  margin: 20px 0 10px;
-}
-.dose {
-  flex: 1;
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  background: transparent;
-  color: var(--ink-soft);
-  padding: 10px 4px;
-  font-family: var(--grot);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  cursor: pointer;
-  min-height: 46px;
-}
-.dose[aria-pressed="true"] {
-  background: #fff;
-  border-color: #fff;
-  color: #b4007f;
-}
-.dose i {
-  display: block;
-  font-style: normal;
-  font-size: 10px;
-  font-weight: 400;
-  opacity: 0.75;
-  margin-top: 3px;
-  letter-spacing: 0.08em;
-}
-
 .btn {
   display: block;
   width: 100%;
@@ -405,11 +392,13 @@ body {
      behind body's background — i.e. invisible. */
   isolation: isolate;
 }
-/* THE SIGNATURE, inverted for the field. It used to be a magenta bloom fading
-   IN over plum; now the field is always there, so the beat is a dark veil
-   LIFTING off it. Full colour on the up, dimmed on the down — she still reads
-   the tempo from across the room without looking at a number. */
-/* FIXED, not absolute: the dim has to cover the whole screen. Scoped to the
+/* A STEADY VEIL, not a pulse. This used to be the signature: the canvas warmed
+   toward magenta on the lift beat and cooled on the lower, so the tempo was
+   readable from across the room. The beat is gone (2026-08-22) — nothing calls
+   a rep any more — and a screen that breathes at you while you work, in time
+   with nothing, is just motion. The veil stays so the contrast is unchanged;
+   only the animation is gone.
+   FIXED, not absolute: the dim has to cover the whole screen. Scoped to the
    player's column it stopped at the content edge, which on a laptop left the
    rail and the margins bright while the middle went dark. */
 .bloom {
@@ -417,23 +406,7 @@ body {
   inset: 0;
   z-index: -1;
   opacity: 0.5;
-  transition: opacity 0.45s ease;
   background: rgba(18, 4, 11, 0.78);
-}
-.player.down .bloom,
-.player.out .bloom {
-  opacity: 0.5;
-}
-.player.hold .bloom {
-  opacity: 0.26;
-}
-.player.up .bloom,
-.player.squeeze .bloom,
-.player.back .bloom {
-  opacity: 0;
-}
-.player.resting .bloom {
-  opacity: 0.62;
 }
 
 .ex-name {
@@ -470,11 +443,7 @@ body {
 .pl-mid .lbl {
   margin-top: 18px;
 }
-.pl-mid .pips {
-  width: 100%;
-  margin-top: 10px;
-}
-/* Tempo and load are facts about the SET — they belong with the set line, not
+/* Pace and load are facts about the SET — they belong with the set line, not
    parked next to the buttons with a void between. */
 .pl-mid .strip {
   width: 100%;
@@ -501,9 +470,7 @@ body {
   margin-top: 6px;
   transition: color 0.3s;
 }
-.player.up .phase,
-.player.squeeze .phase,
-.player.back .phase {
+.player.resting .phase {
   color: var(--cream);
 }
 .cue {
@@ -514,22 +481,34 @@ body {
   max-width: 34ch;
 }
 
-.pips {
-  display: flex;
-  gap: 4px;
-  margin-top: 9px;
+/* ONE BAR DRAINING. It replaced a row of per-rep pips, which had nothing to
+   track once the app stopped detecting reps. This shows the only thing left
+   that's true: how much of the interval is gone. */
+.pl-mid .work-bar {
+  width: 100%;
+  margin-top: 10px;
 }
-.pip {
-  flex: 1;
+.work-bar {
+  width: 100%;
   height: 4px;
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.16);
+  overflow: hidden;
+  margin-top: 9px;
+  /* .pl-mid is a flex column with a definite height, so a 4px child gets
+     shrunk to nothing the moment the column is tight — same trap the day
+     boxes and the sheet rows hit. */
+  flex-shrink: 0;
 }
-.pip.on {
+.work-bar > i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 2px;
   background: var(--cream);
 }
-.pip.now {
-  background: var(--ink);
+.player.resting .work-bar > i {
+  background: rgba(255, 255, 255, 0.45);
 }
 
 .pl-foot {
@@ -785,6 +764,16 @@ body {
   border-bottom: 1px solid var(--line);
   text-align: left;
   min-height: 52px;
+  /* .screen is a flex column with a definite height, so a row without this
+     SHRINKS to fit instead of letting the screen scroll — the text spills
+     through its own bottom border into the row below. Latent since the
+     rewrite; the longer block blurbs are what finally exposed it. */
+  flex-shrink: 0;
+}
+/* A block's day range ("DAY 81–100") is one token — wrapping it mid-range
+   reads as two different numbers. */
+.row > .lbl {
+  white-space: nowrap;
 }
 .row-tap {
   width: 100%;
@@ -889,8 +878,7 @@ body {
   font-size: 11px;
   letter-spacing: 0.06em;
   color: var(--ink-soft);
-  text-align: right;
-  flex-shrink: 0;
+  text-align: left;
 }
 
 /* ─── Tiles ────────────────────────────────────────────────────────────── */
@@ -1030,14 +1018,18 @@ body {
   color: var(--hot);
 }
 
-/* ─── Boxes to Christmas ───────────────────────────────────────────────── */
-/* One box per day of the season. A missed day just stays empty — no red,
-   no broken streak, nothing to feel bad about with a newborn in the house. */
+/* ─── A hundred boxes ──────────────────────────────────────────────────── */
+/* One box per day of the hundred. A missed day just stays empty — no red,
+   no broken streak, nothing to feel bad about with a newborn in the house.
+
+   TWENTY COLUMNS, so the hundred lands as five clean rows — and a row is
+   exactly one twenty-day training block. The grid and the program are the
+   same shape, which is why it isn't fourteen columns any more. */
 
 .boxes {
   flex-shrink: 0;
   display: grid;
-  grid-template-columns: repeat(14, 1fr);
+  grid-template-columns: repeat(20, 1fr);
   gap: 3px;
   margin-top: 12px;
 }
@@ -1287,8 +1279,11 @@ body {
   }
 
   /* ── home: the card is a hero panel, the season fills the right ── */
+  /* Sized to its content, not stretched to the column. It used to sit under
+     the weekly counter and `flex: 1` filled what was left; with the counter
+     gone (2026-08-22) that turned it into a mostly-empty slab. */
   .today-card {
-    flex: 1;
+    flex: 0 0 auto;
     align-items: flex-start;
     flex-direction: column;
     justify-content: flex-end;
@@ -1309,8 +1304,11 @@ body {
   .today-card {
     position: relative;
   }
+  /* Still twenty across — a row is one twenty-day training block, and that
+     reading is the whole reason the grid is shaped the way it is. Fourteen
+     was left over from the old 20-week season. */
   .boxes {
-    grid-template-columns: repeat(14, 1fr);
+    grid-template-columns: repeat(20, 1fr);
     gap: 6px;
     margin-top: 14px;
   }
@@ -1348,24 +1346,80 @@ body {
     border-radius: var(--r-sm);
   }
 
-  /* ── focus screens stay single-column and centred ── */
-  .screen.player,
+  /* ── the finish card stays single-column and centred ── */
   .screen.finish {
     display: flex;
     max-width: 820px;
     margin: 0 auto;
     padding: 56px 56px 48px;
   }
+
+  /* ── THE PLAYER IS 50/50 — pose left, details right (KILOS' grammar) ──
+     A phone has to stack the figure above the timer and shrink it to fit. A
+     laptop doesn't: there's a whole half-screen sitting empty, so the pose
+     gets it at full size and everything she reads gets the other half. The
+     guide stops being a prep/rest-only extra here and becomes the panel. */
+  .screen.player {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "top   top"
+      "stage mid"
+      "stage foot";
+    align-items: center;
+    gap: 0 56px;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 40px 56px 40px;
+  }
+  /* A walk has no pose — don't leave half the screen empty for it. */
+  .screen.player[data-stage="off"] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "top"
+      "mid"
+      "foot";
+    max-width: 820px;
+  }
+  .player .pl-top {
+    grid-area: top;
+  }
+  .player .pl-stage {
+    grid-area: stage;
+    height: 100%;
+    min-height: 0;
+  }
+  .player .pl-mid {
+    grid-area: mid;
+    justify-content: center;
+    padding: 0;
+  }
+  .player .pl-foot {
+    grid-area: foot;
+  }
+  /* The figure takes the column — the one place it can be seen properly. */
+  .player .pl-stage .hm-demo,
+  .player .pl-stage .hm-demo.teaching {
+    height: 100%;
+    max-height: 62vh;
+    max-width: none;
+    transition: none;
+  }
+  /* Halved column, so the numeral comes down from its full-width size. */
   .timer {
-    font-size: 220px;
+    font-size: clamp(110px, 11vw, 168px);
   }
   .phase {
-    font-size: 68px;
+    font-size: 52px;
   }
   .cue {
-    font-size: 17px;
-    max-width: 46ch;
+    font-size: 16px;
+    max-width: 40ch;
   }
+  /* NOTE: the desktop `.pl-guide` override lives at the END of this file —
+     the base `.pl-guide { display: none }` is declared after this media query
+     and would otherwise win on source order. */
   .screen.finish .day-name {
     font-size: 104px;
   }
@@ -1425,55 +1479,475 @@ body {
 }
 .sheet-scroll {
   flex: 1;
-  min-height: 0;
+  /* A FLOOR, not zero: the sheet gained a knee switch, a dose hint and a
+     second button, and with min-height:0 the movement list was the thing
+     that gave — it collapsed to a single visible row. */
+  min-height: 168px;
   overflow-y: auto;
   margin: 12px 0 4px;
 }
-.sheet-session .doses,
-.sheet-session .btn {
+.sheet-session .btn,
+.sheet-session .btn-quiet {
   flex-shrink: 0;
 }
 
-/* ─── The week's target ────────────────────────────────────────────────────
-   Progress, never a deficit — "2 of 3", and gold once it's met. */
-
-.goals {
-  flex-shrink: 0;
-  margin-bottom: 4px;
+/* "A very little button" — the escape hatch to a walk or a yoga class should
+   be findable and completely unshouty, or it competes with GO. */
+.btn-quiet {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  min-height: 44px;
+  background: transparent;
+  border: 0;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
 }
-.goal {
+.btn-quiet:hover {
+  color: var(--hot);
+}
+
+/* ─── The figure ───────────────────────────────────────────────────────── */
+/* KILOS shows the athlete what the movement looks like; HOTMUM shipped
+   without it, which for a beginner is the one thing missing. The demos are
+   inline SVG (src/hotmum/demos.js) — no video, no network, nothing to load,
+   and they animate on the same beat as the tempo. */
+
+.hm-demo {
+  width: 100%;
+  max-width: 320px;
+  height: 118px;
+  flex-shrink: 0;
+  /* GROUND, shadows and the action lines all paint with currentColor */
+  color: var(--hot);
+  transition: height 0.35s ease;
+}
+.hm-demo svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+/* Setting up, or resting: she's looking rather than moving, so the figure
+   gets the room and the timer gives some back. */
+.hm-demo.teaching {
+  height: 176px;
+}
+.hm-demo.teaching + .timer {
+  font-size: clamp(64px, 22vw, 96px);
+}
+/* The action lines pulse gently so the eye finds the working bit. */
+.rd-action {
+  opacity: 0.9;
+  animation: rd-pulse 2.6s ease-in-out infinite;
+}
+@keyframes rd-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rd-action {
+    animation: none;
+  }
+  .hm-demo {
+    transition: none;
+  }
+}
+
+/* ─── Feel / avoid / knee ──────────────────────────────────────────────── */
+/* On screen when she's setting up or resting; NOT during a tempo set, where
+   the phase word owns the screen — nobody reads prose while counting a
+   three-second lower. */
+
+.pl-guide {
+  width: 100%;
+  max-width: 34ch;
+  margin-top: 14px;
+  gap: 6px;
+  text-align: left;
+  /* On a phone: only while she's setting up or resting. Nobody reads prose
+     while counting a three-second lower, and the screen isn't big enough to
+     offer it anyway. The desktop rule below overrides this. */
+  display: none;
+}
+.pl-guide.teaching {
+  display: grid;
+}
+.pl-stage {
+  width: 100%;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 9px 0;
-  border-bottom: 1px solid var(--line);
-  min-height: 42px;
-}
-.goal .lbl {
+  justify-content: center;
   flex-shrink: 0;
 }
-.goal-pips {
-  display: flex;
-  gap: 5px;
-  flex: 1;
+.g-row {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-soft);
 }
-.gp {
-  flex: 1;
-  max-width: 44px;
-  height: 6px;
-  border-radius: 3px;
+.g-row b {
+  font-family: var(--grot);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.5);
+}
+.g-avoid b {
+  color: var(--ember);
+}
+.g-knee b {
+  color: var(--hot);
+}
+.g-knee span {
+  color: var(--ink);
+}
+
+/* ─── Easy knee ────────────────────────────────────────────────────────── */
+/* Her own knee rule, made into a switch. It lives on the session sheet rather
+   than in settings because the answer changes day to day. */
+
+.knee-toggle {
+  display: grid;
+  flex-shrink: 0;
+  grid-template-columns: 1fr 46px;
+  grid-template-areas:
+    "t s"
+    "b s";
+  align-items: center;
+  gap: 2px 12px;
+  width: 100%;
+  margin: 12px 0 4px;
+  padding: 12px 14px;
+  min-height: 62px;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+}
+.knee-toggle[aria-pressed="true"] {
+  border-color: var(--hot);
+  background: rgba(255, 30, 142, 0.14);
+}
+.knee-t {
+  grid-area: t;
+  font-family: var(--grot);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--ink);
+}
+.knee-toggle[aria-pressed="true"] .knee-t {
+  color: var(--hot);
+}
+.knee-s {
+  grid-area: b;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+.knee-sw {
+  grid-area: s;
+  justify-self: end;
+  width: 42px;
+  height: 24px;
+  border-radius: var(--r-pill);
   background: rgba(255, 255, 255, 0.2);
+  position: relative;
+  transition: background 0.2s;
 }
-.gp.on {
-  background: #fff;
+.knee-sw::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bone);
+  transition: transform 0.2s;
 }
-.goal.met .gp.on {
-  background: var(--cream);
+.knee-toggle[aria-pressed="true"] .knee-sw {
+  background: var(--hot);
 }
-.goal.met .lbl {
-  color: var(--cream);
+.knee-toggle[aria-pressed="true"] .knee-sw::after {
+  transform: translateX(18px);
 }
-.goal-n {
-  min-width: 42px;
-  text-align: right;
+
+/* ─── Session sheet extras ─────────────────────────────────────────────── */
+
+/* Section headings inside the movement list — the session's own names for
+   its parts (WARM-UP / THE WORK / KNEE STRENGTH / STANDING CORE). These used
+   to be the "add the knee work?" prompts; with one whole session there's
+   nothing to prompt, so the structure becomes the shape of the list. */
+.part-h {
+  /* NOT sticky. It was, and two headings pinned at top:0 sat on top of each
+     other as the list scrolled between them. A heading you can scroll past is
+     worth more than one that overlaps the next. */
+  padding: 16px 0 5px;
+  flex-shrink: 0;
+}
+.part-h {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.part-h .lbl {
+  color: var(--hot);
+}
+.part-note {
+  font-size: 11px;
+  color: var(--ink-soft);
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+.part-h + .ex-row {
+  border-top: 0;
+}
+
+/* GO carries the length now that there's no dose to pick. */
+.btn i {
+  font-style: normal;
+  font-family: var(--grot);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  opacity: 0.62;
+  margin-left: 10px;
+}
+
+/* The rows carry a small still figure — she scans the shapes faster than the
+   names. Frozen, not animated: fifteen live SMIL timelines in a scrolling
+   list is jank for no benefit (see stillDemo in demos.js). */
+.ex-row {
+  align-items: center;
+  flex-shrink: 0;
+}
+.ex-fig {
+  flex-shrink: 0;
+  width: 54px;
+  height: 34px;
+  color: var(--hot);
+  opacity: 0.85;
+}
+.ex-fig svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.ex-txt {
+  /* Stacked, not name-left / detail-right. Side by side, "Controlled
+     Sit-to-Stand · 2 × 8 reps · 32s · Bodyweight" either wrapped the name to
+     three lines or ran the detail off the edge on a 375px screen. */
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+/* A block the EASY KNEE switch replaced — say so, don't silently differ. */
+.ex-swapped .ex-nm {
+  color: var(--hot);
+}
+.ex-swapped .ex-nm::after {
+  content: " · swapped";
+  font-family: var(--grot);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+/* The movement card opens with the figure, full size and moving. */
+.ex-demo {
+  max-width: none;
+  height: 150px;
+  margin: 4px 0 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--r-md);
+}
+.sheet-dl .dt-knee {
+  color: var(--hot);
+}
+
+/* Very short screens: the figure is the first thing to give up space, never
+   the timer or the buttons. */
+@media (max-height: 660px) {
+  .hm-demo {
+    height: 88px;
+  }
+  .hm-demo.teaching {
+    height: 132px;
+  }
+  .ex-demo {
+    height: 120px;
+  }
+}
+
+/* ─── Illustrated art ──────────────────────────────────────────────────────
+   Generated flat-vector figures (scripts/generate-art.mjs --pack hotmum) that
+   replace the SVG rig wherever a file exists. Two-pose art holds -a and -b
+   stacked and cross-fades between them ON HER TEMPO — see atWorkingPose in
+   app.js — so the picture is at the bottom of the squat when she is. */
+
+.hm-art {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.hm-art-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* Anchored to the floor, not the middle: the figures share a ground line,
+     so centring them makes a squat appear to hover as it shortens. */
+  object-position: center bottom;
+  transition: opacity 0.22s ease;
+}
+.hm-art-img.b {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hm-art-img {
+    transition: none;
+  }
+}
+
+/* ─── Desktop: the guide is the details half ───────────────────────────────
+   Declared HERE, at the end, and not up in the main min-width:1000px block:
+   the base `.pl-guide { display: none }` comes after that block, and at equal
+   specificity the later rule wins. This one has to be later still.
+
+   On a phone the guide is prep/rest only — no room, and nobody reads prose
+   mid-set. On a desktop the right-hand column IS the detail panel, so it
+   stays put and dims out of the way during a set rather than disappearing. */
+
+@media (min-width: 1000px) {
+  .pl-guide {
+    display: grid;
+    opacity: 0.45;
+    max-width: 42ch;
+    transition: opacity 0.3s;
+  }
+  .pl-guide.teaching {
+    opacity: 1;
+  }
+}
+
+/* ─── Coach voice toggle ───────────────────────────────────────────────────
+   Muted used to render as "✕", which sat right next to the player's END
+   SESSION "✕" and read as a second close button. Same note either way, struck
+   through when she's silenced it. */
+
+.voice-btn {
+  position: relative;
+}
+.voice-btn.muted {
+  opacity: 0.5;
+}
+.voice-btn.muted::after {
+  content: "";
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  top: 50%;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+  transform: rotate(-45deg);
+}
+
+/* ─── Reps, not a countdown ────────────────────────────────────────────────
+   The player used to lead with a 168px countdown of the SET. Two problems:
+   it competed with Alice, who now counts the reps aloud and nothing else, and
+   a number falling toward zero is a deadline — it makes her watch a clock
+   instead of move. So the hero is the rep she's on, the two agree, and the
+   only actual clock is small and up in the corner counting the whole session.
+
+   The tempo itself is untouched: the set is still a fixed duration underneath
+   (PLAN.md §2.1), the phase still drives the beat and the canvas still warms
+   and cools. She just isn't shown the stopwatch any more. */
+
+.sess-clock {
+  font-family: var(--grot);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  align-self: center;
+  padding-right: 4px;
+}
+.timer.as-dose {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+  line-height: 0.8;
+}
+.timer.as-dose i {
+  font-style: normal;
+  font-family: var(--grot);
+  font-size: 0.15em;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--ink-soft);
+}
+
+/* Two-pose art keeps demonstrating on its own loop. It used to cross-fade on
+   the tempo phase; with no beat to follow, the figure simply keeps moving. */
+@keyframes hm-pose-a {
+  0%,
+  40% {
+    opacity: 1;
+  }
+  60%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes hm-pose-b {
+  0%,
+  40% {
+    opacity: 0;
+  }
+  60%,
+  100% {
+    opacity: 1;
+  }
+}
+.hm-art.two .hm-art-img.a {
+  animation: hm-pose-a 3.2s ease-in-out infinite alternate;
+}
+.hm-art.two .hm-art-img.b {
+  animation: hm-pose-b 3.2s ease-in-out infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hm-art.two .hm-art-img.a,
+  .hm-art.two .hm-art-img.b {
+    animation: none;
+  }
+  .hm-art.two .hm-art-img.b {
+    opacity: 1;
+  }
 }
