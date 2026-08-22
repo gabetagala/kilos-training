@@ -1904,17 +1904,18 @@ body {
   align-self: center;
   padding-right: 4px;
 }
-.timer.as-reps {
+.timer.as-dose {
   display: flex;
   align-items: baseline;
   justify-content: center;
-  gap: 4px;
+  gap: 10px;
   line-height: 0.8;
 }
-.timer.as-reps i {
+.timer.as-dose i {
   font-style: normal;
-  font-size: 0.36em;
-  letter-spacing: 0.02em;
+  font-family: var(--grot);
+  font-size: 0.15em;
+  font-weight: 600;
+  letter-spacing: 0.18em;
   color: var(--ink-soft);
-  align-self: center;
 }

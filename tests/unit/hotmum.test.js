@@ -33,7 +33,7 @@ import {
   tempoStateAt,
 } from '../../src/hotmum/engine.js';
 import {
-  countdownSlug,
+  countdownTone,
   countPhase,
   NUM_SLUGS,
   PHASE_WORDS,
@@ -152,12 +152,33 @@ describe('program data', () => {
     }
   });
 
-  it('counts 3-2-1 into the end of any plain timed step', () => {
-    expect(countdownSlug(3)).toBe('three');
-    expect(countdownSlug(2)).toBe('two');
-    expect(countdownSlug(0.4)).toBe('one');
-    expect(countdownSlug(4)).toBeNull();
-    expect(countdownSlug(0)).toBeNull();
+  // The 3-2-1 is a TONE now, on every step rather than only on holds — with
+  // no countdown on screen it's the only thing that says a set is ending.
+  it('sounds three tones into the end of any timed step', () => {
+    expect(countdownTone(3)).toBe(880);
+    expect(countdownTone(2)).toBe(880);
+    // the last one is higher, so "go" is audibly different from "nearly"
+    expect(countdownTone(0.4)).toBe(1180);
+    expect(countdownTone(1)).toBe(1180);
+    // and nothing outside the window
+    expect(countdownTone(4)).toBeNull();
+    expect(countdownTone(3.1)).toBeNull();
+    expect(countdownTone(0)).toBeNull();
+    expect(countdownTone(-2)).toBeNull();
+  });
+
+  // Beeping into the end of a 4-second warm-up rep would be a metronome, not
+  // a countdown. Every step in the program is long enough to have three
+  // seconds that mean something.
+  it('every step is long enough for a 3-2-1 to make sense', () => {
+    for (const s of HOTMUM_SESSIONS) {
+      for (const st of buildStepQueue(s)) {
+        if (st.secs == null) continue;
+        expect(st.secs, `${st.exId} ${st.kind} is ${st.secs}s`).toBeGreaterThan(
+          3,
+        );
+      }
+    }
   });
 
   it('prescribes pounds, never kilos', () => {

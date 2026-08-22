@@ -108,12 +108,19 @@ export function setAnnounce(work) {
 }
 
 /**
- * The 3-2-1 into the end of a timed HOLD — a bird dog, a plank, a carry.
+ * The 3-2-1 into the end of ANY step, as three tones (see beep() in voice.js).
  *
- * Work only. A rest already says "rest" when it starts; counting it down again
- * turns a breather into a drill and fills the one quiet part of the set.
+ * It used to be Alice SAYING "three… two… one", and only on timed holds. Two
+ * changes: it's a tone now, because a countdown is the one sound in the app
+ * where exact timing matters more than warmth; and it fires on every step, not
+ * just holds, because "how long until this set ends" is the question the big
+ * countdown used to answer and no longer does (§2.1).
+ *
+ * Returns the pitch for the second, or null on a second that isn't counted.
+ * The last one is higher so "go" is audibly different from "nearly".
  */
-export function countdownSlug(secsLeft) {
+export function countdownTone(secsLeft) {
   const n = Math.ceil(secsLeft);
-  return n >= 1 && n <= 3 ? NUM_SLUGS[n] : null;
+  if (n < 1 || n > 3) return null;
+  return n === 1 ? 1180 : 880;
 }

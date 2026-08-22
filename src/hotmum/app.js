@@ -11,7 +11,7 @@
 // backgrounded tab or a mid-set refresh restores to the exact second.
 
 import './style.css';
-import { countdownSlug, setAnnounce } from './cues.js';
+import { countdownTone, setAnnounce } from './cues.js';
 import { demoFor, stillDemo } from './demos.js';
 import {
   buildStepQueue,
@@ -62,6 +62,7 @@ import {
   syncOnStart,
 } from './sync.js';
 import {
+  beep,
   hush,
   preload,
   resumeIfNeeded,
@@ -1381,6 +1382,21 @@ function paintDemo(exId) {
 const atWorkingPose = (tempo, label) =>
   label !== tempo.pattern[tempo.pattern.length - 1][0];
 
+// ─── The hero says HOW MUCH, never how much is left ────────────────────────
+// It has been three things. A 168px countdown of the set (a deadline — it made
+// her watch a clock instead of move), then a live rep counter (2/6, still a
+// thing ticking at her), and now just the dose: "6 REPS", "30 SEC". It states
+// the job and then holds still.
+//
+// Nothing is lost. Where she is inside the set is the pip row, which fills a
+// bar per rep, and the three tones at the end say when it's over — which is
+// the only part of a countdown she actually needed.
+function heroDose(st) {
+  if (st.tempo?.reps) return `${st.tempo.reps}<i>REPS</i>`;
+  if (st.secs) return `${st.secs}<i>SEC</i>`;
+  return '';
+}
+
 /** The exercise the screen should be teaching right now. */
 function teachingId(st, idx) {
   if (st.kind !== 'rest') return st.exId;
@@ -1436,9 +1452,7 @@ function renderPlayer() {
       ${teach ? `<div class="pl-stage"><div class="hm-demo${teaching ? ' teaching' : ''}" id="demo"></div></div>` : ''}
 
       <div class="pl-mid">
-        <div class="timer${st.tempo ? ' as-reps' : ''}" id="timer">${
-          st.tempo ? `1<i>/${st.tempo.reps}</i>` : '0:00'
-        }</div>
+        <div class="timer as-dose" id="timer">${heroDose(st)}</div>
         <div class="phase" id="phase">${esc(st.phase || '')}</div>
         <p class="cue" id="cue">${esc(cue)}</p>
         <span class="lbl lbl-sm" id="meta">${esc(st.meta || '')}</span>
@@ -1531,18 +1545,24 @@ function tick() {
     const sess = app.querySelector('#sess');
     if (sess) sess.textContent = mmss(run.totals.secs + e / 1000);
 
-    const timer = app.querySelector('#timer');
-    // A hold, a rest and a get-set ARE durations — there is nothing else to
-    // show. A tempo set is reps, and the hero says so (painted below).
-    if (timer && !st.tempo) timer.textContent = mmss((total - e) / 1000);
+    // THE 3-2-1, as three tones. Every step, not just holds — with no
+    // countdown on screen any more this is how she knows a set is ending.
+    // Keyed on the step index AND the second so a re-render can't double-fire.
+    if (st.secs != null) {
+      const n = Math.ceil((total - e) / 1000);
+      const key = `${run.idx}:${n}`;
+      if (key !== lastBeat) {
+        lastBeat = key;
+        const tone = countdownTone(n);
+        if (tone && voiceOn) beep(tone);
+      }
+    }
 
     const pl = app.querySelector('#pl');
     if (st.tempo) {
       const ts = tempoStateAt(st.tempo, e);
       const phase = app.querySelector('#phase');
       if (phase) phase.textContent = ts.label;
-      // The rep count IS the hero now, so the meta line stops repeating it.
-      if (timer) timer.innerHTML = `${ts.rep}<i>/${st.tempo.reps}</i>`;
       const meta = app.querySelector('#meta');
       if (meta) meta.textContent = st.meta || '';
       if (pl) pl.className = `screen player ${ts.label.toLowerCase()}`;
@@ -1557,17 +1577,6 @@ function tick() {
     } else {
       if (pl)
         pl.className = `screen player${st.kind === 'rest' ? ' resting' : ''}`;
-      // 3-2-1 into the end of a timed HOLD only. A rest already said "rest"
-      // when it began; counting it down again fills the one quiet part.
-      if (st.kind === 'work') {
-        const left = (total - e) / 1000;
-        const cd = countdownSlug(left);
-        const key = cd ? `cd${Math.ceil(left)}` : '';
-        if (cd && key !== lastBeat) {
-          lastBeat = key;
-          say(cd);
-        }
-      }
     }
 
     const prog = app.querySelector('#prog');

@@ -269,12 +269,24 @@ changes, and they're the same change:
   and the dose at the top of the set — "Single-Leg RDL. Six reps." — then be
   quiet and let her work.** Between sets she still says get-set, what's
   coming, rest, switch sides, and the 3-2-1 into the end of a hold.
-- **The screen stopped showing the countdown.** The hero was a 168px timer of
-  the SET falling toward zero. It competed with the voice, and a number falling
-  toward zero is a *deadline* — it makes her watch a clock instead of move. The
-  hero is now the rep she's on (`2/6`), so the screen and the voice say the
-  same thing, and the only clock is small, in the corner, counting the whole
-  session upward.
+- **The screen stopped counting too.** The hero was a 168px timer of the SET
+  falling toward zero — a *deadline*, which makes her watch a clock instead of
+  move. It briefly became a live rep counter (`2/6`), which is still something
+  ticking at her, and it is now simply **the dose**: `12 REPS`, `30 SEC`. It
+  states the job and holds still. The only clock is small, in the corner,
+  counting the whole session upward.
+- **Three tones close every step.** With nothing counting on screen, this is
+  how she knows a set is ending: two at 880Hz on three and two, one at 1180Hz
+  on one, so "go" sounds different from "nearly". Synthesised, not a clip —
+  a countdown is the one sound in the app where exact timing beats warmth, and
+  a decoded file arrives whenever it arrives. It replaced Alice *saying*
+  "three… two… one", which only ever fired on holds. Routed through the same
+  gain node as her voice, so the mute button silences both.
+
+**Where she is inside the set** is the pip row — one bar per rep, filling as
+she goes. That was decoration when the hero was a counter; it's now the only
+live rep feedback in the app, which is deliberate: a glance tells her, and
+nothing is counting at her while she works.
 
 **Nothing about the programming changed.** The set is still a fixed duration
 underneath, the tempo still drives the beat, the canvas still warms and cools,

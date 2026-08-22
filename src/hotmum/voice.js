@@ -135,6 +135,34 @@ export function speakAfter(slug) {
   else speak(slug);
 }
 
+/**
+ * The 3-2-1 into the end of a step — a TONE, not a word.
+ *
+ * Synthesised rather than a clip on purpose. A countdown is the one sound in
+ * the app where timing has to be exact, and a decoded file arrives whenever it
+ * arrives; an oscillator starts on the sample. It also costs nothing to ship
+ * and can't be the missing-clip case.
+ *
+ * Routed through the same gain node as Alice, so the mute button silences it
+ * too — one control, no surprises.
+ */
+export function beep(freq = 880, ms = 110, vol = 0.3) {
+  const c = context();
+  if (!c || !gain) return;
+  const t = c.currentTime;
+  const osc = c.createOscillator();
+  const env = c.createGain();
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+  // Fast attack, exponential tail — a raw gate would click at both ends.
+  env.gain.setValueAtTime(0.0001, t);
+  env.gain.exponentialRampToValueAtTime(vol, t + 0.012);
+  env.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000);
+  osc.connect(env).connect(gain);
+  osc.start(t);
+  osc.stop(t + ms / 1000 + 0.02);
+}
+
 /** A step change makes a pending phrase wrong, not late. */
 export function hush() {
   queued = [];
