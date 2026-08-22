@@ -886,7 +886,13 @@ function renderHome() {
       <div>
         <span class="lbl lbl-sm">TODAY</span>
         <div class="day-name">${
-          done ? 'ANYTHING<br><em>ELSE?</em>' : 'WHAT ARE<br>WE <em>DOING?</em>'
+          // The space before each <br> matters: on desktop the break is
+          // display:none and the two halves run together without it
+          // ("WHAT AREWE DOING?"). A trailing space before a line break
+          // collapses to nothing on a phone, so it costs that layout nothing.
+          done
+            ? 'ANYTHING <br class="dn-br"><em>ELSE?</em>'
+            : 'WHAT ARE <br class="dn-br">WE <em>DOING?</em>'
         }</div>
         <div class="row-s">${
           done

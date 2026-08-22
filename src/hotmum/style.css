@@ -1215,21 +1215,59 @@ body {
   /* Each screen owns its own grid — one shared pane mapping can't serve four
      different pages, which is what broke the athlete layout first time. */
 
-  /* HOME — greeting across the top, the day left, the season right. */
+  /* HOME — three full-width bands: greeting, the hundred days, then today.
+     It used to be a two-column split with the season squeezed into the right
+     half. The grid IS the season, and a hundred boxes deserve the whole width
+     — at half a screen each box was a speck. Stacked, the calendar reads as a
+     calendar and the day card reads as a banner across the bottom. */
+  .scr-home {
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
   .scr-home > .top {
     display: none; /* the rail already carries the wordmark */
   }
   .scr-home .pane-a {
-    grid-column: 1 / -1;
     grid-row: 1;
   }
-  .scr-home .pane-c {
-    grid-column: 1;
+  .scr-home .pane-b {
     grid-row: 2;
   }
-  .scr-home .pane-b {
-    grid-column: 2;
-    grid-row: 2;
+  .scr-home .pane-c {
+    grid-row: 3;
+    justify-content: flex-end;
+  }
+  .scr-home .pane-a,
+  .scr-home .pane-b,
+  .scr-home .pane-c {
+    grid-column: 1 / -1;
+  }
+
+  /* Full-bleed calendar: the boxes take whatever width the row gives them,
+     capped so a very wide monitor doesn't turn them into paving slabs. */
+  .scr-home .boxes {
+    gap: 8px;
+    margin-top: 16px;
+    max-width: 1400px;
+  }
+
+  /* Across the bottom now, so it reads left-to-right like a banner rather
+     than stacking in a narrow column. */
+  .scr-home .today-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 40px;
+    margin: 0;
+    padding: 28px 36px;
+  }
+  .scr-home .today-card .day-name {
+    margin-top: 0;
+  }
+  /* The question is stacked on two lines on a phone because it has to be.
+     Across the bottom of a desktop it fits on one, and two lines here just
+     make the banner tall for no reason. */
+  .scr-home .today-card .dn-br {
+    display: none;
   }
 
   /* PROGRAM — season masthead, blocks left, the week right. */
