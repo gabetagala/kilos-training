@@ -303,40 +303,6 @@ body {
 
 /* ─── Controls ─────────────────────────────────────────────────────────── */
 
-.doses {
-  display: flex;
-  gap: 7px;
-  margin: 20px 0 10px;
-}
-.dose {
-  flex: 1;
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  background: transparent;
-  color: var(--ink-soft);
-  padding: 10px 4px;
-  font-family: var(--grot);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  cursor: pointer;
-  min-height: 46px;
-}
-.dose[aria-pressed="true"] {
-  background: #fff;
-  border-color: #fff;
-  color: #b4007f;
-}
-.dose i {
-  display: block;
-  font-style: normal;
-  font-size: 10px;
-  font-weight: 400;
-  opacity: 0.75;
-  margin-top: 3px;
-  letter-spacing: 0.08em;
-}
-
 .btn {
   display: block;
   width: 100%;
@@ -1327,8 +1293,11 @@ body {
   }
 
   /* ── home: the card is a hero panel, the season fills the right ── */
+  /* Sized to its content, not stretched to the column. It used to sit under
+     the weekly counter and `flex: 1` filled what was left; with the counter
+     gone (2026-08-22) that turned it into a mostly-empty slab. */
   .today-card {
-    flex: 1;
+    flex: 0 0 auto;
     align-items: flex-start;
     flex-direction: column;
     justify-content: flex-end;
@@ -1349,8 +1318,11 @@ body {
   .today-card {
     position: relative;
   }
+  /* Still twenty across — a row is one twenty-day training block, and that
+     reading is the whole reason the grid is shaped the way it is. Fourteen
+     was left over from the old 20-week season. */
   .boxes {
-    grid-template-columns: repeat(14, 1fr);
+    grid-template-columns: repeat(20, 1fr);
     gap: 6px;
     margin-top: 14px;
   }
@@ -1528,8 +1500,6 @@ body {
   overflow-y: auto;
   margin: 12px 0 4px;
 }
-.sheet-session .doses,
-.sheet-session .dose-hint,
 .sheet-session .btn,
 .sheet-session .btn-quiet {
   flex-shrink: 0;
@@ -1555,50 +1525,6 @@ body {
 }
 .btn-quiet:hover {
   color: var(--hot);
-}
-
-/* ─── The week's target ────────────────────────────────────────────────────
-   Progress, never a deficit — "2 of 3", and gold once it's met. */
-
-.goals {
-  flex-shrink: 0;
-  margin-bottom: 4px;
-}
-.goal {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 9px 0;
-  border-bottom: 1px solid var(--line);
-  min-height: 42px;
-}
-.goal .lbl {
-  flex-shrink: 0;
-}
-.goal-pips {
-  display: flex;
-  gap: 5px;
-  flex: 1;
-}
-.gp {
-  flex: 1;
-  max-width: 44px;
-  height: 6px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.2);
-}
-.gp.on {
-  background: #fff;
-}
-.goal.met .gp.on {
-  background: var(--cream);
-}
-.goal.met .lbl {
-  color: var(--cream);
-}
-.goal-n {
-  min-width: 42px;
-  text-align: right;
 }
 
 /* ─── The figure ───────────────────────────────────────────────────────── */
@@ -1780,12 +1706,36 @@ body {
 
 /* ─── Session sheet extras ─────────────────────────────────────────────── */
 
-.dose-hint {
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--ink-soft);
-  margin: 8px 0 12px;
+/* Section headings inside the movement list — the session's own names for
+   its parts (WARM-UP / THE WORK / KNEE STRENGTH / STANDING CORE). These used
+   to be the "add the knee work?" prompts; with one whole session there's
+   nothing to prompt, so the structure becomes the shape of the list. */
+.part-h {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #1b0713;
+  padding: 12px 0 5px;
+  flex-shrink: 0;
 }
+.part-h .lbl {
+  color: var(--hot);
+}
+.part-h + .ex-row {
+  border-top: 0;
+}
+
+/* GO carries the length now that there's no dose to pick. */
+.btn i {
+  font-style: normal;
+  font-family: var(--grot);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  opacity: 0.62;
+  margin-left: 10px;
+}
+
 /* The rows carry a small still figure — she scans the shapes faster than the
    names. Frozen, not animated: fifteen live SMIL timelines in a scrolling
    list is jank for no benefit (see stillDemo in demos.js). */

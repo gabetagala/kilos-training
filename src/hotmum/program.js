@@ -507,9 +507,12 @@ const asDate = (d) =>
     ? new Date(d.getFullYear(), d.getMonth(), d.getDate())
     : new Date(`${d}T00:00:00`);
 
-/** Whole days from `today` to the end of the 100. Never negative. */
-export const daysToGo = (today = new Date()) =>
-  Math.max(0, Math.ceil((asDate(SEASON.endDate) - asDate(today)) / DAY_MS));
+/**
+ * Days left of the hundred. Derived from the day number rather than measured
+ * to the end date, so the two can never disagree — before day 1 the raw
+ * distance to 1 Dec is 101, which would have read "DAY 1 OF 100 · 101 LEFT".
+ */
+export const daysToGo = (today = new Date()) => SEASON.days - dayNumber(today);
 
 /** Which of the 100 days it is, 1-based and clamped to both ends. */
 export function dayNumber(today = new Date()) {
@@ -529,12 +532,12 @@ export const blockForDay = (day) =>
 // verbatim: every day is thirty minutes of movement, and the walks are what
 // make HOTMUM a daily open instead of a thrice-weekly one.
 //
-// NOT A SCHEDULE. Sam picks what she does each day in the app; WEEK is the
-// recommended RHYTHM her plan is written around — Monday, Wednesday, Friday
-// lifting with walks between, never two sessions back to back — and it's what
-// the doses and the recovery assumptions are built on.
-
-export const WEEKLY_TARGET = { sessions: 3, walks: 4 };
+// NOT A SCHEDULE, AND NOT A SCOREBOARD. Sam picks what she does each day in
+// the app; WEEK is the recommended RHYTHM her plan is written around — Monday,
+// Wednesday, Friday lifting with walks between, never two sessions back to
+// back. The app used to render it as a weekly target ("SESSIONS 2/3, WALKS
+// 1/4"), which is a streak wearing a different hat: it turns a rearranged week
+// into a visible deficit. The hundred days already do the motivating.
 
 export const WEEK = [
   { day: 'MON', kind: 'session', id: 'lower' },
@@ -605,21 +608,22 @@ export const getMovement = (id) =>
 /** The default walk, kept as its own export because the walk day is special. */
 export const WALK = MOVEMENTS[0];
 
-// ─── Doses ───────────────────────────────────────────────────────────────────
-// Same program, three exits. She never has to choose between all of it and
-// nothing — the failure mode that actually kills consistency (PLAN.md §2.7).
+// ─── The parts of a session ──────────────────────────────────────────────────
+// A session runs WHOLE. There used to be three cuts of it — FULL / SHORT /
+// MINI — with the app offering to extend after the main work, because the
+// first draft measured 41–46 minutes and asking a mother to commit to that at
+// minute zero was the wrong question (old §2.7).
 //
-// MINI replaced the old CORE-only cut. Under the 30-minute rewrite the core
-// block is two minutes long, which is not a session anyone opens an app for.
-// The knee work plus the standing core is eight minutes and is, on a bad day,
-// the single most useful thing she could do — so that's what the small door
-// opens onto.
+// Her rewrite fixed that at the source: a session is thirty minutes now, and
+// SHORT only saved about eight of them. A choice that small isn't a mercy,
+// it's a decision to make before she's allowed to start — so it's gone, and
+// GO just starts the session.
+//
+// `part` survives as the STRUCTURE of a session, which is still load-bearing:
+// progression only ever touches `main` (§2.0.1), and the sheet labels each
+// run of blocks with the session's own name for it.
 
-export const DOSES = {
-  full: { label: 'FULL', includes: ['warmup', 'main', 'finisher', 'core'] },
-  short: { label: 'SHORT', includes: ['warmup', 'main'] },
-  mini: { label: 'MINI', includes: ['finisher', 'core'] },
-};
+export const PARTS = ['warmup', 'main', 'finisher', 'core'];
 
 // ─── Warm-ups ────────────────────────────────────────────────────────────────
 // Two of them now: the lower days warm the hips, knees and ankles; the upper
@@ -630,7 +634,7 @@ const WARMUP_LOWER = [
   {
     ex: 'bw-squat',
     mode: 'tempo',
-    dose: 'warmup',
+    part: 'warmup',
     sets: 1,
     reps: 12,
     tempo: WARM,
@@ -638,7 +642,7 @@ const WARMUP_LOWER = [
   {
     ex: 'standing-hinge',
     mode: 'tempo',
-    dose: 'warmup',
+    part: 'warmup',
     sets: 1,
     reps: 12,
     tempo: WARM,
@@ -646,16 +650,16 @@ const WARMUP_LOWER = [
   {
     ex: 'knee-lift',
     mode: 'tempo',
-    dose: 'warmup',
+    part: 'warmup',
     sets: 1,
     reps: 20,
     tempo: WARM_KNEE,
   },
-  { ex: 'hip-circles', mode: 'hold', dose: 'warmup', sets: 1, holdSecs: 30 },
+  { ex: 'hip-circles', mode: 'hold', part: 'warmup', sets: 1, holdSecs: 30 },
   {
     ex: 'calf-raise',
     mode: 'tempo',
-    dose: 'warmup',
+    part: 'warmup',
     sets: 1,
     reps: 12,
     tempo: WARM_CALF,
@@ -663,13 +667,13 @@ const WARMUP_LOWER = [
 ];
 
 const WARMUP_UPPER = [
-  { ex: 'arm-circles', mode: 'hold', dose: 'warmup', sets: 1, holdSecs: 40 },
-  { ex: 'shoulder-rolls', mode: 'hold', dose: 'warmup', sets: 1, holdSecs: 30 },
-  { ex: 'torso-rotation', mode: 'hold', dose: 'warmup', sets: 1, holdSecs: 30 },
+  { ex: 'arm-circles', mode: 'hold', part: 'warmup', sets: 1, holdSecs: 40 },
+  { ex: 'shoulder-rolls', mode: 'hold', part: 'warmup', sets: 1, holdSecs: 30 },
+  { ex: 'torso-rotation', mode: 'hold', part: 'warmup', sets: 1, holdSecs: 30 },
   {
     ex: 'good-morning',
     mode: 'tempo',
-    dose: 'warmup',
+    part: 'warmup',
     sets: 1,
     reps: 12,
     tempo: WARM,
@@ -682,7 +686,7 @@ const CORE = [
   {
     ex: 'knee-to-elbow',
     mode: 'tempo',
-    dose: 'core',
+    part: 'core',
     sets: 1,
     reps: 20,
     tempo: SQUEEZE_FAST,
@@ -692,7 +696,7 @@ const CORE = [
   {
     ex: 'suitcase-hold',
     mode: 'hold',
-    dose: 'core',
+    part: 'core',
     sets: 1,
     holdSecs: 30,
     perSide: true,
@@ -715,7 +719,12 @@ export const HOTMUM_SESSIONS = [
     day: 'MON',
     blurb:
       'Single-leg first, then the squats — and the knee work that keeps it going.',
-    stages: { finisher: 'KNEE STRENGTH', core: 'STANDING CORE' },
+    parts: {
+      warmup: 'WARM-UP',
+      main: 'THE WORK',
+      finisher: 'KNEE STRENGTH',
+      core: 'STANDING CORE',
+    },
     blocks: [
       ...WARMUP_LOWER,
       // UNILATERAL LEADS (§2.9 rule 3). The single-leg hinge opens the day:
@@ -723,7 +732,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'sl-rdl',
         mode: 'tempo',
-        dose: 'main',
+        part: 'main',
         sets: 3,
         reps: 6,
         tempo: ECCENTRIC,
@@ -735,7 +744,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'reverse-lunge',
         mode: 'tempo',
-        dose: 'main',
+        part: 'main',
         sets: 2,
         reps: 6,
         tempo: ECCENTRIC_SHORT,
@@ -750,7 +759,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'goblet-squat',
         mode: 'tempo',
-        dose: 'main',
+        part: 'main',
         sets: 3,
         reps: 8,
         tempo: ECCENTRIC,
@@ -761,7 +770,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'sumo-squat',
         mode: 'tempo',
-        dose: 'main',
+        part: 'main',
         sets: 2,
         reps: 8,
         tempo: ECCENTRIC,
@@ -772,7 +781,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'sl-calf-raise',
         mode: 'tempo',
-        dose: 'main',
+        part: 'main',
         sets: 2,
         reps: 8,
         tempo: SQUEEZE,
@@ -785,7 +794,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'wall-sit',
         mode: 'hold',
-        dose: 'finisher',
+        part: 'finisher',
         phase: 'HOLD',
         sets: 2,
         holdSecs: 30,
@@ -795,7 +804,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'sit-to-stand',
         mode: 'tempo',
-        dose: 'finisher',
+        part: 'finisher',
         sets: 2,
         reps: 8,
         tempo: ECCENTRIC_SHORT,
@@ -805,7 +814,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'hip-abduction',
         mode: 'tempo',
-        dose: 'finisher',
+        part: 'finisher',
         sets: 2,
         reps: 6,
         tempo: ABDUCT,
@@ -824,13 +833,18 @@ export const HOTMUM_SESSIONS = [
     sub: 'Upper + Core',
     day: 'WED',
     blurb: 'Press, row, press — then arms, a carry, and the standing core.',
-    stages: { finisher: 'ARMS + CARRY', core: 'STANDING CORE' },
+    parts: {
+      warmup: 'WARM-UP',
+      main: 'PRESS + PULL',
+      finisher: 'ARMS + CARRY',
+      core: 'STANDING CORE',
+    },
     blocks: [
       ...WARMUP_UPPER,
       {
         ex: 'shoulder-press',
         mode: 'tempo',
-        dose: 'main',
+        part: 'main',
         sets: 3,
         reps: 8,
         tempo: PRESS,
@@ -840,7 +854,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'one-arm-row',
         mode: 'tempo',
-        dose: 'main',
+        part: 'main',
         sets: 2,
         reps: 8,
         tempo: PULL,
@@ -852,7 +866,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'squeeze-press',
         mode: 'tempo',
-        dose: 'main',
+        part: 'main',
         sets: 2,
         reps: 10,
         tempo: SQUEEZE,
@@ -862,7 +876,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'lateral-raise',
         mode: 'tempo',
-        dose: 'main',
+        part: 'main',
         sets: 2,
         reps: 10,
         tempo: HANG,
@@ -872,7 +886,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'rear-delt-fly',
         mode: 'tempo',
-        dose: 'main',
+        part: 'main',
         sets: 2,
         reps: 10,
         tempo: HANG,
@@ -886,7 +900,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'bicep-curl',
         mode: 'tempo',
-        dose: 'finisher',
+        part: 'finisher',
         sets: 2,
         reps: 10,
         tempo: PULL,
@@ -896,7 +910,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'tricep-ext',
         mode: 'tempo',
-        dose: 'finisher',
+        part: 'finisher',
         sets: 2,
         reps: 10,
         tempo: EXTEND,
@@ -906,7 +920,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'farmer-carry',
         mode: 'hold',
-        dose: 'finisher',
+        part: 'finisher',
         phase: 'CARRY',
         sets: 2,
         holdSecs: 40,
@@ -916,7 +930,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'knee-drive',
         mode: 'tempo',
-        dose: 'finisher',
+        part: 'finisher',
         sets: 2,
         reps: 16,
         tempo: SQUEEZE_FAST,
@@ -934,12 +948,17 @@ export const HOTMUM_SESSIONS = [
     day: 'FRI',
     blurb:
       'One of everything, then the knee finisher. The week’s hardest thirty.',
-    stages: { finisher: 'KNEE FINISHER', core: 'STANDING CORE' },
+    parts: {
+      warmup: 'WARM-UP',
+      main: 'THE WORK',
+      finisher: 'KNEE FINISHER',
+      core: 'STANDING CORE',
+    },
     blocks: [
       {
         ex: 'bw-squat',
         mode: 'tempo',
-        dose: 'warmup',
+        part: 'warmup',
         sets: 1,
         reps: 12,
         tempo: WARM,
@@ -947,7 +966,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'standing-hinge',
         mode: 'tempo',
-        dose: 'warmup',
+        part: 'warmup',
         sets: 1,
         reps: 12,
         tempo: WARM,
@@ -955,14 +974,14 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'arm-circles',
         mode: 'hold',
-        dose: 'warmup',
+        part: 'warmup',
         sets: 1,
         holdSecs: 30,
       },
       {
         ex: 'knee-lift',
         mode: 'tempo',
-        dose: 'warmup',
+        part: 'warmup',
         sets: 1,
         reps: 20,
         tempo: WARM_KNEE,
@@ -970,7 +989,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'calf-raise',
         mode: 'tempo',
-        dose: 'warmup',
+        part: 'warmup',
         sets: 1,
         reps: 12,
         tempo: WARM_CALF,
@@ -978,7 +997,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'rdl',
         mode: 'tempo',
-        dose: 'main',
+        part: 'main',
         sets: 3,
         reps: 8,
         tempo: ECCENTRIC,
@@ -989,7 +1008,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'reverse-lunge',
         mode: 'tempo',
-        dose: 'main',
+        part: 'main',
         sets: 2,
         reps: 6,
         tempo: ECCENTRIC_SHORT,
@@ -1002,7 +1021,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'goblet-squat',
         mode: 'tempo',
-        dose: 'main',
+        part: 'main',
         sets: 2,
         reps: 8,
         tempo: ECCENTRIC,
@@ -1013,7 +1032,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'one-arm-row',
         mode: 'tempo',
-        dose: 'main',
+        part: 'main',
         sets: 2,
         reps: 8,
         tempo: PULL,
@@ -1025,7 +1044,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'squeeze-press',
         mode: 'tempo',
-        dose: 'main',
+        part: 'main',
         sets: 2,
         reps: 8,
         tempo: SQUEEZE,
@@ -1036,7 +1055,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'shoulder-press',
         mode: 'tempo',
-        dose: 'main',
+        part: 'main',
         sets: 2,
         reps: 8,
         tempo: PRESS,
@@ -1047,7 +1066,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'calf-raise',
         mode: 'tempo',
-        dose: 'finisher',
+        part: 'finisher',
         sets: 2,
         reps: 12,
         tempo: SQUEEZE,
@@ -1057,7 +1076,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'wall-sit',
         mode: 'hold',
-        dose: 'finisher',
+        part: 'finisher',
         phase: 'HOLD',
         sets: 2,
         holdSecs: 30,
@@ -1067,7 +1086,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'sit-to-stand',
         mode: 'tempo',
-        dose: 'finisher',
+        part: 'finisher',
         sets: 2,
         reps: 8,
         tempo: ECCENTRIC_SHORT,
@@ -1090,15 +1109,6 @@ export const tempoSecs = (tempo) => tempo.reduce((n, [, s]) => n + s, 0);
 /** Human tempo notation — [['DOWN',3],['HOLD',1],['UP',1]] → "3-1-1". */
 export const tempoLabel = (tempo) => tempo.map(([, s]) => s).join('-');
 
-/** A session cut down to one dose. Returns a session, not just blocks. */
-export function sessionAtDose(session, dose = 'full') {
-  const includes = (DOSES[dose] || DOSES.full).includes;
-  return {
-    ...session,
-    blocks: session.blocks.filter((b) => includes.includes(b.dose)),
-  };
-}
-
 // ─── Progression — the blocks actually do something ──────────────────────────
 // Rewrites a session for the day she's on. Only `main` work progresses: the
 // warm-up is a warm-up whatever week it is, and the knee block is deliberately
@@ -1109,7 +1119,7 @@ const withEccentric = (tempo, add) =>
   tempo.map(([label, secs]) => [label, label === 'DOWN' ? secs + add : secs]);
 
 function progressBlock(block, delta, isOpener) {
-  if (block.dose !== 'main') return block;
+  if (block.part !== 'main') return block;
   const out = { ...block };
   if (delta.addReps && out.reps)
     out.reps = Math.max(5, out.reps + delta.addReps);
@@ -1127,7 +1137,7 @@ function progressBlock(block, delta, isOpener) {
 /** The session as it should be run on a given day of the 100. */
 export function progress(session, day = dayNumber()) {
   const delta = blockForDay(day);
-  const openerIdx = session.blocks.findIndex((b) => b.dose === 'main');
+  const openerIdx = session.blocks.findIndex((b) => b.part === 'main');
   return {
     ...session,
     block: delta.name,
@@ -1182,9 +1192,8 @@ export function blockWorkSecs(block) {
  * Rough wall-clock for a session at a given dose: work + rests + side
  * switches + the engine's 10s prep before each new exercise.
  */
-export function estimateSecs(session, dose = 'full') {
-  const blocks = sessionAtDose(session, dose).blocks;
-  return blocks.reduce((total, block) => {
+export function estimateSecs(session) {
+  return session.blocks.reduce((total, block) => {
     const sets = block.sets || 1;
     const sides = block.perSide ? 2 : 1;
     const rest = (block.restSecs || 0) * (sets - 1);
@@ -1197,19 +1206,24 @@ export function estimateSecs(session, dose = 'full') {
   }, 0);
 }
 
-export const estimateMins = (session, dose = 'full') =>
-  Math.round(estimateSecs(session, dose) / 60);
+export const estimateMins = (session) => Math.round(estimateSecs(session) / 60);
 
 /** Total logical sets in a session — what the finish card counts. */
-export const setTotal = (session, dose = 'full') =>
-  sessionAtDose(session, dose).blocks.reduce(
-    (n, b) => n + (b.sets || 1) * (b.perSide ? 2 : 1),
-    0,
-  );
+export const setTotal = (session) =>
+  session.blocks.reduce((n, b) => n + (b.sets || 1) * (b.perSide ? 2 : 1), 0);
 
 /** Seconds under tension across a session — the number tempo training earns. */
-export const timeUnderTension = (session, dose = 'full') =>
-  sessionAtDose(session, dose).blocks.reduce((n, b) => n + blockWorkSecs(b), 0);
+export const timeUnderTension = (session) =>
+  session.blocks.reduce((n, b) => n + blockWorkSecs(b), 0);
+
+/** A session's blocks grouped into its named parts, in order. */
+export function sessionParts(session) {
+  return PARTS.map((key) => ({
+    key,
+    label: session.parts?.[key] || key.toUpperCase(),
+    blocks: session.blocks.filter((b) => b.part === key),
+  })).filter((p) => p.blocks.length);
+}
 
 /** "15 lb × 2" / "20 lb" / "Bodyweight" */
 export function loadLabel(load) {

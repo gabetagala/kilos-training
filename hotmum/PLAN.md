@@ -261,12 +261,14 @@ added in commit `4c7328d`).
 **REVISED 2026-08-20 — the countdown is the MECHANIC, not the display.** Two
 changes, and they're the same change:
 
-- **Alice stopped calling the phase.** She used to say *down… hold… up* on
-  every beat — a word every second and a half for twenty minutes, narrating
-  something already on screen in 50px type with the whole canvas warming and
-  cooling behind it. Now the only thing she says inside a set is the rep
-  number. (This forced number clips out to twenty; they stopped at ten, so a
-  20-rep set would have counted to ten and gone quiet.)
+- **Alice stopped talking during a set.** In two steps. First she stopped
+  calling the phase on every beat — *down… hold… up*, a word every second and
+  a half for twenty minutes, narrating something already on screen in 50px
+  type with the whole canvas warming and cooling behind it. Then she stopped
+  counting the reps too. What's left is the KILOS pattern: **name the movement
+  and the dose at the top of the set — "Single-Leg RDL. Six reps." — then be
+  quiet and let her work.** Between sets she still says get-set, what's
+  coming, rest, switch sides, and the 3-2-1 into the end of a hold.
 - **The screen stopped showing the countdown.** The hero was a 168px timer of
   the SET falling toward zero. It competed with the voice, and a number falling
   toward zero is a *deadline* — it makes her watch a clock instead of move. The
@@ -339,9 +341,9 @@ rolls 30s, standing torso rotations 30s, bodyweight good mornings `2-1`.
 | Core | Standing Knee-to-Elbow + Suitcase Hold | — | as Monday |
 
 **The arms moved out of the main block** and into the offered stage. Her plan
-lists curls and extensions in the 4:00–25:00 strength window, but SHORT has to
-stay a genuine escape hatch (§2.7), and a curl is the most droppable thing in
-the session. Nothing is cut — only the order in which she's asked.
+lists curls and extensions in the 4:00–25:00 strength window; putting them
+after the presses and rows means the heaviest work happens fresh and the
+isolation work happens tired, which is the right order round. Nothing is cut.
 
 ### 2.6 Friday — Full Body + Knee
 
@@ -364,43 +366,54 @@ guess, and it's the single biggest change from Season 01's first draft — which
 measured **41–46 minutes** and was honest about being longer than promised.
 
 **MEASURED, not estimated** (`npm test` computes these from the data, and the
-suite guards the band on *every* session at *every* point in the season —
-the progression blocks add reps and sets, so the cap has to hold in PEAK too):
+suite guards the band on *every* session at *every* point in the season — the
+progression blocks add reps and sets, so the cap has to hold in PEAK too):
 
-| Session | FULL | SHORT | MINI | Under tension | Sets |
-|---|---|---|---|---|---|
-| MON — Lower + Knee | **28 min** | 20 min | 8 min | 18 min | 30 |
-| WED — Upper + Core | **29 min** | 18 min | 12 min | 19 min | 28 |
-| FRI — Full Body + Knee | **29 min** | 21 min | 9 min | 19 min | 31 |
+| Session | Length | Under tension | Sets |
+|---|---|---|---|
+| MON — Lower + Knee | **29 min** | 18 min | 35 |
+| WED — Upper + Core | **29 min** | 19 min | 28 |
+| FRI — Full Body + Knee | **29 min** | 19 min | 31 |
 
-Across all five blocks the band is **26–31 min**. The test fails outside 26–32.
+Across all five blocks the band is **27–31 min**. The test fails outside 26–32.
 
 **How it got from 45 to 30 without cutting her plan:** fewer sets on the
 accessories (3 → 2), shorter working sets (10 → 8 reps at the same tempo),
-45s rests instead of 60s, and the arms re-tiered into the offered stage. Time
-under tension only fell from ~27 to ~19 minutes — most of what went was
+45s rests instead of 60s, and the arms re-tiered out of the opening block.
+Time under tension only fell from ~27 to ~19 minutes — most of what went was
 standing about.
 
-**UNCHANGED — SHORT is the default; the session GROWS instead of shrinking.**
+### 2.7.1 The doses are gone — REVERSED 2026-08-22
 
-The instinct is to make her pick a dose at minute zero. That's the wrong moment
-to ask: **she doesn't yet know how long the baby will sleep.** So invert it:
+The first build shipped **three cuts of every session** (FULL / SHORT / MINI)
+and had the app *offer* to extend after the main work — "add the knee work?
++6 min". The reasoning was sound at the time and is written up in the git
+history: a 41–46 minute session is a big ask, minute zero is the wrong moment
+to ask a mother how long the baby will sleep, and every exit should be a
+complete session rather than an abandoned one.
 
-1. **SHORT (18–21 min) starts by default.** One tap, no decision.
-2. **When the main work is done, the app offers to keep going** — *"Add the
-   knee strength? +6 min"*, then *"Add the standing core? +3 min"*. The offer
-   is named after what THIS session calls that stage, so the thing her plan is
-   organised around isn't hidden behind the word "finishers".
-3. Every exit point is a **complete session**, not an abandoned one.
+**Her rewrite dissolved the premise.** A session is thirty minutes now, and
+SHORT only saved eight of them. A choice that small stops being a mercy and
+becomes a decision standing between her and starting — three buttons, a
+paragraph explaining them, and a prompt mid-session, all to save eight
+minutes off a half-hour.
 
-**MINI replaced the old CORE-only cut.** Under a 30-minute session the core
-block is two minutes long, which is not something anyone opens an app for.
-MINI is the knee work *plus* the standing core — 8–12 minutes, and on a bad
-day it is genuinely the most useful thing she could do.
+So **GO starts the session and the session ends when it ends.** The escape
+hatch didn't disappear, it moved: **ANOTHER MOVEMENT** (§2.0.2) is one tap
+from the same sheet, and a walk or a yoga class counts as showing up exactly
+like a session does. That's a better answer to "I haven't got thirty minutes
+of lifting in me today" than a shorter version of the lifting.
 
-**RESOLVED — the Lower B / step-up question from the first draft.** It's gone:
-her rewrite drops the step-up entirely, which was also the right knee call
-(§2.9). SHORT now saves 29–38% on all three days.
+What survived is the *structure*. The names the stages used to carry —
+`THE WORK`, `KNEE STRENGTH`, `STANDING CORE` — now head the movement list on
+the session sheet, so the shape of her plan is visible before she starts
+rather than announced one prompt at a time.
+
+**The weekly counter went with it.** The home screen used to show
+`SESSIONS 2/3 · WALKS 1/4`. A weekly quota is a streak wearing a different
+hat: it turns a rearranged week into a visible deficit, and with a newborn
+every week gets rearranged. The hundred days already do the motivating, and
+they do it without ever showing her a number she's behind on.
 
 ### 2.8 Postpartum layer
 
@@ -755,7 +768,7 @@ ship as a clip; a missing one is mute on her iPhone.
 | **P0** | Name + brand lock | the word, the wordmark, the icon | ✅ yes |
 | **P1** | Program data + tests | `src/hotmum/program.js`, all 3 days, unit-tested queue + timing math. No UI. | — |
 | **P2** | Engine extraction | `src/workout/stepEngine.js`, rehab tests still green | — |
-| **P3** | Shell + plum-dark theme | home screen, 3 session cards, FULL/SHORT/CORE picker | — |
+| **P3** | Shell + plum-dark theme | home screen, 3 session cards | — |
 | **P4** | Player | the timed session, tempo, rest, crash-safe resume | — |
 | **P5** | Voice pack | Alice, full clip set | — |
 | **P6** | Install | icons, manifest, on her phone, first real session | ✅ yes |

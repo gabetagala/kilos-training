@@ -49,6 +49,19 @@ export const NUM_SLUGS = [
 
 export const phaseWord = (label) => PHASE_WORDS[label] || null;
 
+// The hold lengths in the program, as words. Deliberately a lookup and not
+// arithmetic: a clip either exists or the number is simply not spoken, and a
+// test walks every hold in the program to catch one that isn't in here.
+export const SEC_SLUGS = {
+  10: 'ten',
+  15: 'fifteen',
+  20: 'twenty',
+  30: 'thirty',
+  40: 'forty',
+  45: 'forty-five',
+  60: 'sixty',
+};
+
 /**
  * WHICH BEAT CARRIES THE REP NUMBER.
  *
@@ -70,33 +83,28 @@ export function countPhase(tempo) {
 }
 
 /**
- * The word for one tempo beat, or null for a silent one.
+ * WHAT ALICE SAYS AT THE TOP OF A SET — the movement, then the dose.
  *
- * SHE COUNTS, SHE DOESN'T COACH (2026-08-20). Alice used to call the phase on
- * every beat — "down… hold… up… two… down… hold… up… three" — which is a word
- * roughly every second and a half for twenty minutes. Two problems: it's
- * relentless, and it's redundant. The phase is ALREADY on screen in 50px type
- * and the whole canvas warms on the lift and cools on the lower (PLAN.md §3),
- * so the tempo is readable without a word for it. What the voice is genuinely
- * needed for is the thing she can't see while she's moving: **where she is in
- * the set**.
+ * "Single-Leg RDL. Six reps."   /   "Wall Sit. Thirty seconds."
  *
- * So the only thing that lands on a tempo beat is the REP NUMBER, once per
- * rep, at the top. Everything else Alice still says is transition, not
- * coaching: "get set", the name of what's coming, "rest", "switch sides", and
- * the 3-2-1 into the end of a hold.
+ * NOTHING is spoken inside a set any more. The arc got here in two steps:
+ * first she stopped calling the phase on every beat (it narrated something
+ * already on screen in 50px type), then she stopped counting the reps too.
+ * What's left is the KILOS pattern — name the movement, name the dose, then
+ * be quiet and let her work. The rep counter on screen is the running total;
+ * a voice repeating it was a second copy of the same fact.
  *
- * The phase words stay in PHASE_WORDS and stay on screen — they're the label
- * set, and the clips are still on disk. This is a decision about how much the
- * coach talks, not about deleting the vocabulary.
+ * Returns a list of slugs to speak in order, or [] if there's nothing to say.
  */
-export function beatSlug(st, tempo) {
-  if (st.phaseSec !== 0) return null;
-  if (st.label !== countPhase(tempo)) return null;
-  const total = tempo.reps || 0;
-  if (total >= 6 && st.rep === total - 2) return 'last-three';
-  if (total >= 2 && st.rep === total) return 'last-one';
-  return NUM_SLUGS[st.rep] || null;
+export function setAnnounce(work) {
+  if (!work) return [];
+  const name = `name-${work.exId}`;
+  if (work.tempo?.reps) {
+    const n = NUM_SLUGS[work.tempo.reps];
+    return n ? [name, n, 'reps'] : [name];
+  }
+  const n = SEC_SLUGS[work.secs];
+  return n ? [name, n, 'seconds'] : [name];
 }
 
 /**

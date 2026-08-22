@@ -11,7 +11,7 @@
 // backgrounded tab or a mid-set refresh restores to the exact second.
 
 import './style.css';
-import { beatSlug, countdownSlug, NUM_SLUGS } from './cues.js';
+import { countdownSlug, setAnnounce } from './cues.js';
 import { demoFor, stillDemo } from './demos.js';
 import {
   buildStepQueue,
@@ -39,9 +39,9 @@ import {
   MOVEMENTS,
   SEASON,
   sessionForToday,
+  sessionParts,
   tempoLabel,
   WALK,
-  WEEKLY_TARGET,
 } from './program.js';
 import {
   buildShareData,
@@ -109,33 +109,16 @@ const dayKey = (d = new Date()) =>
 const todayKey = () => dayKey();
 const history = () => get(K.history, []);
 
-// ─── The session grows, it doesn't shrink ──────────────────────────────────
-// SHORT starts by default; when the main work is done the app OFFERS the
-// finishers, then the core. Minute zero is the wrong time to ask a mother how
-// long the baby will sleep, so every exit point is a complete session rather
-// than an abandoned one (PLAN.md §2.7).
-
-const STAGES = [
-  { key: 'main', doses: ['warmup', 'main'] },
-  { key: 'finisher', doses: ['finisher'] },
-  { key: 'core', doses: ['core'] },
-];
-// MINI is the knee work plus the standing core — see DOSES in program.js for
-// why the old core-only cut wasn't worth a button.
-const DOSE_STAGES = { short: [0], full: [0, 1, 2], mini: [1, 2] };
-
-const stageSession = (session, stageIdx) => ({
-  ...session,
-  blocks: session.blocks.filter((b) => STAGES[stageIdx].doses.includes(b.dose)),
-});
-const stageMins = (session, stageIdx) =>
-  estimateSessionMins(stageSession(session, stageIdx));
-
-// What this session calls that stage — "KNEE STRENGTH" on a lower day,
-// "ARMS + CARRY" on the upper one. Generic labels would have made the one
-// thing her plan is organised around invisible.
-const stageName = (session, i) =>
-  session?.stages?.[STAGES[i].key] || STAGES[i].key.toUpperCase();
+// ─── One session, start to finish ──────────────────────────────────────────
+// There used to be three cuts — FULL / SHORT / MINI — and the app offered to
+// extend after the main work, because the first draft measured 41–46 minutes
+// and asking a mother to commit to that at minute zero was the wrong question.
+//
+// Her rewrite fixed that at the source: a session is thirty minutes, and SHORT
+// only saved eight of them. A choice that small isn't a mercy, it's a decision
+// standing between her and starting. GO starts the session; the session ends
+// when it ends. If thirty minutes isn't there today, ANOTHER MOVEMENT is one
+// tap away and counts just the same.
 
 // ─── A session is never used raw ───────────────────────────────────────────
 // Two things happen to it first: `progress()` rewrites the work for the day
@@ -244,45 +227,12 @@ function seasonRail() {
   }).join('');
 }
 
-// ─── The week's target ─────────────────────────────────────────────────────
-// Monday to Sunday, three sessions and four walks. Shown as PROGRESS, never as
-// a deficit: it says "2 of 3", not "1 missing", and once a target is met it
-// just goes gold and stops asking. She still chooses what she does each day —
-// this only tells her where the week stands.
-
-function weekProgress() {
-  const now = new Date();
-  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  monday.setDate(monday.getDate() - ((now.getDay() + 6) % 7));
-  const from = dayKey(monday);
-  const rows = history().filter((h) => h.date >= from);
-  return {
-    sessions: rows.filter((h) => h.kind === 'session').length,
-    walks: rows.filter((h) => h.kind === 'walk').length,
-    target: WEEKLY_TARGET,
-  };
-}
-
-function goalRow(label, done, target) {
-  const pips = Array.from(
-    { length: target },
-    (_, i) => `<i class="gp${i < done ? ' on' : ''}"></i>`,
-  ).join('');
-  return `<div class="goal ${done >= target ? 'met' : ''}">
-    <span class="lbl lbl-sm">${esc(label)}</span>
-    <span class="goal-pips">${pips}</span>
-    <span class="lbl lbl-sm goal-n">${done} / ${target}</span>
-  </div>`;
-}
-
-function goalsBlock() {
-  const w = weekProgress();
-  return `<div class="goals">
-    <div class="season-row"><span class="lbl lbl-sm">THIS WEEK · MON TO SUN</span></div>
-    ${goalRow('SESSIONS', w.sessions, w.target.sessions)}
-    ${goalRow('WALKS', w.walks, w.target.walks)}
-  </div>`;
-}
+// ─── No scoreboard ─────────────────────────────────────────────────────────
+// The home screen used to carry a weekly target — "SESSIONS 2/3, WALKS 1/4".
+// It's gone (2026-08-22). A weekly quota is a streak wearing a different hat:
+// it turns a rearranged week into a visible deficit, and with a newborn every
+// week gets rearranged. The hundred days already do the motivating, and they
+// do it without ever showing her a number she's behind on.
 
 function doneToday() {
   const t = todayKey();
@@ -635,7 +585,7 @@ function renderAthlete() {
       const s = h.sessionId ? getSession(h.sessionId) : null;
       const title = s ? s.name : 'Walk';
       const detail = s
-        ? `${h.dose?.toUpperCase() || ''} · ${h.sets} sets · ${mmss(h.secs)}`
+        ? `${h.sets} sets · ${mmss(h.secs)}`
         : `${WALK.mins} min`;
       return `<div class="row">
         <div>
@@ -953,7 +903,6 @@ function renderHome() {
       </div>
 
       <div class="pane pane-c">
-        ${goalsBlock()}
         ${card}
         ${recent ? `<h2 class="sec-h">Recent</h2>${recent}` : ''}
         <p class="fine">Everything lives on this phone.</p>
@@ -1031,7 +980,6 @@ function openPicker() {
         <button class="icon-btn" id="sheet-x" aria-label="Close">✕</button>
       </div>
       <p class="row-s">Your pick — there's no wrong one.</p>
-      ${goalsBlock()}
       ${options
         .map(
           (o) => `<button class="row row-tap pick" data-pick="${esc(o.id)}">
@@ -1081,22 +1029,28 @@ function openSession(id) {
 
   function paint() {
     const s = prepped(id, { easyKnee });
-    const short = estimateSessionMins(stageSession(s, 0));
-    const full = [0, 1, 2].reduce((n, i) => n + stageMins(s, i), 0);
-    const mini = stageMins(s, 1) + stageMins(s, 2);
-
-    const rows = sessionOverview(s)
-      .map((r, i) => {
-        const b = s.blocks[i];
-        const load = b?.load ? formatLoad(b.load, profile.unit) : '';
-        return `<button class="ex-row${b?.swappedFrom ? ' ex-swapped' : ''}" data-ex="${esc(b?.ex || '')}">
-        <span class="ex-fig">${stillDemo(b?.ex)}</span>
+    const mins = estimateSessionMins(s);
+    // The list is grouped by the session's own names for its parts. Those
+    // labels used to be the "add the knee work?" prompts; with one whole
+    // session there's nothing to prompt, but the structure is still the thing
+    // her plan is organised around, so it becomes the shape of the list.
+    const overview = sessionOverview(s);
+    const rowFor = (b) => {
+      const r = overview[s.blocks.indexOf(b)];
+      const load = b.load ? formatLoad(b.load, profile.unit) : '';
+      return `<button class="ex-row${b.swappedFrom ? ' ex-swapped' : ''}" data-ex="${esc(b.ex)}">
+        <span class="ex-fig">${stillDemo(b.ex)}</span>
         <span class="ex-txt">
           <span class="ex-nm">${esc(r.title)}</span>
           <span class="ex-d">${esc(r.detail)}${load ? ` · ${esc(load)}` : ''}</span>
         </span>
       </button>`;
-      })
+    };
+    const rows = sessionParts(s)
+      .map(
+        (part) =>
+          `<div class="part-h"><span class="lbl lbl-sm">${esc(part.label)}</span></div>${part.blocks.map(rowFor).join('')}`,
+      )
       .join('');
 
     sheet.innerHTML = `<div class="sheet-card sheet-session" role="dialog" aria-label="${esc(s.name)}">
@@ -1122,38 +1076,12 @@ function openSession(id) {
           : ''
       }
       <div class="sheet-scroll">${rows}</div>
-      <div class="doses">
-        <button class="dose" data-dose="short" aria-pressed="true">SHORT<i>${short} MIN</i></button>
-        <button class="dose" data-dose="full" aria-pressed="false">FULL<i>${full} MIN</i></button>
-        <button class="dose" data-dose="mini" aria-pressed="false">MINI<i>${mini} MIN</i></button>
-      </div>
-      <p class="dose-hint" id="dose-hint"></p>
-      <button class="btn" id="go-session">GO</button>
+      <button class="btn" id="go-session">GO<i>${mins} MIN</i></button>
       <button class="btn-quiet" id="another">Another movement →</button>
     </div>`;
 
-    const s1 = stageName(s, 1).toLowerCase();
-    const s2 = stageName(s, 2).toLowerCase();
-    const doseHints = {
-      short: `Warm-up and main work. The ${s1} is offered after, never up front.`,
-      full: `Everything — warm-up, main work, ${s1}, ${s2}.`,
-      mini: `Just the ${s1} and ${s2}. The bad-day session.`,
-    };
-    const hint = sheet.querySelector('#dose-hint');
-    const setHint = (d) => {
-      hint.textContent = doseHints[d];
-    };
-    setHint('short');
-
     for (const b of sheet.querySelectorAll('[data-ex]')) {
       b.addEventListener('click', () => openExercise(b.dataset.ex));
-    }
-    for (const b of sheet.querySelectorAll('.dose')) {
-      b.addEventListener('click', () => {
-        for (const o of sheet.querySelectorAll('.dose'))
-          o.setAttribute('aria-pressed', String(o === b));
-        setHint(b.dataset.dose);
-      });
     }
     sheet.querySelector('#knee')?.addEventListener('click', () => {
       easyKnee = !easyKnee;
@@ -1164,12 +1092,9 @@ function openSession(id) {
       openMovePicker();
     });
     sheet.querySelector('#go-session').addEventListener('click', () => {
-      const dose =
-        sheet.querySelector('.dose[aria-pressed="true"]')?.dataset.dose ||
-        'short';
       unlock(); // MUST be inside the tap — iOS only lets a gesture start audio
       sheet.remove();
-      startSession(id, dose, easyKnee);
+      startSession(id, easyKnee);
     });
   }
 
@@ -1258,19 +1183,15 @@ function openMoveSheet(id) {
 
 // ─── Starting work ─────────────────────────────────────────────────────────
 
-function startSession(sessionId, dose, easyKnee = false) {
+function startSession(sessionId, easyKnee = false) {
   const day = dayNumber();
   const session = prepped(sessionId, { easyKnee, day });
-  const stages = DOSE_STAGES[dose] || DOSE_STAGES.short;
   run = {
     kind: 'session',
     sessionId,
-    dose,
     easyKnee,
     day,
-    stages,
-    stagePos: 0,
-    queue: buildStepQueue(stageSession(session, stages[0])),
+    queue: buildStepQueue(session),
     idx: 0,
     elapsed: 0,
     running: true,
@@ -1327,23 +1248,18 @@ function announce(st) {
   hush();
   if (st.kind === 'prep') {
     say('get-set');
-    // …then name what's coming, so she can set up without reading the screen.
-    // Queued, not timed — a fixed 900ms delay landed on top of longer names.
-    sayAfter(`name-${st.exId}`);
+    // …then the whole set as a sentence: "Single-Leg RDL. Six reps." Queued,
+    // not timed — a fixed delay landed on top of the longer names. The reps
+    // come from the WORK step this prep is for, not from the prep itself.
+    const work = run.queue.slice(run.idx + 1).find((q) => q.kind === 'work');
+    for (const slug of setAnnounce(work)) sayAfter(slug);
   } else if (st.kind === 'rest') {
     // The engine calls the short re-brace between McGill-style reps BREATHE.
     if (st.phase === 'SWITCH SIDES') say('switch-sides');
     else if (st.phase === 'BREATHE') say('breathe');
     else say('rest');
-  } else if (st.tempo) {
-    say('go');
   } else if (st.kind === 'work') {
-    // A walk or a yoga class is one long step with no reps in it — it opens
-    // with "go", not with "hold", which is what the rep fallback used to say.
-    if (run.kind !== 'session') say('go');
-    // Timed holds (wall sits, carries, suitcase holds) had no voice at all.
-    // Call the rep so she knows where she is in the set.
-    else say(NUM_SLUGS[st.rep] || 'hold');
+    say('go');
   }
 }
 
@@ -1354,17 +1270,21 @@ function enterPlayer() {
   // Decode everything this session will say BEFORE the first set — decoding
   // mid-beat is what makes a word land late.
   preload([
-    // Phase words are no longer spoken on the beat (cues.js) — don't decode
-    // six clips a session that nothing will ever play.
-    ...NUM_SLUGS.filter(Boolean),
+    // Exactly what this session will actually say, and nothing else. Alice's
+    // vocabulary shrank twice over (cues.js) — she no longer calls the phase
+    // and no longer counts the reps — so decoding the whole dictionary would
+    // be dozens of clips a session that nothing will ever play.
     'get-set',
     'go',
     'rest',
     'breathe',
     'switch-sides',
-    'last-three',
-    'last-one',
     'session-complete',
+    ...new Set(
+      run.queue.flatMap((st) =>
+        st.kind === 'work' && HOTMUM_EXERCISES[st.exId] ? setAnnounce(st) : [],
+      ),
+    ),
     ...new Set(
       run.queue
         .filter((st) => HOTMUM_EXERCISES[st.exId])
@@ -1594,8 +1514,7 @@ function paintStatic() {
 // The block a step came from — the engine tags steps with `bi`.
 function findBlock(st) {
   if (run.kind !== 'session' || st.bi == null) return null;
-  const session = runSession();
-  return stageSession(session, run.stages[run.stagePos]).blocks[st.bi] || null;
+  return runSession().blocks[st.bi] || null;
 }
 
 function tick() {
@@ -1633,12 +1552,8 @@ function tick() {
       for (const [i, p] of [...app.querySelectorAll('.pip')].entries()) {
         p.className = `pip${i < ts.rep - 1 ? ' on' : i === ts.rep - 1 ? ' now' : ''}`;
       }
-      // one spoken beat per phase-second boundary
-      const key = `${ts.rep}:${ts.label}:${ts.phaseSec}`;
-      if (key !== lastBeat) {
-        lastBeat = key;
-        say(beatSlug(ts, st.tempo));
-      }
+      // Nothing is spoken inside a set — the whole set was announced at
+      // the top and the rep counter on screen is the running total.
     } else {
       if (pl)
         pl.className = `screen player${st.kind === 'rest' ? ' resting' : ''}`;
@@ -1684,76 +1599,13 @@ function advance(skipped = false) {
   run.since = Date.now();
   lastBeat = '';
 
-  if (run.idx >= run.queue.length) return stageComplete();
+  if (run.idx >= run.queue.length) return finishRun();
 
   announce(step());
 
   save();
   renderPlayer();
   tick();
-}
-
-// ─── End of a stage: offer to keep going ───────────────────────────────────
-
-function stageComplete() {
-  cancelAnimationFrame(raf);
-  if (run.kind === 'walk') return finishRun();
-
-  const atLast = run.stagePos >= run.stages.length - 1;
-  const nextStage = run.stages[run.stagePos + 1];
-
-  // FULL and CORE were chosen up front — don't interrupt them.
-  if (!atLast && nextStage != null) {
-    run.stagePos++;
-    startStage();
-    return;
-  }
-  // SHORT: the session grows only if she says yes.
-  const grown = lastRunStage() + 1;
-  if (run.dose === 'short' && grown < STAGES.length) return askExtend(grown);
-  finishRun();
-}
-
-const lastRunStage = () => run.stages[run.stagePos];
-
-function startStage() {
-  const session = runSession();
-  run.queue = buildStepQueue(stageSession(session, run.stages[run.stagePos]));
-  run.deltas = [];
-  run.idx = 0;
-  run.elapsed = 0;
-  run.since = Date.now();
-  run.running = true;
-  save();
-  renderPlayer();
-  tick();
-}
-
-function askExtend(stageIdx) {
-  view = 'ask';
-  const session = runSession();
-  const mins = stageMins(session, stageIdx);
-  const ask = `Add the ${stageName(session, stageIdx).toLowerCase()}?`;
-  app.innerHTML = `
-    <div class="screen">
-      <div class="top"><div class="mark">HOT<br>MUM</div></div>
-      <div class="ask">
-        <span class="lbl lbl-sm lbl-hot">THAT'S THE MAIN WORK DONE</span>
-        <h2>${esc(ask)}</h2>
-        <p class="blurb">+${mins} min. Stop here and it still counts as a full session.</p>
-      </div>
-      <div style="flex-shrink:0">
-        <button class="btn" id="yes">KEEP GOING</button>
-        <div class="btn-row"><button class="btn btn-ghost btn-sm" id="no">I'M DONE</button></div>
-      </div>
-    </div>`;
-  app.querySelector('#yes').addEventListener('click', () => {
-    run.stages = [...run.stages, stageIdx];
-    run.stagePos = run.stages.length - 1;
-    view = 'player';
-    startStage();
-  });
-  app.querySelector('#no').addEventListener('click', finishRun);
 }
 
 // ─── Finishing ─────────────────────────────────────────────────────────────
@@ -1817,7 +1669,6 @@ function finishRun() {
     kind: run.kind,
     sessionId: run.sessionId,
     moveId: run.moveId,
-    dose: run.dose,
     secs: run.totals.secs,
     sets: run.totals.sets,
     tut: run.totals.tut,
@@ -1956,7 +1807,7 @@ function restore() {
     }
     run = {
       ...s,
-      queue: buildStepQueue(stageSession(session, s.stages[s.stagePos])),
+      queue: buildStepQueue(session),
     };
     if (run.idx >= run.queue.length) {
       drop(K.active);
