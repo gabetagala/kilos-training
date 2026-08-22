@@ -392,11 +392,13 @@ body {
      behind body's background — i.e. invisible. */
   isolation: isolate;
 }
-/* THE SIGNATURE, inverted for the field. It used to be a magenta bloom fading
-   IN over plum; now the field is always there, so the beat is a dark veil
-   LIFTING off it. Full colour on the up, dimmed on the down — she still reads
-   the tempo from across the room without looking at a number. */
-/* FIXED, not absolute: the dim has to cover the whole screen. Scoped to the
+/* A STEADY VEIL, not a pulse. This used to be the signature: the canvas warmed
+   toward magenta on the lift beat and cooled on the lower, so the tempo was
+   readable from across the room. The beat is gone (2026-08-22) — nothing calls
+   a rep any more — and a screen that breathes at you while you work, in time
+   with nothing, is just motion. The veil stays so the contrast is unchanged;
+   only the animation is gone.
+   FIXED, not absolute: the dim has to cover the whole screen. Scoped to the
    player's column it stopped at the content edge, which on a laptop left the
    rail and the margins bright while the middle went dark. */
 .bloom {
@@ -404,30 +406,9 @@ body {
   inset: 0;
   z-index: -1;
   opacity: 0.5;
-  transition: opacity 0.45s ease;
   background: rgba(18, 4, 11, 0.78);
 }
-.player.down .bloom,
-.player.out .bloom {
-  opacity: 0.5;
-}
-.player.hold .bloom {
-  opacity: 0.26;
-}
-.player.up .bloom,
-.player.squeeze .bloom,
-.player.back .bloom {
-  opacity: 0;
-}
-.player.resting .bloom {
-  opacity: 0.62;
-}
 
-.pl-tools {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
 .ex-name {
   font-family: var(--display);
   font-weight: 600;
@@ -462,11 +443,7 @@ body {
 .pl-mid .lbl {
   margin-top: 18px;
 }
-.pl-mid .pips {
-  width: 100%;
-  margin-top: 10px;
-}
-/* Tempo and load are facts about the SET — they belong with the set line, not
+/* Pace and load are facts about the SET — they belong with the set line, not
    parked next to the buttons with a void between. */
 .pl-mid .strip {
   width: 100%;
@@ -493,9 +470,7 @@ body {
   margin-top: 6px;
   transition: color 0.3s;
 }
-.player.up .phase,
-.player.squeeze .phase,
-.player.back .phase {
+.player.resting .phase {
   color: var(--cream);
 }
 .cue {
@@ -506,22 +481,34 @@ body {
   max-width: 34ch;
 }
 
-.pips {
-  display: flex;
-  gap: 4px;
-  margin-top: 9px;
+/* ONE BAR DRAINING. It replaced a row of per-rep pips, which had nothing to
+   track once the app stopped detecting reps. This shows the only thing left
+   that's true: how much of the interval is gone. */
+.pl-mid .work-bar {
+  width: 100%;
+  margin-top: 10px;
 }
-.pip {
-  flex: 1;
+.work-bar {
+  width: 100%;
   height: 4px;
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.16);
+  overflow: hidden;
+  margin-top: 9px;
+  /* .pl-mid is a flex column with a definite height, so a 4px child gets
+     shrunk to nothing the moment the column is tight — same trap the day
+     boxes and the sheet rows hit. */
+  flex-shrink: 0;
 }
-.pip.on {
+.work-bar > i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 2px;
   background: var(--cream);
 }
-.pip.now {
-  background: var(--ink);
+.player.resting .work-bar > i {
+  background: rgba(255, 255, 255, 0.45);
 }
 
 .pl-foot {
@@ -1827,12 +1814,6 @@ body {
 .hm-art-img.b {
   opacity: 0;
 }
-.hm-art.at-b .hm-art-img.a {
-  opacity: 0;
-}
-.hm-art.at-b .hm-art-img.b {
-  opacity: 1;
-}
 @media (prefers-reduced-motion: reduce) {
   .hm-art-img {
     transition: none;
@@ -1918,4 +1899,42 @@ body {
   font-weight: 600;
   letter-spacing: 0.18em;
   color: var(--ink-soft);
+}
+
+/* Two-pose art keeps demonstrating on its own loop. It used to cross-fade on
+   the tempo phase; with no beat to follow, the figure simply keeps moving. */
+@keyframes hm-pose-a {
+  0%,
+  40% {
+    opacity: 1;
+  }
+  60%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes hm-pose-b {
+  0%,
+  40% {
+    opacity: 0;
+  }
+  60%,
+  100% {
+    opacity: 1;
+  }
+}
+.hm-art.two .hm-art-img.a {
+  animation: hm-pose-a 3.2s ease-in-out infinite alternate;
+}
+.hm-art.two .hm-art-img.b {
+  animation: hm-pose-b 3.2s ease-in-out infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hm-art.two .hm-art-img.a,
+  .hm-art.two .hm-art-img.b {
+    animation: none;
+  }
+  .hm-art.two .hm-art-img.b {
+    opacity: 1;
+  }
 }

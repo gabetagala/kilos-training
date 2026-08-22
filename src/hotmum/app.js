@@ -17,8 +17,6 @@ import {
   buildStepQueue,
   estimateSessionMins,
   nextWorkLabel,
-  sessionOverview,
-  tempoStateAt,
 } from './engine.js';
 import {
   formatLoad,
@@ -28,6 +26,7 @@ import {
   subGreeting,
 } from './profile.js';
 import {
+  blockDetail,
   blockForDay,
   dayNumber,
   daysToGo,
@@ -40,7 +39,6 @@ import {
   SEASON,
   sessionForToday,
   sessionParts,
-  tempoLabel,
   WALK,
 } from './program.js';
 import {
@@ -364,7 +362,7 @@ function renderProgram() {
 function openExercise(id) {
   const ex = HOTMUM_EXERCISES[id];
   if (!ex) return;
-  const tempo = ex.repTempo ? tempoLabel(ex.repTempo) : null;
+
   const sheet = document.createElement('div');
   sheet.className = 'sheet';
   sheet.innerHTML = `<div class="sheet-card" role="dialog" aria-label="${esc(ex.name)}">
@@ -373,7 +371,6 @@ function openExercise(id) {
         <button class="icon-btn" id="sheet-x" aria-label="Close">✕</button>
       </div>
       <div class="hm-demo ex-demo">${demoFor(id)}</div>
-      ${tempo ? `<span class="lbl lbl-sm lbl-hot">TEMPO ${esc(tempo)}</span>` : ''}
       <dl class="sheet-dl">
         <dt>How to</dt><dd>${esc(ex.cue)}</dd>
         <dt>Should feel like</dt><dd>${esc(ex.feel)}</dd>
@@ -1035,15 +1032,13 @@ function openSession(id) {
     // labels used to be the "add the knee work?" prompts; with one whole
     // session there's nothing to prompt, but the structure is still the thing
     // her plan is organised around, so it becomes the shape of the list.
-    const overview = sessionOverview(s);
     const rowFor = (b) => {
-      const r = overview[s.blocks.indexOf(b)];
       const load = b.load ? formatLoad(b.load, profile.unit) : '';
       return `<button class="ex-row${b.swappedFrom ? ' ex-swapped' : ''}" data-ex="${esc(b.ex)}">
         <span class="ex-fig">${stillDemo(b.ex)}</span>
         <span class="ex-txt">
-          <span class="ex-nm">${esc(r.title)}</span>
-          <span class="ex-d">${esc(r.detail)}${load ? ` · ${esc(load)}` : ''}</span>
+          <span class="ex-nm">${esc(exName(b.ex))}</span>
+          <span class="ex-d">${esc(blockDetail(b))}${load ? ` · ${esc(load)}` : ''}</span>
         </span>
       </button>`;
     };
@@ -1253,7 +1248,7 @@ function announce(st) {
     // not timed — a fixed delay landed on top of the longer names. The reps
     // come from the WORK step this prep is for, not from the prep itself.
     const work = run.queue.slice(run.idx + 1).find((q) => q.kind === 'work');
-    for (const slug of setAnnounce(work)) sayAfter(slug);
+    for (const slug of setAnnounce(work, findBlock(work))) sayAfter(slug);
   } else if (st.kind === 'rest') {
     // The engine calls the short re-brace between McGill-style reps BREATHE.
     if (st.phase === 'SWITCH SIDES') say('switch-sides');
@@ -1283,7 +1278,9 @@ function enterPlayer() {
     'session-complete',
     ...new Set(
       run.queue.flatMap((st) =>
-        st.kind === 'work' && HOTMUM_EXERCISES[st.exId] ? setAnnounce(st) : [],
+        st.kind === 'work' && HOTMUM_EXERCISES[st.exId]
+          ? setAnnounce(st, findBlock(st))
+          : [],
       ),
     ),
     ...new Set(
@@ -1363,8 +1360,11 @@ function paintDemo(exId) {
   if (!el || !exId) return;
   const art = artCache.get(exId);
   if (art && !(art instanceof Promise)) {
-    el.innerHTML = `<div class="hm-art">
-      <img class="hm-art-img a on" src="${esc(art.a)}" alt="">
+    // Two-pose art loops on its own now. It used to cross-fade on the tempo
+    // phase, and there is no phase any more — the figure just keeps doing the
+    // movement while she works, which is the whole job of a demo.
+    el.innerHTML = `<div class="hm-art${art.b ? ' two' : ''}">
+      <img class="hm-art-img a" src="${esc(art.a)}" alt="">
       ${art.b ? `<img class="hm-art-img b" src="${esc(art.b)}" alt="">` : ''}
     </div>`;
     return;
@@ -1378,10 +1378,6 @@ function paintDemo(exId) {
   });
 }
 
-/** The last phase of a tempo pattern is always the return to the start pose. */
-const atWorkingPose = (tempo, label) =>
-  label !== tempo.pattern[tempo.pattern.length - 1][0];
-
 // ─── The hero says HOW MUCH, never how much is left ────────────────────────
 // It has been three things. A 168px countdown of the set (a deadline — it made
 // her watch a clock instead of move), then a live rep counter (2/6, still a
@@ -1391,8 +1387,10 @@ const atWorkingPose = (tempo, label) =>
 // Nothing is lost. Where she is inside the set is the pip row, which fills a
 // bar per rep, and the three tones at the end say when it's over — which is
 // the only part of a countdown she actually needed.
-function heroDose(st) {
-  if (st.tempo?.reps) return `${st.tempo.reps}<i>REPS</i>`;
+function heroDose(st, block) {
+  if (st.kind === 'work' && block?.reps) return `${block.reps}<i>REPS</i>`;
+  // A walk is 1800 seconds. Nobody reads that — past two minutes it's minutes.
+  if (st.secs >= 120) return `${Math.round(st.secs / 60)}<i>MIN</i>`;
   if (st.secs) return `${st.secs}<i>SEC</i>`;
   return '';
 }
@@ -1452,12 +1450,12 @@ function renderPlayer() {
       ${teach ? `<div class="pl-stage"><div class="hm-demo${teaching ? ' teaching' : ''}" id="demo"></div></div>` : ''}
 
       <div class="pl-mid">
-        <div class="timer as-dose" id="timer">${heroDose(st)}</div>
+        <div class="timer as-dose" id="timer">${heroDose(st, findBlock(st))}</div>
         <div class="phase" id="phase">${esc(st.phase || '')}</div>
         <p class="cue" id="cue">${esc(cue)}</p>
         <span class="lbl lbl-sm" id="meta">${esc(st.meta || '')}</span>
         ${teach ? guideFor(teach, teaching) : ''}
-        <div class="pips" id="pips"></div>
+        <div class="work-bar" id="wbar"><i></i></div>
         <div class="strip">
           <span class="lbl lbl-sm" id="tempo-lbl"></span>
           <span class="lbl lbl-sm" id="load-lbl"></span>
@@ -1502,27 +1500,18 @@ function freezeDemoIfAsked() {
 }
 
 function paintStatic() {
-  const st = step();
-  const blk = st.tempo;
-  const tempoLbl = app.querySelector('#tempo-lbl');
-  const loadLbl = app.querySelector('#load-lbl');
   freezeDemoIfAsked();
-  if (tempoLbl)
-    tempoLbl.textContent = blk
-      ? `TEMPO ${blk.pattern.map(([, s]) => s).join('-')}`
+  const block = findBlock(step());
+  const paceLbl = app.querySelector('#tempo-lbl');
+  if (paceLbl)
+    paceLbl.textContent = block?.secsPerRep
+      ? `${block.secsPerRep}s PER REP`
       : '';
-  if (loadLbl) {
-    const b = findBlock(st);
-    loadLbl.textContent = b?.load
-      ? formatLoad(b.load, profile.unit).toUpperCase()
+  const loadLbl = app.querySelector('#load-lbl');
+  if (loadLbl)
+    loadLbl.textContent = block?.load
+      ? formatLoad(block.load, profile.unit).toUpperCase()
       : '';
-  }
-  const pips = app.querySelector('#pips');
-  if (pips) {
-    pips.innerHTML = blk
-      ? Array.from({ length: blk.reps }, () => '<i class="pip"></i>').join('')
-      : '';
-  }
 }
 
 // The block a step came from — the engine tags steps with `bi`.
@@ -1558,26 +1547,12 @@ function tick() {
       }
     }
 
-    const pl = app.querySelector('#pl');
-    if (st.tempo) {
-      const ts = tempoStateAt(st.tempo, e);
-      const phase = app.querySelector('#phase');
-      if (phase) phase.textContent = ts.label;
-      const meta = app.querySelector('#meta');
-      if (meta) meta.textContent = st.meta || '';
-      if (pl) pl.className = `screen player ${ts.label.toLowerCase()}`;
-      const stage = app.querySelector('#demo .hm-art');
-      if (stage)
-        stage.classList.toggle('at-b', atWorkingPose(st.tempo, ts.label));
-      for (const [i, p] of [...app.querySelectorAll('.pip')].entries()) {
-        p.className = `pip${i < ts.rep - 1 ? ' on' : i === ts.rep - 1 ? ' now' : ''}`;
-      }
-      // Nothing is spoken inside a set — the whole set was announced at
-      // the top and the rep counter on screen is the running total.
-    } else {
-      if (pl)
-        pl.className = `screen player${st.kind === 'rest' ? ' resting' : ''}`;
-    }
+    // THE CANVAS HOLDS STILL. It used to warm toward magenta on the lift and
+    // cool on the lower, pulsing once a second for twenty minutes. With no beat
+    // being called there is nothing for it to be in time WITH, and a screen
+    // that breathes at you while you work is just motion. One steady field.
+    const bar = app.querySelector('#wbar > i');
+    if (bar && total) bar.style.width = `${Math.min(100, (e / total) * 100)}%`;
 
     const prog = app.querySelector('#prog');
     if (prog)

@@ -249,67 +249,57 @@ weekly target, the sync key and all her existing history keep counting it;
 
 Her plan is written in sets × reps. She trains better on time. So:
 
-> **A set is a countdown, not a count.** Set length = `reps × seconds-per-rep`.
-> The app paces it and **says the rep number out loud** on every rep. She moves
-> with the voice and the set ends when it ends.
+> **A set is WORK AND REST, with a rep target inside it.**
+> "Six reps. Thirty seconds." The clock runs, she paces herself, and when it
+> ends it ends. Nothing calls the beat.
 
-She gets the time-based feel *and* keeps the rep accountability — the app does
-the counting. This is not a new mechanism: the KILOS guided player already does
-exactly this (`mode: 'tempo'` in [rehab.js](src/workout/rehab.js), rep counting
-added in commit `4c7328d`).
+**REWRITTEN 2026-08-22.** This started life as a per-rep *tempo*: a beat
+pattern (`3-1-1` — three down, one hold, one up) that the app called out phase
+by phase while the canvas pulsed in time with it. Every layer of that guidance
+came off in sequence, each for its own good reason:
 
-**REVISED 2026-08-20 — the countdown is the MECHANIC, not the display.** Two
-changes, and they're the same change:
+1. Alice stopped **calling the phase** — she was narrating something already on
+   screen in 50px type, a word every second and a half for twenty minutes.
+2. Alice stopped **counting the reps** — the screen was already counting them.
+3. The screen stopped **counting** — a number falling toward zero is a
+   deadline, and it made her watch a clock instead of move.
 
-- **Alice stopped talking during a set.** In two steps. First she stopped
-  calling the phase on every beat — *down… hold… up*, a word every second and
-  a half for twenty minutes, narrating something already on screen in 50px
-  type with the whole canvas warming and cooling behind it. Then she stopped
-  counting the reps too. What's left is the KILOS pattern: **name the movement
-  and the dose at the top of the set — "Single-Leg RDL. Six reps." — then be
-  quiet and let her work.** Between sets she still says get-set, what's
-  coming, rest, switch sides, and the 3-2-1 into the end of a hold.
-- **The screen stopped counting too.** The hero was a 168px timer of the SET
-  falling toward zero — a *deadline*, which makes her watch a clock instead of
-  move. It briefly became a live rep counter (`2/6`), which is still something
-  ticking at her, and it is now simply **the dose**: `12 REPS`, `30 SEC`. It
-  states the job and holds still. The only clock is small, in the corner,
-  counting the whole session upward.
-- **Three tones close every step.** With nothing counting on screen, this is
-  how she knows a set is ending: two at 880Hz on three and two, one at 1180Hz
-  on one, so "go" sounds different from "nearly". Synthesised, not a clip —
-  a countdown is the one sound in the app where exact timing beats warmth, and
-  a decoded file arrives whenever it arrives. It replaced Alice *saying*
-  "three… two… one", which only ever fired on holds. Routed through the same
-  gain node as her voice, so the mute button silences both.
+Which left an app still computing a beat that nothing was guiding her through:
+**a metronome playing to an empty room.** So the pattern collapsed to the only
+number in it that ever mattered — **seconds per rep** — and the phase words,
+the per-rep pacing and the pulsing canvas went with it.
 
-**Where she is inside the set** is the pip row — one bar per rep, filling as
-she goes. That was decoration when the hero was a counter; it's now the only
-live rep feedback in the app, which is deliberate: a glance tells her, and
-nothing is counting at her while she works.
+**What she gets now:** the movement, the rep target, the seconds, and three
+tones when the interval is ending. What she does *not* get is anything
+counting at her while she works.
 
-**Nothing about the programming changed.** The set is still a fixed duration
-underneath, the tempo still drives the beat, the canvas still warms and cools,
-and time under tension is still the progression lever (§2.0.1). A countdown is
-still exactly what a set IS — she just isn't handed a stopwatch to watch while
-she does it. Holds, rests and the get-set still show seconds, because for those
-the seconds *are* the exercise.
+**Nothing about the dosing changed.** A set is still `reps × seconds-per-rep`,
+so time under tension is intact and still the progression lever (§2.0.1) — the
+sessions came out to the same 27–31 minutes after the rewrite as before it,
+which is the proof. She owns fixed 10/15/20 lb dumbbells, so 15 → 20 lb is a
+**33% jump** and time is the only fine-grained lever there is. Progression
+order: *pace → reps → sets → load*, load last.
 
-**It also fixes a real problem in her plan.** She owns fixed 10/15/20 lb
-dumbbells. Going 15 → 20 lb is a **33% jump** — far too big to be the next
-step on a lunge. With fixed weights, the only sane progression lever is
-**time under tension**, which is precisely what a tempo makes adjustable.
-Progression order: *tempo → reps → sets → load*, load last.
+**And the canvas holds still.** It used to warm toward magenta on the lift and
+cool on the lower, so the tempo was readable from across the room — the
+signature of the whole design (§3.4). With no beat being called there is
+nothing for it to be in time *with*, and a screen that breathes at you while
+you work is just motion. The veil stays so the contrast is unchanged; only the
+animation is gone.
 
 ### 2.2 Notation
 
-Written as `lower–pause–lift` seconds, e.g. RDL `3-1-1` = 5s per rep. In code
-this is the shape the engine already takes:
+A block states the target and the pace; the interval is their product, and
+`progress()` recomputes it whenever either moves:
 
 ```js
-{ ex: 'rdl', mode: 'tempo', sets: 3, reps: 10,
-  tempo: [['LOWER', 3], ['PAUSE', 1], ['LIFT', 1]] }   // → a 50s set
+{ ex: 'rdl', mode: 'hold', sets: 3, reps: 8,
+  secsPerRep: SLOW, holdSecs: 40, phase: 'WORK' }   // → 8 reps in 40s
 ```
+
+Four paces, named for what they're for: `SLOW` (5s — hinges, squats, rows,
+raises), `STEADY` (4s — supported lunges, presses, the knee block), `QUICK`
+(3s — standing core, warm-up reps) and `LOOSE` (2s — warm-up knee lifts).
 
 ### 2.3 Warm-ups — two of them now
 
@@ -622,10 +612,11 @@ one device, so cross-platform drift never arises.
 
 - **Home** — plum-dark canvas, one magenta block for the next session, and a
   tracked-mono strip in poster grammar: `WK 04 · LOWER A · 34 MIN`.
-- **Player** — the number owns the screen. Since 2026-08-20 that number is the
-  REP (`2/6`) rather than a countdown (§2.1), in Teko at display size, with the
-  phase word (`DOWN` / `SQUEEZE`) beneath it. On a phone the figure sits above
-  it; on a desktop the screen splits 50/50, pose left and detail right.
+- **Player** — the number owns the screen. It is the DOSE (`6 REPS`, `30 SEC`)
+  and it holds still (§2.1), in Teko at display size, with `WORK` or `REST`
+  beneath it. One bar drains across the interval; three tones close it. On a
+  phone the figure sits above; on a desktop the screen splits 50/50, pose left
+  and detail right.
   The canvas **warms toward magenta on the work phase and cools back to plum on
   rest**, so she reads the *colour* from across the room, not the text — the
   dark version of the original light/magenta flip, and it works better because

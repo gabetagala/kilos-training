@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  blockDetail,
   blockForDay,
   blockWorkSecs,
   dayNumber,
@@ -19,8 +20,6 @@ import {
   sessionForToday,
   sessionParts,
   setTotal,
-  tempoLabel,
-  tempoSecs,
   timeUnderTension,
   WEEK,
 } from '../../src/hotmum/program.js';
@@ -34,10 +33,7 @@ import {
 } from '../../src/hotmum/engine.js';
 import {
   countdownTone,
-  countPhase,
   NUM_SLUGS,
-  PHASE_WORDS,
-  phaseWord,
   SEC_SLUGS,
   setAnnounce,
 } from '../../src/hotmum/cues.js';
@@ -104,39 +100,34 @@ describe('program data', () => {
     }
   });
 
-  // Alice only owns these words as clips. A label outside the set is silent,
-  // and silence mid-set is worse than a wrong word — so catch it here.
-  it('uses only phase labels Alice has a clip for', () => {
+  // A set is now a timed interval with a rep target, not a beat pattern.
+  // These are the invariants that replaced the phase-label checks.
+  it('every working set states a rep target AND the seconds to do it in', () => {
     for (const b of allBlocks) {
-      for (const [label] of b.tempo || []) {
-        expect(Object.keys(PHASE_WORDS), `${b.ex} phase ${label}`).toContain(
-          label,
-        );
-        expect(phaseWord(label), `${b.ex} phase ${label}`).toBeTruthy();
+      expect(b.mode, `${b.ex} mode`).toBe('hold');
+      expect(b.holdSecs, `${b.ex} holdSecs`).toBeGreaterThan(0);
+      // holds (wall sit, carries) have no reps; everything else does
+      if (b.reps) {
+        expect(b.secsPerRep, `${b.ex} secsPerRep`).toBeGreaterThan(0);
+        expect(b.holdSecs, `${b.ex} interval`).toBe(b.reps * b.secsPerRep);
       }
     }
   });
 
-  // The words have to match what the body does: you go DOWN and UP in a squat.
-  // The shared tempoCues.js would have said "lift"/"lower" here, which is why
-  // HOTMUM has its own vocabulary.
-  it('says down and up on the squats and hinges, out and back on the core', () => {
-    const words = (id) =>
-      (allBlocks.find((b) => b.ex === id)?.tempo || []).map(([l]) => l);
-    expect(words('goblet-squat')).toEqual(['DOWN', 'HOLD', 'UP']);
-    expect(words('bw-squat')).toEqual(['DOWN', 'UP']);
-    expect(words('rdl')).toEqual(['DOWN', 'HOLD', 'UP']);
-    expect(words('shoulder-press')).toEqual(['UP', 'DOWN']);
-    expect(words('hip-abduction')[0]).toBe('OUT');
-    expect(words('hip-abduction').at(-1)).toBe('BACK');
-    // nothing anywhere still says the barbell words
-    const all = allBlocks.flatMap((b) => (b.tempo || []).map(([l]) => l));
-    expect(all).not.toContain('LIFT');
-    expect(all).not.toContain('LOWER');
-    expect(all).not.toContain('PAUSE');
+  it('nothing in the program still carries a beat pattern', () => {
+    for (const b of allBlocks) expect(b.tempo, `${b.ex}`).toBeUndefined();
+    for (const [id, ex] of Object.entries(HOTMUM_EXERCISES)) {
+      expect(ex.repTempo, `${id}.repTempo`).toBeUndefined();
+    }
   });
 
-  // A hold, a carry or a rest used to simply stop with no warning.
+  it('describes a block the way the sheet reads it', () => {
+    const rdl = getSession('lower').blocks.find((b) => b.ex === 'sl-rdl');
+    expect(blockDetail(rdl)).toBe('3 × 6 reps · 30s / side');
+    const wall = getSession('lower').blocks.find((b) => b.ex === 'wall-sit');
+    expect(blockDetail(wall)).toBe('2 × 30s');
+  });
+
   // Every rep in the program must have a number clip. Before the coach went
   // count-only this failed silently (NUM_SLUGS stopped at ten); now a set
   // with no words in it is the whole bug.
@@ -196,9 +187,9 @@ describe('program data', () => {
 describe('tempo maths — a set is a countdown', () => {
   it('set length = reps × secs-per-rep', () => {
     const rdl = getSession('full').blocks.find((b) => b.ex === 'rdl');
-    expect(tempoSecs(rdl.tempo)).toBe(5); // 3 lower + 1 pause + 1 lift
-    expect(tempoLabel(rdl.tempo)).toBe('3-1-1');
-    expect(rdl.reps * tempoSecs(rdl.tempo)).toBe(40);
+    expect(rdl.secsPerRep).toBe(5);
+    expect(rdl.reps).toBe(8);
+    expect(rdl.holdSecs).toBe(40);
   });
 
   it('the per-side blocks cost double — one side at a time', () => {
@@ -344,11 +335,26 @@ describe('the season actually progresses', () => {
     expect(b.restSecs).toBeLessThan(a.restSecs);
   });
 
-  it('SLOW lengthens the eccentric', () => {
+  it('SLOW lengthens the rep, and the interval grows with it', () => {
     const a = opener(progress(getSession('lower'), 1));
     const b = opener(progress(getSession('lower'), 41));
-    const down = (t) => t.find(([l]) => l === 'DOWN')[1];
-    expect(down(b.tempo)).toBe(down(a.tempo) + 1);
+    expect(b.secsPerRep).toBe(a.secsPerRep + 1);
+    expect(b.holdSecs).toBe(b.reps * b.secsPerRep);
+  });
+
+  // The interval is reps × pace, always. A stored holdSecs drifting out of
+  // step with the two numbers that define it would silently mis-dose a set.
+  it('keeps the interval equal to reps × pace at every point in the season', () => {
+    for (const s of HOTMUM_SESSIONS) {
+      for (const blk of SEASON.blocks) {
+        for (const b of progress(s, blk.days[0]).blocks) {
+          if (!b.reps) continue;
+          expect(b.holdSecs, `${s.id}/${b.ex} @ ${blk.name}`).toBe(
+            b.reps * b.secsPerRep,
+          );
+        }
+      }
+    }
   });
 
   it('LOAD puts 20 lb on the hinges and squats, and nothing else', () => {
@@ -607,18 +613,13 @@ describe('drives the shipped step engine', () => {
     }
   });
 
-  it('paces an RDL set beat by beat, on screen', () => {
+  it('builds one continuous WORK interval per set', () => {
     const queue = buildStepQueue(getSession('full'));
     const set = queue.find((st) => st.exId === 'rdl' && st.kind === 'work');
     expect(set.secs).toBe(40);
-    expect(set.tempo.reps).toBe(8);
-
-    // the phases still run — they're on SCREEN, they're just never spoken
-    expect(tempoStateAt(set.tempo, 0).label).toBe('DOWN');
-    expect(tempoStateAt(set.tempo, 3000).label).toBe('HOLD');
-    expect(tempoStateAt(set.tempo, 4000).label).toBe('UP');
-    expect(tempoStateAt(set.tempo, 5000).rep).toBe(2);
-    expect(tempoStateAt(set.tempo, 39000).rep).toBe(8);
+    expect(set.phase).toBe('WORK');
+    // no beat state on the step at all any more
+    expect(set.tempo).toBeUndefined();
   });
 
   // THE COACH NAMES THE SET AND THEN SHUTS UP (2026-08-22). It went in two
@@ -628,10 +629,21 @@ describe('drives the shipped step engine', () => {
   it('announces a set as "movement, N reps" and says nothing inside it', () => {
     const queue = buildStepQueue(getSession('lower'));
     const rdl = queue.find((st) => st.exId === 'sl-rdl' && st.kind === 'work');
-    expect(setAnnounce(rdl)).toEqual(['name-sl-rdl', 'six', 'reps']);
+    expect(setAnnounce(rdl, getSession('lower').blocks[5])).toEqual([
+      'name-sl-rdl',
+      'six',
+      'reps',
+    ]);
 
     const wall = queue.find((st) => st.exId === 'wall-sit' && st.kind === 'work');
-    expect(setAnnounce(wall)).toEqual(['name-wall-sit', 'thirty', 'seconds']);
+    const wallBlock = getSession('lower').blocks.find(
+      (b) => b.ex === 'wall-sit',
+    );
+    expect(setAnnounce(wall, wallBlock)).toEqual([
+      'name-wall-sit',
+      'thirty',
+      'seconds',
+    ]);
 
     expect(setAnnounce(null)).toEqual([]);
   });
@@ -641,36 +653,16 @@ describe('drives the shipped step engine', () => {
     for (const s of HOTMUM_SESSIONS) {
       for (const st of buildStepQueue(s)) {
         if (st.kind !== 'work') continue;
-        const said = setAnnounce(st);
+        const block = s.blocks[st.bi];
+        const said = setAnnounce(st, block);
         expect(said[0], `${st.exId} name`).toBe(`name-${st.exId}`);
-        expect(said, `${st.exId} — no number for ${st.secs}s / ${st.tempo?.reps} reps`).toHaveLength(3);
+        expect(
+          said,
+          `${st.exId} — no word for ${block.reps || st.secs}`,
+        ).toHaveLength(3);
       }
     }
-    // and the numbers Alice reads are the ones she owns clips for
     for (const w of Object.values(SEC_SLUGS)) expect(w).toBeTruthy();
-  });
-
-  // The bug: on a bridge the number landed on the way up (right), on a squat it
-  // landed on the way down (backwards). Both count at the top now.
-  it('always counts the rep on the way up, whatever the pattern starts with', () => {
-    const at = (id) => {
-      const b = allBlocks.find((x) => x.ex === id);
-      return { tempo: b.tempo, count: countPhase({ pattern: b.tempo }) };
-    };
-    expect(at('goblet-squat').count).toBe('UP'); // pattern starts DOWN
-    expect(at('rdl').count).toBe('UP'); // starts DOWN
-    expect(at('calf-raise').count).toBe('UP'); // starts UP — was already right
-    expect(at('sit-to-stand').count).toBe('UP');
-    expect(at('shoulder-press').count).toBe('UP');
-    // returning the leg is what completes a hip abduction
-    expect(at('hip-abduction').count).toBe('BACK');
-
-    // every tempo block in the program counts on a real, speakable phase
-    for (const b of allBlocks.filter((x) => x.tempo)) {
-      const c = countPhase({ pattern: b.tempo });
-      expect(phaseWord(c), `${b.ex} counts on ${c}`).toBeTruthy();
-      expect(b.tempo.map(([l]) => l)).toContain(c);
-    }
   });
 
   // The whole point of the stepEngine extraction: bound to HOTMUM_EXERCISES,
@@ -685,9 +677,6 @@ describe('drives the shipped step engine', () => {
     }
     const overview = sessionOverview(getSession('lower'));
     expect(overview.map((r) => r.title)).toContain('Single-Leg RDL');
-    expect(overview.find((r) => r.title === 'Single-Leg RDL').detail).toBe(
-      '3 × 6 tempo / side',
-    );
   });
 
   it('tells her what is coming during a rest, by name and side', () => {

@@ -2,15 +2,14 @@
 // Pure data + pure helpers. No DOM, no storage, no network.
 // Unit-tested in tests/unit/hotmum.test.js.
 //
-// THE ONE RULE (hotmum/PLAN.md §2.1): a set is a COUNTDOWN, not a count.
-// Every working set is a tempo set — set length = reps × secs-per-rep — and
-// the coach speaks the tempo and says the rep number out loud. Sam moves with
-// the voice; the set ends when it ends. She never counts.
+// THE ONE RULE (hotmum/PLAN.md §2.1): a set is WORK AND REST, with a rep
+// target inside it. "Six reps. Thirty seconds." The clock runs, she paces
+// herself, and when it ends it ends. Nothing calls the beat.
 //
-// WHY TEMPO AND NOT LOAD: she owns fixed 10/15/20 lb dumbbells, so 15 → 20 lb
+// WHY TIME AND NOT LOAD: she owns fixed 10/15/20 lb dumbbells, so 15 → 20 lb
 // is a 33% jump — far too big to be the next step on a split squat. Time under
 // tension is the only fine-grained progression lever available, which is why
-// the season progresses tempo → reps → sets → load, load LAST (§2.0.1).
+// the season progresses pace → reps → sets → load, load LAST (§2.0.1).
 //
 // ─── THE KNEE DOCTRINE (§2.9) — read before changing any lower-body block ───
 //
@@ -19,7 +18,7 @@
 // tall step-up puts MORE stress through one kneecap than a shallow squat
 // spreads across two. What actually protects a cranky knee, in order:
 //
-//   1. CAP THE DEPTH, KEEP THE TEMPO. Load through a knee climbs steeply past
+//   1. CAP THE DEPTH, KEEP THE PACE. Load through a knee climbs steeply past
 //      roughly a chair-height bend. Slow eccentrics are good for the joint;
 //      slow eccentrics at the BOTTOM of a deep squat are the exact dose that
 //      irritates it. So every squat pattern here has a physical depth stop —
@@ -57,88 +56,41 @@
 // and dead bugs. Everything here can be done in shoes, next to a chair, with
 // a baby monitor in view. Don't reintroduce floor work without asking her.
 //
-// Phase labels are a closed set, defined in cues.js: UP, DOWN, SQUEEZE, HOLD,
-// OUT, BACK. They are the words Alice actually owns as clips, and they're
-// chosen to match the movement — on a squat you go DOWN and UP, not "lower"
-// and "lift" (which is what the shared tempoCues.js would have said). A label
-// outside the set is silent rather than mispronounced, and a test walks every
-// pattern to catch one.
+// Blocks match the engine schema in src/workout/rehab.js. Everything here is
+// `hold` — one timed interval per set — because that is now what a set IS: a
+// stretch of work with a rep target in it. HOTMUM's own additions on top:
+//   reps + secsPerRep — the target and the pace; holdSecs is their product
+//   part             — which section of the session the block belongs to
+//   load, kneeSwap   — the weight, and the easy-knee alternative
+
+// ─── How long a rep takes ────────────────────────────────────────────────────
+// THE PACING IS A DOSE, NOT A DRILL (rewritten 2026-08-22). This used to be a
+// per-rep beat pattern — `[['DOWN',3],['HOLD',1],['UP',1]]` — that the app
+// called out phase by phase while the canvas pulsed along with it.
 //
-// Blocks match the engine schema in src/workout/rehab.js:
-//   tempo — one continuous timed set; reps derived from the tempo pattern
-//   hold  — one timed hold per set (wall sits, carries, suitcase holds)
-//   reps  — one timed hold PER REP with a re-brace between
-// plus `dose` (which cut of the session a block belongs to), `load`, and
-// `kneeSwap`, which are HOTMUM's own additions.
+// That went in stages: the coach stopped saying the phase, then stopped
+// counting, then the screen stopped counting. What was left was an app still
+// computing a beat nobody was being guided through — a metronome playing to an
+// empty room. So the pattern collapses to the only number that ever mattered:
+// SECONDS PER REP.
+//
+// A block now reads "6 reps in 30 seconds". She's told both, the clock runs,
+// and she paces herself. Time under tension survives intact — it's still the
+// progression lever (§2.0.1), because with fixed 10/15/20 lb dumbbells it's
+// the only fine-grained one there is. What's gone is the pretence of coaching
+// every rep.
 
-// ─── Tempo patterns ──────────────────────────────────────────────────────────
-// Named so the intent survives: eccentric-led on the hinges and squats,
-// squeeze-led on the glutes, lower-led on the light isolation work where the
-// only way to make 10 lb hard is to refuse to drop it.
-
-const ECCENTRIC = [
-  ['DOWN', 3],
-  ['HOLD', 1],
-  ['UP', 1],
-]; // 5s — RDL, goblet squat, sumo squat
-const ECCENTRIC_SHORT = [
-  ['DOWN', 2],
-  ['HOLD', 1],
-  ['UP', 1],
-]; // 4s — supported lunges and sit-to-stands, where the chair sets the depth
-const SQUEEZE = [
-  ['UP', 1],
-  ['SQUEEZE', 2],
-  ['DOWN', 2],
-]; // 5s — calf raise, squeeze press
-const SQUEEZE_FAST = [
-  ['UP', 1],
-  ['SQUEEZE', 1],
-  ['DOWN', 1],
-]; // 3s — standing knee-to-elbow, knee drive
-const HANG = [
-  ['UP', 1],
-  ['HOLD', 1],
-  ['DOWN', 3],
-]; // 5s — lateral raise, rear delt fly
-const PULL = [
-  ['UP', 1],
-  ['SQUEEZE', 1],
-  ['DOWN', 3],
-]; // 5s — rows, curls
-const PRESS = [
-  ['UP', 1],
-  ['DOWN', 3],
-]; // 4s — shoulder press
-const EXTEND = [
-  ['DOWN', 3],
-  ['UP', 1],
-]; // 4s — overhead tricep extension
-const ABDUCT = [
-  ['OUT', 1],
-  ['HOLD', 1],
-  ['BACK', 2],
-]; // 4s — standing hip abduction (OUT = leg away, BACK = return)
-const WARM = [
-  ['DOWN', 2],
-  ['UP', 1],
-]; // 3s — warm-up squat, hinge, good morning
-const WARM_KNEE = [
-  ['UP', 1],
-  ['DOWN', 1],
-]; // 2s — warm-up knee lifts
-const WARM_CALF = [
-  ['UP', 1],
-  ['SQUEEZE', 1],
-  ['DOWN', 1],
-]; // 3s — warm-up calf raise
+const SLOW = 5; // hinges, squats, rows, raises — the eccentric-led work
+const STEADY = 4; // supported lunges, presses, the knee block
+const QUICK = 3; // standing core, warm-up reps
+const LOOSE = 2; // warm-up knee lifts
 
 // ─── Exercises ───────────────────────────────────────────────────────────────
 // `feel` / `avoid` / `cue` / `why` follow the KILOS convention (src/workout/
 // rehab.js) — they're what the player shows under the illustration and what
 // the movement card reads. `breathe: true` marks the loaded moves where the
-// exhale cue fires on the UP beat: a long tempo set holds intra-abdominal
-// pressure longer than fast reps do, which matters more postpartum (§2.8).
+// exhale cue fires on the effort: a slow set holds intra-abdominal pressure
+// longer than fast reps do, which matters more postpartum (§2.8).
 //
 // `knee` is HOTMUM's own field: the one sentence about this movement and her
 // knees. It renders in hot magenta under the demo on every knee-relevant
@@ -223,7 +175,6 @@ export const HOTMUM_EXERCISES = {
     why: 'The hamstring-and-glute builder — and the best shape-changer in the whole plan.',
     knee: 'The knee barely moves. This is the safest heavy thing you do.',
     yt: 'dumbbell romanian deadlift form',
-    repTempo: ECCENTRIC,
     breathe: true,
   },
   'sl-rdl': {
@@ -234,7 +185,6 @@ export const HOTMUM_EXERCISES = {
     why: 'The most single-leg thing you can do — and it never bends the knee.',
     knee: 'Almost no bend at the knee, and one leg carries everything. The best knee-to-benefit trade in the plan.',
     yt: 'supported single leg romanian deadlift form',
-    repTempo: ECCENTRIC,
     breathe: true,
   },
   'sl-calf-raise': {
@@ -245,7 +195,6 @@ export const HOTMUM_EXERCISES = {
     why: 'Double the load per calf with no extra dumbbells — and it exposes the weaker side.',
     knee: 'Standing knee soft but still. Nothing bends here.',
     yt: 'single leg calf raise form',
-    repTempo: SQUEEZE,
   },
   'goblet-squat': {
     name: 'Goblet Squat',
@@ -255,7 +204,6 @@ export const HOTMUM_EXERCISES = {
     why: 'The dumbbell held high keeps the torso upright — a squat your back likes.',
     knee: 'The chair IS the depth limit. Touch it, don’t sit on it, never go past it.',
     yt: 'goblet squat to box form',
-    repTempo: ECCENTRIC,
     breathe: true,
   },
   'sumo-squat': {
@@ -266,7 +214,6 @@ export const HOTMUM_EXERCISES = {
     why: 'The wide stance loads the glutes and inner thigh with far less bend at the knee.',
     knee: 'Wide and shallow. Driving the knees out is the whole point — it’s what stops them caving.',
     yt: 'dumbbell sumo squat form',
-    repTempo: ECCENTRIC,
     breathe: true,
   },
   'reverse-lunge': {
@@ -278,7 +225,6 @@ export const HOTMUM_EXERCISES = {
     why: 'One leg at a time — the strong side can’t cover for the weak one.',
     knee: 'The hand on the chair is not optional: it takes the wobble off the knee. Step back, never forward.',
     yt: 'supported reverse lunge form',
-    repTempo: ECCENTRIC_SHORT,
     breathe: true,
   },
   'calf-raise': {
@@ -289,7 +235,6 @@ export const HOTMUM_EXERCISES = {
     why: 'Strong calves absorb load the knee would otherwise take — and they shape the lower leg.',
     knee: 'Knee-friendly and knee-protective. Calves are the shock absorber above the ankle.',
     yt: 'standing calf raise form',
-    repTempo: SQUEEZE,
   },
 
   // — knee strength —
@@ -310,7 +255,6 @@ export const HOTMUM_EXERCISES = {
     why: 'The most useful strength there is — and the chair caps the depth for you.',
     knee: 'The safest loaded knee bend in the plan: the chair stops you exactly where the knee likes it.',
     yt: 'sit to stand exercise form',
-    repTempo: ECCENTRIC_SHORT,
   },
   'hip-abduction': {
     name: 'Standing Hip Abduction',
@@ -320,7 +264,6 @@ export const HOTMUM_EXERCISES = {
     why: 'Glute medius — the muscle that stops the knee caving inward under load.',
     knee: 'Zero bend at the knee, and the single biggest thing you can do for it. Never skip this one.',
     yt: 'standing hip abduction form',
-    repTempo: ABDUCT,
   },
 
   // — upper —
@@ -331,7 +274,6 @@ export const HOTMUM_EXERCISES = {
     cue: 'Dumbbells at shoulder height. Press up, lower SLOWLY back to the start.',
     why: 'Builds the round shoulder line that makes the waist look smaller.',
     yt: 'dumbbell shoulder press form',
-    repTempo: PRESS,
     breathe: true,
   },
   'one-arm-row': {
@@ -341,7 +283,6 @@ export const HOTMUM_EXERCISES = {
     cue: 'Hand and knee on the couch. Pull the dumbbell to your hip, squeeze, lower slowly.',
     why: 'Upper back — the posture muscles that carrying a baby all day steals.',
     yt: 'one arm dumbbell row form',
-    repTempo: PULL,
     breathe: true,
   },
   'squeeze-press': {
@@ -351,7 +292,6 @@ export const HOTMUM_EXERCISES = {
     cue: 'Two dumbbells pressed together at your chest. Crush them together and press straight out.',
     why: 'A chest press with no bench: the squeeze is what makes 10 lb feel like far more.',
     yt: 'standing squeeze press form',
-    repTempo: SQUEEZE,
     breathe: true,
   },
   'lateral-raise': {
@@ -361,7 +301,6 @@ export const HOTMUM_EXERCISES = {
     cue: 'Soft elbows, lift out to shoulder height, hold, lower on a three-count.',
     why: 'Shoulder width is the fastest visual change in the whole plan.',
     yt: 'dumbbell lateral raise form',
-    repTempo: HANG,
   },
   'rear-delt-fly': {
     name: 'Rear Delt Fly',
@@ -370,7 +309,6 @@ export const HOTMUM_EXERCISES = {
     cue: 'Hinge forward, soft elbows, open out wide like a wingspan. Slow back.',
     why: 'The rear shoulder — what actually pulls the posture upright.',
     yt: 'rear delt fly form',
-    repTempo: HANG,
   },
   'bicep-curl': {
     name: 'Bicep Curl',
@@ -379,7 +317,6 @@ export const HOTMUM_EXERCISES = {
     cue: 'Curl up, squeeze at the top, lower on a three-count.',
     why: 'Arms. No further justification needed.',
     yt: 'dumbbell bicep curl form',
-    repTempo: PULL,
   },
   'tricep-ext': {
     name: 'Overhead Tricep Extension',
@@ -388,7 +325,6 @@ export const HOTMUM_EXERCISES = {
     cue: 'One dumbbell in both hands, overhead. Lower slowly behind the head, press up.',
     why: 'The back of the arm is two-thirds of its size — this is the toning move.',
     yt: 'overhead tricep extension form',
-    repTempo: EXTEND,
   },
 
   // — standing core + carries —
@@ -417,7 +353,6 @@ export const HOTMUM_EXERCISES = {
     why: 'A crunch with no floor and no neck strain — and it counts as movement, not a chore.',
     knee: 'Nothing loads the knee here. It’s a hip and ab move.',
     yt: 'standing knee to elbow crunch',
-    repTempo: SQUEEZE_FAST,
   },
   'knee-drive': {
     name: 'Cross-Body Knee Drive',
@@ -427,7 +362,6 @@ export const HOTMUM_EXERCISES = {
     why: 'The obliques on a diagonal — the athletic waist the plan is asking for.',
     knee: 'The lifted knee is unloaded; the standing leg stays tall. Both fine.',
     yt: 'cross body knee drive exercise',
-    repTempo: SQUEEZE_FAST,
   },
 };
 
@@ -453,7 +387,7 @@ export const SEASON = {
   endDate: '2026-12-01', // day 100 — derived, and a test proves it
   days: 100,
   // Five blocks of twenty days. Load moves LAST: with fixed dumbbells it's the
-  // bluntest lever she has, so tempo and reps get used up first.
+  // bluntest lever she has, so pace and reps get used up first.
   //
   // These deltas are APPLIED, not decorative — `progress()` below rewrites the
   // session for the day she's on. The first version of this shipped as copy
@@ -464,20 +398,20 @@ export const SEASON = {
     {
       days: [1, 20],
       name: 'GROOVE',
-      blurb: 'The plan as written. Learn the tempos and the depth limits.',
+      blurb: 'The plan as written. Learn the pace and the depth limits.',
     },
     {
       days: [21, 40],
       name: 'EXTEND',
-      blurb: 'Same tempo, two more reps a set, less standing about.',
+      blurb: 'Same pace, two more reps a set, less standing about.',
       addReps: 2,
       lessRest: 10,
     },
     {
       days: [41, 60],
       name: 'SLOW',
-      blurb: 'One extra second on every lower. Reps come back down.',
-      addEccentric: 1,
+      blurb: 'One second longer on every rep. Reps come back down.',
+      addSecsPerRep: 1,
       addReps: -1,
     },
     {
@@ -490,9 +424,9 @@ export const SEASON = {
     {
       days: [81, 100],
       name: 'PEAK',
-      blurb: 'Best tempo, best load, one more set on the opener.',
+      blurb: 'Best pace, best load, one more set on the opener.',
       addReps: -2,
-      addEccentric: 1,
+      addSecsPerRep: 1,
       addSets: 1,
       lessRest: 10,
       loadUp: ['rdl', 'sl-rdl', 'goblet-squat', 'sumo-squat'],
@@ -633,36 +567,44 @@ export const PARTS = ['warmup', 'main', 'finisher', 'core'];
 const WARMUP_LOWER = [
   {
     ex: 'bw-squat',
-    mode: 'tempo',
+    mode: 'hold',
     part: 'warmup',
     sets: 1,
     reps: 12,
-    tempo: WARM,
+    secsPerRep: QUICK,
+    holdSecs: 36,
+    phase: 'WORK',
   },
   {
     ex: 'standing-hinge',
-    mode: 'tempo',
+    mode: 'hold',
     part: 'warmup',
     sets: 1,
     reps: 12,
-    tempo: WARM,
+    secsPerRep: QUICK,
+    holdSecs: 36,
+    phase: 'WORK',
   },
   {
     ex: 'knee-lift',
-    mode: 'tempo',
+    mode: 'hold',
     part: 'warmup',
     sets: 1,
     reps: 20,
-    tempo: WARM_KNEE,
+    secsPerRep: LOOSE,
+    holdSecs: 40,
+    phase: 'WORK',
   },
   { ex: 'hip-circles', mode: 'hold', part: 'warmup', sets: 1, holdSecs: 30 },
   {
     ex: 'calf-raise',
-    mode: 'tempo',
+    mode: 'hold',
     part: 'warmup',
     sets: 1,
     reps: 12,
-    tempo: WARM_CALF,
+    secsPerRep: QUICK,
+    holdSecs: 36,
+    phase: 'WORK',
   },
 ];
 
@@ -672,11 +614,13 @@ const WARMUP_UPPER = [
   { ex: 'torso-rotation', mode: 'hold', part: 'warmup', sets: 1, holdSecs: 30 },
   {
     ex: 'good-morning',
-    mode: 'tempo',
+    mode: 'hold',
     part: 'warmup',
     sets: 1,
     reps: 12,
-    tempo: WARM,
+    secsPerRep: QUICK,
+    holdSecs: 36,
+    phase: 'WORK',
   },
 ];
 
@@ -685,11 +629,13 @@ const WARMUP_UPPER = [
 const CORE = [
   {
     ex: 'knee-to-elbow',
-    mode: 'tempo',
+    mode: 'hold',
     part: 'core',
     sets: 1,
     reps: 20,
-    tempo: SQUEEZE_FAST,
+    secsPerRep: QUICK,
+    holdSecs: 60,
+    phase: 'WORK',
     restSecs: 30,
     load: 'BW',
   },
@@ -731,11 +677,13 @@ export const HOTMUM_SESSIONS = [
       // it's the priority, it loads one leg hard, and it barely bends a knee.
       {
         ex: 'sl-rdl',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'main',
         sets: 3,
         reps: 6,
-        tempo: ECCENTRIC,
+        secsPerRep: SLOW,
+        holdSecs: 30,
+        phase: 'WORK',
         perSide: true,
         switchSecs: 10,
         restSecs: 40,
@@ -743,48 +691,56 @@ export const HOTMUM_SESSIONS = [
       },
       {
         ex: 'reverse-lunge',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'main',
         sets: 2,
         reps: 6,
-        tempo: ECCENTRIC_SHORT,
+        secsPerRep: STEADY,
+        holdSecs: 24,
+        phase: 'WORK',
         perSide: true,
         switchSecs: 10,
         restSecs: 45,
         load: { lb: 15, each: true },
-        kneeSwap: { ex: 'hip-abduction', tempo: ABDUCT, load: 'BW' },
+        kneeSwap: { ex: 'hip-abduction', secsPerRep: STEADY, load: 'BW' },
       },
       // The bilateral anchor. Two legs still move the most total load, and
       // cutting them entirely would cost her the strength the plan is for.
       {
         ex: 'goblet-squat',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'main',
         sets: 3,
         reps: 8,
-        tempo: ECCENTRIC,
+        secsPerRep: SLOW,
+        holdSecs: 40,
+        phase: 'WORK',
         restSecs: 40,
         load: { lb: 15 },
-        kneeSwap: { ex: 'sit-to-stand', tempo: ECCENTRIC_SHORT, load: 'BW' },
+        kneeSwap: { ex: 'sit-to-stand', secsPerRep: STEADY, load: 'BW' },
       },
       {
         ex: 'sumo-squat',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'main',
         sets: 2,
         reps: 8,
-        tempo: ECCENTRIC,
+        secsPerRep: SLOW,
+        holdSecs: 40,
+        phase: 'WORK',
         restSecs: 40,
         load: { lb: 20 },
-        kneeSwap: { ex: 'sl-rdl', tempo: ECCENTRIC, load: { lb: 15 } },
+        kneeSwap: { ex: 'sl-rdl', secsPerRep: SLOW, load: { lb: 15 } },
       },
       {
         ex: 'sl-calf-raise',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'main',
         sets: 2,
         reps: 8,
-        tempo: SQUEEZE,
+        secsPerRep: SLOW,
+        holdSecs: 40,
+        phase: 'WORK',
         perSide: true,
         switchSecs: 8,
         restSecs: 40,
@@ -803,21 +759,25 @@ export const HOTMUM_SESSIONS = [
       },
       {
         ex: 'sit-to-stand',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'finisher',
         sets: 2,
         reps: 8,
-        tempo: ECCENTRIC_SHORT,
+        secsPerRep: STEADY,
+        holdSecs: 32,
+        phase: 'WORK',
         restSecs: 30,
         load: 'BW',
       },
       {
         ex: 'hip-abduction',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'finisher',
         sets: 2,
         reps: 6,
-        tempo: ABDUCT,
+        secsPerRep: STEADY,
+        holdSecs: 24,
+        phase: 'WORK',
         perSide: true,
         switchSecs: 8,
         restSecs: 30,
@@ -843,21 +803,25 @@ export const HOTMUM_SESSIONS = [
       ...WARMUP_UPPER,
       {
         ex: 'shoulder-press',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'main',
         sets: 3,
         reps: 8,
-        tempo: PRESS,
+        secsPerRep: STEADY,
+        holdSecs: 32,
+        phase: 'WORK',
         restSecs: 45,
         load: { lb: 15, each: true },
       },
       {
         ex: 'one-arm-row',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'main',
         sets: 2,
         reps: 8,
-        tempo: PULL,
+        secsPerRep: SLOW,
+        holdSecs: 40,
+        phase: 'WORK',
         perSide: true,
         switchSecs: 10,
         restSecs: 45,
@@ -865,31 +829,37 @@ export const HOTMUM_SESSIONS = [
       },
       {
         ex: 'squeeze-press',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'main',
         sets: 2,
         reps: 10,
-        tempo: SQUEEZE,
+        secsPerRep: SLOW,
+        holdSecs: 50,
+        phase: 'WORK',
         restSecs: 45,
         load: { lb: 10, each: true },
       },
       {
         ex: 'lateral-raise',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'main',
         sets: 2,
         reps: 10,
-        tempo: HANG,
+        secsPerRep: SLOW,
+        holdSecs: 50,
+        phase: 'WORK',
         restSecs: 40,
         load: { lb: 10, each: true },
       },
       {
         ex: 'rear-delt-fly',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'main',
         sets: 2,
         reps: 10,
-        tempo: HANG,
+        secsPerRep: SLOW,
+        holdSecs: 50,
+        phase: 'WORK',
         restSecs: 40,
         load: { lb: 10, each: true },
       },
@@ -899,21 +869,25 @@ export const HOTMUM_SESSIONS = [
       //   in the session.
       {
         ex: 'bicep-curl',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'finisher',
         sets: 2,
         reps: 10,
-        tempo: PULL,
+        secsPerRep: SLOW,
+        holdSecs: 50,
+        phase: 'WORK',
         restSecs: 40,
         load: { lb: 10, each: true },
       },
       {
         ex: 'tricep-ext',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'finisher',
         sets: 2,
         reps: 10,
-        tempo: EXTEND,
+        secsPerRep: STEADY,
+        holdSecs: 40,
+        phase: 'WORK',
         restSecs: 40,
         load: { lb: 15 },
       },
@@ -929,11 +903,13 @@ export const HOTMUM_SESSIONS = [
       },
       {
         ex: 'knee-drive',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'finisher',
         sets: 2,
         reps: 16,
-        tempo: SQUEEZE_FAST,
+        secsPerRep: QUICK,
+        holdSecs: 48,
+        phase: 'WORK',
         restSecs: 30,
         load: 'BW',
       },
@@ -957,19 +933,23 @@ export const HOTMUM_SESSIONS = [
     blocks: [
       {
         ex: 'bw-squat',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'warmup',
         sets: 1,
         reps: 12,
-        tempo: WARM,
+        secsPerRep: QUICK,
+        holdSecs: 36,
+        phase: 'WORK',
       },
       {
         ex: 'standing-hinge',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'warmup',
         sets: 1,
         reps: 12,
-        tempo: WARM,
+        secsPerRep: QUICK,
+        holdSecs: 36,
+        phase: 'WORK',
       },
       {
         ex: 'arm-circles',
@@ -980,62 +960,74 @@ export const HOTMUM_SESSIONS = [
       },
       {
         ex: 'knee-lift',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'warmup',
         sets: 1,
         reps: 20,
-        tempo: WARM_KNEE,
+        secsPerRep: LOOSE,
+        holdSecs: 40,
+        phase: 'WORK',
       },
       {
         ex: 'calf-raise',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'warmup',
         sets: 1,
         reps: 12,
-        tempo: WARM_CALF,
+        secsPerRep: QUICK,
+        holdSecs: 36,
+        phase: 'WORK',
       },
       {
         ex: 'rdl',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'main',
         sets: 3,
         reps: 8,
-        tempo: ECCENTRIC,
+        secsPerRep: SLOW,
+        holdSecs: 40,
+        phase: 'WORK',
         restSecs: 45,
         load: { lb: 15, each: true },
       },
       // Straight after the hinge, while balance is still good (§2.9 rule 3).
       {
         ex: 'reverse-lunge',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'main',
         sets: 2,
         reps: 6,
-        tempo: ECCENTRIC_SHORT,
+        secsPerRep: STEADY,
+        holdSecs: 24,
+        phase: 'WORK',
         perSide: true,
         switchSecs: 10,
         restSecs: 45,
         load: { lb: 15, each: true },
-        kneeSwap: { ex: 'hip-abduction', tempo: ABDUCT, load: 'BW' },
+        kneeSwap: { ex: 'hip-abduction', secsPerRep: STEADY, load: 'BW' },
       },
       {
         ex: 'goblet-squat',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'main',
         sets: 2,
         reps: 8,
-        tempo: ECCENTRIC,
+        secsPerRep: SLOW,
+        holdSecs: 40,
+        phase: 'WORK',
         restSecs: 45,
         load: { lb: 15 },
-        kneeSwap: { ex: 'sit-to-stand', tempo: ECCENTRIC_SHORT, load: 'BW' },
+        kneeSwap: { ex: 'sit-to-stand', secsPerRep: STEADY, load: 'BW' },
       },
       {
         ex: 'one-arm-row',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'main',
         sets: 2,
         reps: 8,
-        tempo: PULL,
+        secsPerRep: SLOW,
+        holdSecs: 40,
+        phase: 'WORK',
         perSide: true,
         switchSecs: 10,
         restSecs: 45,
@@ -1043,33 +1035,39 @@ export const HOTMUM_SESSIONS = [
       },
       {
         ex: 'squeeze-press',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'main',
         sets: 2,
         reps: 8,
-        tempo: SQUEEZE,
+        secsPerRep: SLOW,
+        holdSecs: 40,
+        phase: 'WORK',
         restSecs: 45,
         load: { lb: 10, each: true },
       },
 
       {
         ex: 'shoulder-press',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'main',
         sets: 2,
         reps: 8,
-        tempo: PRESS,
+        secsPerRep: STEADY,
+        holdSecs: 32,
+        phase: 'WORK',
         restSecs: 45,
         load: { lb: 15, each: true },
       },
       // — knee finisher: her 23:00–28:00 block, calf-led —
       {
         ex: 'calf-raise',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'finisher',
         sets: 2,
         reps: 12,
-        tempo: SQUEEZE,
+        secsPerRep: SLOW,
+        holdSecs: 60,
+        phase: 'WORK',
         restSecs: 40,
         load: 'BW',
       },
@@ -1085,11 +1083,13 @@ export const HOTMUM_SESSIONS = [
       },
       {
         ex: 'sit-to-stand',
-        mode: 'tempo',
+        mode: 'hold',
         part: 'finisher',
         sets: 2,
         reps: 8,
-        tempo: ECCENTRIC_SHORT,
+        secsPerRep: STEADY,
+        holdSecs: 32,
+        phase: 'WORK',
         restSecs: 30,
         load: 'BW',
       },
@@ -1103,11 +1103,15 @@ export const HOTMUM_SESSIONS = [
 export const getSession = (id) =>
   HOTMUM_SESSIONS.find((s) => s.id === id) || null;
 
-/** Seconds for one rep of a tempo pattern. */
-export const tempoSecs = (tempo) => tempo.reduce((n, [, s]) => n + s, 0);
-
-/** Human tempo notation — [['DOWN',3],['HOLD',1],['UP',1]] → "3-1-1". */
-export const tempoLabel = (tempo) => tempo.map(([, s]) => s).join('-');
+/** "3 × 6 reps · 30s / side" — what a block asks for, in one line. */
+export function blockDetail(block) {
+  const side = block.perSide ? ' / side' : '';
+  const dose = block.reps
+    ? `${block.reps} reps · ${block.holdSecs}s`
+    : `${block.holdSecs}s`;
+  const sets = block.sets > 1 ? `${block.sets} × ` : '';
+  return `${sets}${dose}${side}`;
+}
 
 // ─── Progression — the blocks actually do something ──────────────────────────
 // Rewrites a session for the day she's on. Only `main` work progresses: the
@@ -1115,16 +1119,16 @@ export const tempoLabel = (tempo) => tempo.map(([, s]) => s).join('-');
 // FROZEN — a knee-strength dose that creeps upward every twenty days is how a
 // knee protocol turns back into a knee problem.
 
-const withEccentric = (tempo, add) =>
-  tempo.map(([label, secs]) => [label, label === 'DOWN' ? secs + add : secs]);
-
 function progressBlock(block, delta, isOpener) {
   if (block.part !== 'main') return block;
   const out = { ...block };
   if (delta.addReps && out.reps)
     out.reps = Math.max(5, out.reps + delta.addReps);
-  if (delta.addEccentric && out.tempo)
-    out.tempo = withEccentric(out.tempo, delta.addEccentric);
+  if (delta.addSecsPerRep && out.secsPerRep)
+    out.secsPerRep = out.secsPerRep + delta.addSecsPerRep;
+  // The interval is reps × pace, always — recompute it rather than letting a
+  // stored number drift out of step with the two things that define it.
+  if (out.reps && out.secsPerRep) out.holdSecs = out.reps * out.secsPerRep;
   if (delta.addSets && isOpener) out.sets = (out.sets || 1) + delta.addSets;
   if (delta.lessRest && out.restSecs)
     out.restSecs = Math.max(30, out.restSecs - delta.lessRest);

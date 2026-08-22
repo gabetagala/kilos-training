@@ -1,28 +1,13 @@
 // HOTMUM — what Alice says, and when.
 //
-// Deliberately NOT src/workout/tempoCues.js. That file maps UP → "lift" and
-// anything unrecognised → "lower", which is right for Gabe's barbell work and
-// wrong here: on a squat you go DOWN and UP, not "lower" and "lift". Changing
-// the shared file would have changed his coach's mouth, so HOTMUM gets its own
-// vocabulary and his is left alone.
-
-// The closed set of phase labels. Alice owns a clip for each, but as of
-// 2026-08-20 she no longer SAYS them on the beat (see beatSlug) — these are
-// what the player prints on screen, and the map is what keeps a pattern from
-// inventing a label the app has no word for.
-export const PHASE_WORDS = {
-  UP: 'up',
-  DOWN: 'down',
-  SQUEEZE: 'squeeze',
-  HOLD: 'hold',
-  OUT: 'out',
-  BACK: 'back',
-};
-
-// One to TWENTY. It stopped at ten while the phase words were also being
-// spoken, so the gap was covered — now that the rep number is the ONLY thing
-// Alice says during a set (see beatSlug), a 20-rep standing crunch would have
-// counted to ten and then gone silent for the rest of the set.
+// Deliberately NOT src/workout/tempoCues.js — that file is built around
+// calling a barbell rep phase by phase, which is exactly what HOTMUM stopped
+// doing (2026-08-22). A set here is a stretch of WORK with a rep target in it;
+// there are no phases left to name, so the phase vocabulary that used to live
+// here (UP / DOWN / SQUEEZE / HOLD / OUT / BACK) is gone with them.
+//
+// What survives is the short list of things worth saying between sets, and the
+// tone that closes one.
 export const NUM_SLUGS = [
   null,
   'one',
@@ -47,8 +32,6 @@ export const NUM_SLUGS = [
   'twenty',
 ];
 
-export const phaseWord = (label) => PHASE_WORDS[label] || null;
-
 // The hold lengths in the program, as words. Deliberately a lookup and not
 // arithmetic: a clip either exists or the number is simply not spoken, and a
 // test walks every hold in the program to catch one that isn't in here.
@@ -61,26 +44,6 @@ export const SEC_SLUGS = {
   45: 'forty-five',
   60: 'sixty',
 };
-
-/**
- * WHICH BEAT CARRIES THE REP NUMBER.
- *
- * A rep is counted when it's FINISHED, and a rep finishes on the way up. On a
- * glute bridge the pattern starts on UP, so counting at the start of the rep
- * was already right. On a squat the pattern starts on DOWN — counting there
- * called the number as she descended, which is backwards from how anyone
- * counts a squat.
- *
- * So the number always lands on the UP (or the BACK, on a dead bug or heel
- * slide, where returning is what completes the rep). Both now count in the
- * same place: at the top.
- */
-export function countPhase(tempo) {
-  const labels = (tempo?.pattern || []).map(([l]) => l);
-  if (labels.includes('UP')) return 'UP';
-  if (labels.includes('BACK')) return 'BACK';
-  return labels[0] ?? null;
-}
 
 /**
  * WHAT ALICE SAYS AT THE TOP OF A SET — the movement, then the dose.
@@ -96,11 +59,13 @@ export function countPhase(tempo) {
  *
  * Returns a list of slugs to speak in order, or [] if there's nothing to say.
  */
-export function setAnnounce(work) {
+export function setAnnounce(work, block) {
   if (!work) return [];
   const name = `name-${work.exId}`;
-  if (work.tempo?.reps) {
-    const n = NUM_SLUGS[work.tempo.reps];
+  // The rep target lives on the BLOCK, not the step — the engine's timed
+  // interval knows how many seconds it runs for and nothing else.
+  if (block?.reps) {
+    const n = NUM_SLUGS[block.reps];
     return n ? [name, n, 'reps'] : [name];
   }
   const n = SEC_SLUGS[work.secs];
