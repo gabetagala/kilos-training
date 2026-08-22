@@ -1051,6 +1051,60 @@ body {
   margin-top: 10px;
 }
 
+/* ─── The phone home screen is ONE FOLD ─────────────────────────────────────
+   Ten across, ten down: a hundred boxes as an actual square, each one twice
+   the size of the twenty-column strip it replaces (which was 14px specks with
+   a third of the screen sitting empty underneath). Two rows per twenty-day
+   training block, so the reading survives.
+
+   The day card then takes every pixel that's left, which is what keeps the
+   page to a single fold with nothing to scroll and no dead band at the
+   bottom. On a taller phone the calendar grows with the screen and the card
+   grows with it. */
+
+@media (max-width: 999px) {
+  /* The calendar block gets a box of its own (panes are `display: contents`
+     everywhere else) so the grid, its label row and its key can be capped and
+     centred together. The cap is in vh because the grid is SQUARE — capping
+     the width is the only way to cap the height, and on a 667px phone an
+     uncapped full-width square is 335px tall and pushes the card off screen. */
+  .scr-home .pane-b {
+    display: block;
+    /* The grid is SQUARE, so capping the width is the only way to cap the
+       height. The 400px is the rest of the screen measured: top bar, greeting,
+       the label and key rows, the card at its minimum, and the padding the
+       floating nav needs. dvh, not vh, because iOS Safari's toolbars move. */
+    width: min(100%, calc(100dvh - 415px));
+    margin-inline: auto;
+  }
+  .scr-home .boxes {
+    grid-template-columns: repeat(10, 1fr);
+    gap: 4px;
+  }
+  .scr-home .today-card {
+    flex: 1;
+    align-items: center;
+    margin-top: 14px;
+    margin-bottom: 0;
+  }
+  /* Decoration, and the one thing on this screen worth losing to fit. */
+  .scr-home .fine {
+    display: none;
+  }
+}
+
+/* Short phones (SE-sized and anything with the browser chrome showing): the
+   greeting gives way before the calendar does. The sub-line is the first to
+   go because the label row right beneath it already says "DAY 1 OF 100". */
+@media (max-width: 999px) and (max-height: 700px) {
+  .scr-home .page-h {
+    font-size: 30px;
+  }
+  .scr-home .hello .row-s {
+    display: none;
+  }
+}
+
 /* ─── Today card ───────────────────────────────────────────────────────── */
 
 .today-card {
@@ -1262,12 +1316,6 @@ body {
   }
   .scr-home .today-card .day-name {
     margin-top: 0;
-  }
-  /* The question is stacked on two lines on a phone because it has to be.
-     Across the bottom of a desktop it fits on one, and two lines here just
-     make the banner tall for no reason. */
-  .scr-home .today-card .dn-br {
-    display: none;
   }
 
   /* PROGRAM — season masthead, blocks left, the week right. */

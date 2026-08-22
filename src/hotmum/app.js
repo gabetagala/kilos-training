@@ -886,13 +886,11 @@ function renderHome() {
       <div>
         <span class="lbl lbl-sm">TODAY</span>
         <div class="day-name">${
-          // The space before each <br> matters: on desktop the break is
-          // display:none and the two halves run together without it
-          // ("WHAT AREWE DOING?"). A trailing space before a line break
-          // collapses to nothing on a phone, so it costs that layout nothing.
-          done
-            ? 'ANYTHING <br class="dn-br"><em>ELSE?</em>'
-            : 'WHAT ARE <br class="dn-br">WE <em>DOING?</em>'
+          // One line, and it wraps on its own if a narrow phone needs it to.
+          // It used to carry a hardcoded <br> for the poster look; that cost
+          // the phone a whole line of height it now needs for the calendar,
+          // and the desktop banner had to hide the tag anyway.
+          done ? 'ANYTHING <em>ELSE?</em>' : 'WHAT ARE WE <em>DOING?</em>'
         }</div>
         <div class="row-s">${
           done
