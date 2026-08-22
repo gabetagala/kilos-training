@@ -304,61 +304,93 @@ raises), `STEADY` (4s — supported lunges, presses, the knee block), `QUICK`
 ### 2.3 Warm-ups — two of them now
 
 Her rewrite splits them, and she's right: arm circles do nothing for a squat.
+Both are sized to HER clock — 5:00 on the lower days, 4:00 on the upper one.
 
-**Lower days (Mon, Fri) — hips, knees and ankles.** Bodyweight squat `2-1`,
-standing hip hinge `2-1`, standing knee lifts `1-1`, hip circles 30s, slow calf
-raises `1-1-1`.
+**Lower days (Mon, Fri).** Bodyweight squat ×16, standing hip hinge ×16,
+standing knee lifts ×20, hip circles 45s, slow calf raises ×16. → **4:59**
 
-**Upper day (Wed) — shoulders and the mid-back.** Arm circles 40s, shoulder
-rolls 30s, standing torso rotations 30s, bodyweight good mornings `2-1`.
+**Upper day (Wed).** Arm circles 50s, shoulder rolls 45s, standing torso
+rotations 45s, bodyweight good mornings ×20. → **4:00**
+
+### 2.3.1 Rotations — "alternate" means alternate
+
+Her knee blocks say **"Alternate: Wall Sit / Controlled Sit-to-Stand"** and
+Wednesday says **"Rotate through: Farmer Carry / Knee Drive / Suitcase Hold"**.
+
+The first build ran those as straight sets — all of one, then all of the next.
+Same movements, same volume, and *not the same exercise*: a rotation gets its
+rest from CHANGING movement, so straight sets need rest periods bolted on and
+come out longer and easier than what she wrote.
+
+A part listed in `session.rotate` is interleaved for the player — three
+two-set blocks become **A B C A B C**, one set each, with no programmed rest;
+the ten-second change-over between movements *is* the rest. The session sheet
+still shows the un-interleaved list (`2 × 30s` each) with a "rotate through ·
+2 rounds" note, so it reads the way her plan reads.
 
 ### 2.4 Monday — Lower Body + Knee
 
-| Block | Move | Tempo | Sets × reps |
-|---|---|---|---|
-| Main | **Single-Leg RDL** (chair) | `3-1-1` | 3 × 6/side @ 15 lb |
-| Main | **Supported** Reverse Lunge | `2-1-1` | 2 × 6/side @ 15 lb × 2 |
-| Main | Goblet Squat **to a chair** | `3-1-1` | 3 × 8 @ 15 lb |
-| Main | Sumo Squat | `3-1-1` | 2 × 8 @ 20 lb |
-| Main | **Single-Leg** Calf Raise | `1-2-2` | 2 × 8/side |
-| 🦵 Knee | Wall Sit | hold | 2 × 30s |
-| 🦵 Knee | Controlled Sit-to-Stand | `2-1-1` | 2 × 8 |
-| 🦵 Knee | Standing Hip Abduction | `1-1-2` | 2 × 6/side |
-| Core | Standing Knee-to-Elbow | `1-1-1` | 1 × 20 |
-| Core | Suitcase Hold | hold | 30s/side @ 20 lb |
+| Block | Move | Sets × reps |
+|---|---|---|
+| Strength | **Single-Leg RDL** (chair) | 3 × 6/side @ 15 lb |
+| Strength | **Supported** Reverse Lunge | 2 × 6/side @ 15 lb × 2 |
+| Strength | Goblet Squat **to a chair** | 3 × 8 @ 15 lb |
+| Strength | Sumo Squat | 2 × 8 @ 20 lb |
+| Strength | **Single-Leg** Calf Raise | 2 × 8/side |
+| 🦵 Knee ⟳ | Wall Sit · Sit-to-Stand · **Hip Abduction** | 2 rounds |
+| Core | Standing Knee-to-Elbow, Suitcase Hold | as written |
 
 ### 2.5 Wednesday — Upper Body + Core
 
-| Block | Move | Tempo | Sets × reps |
-|---|---|---|---|
-| Main | Shoulder Press | `1-3` | 3 × 8 @ 15 lb × 2 |
-| Main | One-Arm Row | `1-1-3` | 2 × 8/side @ 15 lb |
-| Main | Standing Squeeze Press | `1-2-2` | 2 × 10 @ 10 lb × 2 |
-| Main | Lateral Raise | `1-1-3` | 2 × 10 @ 10 lb × 2 |
-| Main | Rear Delt Fly | `1-1-3` | 2 × 10 @ 10 lb × 2 |
-| Arms + carry | Bicep Curl | `1-1-3` | 2 × 10 @ 10 lb × 2 |
-| Arms + carry | Overhead Tricep Extension | `3-1` | 2 × 10 @ 15 lb |
-| Arms + carry | Farmer Carry | hold | 2 × 40s @ 20 lb × 2 |
-| Arms + carry | Cross-Body Knee Drive | `1-1-1` | 2 × 16 |
-| Core | Standing Knee-to-Elbow + Suitcase Hold | — | as Monday |
+| Block | Move | Sets × reps |
+|---|---|---|
+| Upper | Shoulder Press | 3 × 8 @ 15 lb × 2 |
+| Upper | One-Arm Row | 2 × 8/side @ 15 lb |
+| Upper | Standing Squeeze Press | 2 × 10 @ 10 lb × 2 |
+| Upper | Lateral Raise | 2 × 12 @ 10 lb × 2 |
+| Upper | Rear Delt Fly | 2 × 12 @ 10 lb × 2 |
+| Upper | Bicep Curl | 2 × 10 @ 10 lb × 2 |
+| Upper | Overhead Tricep Extension | 2 × 10 @ 15 lb |
+| 🔥 Carry ⟳ | Farmer Carry · Knee Drive · Suitcase Hold | 2 rounds |
 
-**The arms moved out of the main block** and into the offered stage. Her plan
-lists curls and extensions in the 4:00–25:00 strength window; putting them
-after the presses and rows means the heaviest work happens fresh and the
-isolation work happens tired, which is the right order round. Nothing is cut.
+All seven of her upper movements sit in the 4:00–25:00 block, as she wrote
+them. The arms spent a while in a finisher, back when SHORT existed and a curl
+was the most droppable thing in the session; with one whole session (§2.7.1)
+there is nothing to drop them out of. Wednesday has **no separate core part** —
+her 25:00–30:00 rotation *is* the core.
 
 ### 2.6 Friday — Full Body + Knee
 
-| Block | Move | Tempo | Sets × reps |
-|---|---|---|---|
-| Main | Romanian Deadlift | `3-1-1` | 3 × 8 @ 15 lb × 2 |
-| Main | Goblet Squat to a chair | `3-1-1` | 2 × 8 @ 15 lb |
-| Main | One-Arm Row | `1-1-3` | 2 × 8/side @ 15 lb |
-| Main | Standing Squeeze Press | `1-2-2` | 2 × 8 @ 10 lb × 2 |
-| Main | Supported Reverse Lunge | `2-1-1` | 2 × 6/side @ 15 lb × 2 |
-| Main | Shoulder Press | `1-3` | 2 × 8 @ 15 lb × 2 |
-| 🦵 Knee | Slow Calf Raise → Wall Sit → Sit-to-Stand | — | calf-led, as she wrote it |
-| Core | Standing Knee-to-Elbow + Suitcase Hold | — | as Monday |
+Her session, unchanged, with one reordering: the supported reverse lunge moves
+from fifth to second, straight after the hinge, while balance is still good
+(§2.9 rule 3).
+
+| Block | Move | Sets × reps |
+|---|---|---|
+| Full body | Romanian Deadlift | 3 × 8 @ 15 lb × 2 |
+| Full body | **Supported** Reverse Lunge | 2 × 6/side @ 15 lb × 2 |
+| Full body | Goblet Squat to a chair | 2 × 8 @ 15 lb |
+| Full body | One-Arm Row | 2 × 8/side @ 15 lb |
+| Full body | Standing Squeeze Press | 2 × 8 @ 10 lb × 2 |
+| Full body | Shoulder Press | 2 × 8 @ 15 lb × 2 |
+| 🦵 Knee ⟳ | Slow Calf Raise · Wall Sit · Sit-to-Stand | 2 rounds |
+| Core | Standing Knee-to-Elbow, Suitcase Hold | as written |
+
+### 2.6.1 Measured against her clock
+
+Her plan writes the timings in. These are what the app actually runs
+(`npm test` computes them and guards the band):
+
+| | Her plan | Built |
+|---|---|---|
+| **MON** | 5:00 → 23:00 → 28:00 → 30:00 | 4:59 → 22:16 → 27:12 → **29:40** |
+| **WED** | 4:00 → 25:00 → 30:00 | 4:00 → 24:06 → **29:46** |
+| **FRI** | 5:00 → 23:00 → 28:00 → 30:00 | 4:59 → 21:54 → 26:58 → **29:26** |
+
+**Every movement she wrote is in the app.** Three were added — Single-Leg RDL
+and Single-Leg Calf Raise replace the two-legged versions on Monday only (both
+still appear elsewhere), and Standing Hip Abduction joins the knee rotation.
+All three come from the knee doctrine in §2.9.
 
 ### 2.7 Session length — the thirty-minute promise
 

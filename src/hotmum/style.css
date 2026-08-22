@@ -878,8 +878,7 @@ body {
   font-size: 11px;
   letter-spacing: 0.06em;
   color: var(--ink-soft);
-  text-align: right;
-  flex-shrink: 0;
+  text-align: left;
 }
 
 /* ─── Tiles ────────────────────────────────────────────────────────────── */
@@ -1698,15 +1697,26 @@ body {
    to be the "add the knee work?" prompts; with one whole session there's
    nothing to prompt, so the structure becomes the shape of the list. */
 .part-h {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: #1b0713;
-  padding: 12px 0 5px;
+  /* NOT sticky. It was, and two headings pinned at top:0 sat on top of each
+     other as the list scrolled between them. A heading you can scroll past is
+     worth more than one that overlaps the next. */
+  padding: 16px 0 5px;
   flex-shrink: 0;
+}
+.part-h {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
 }
 .part-h .lbl {
   color: var(--hot);
+}
+.part-note {
+  font-size: 11px;
+  color: var(--ink-soft);
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
 }
 .part-h + .ex-row {
   border-top: 0;
@@ -1743,11 +1753,14 @@ body {
   display: block;
 }
 .ex-txt {
+  /* Stacked, not name-left / detail-right. Side by side, "Controlled
+     Sit-to-Stand · 2 × 8 reps · 32s · Bodyweight" either wrapped the name to
+     three lines or ran the detail off the edge on a 375px screen. */
   display: flex;
   flex: 1;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
   min-width: 0;
 }
 /* A block the EASY KNEE switch replaced — say so, don't silently differ. */

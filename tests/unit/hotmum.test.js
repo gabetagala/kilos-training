@@ -15,6 +15,7 @@ import {
   loadLabel,
   MOVEMENTS,
   PARTS,
+  playable,
   progress,
   SEASON,
   sessionForToday,
@@ -74,17 +75,18 @@ describe('program data', () => {
   it('every session names its parts, in order, with nothing orphaned', () => {
     for (const s of HOTMUM_SESSIONS) {
       const parts = sessionParts(s);
-      expect(parts.map((p) => p.key), s.id).toEqual([
-        'warmup',
-        'main',
-        'finisher',
-        'core',
-      ]);
-      for (const p of parts) {
-        expect(p.label, `${s.id}/${p.key}`).toBeTruthy();
-        // no raw keys leaking through as labels ("WARMUP")
-        expect(p.label, `${s.id}/${p.key}`).not.toBe(p.key.toUpperCase());
-      }
+      // Wednesday has no CORE part — her 25:00–30:00 block IS the core.
+      expect(parts.map((p) => p.key), s.id).toEqual(
+        s.id === 'upper'
+          ? ['warmup', 'main', 'finisher']
+          : ['warmup', 'main', 'finisher', 'core'],
+      );
+      for (const p of parts) expect(p.label, `${s.id}/${p.key}`).toBeTruthy();
+      // and they're HER headings, not the raw keys ("WARMUP")
+      expect(parts[0].label).toBe('WARM-UP');
+      expect(parts.map((p) => p.label)).toContain(
+        s.id === 'upper' ? 'ATHLETIC CORE + CARRY' : 'CORE',
+      );
       // every block lands in exactly one part
       expect(parts.reduce((n, p) => n + p.blocks.length, 0)).toBe(
         s.blocks.length,
@@ -211,7 +213,7 @@ describe('tempo maths — a set is a countdown', () => {
       (b) => b.ex === 'calf-raise',
     );
     expect(blocks.map((b) => b.part)).toEqual(['warmup', 'finisher']);
-    expect(blockWorkSecs(blocks[0])).toBe(36); // 1 × 12 × 3s
+    expect(blockWorkSecs(blocks[0])).toBe(48); // 1 × 16 × 3s
     expect(blockWorkSecs(blocks[1])).toBe(120); // 2 × 12 × 5s
   });
 });
@@ -229,7 +231,7 @@ describe('one whole session — no cuts', () => {
   it('every session is about thirty minutes, all season long', () => {
     for (const s of HOTMUM_SESSIONS) {
       for (const b of SEASON.blocks) {
-        const mins = estimateMins(progress(s, b.days[0]));
+        const mins = estimateMins(playable(progress(s, b.days[0])));
         expect(mins, `${s.id} @ ${b.name}`).toBeGreaterThanOrEqual(26);
         expect(mins, `${s.id} @ ${b.name}`).toBeLessThanOrEqual(32);
       }
@@ -390,6 +392,55 @@ describe('the season actually progresses', () => {
 // ─── The knee doctrine ──────────────────────────────────────────────────────
 // Sam's knees are the binding constraint on this program (program.js header).
 // These are the rules that must not quietly regress in a later edit.
+// ─── Rotations ──────────────────────────────────────────────────────────────
+// Her plan says "Alternate:" on the knee blocks and "Rotate through:" on
+// Wednesday's carry block. Straight sets are the same movements and the same
+// volume arranged as a different exercise — a rotation gets its rest from
+// changing movement, so it runs tighter and harder.
+describe('the rotations her plan asks for', () => {
+  it('interleaves every part marked as a rotation', () => {
+    const s = playable(getSession('lower'));
+    const knee = s.blocks.filter((b) => b.part === 'finisher').map((b) => b.ex);
+    expect(knee).toEqual([
+      'wall-sit',
+      'sit-to-stand',
+      'hip-abduction',
+      'wall-sit',
+      'sit-to-stand',
+      'hip-abduction',
+    ]);
+    // one set each, and no programmed rest — the change-over IS the rest
+    for (const b of s.blocks.filter((x) => x.part === 'finisher')) {
+      expect(b.sets).toBe(1);
+      expect(b.restSecs).toBe(0);
+    }
+  });
+
+  it('leaves the straight-set parts exactly as written', () => {
+    const raw = getSession('lower');
+    const s = playable(raw);
+    for (const key of ['warmup', 'main', 'core']) {
+      expect(s.blocks.filter((b) => b.part === key)).toEqual(
+        raw.blocks.filter((b) => b.part === key),
+      );
+    }
+  });
+
+  it('rotates the same total work, not less of it', () => {
+    for (const raw of HOTMUM_SESSIONS) {
+      expect(timeUnderTension(playable(raw)), raw.id).toBe(
+        timeUnderTension(raw),
+      );
+      expect(setTotal(playable(raw)), raw.id).toBe(setTotal(raw));
+    }
+  });
+
+  it('is a no-op on a session that declares no rotation', () => {
+    const plain = { ...getSession('lower'), rotate: [] };
+    expect(playable(plain).blocks).toEqual(plain.blocks);
+  });
+});
+
 describe('the knee doctrine', () => {
   const lowerDays = ['lower', 'full'].map(getSession);
 
@@ -494,9 +545,17 @@ describe('everything is done standing', () => {
 
   it('trains the core standing up instead', () => {
     for (const s of HOTMUM_SESSIONS) {
-      const core = s.blocks.filter((b) => b.part === 'core').map((b) => b.ex);
-      expect(core, s.id).toContain('knee-to-elbow');
+      // Wednesday's standing core lives in her ATHLETIC CORE + CARRY rotation
+      const core = s.blocks
+        .filter((b) => b.part === 'core' || b.part === 'finisher')
+        .map((b) => b.ex);
       expect(core, s.id).toContain('suitcase-hold');
+    }
+    for (const id of ['lower', 'full']) {
+      const core = getSession(id)
+        .blocks.filter((b) => b.part === 'core')
+        .map((b) => b.ex);
+      expect(core, id).toEqual(['knee-to-elbow', 'suitcase-hold']);
     }
   });
 });
@@ -650,7 +709,8 @@ describe('drives the shipped step engine', () => {
 
   // Every working step has to be announceable, or a set starts in silence.
   it('has a word for every rep count and every hold in the program', () => {
-    for (const s of HOTMUM_SESSIONS) {
+    for (const raw of HOTMUM_SESSIONS) {
+      const s = playable(raw);
       for (const st of buildStepQueue(s)) {
         if (st.kind !== 'work') continue;
         const block = s.blocks[st.bi];

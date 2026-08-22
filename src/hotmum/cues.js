@@ -39,9 +39,11 @@ export const SEC_SLUGS = {
   10: 'ten',
   15: 'fifteen',
   20: 'twenty',
+  25: 'twenty-five',
   30: 'thirty',
   40: 'forty',
   45: 'forty-five',
+  50: 'fifty',
   60: 'sixty',
 };
 

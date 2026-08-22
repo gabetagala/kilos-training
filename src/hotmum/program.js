@@ -83,7 +83,6 @@
 const SLOW = 5; // hinges, squats, rows, raises — the eccentric-led work
 const STEADY = 4; // supported lunges, presses, the knee block
 const QUICK = 3; // standing core, warm-up reps
-const LOOSE = 2; // warm-up knee lifts
 
 // ─── Exercises ───────────────────────────────────────────────────────────────
 // `feel` / `avoid` / `cue` / `why` follow the KILOS convention (src/workout/
@@ -564,15 +563,17 @@ export const PARTS = ['warmup', 'main', 'finisher', 'core'];
 // day warms shoulders and the mid-back. Her plan writes them out separately
 // and she's right — arm circles do nothing for a squat.
 
+// Sized to her clock rather than to a guess: 0:00–5:00 on the lower days,
+// 0:00–4:00 on the upper one. The first build came in a minute under both.
 const WARMUP_LOWER = [
   {
     ex: 'bw-squat',
     mode: 'hold',
     part: 'warmup',
     sets: 1,
-    reps: 12,
+    reps: 16,
     secsPerRep: QUICK,
-    holdSecs: 36,
+    holdSecs: 48,
     phase: 'WORK',
   },
   {
@@ -580,9 +581,9 @@ const WARMUP_LOWER = [
     mode: 'hold',
     part: 'warmup',
     sets: 1,
-    reps: 12,
+    reps: 16,
     secsPerRep: QUICK,
-    holdSecs: 36,
+    holdSecs: 48,
     phase: 'WORK',
   },
   {
@@ -591,35 +592,35 @@ const WARMUP_LOWER = [
     part: 'warmup',
     sets: 1,
     reps: 20,
-    secsPerRep: LOOSE,
-    holdSecs: 40,
+    secsPerRep: QUICK,
+    holdSecs: 60,
     phase: 'WORK',
   },
-  { ex: 'hip-circles', mode: 'hold', part: 'warmup', sets: 1, holdSecs: 30 },
+  { ex: 'hip-circles', mode: 'hold', part: 'warmup', sets: 1, holdSecs: 45 },
   {
     ex: 'calf-raise',
     mode: 'hold',
     part: 'warmup',
     sets: 1,
-    reps: 12,
+    reps: 16,
     secsPerRep: QUICK,
-    holdSecs: 36,
+    holdSecs: 48,
     phase: 'WORK',
   },
 ];
 
 const WARMUP_UPPER = [
-  { ex: 'arm-circles', mode: 'hold', part: 'warmup', sets: 1, holdSecs: 40 },
-  { ex: 'shoulder-rolls', mode: 'hold', part: 'warmup', sets: 1, holdSecs: 30 },
-  { ex: 'torso-rotation', mode: 'hold', part: 'warmup', sets: 1, holdSecs: 30 },
+  { ex: 'arm-circles', mode: 'hold', part: 'warmup', sets: 1, holdSecs: 50 },
+  { ex: 'shoulder-rolls', mode: 'hold', part: 'warmup', sets: 1, holdSecs: 45 },
+  { ex: 'torso-rotation', mode: 'hold', part: 'warmup', sets: 1, holdSecs: 45 },
   {
     ex: 'good-morning',
     mode: 'hold',
     part: 'warmup',
     sets: 1,
-    reps: 12,
+    reps: 20,
     secsPerRep: QUICK,
-    holdSecs: 36,
+    holdSecs: 60,
     phase: 'WORK',
   },
 ];
@@ -665,12 +666,15 @@ export const HOTMUM_SESSIONS = [
     day: 'MON',
     blurb:
       'Single-leg first, then the squats — and the knee work that keeps it going.',
+    // Her plan's own headings, verbatim — this is her session, and reading
+    // the app should feel like reading the plan she wrote.
     parts: {
       warmup: 'WARM-UP',
-      main: 'THE WORK',
+      main: 'STRENGTH',
       finisher: 'KNEE STRENGTH',
-      core: 'STANDING CORE',
+      core: 'CORE',
     },
+    rotate: ['finisher'],
     blocks: [
       ...WARMUP_LOWER,
       // UNILATERAL LEADS (§2.9 rule 3). The single-leg hinge opens the day:
@@ -795,10 +799,10 @@ export const HOTMUM_SESSIONS = [
     blurb: 'Press, row, press — then arms, a carry, and the standing core.',
     parts: {
       warmup: 'WARM-UP',
-      main: 'PRESS + PULL',
-      finisher: 'ARMS + CARRY',
-      core: 'STANDING CORE',
+      main: 'UPPER BODY',
+      finisher: 'ATHLETIC CORE + CARRY',
     },
+    rotate: ['finisher'],
     blocks: [
       ...WARMUP_UPPER,
       {
@@ -844,9 +848,9 @@ export const HOTMUM_SESSIONS = [
         mode: 'hold',
         part: 'main',
         sets: 2,
-        reps: 10,
+        reps: 12,
         secsPerRep: SLOW,
-        holdSecs: 50,
+        holdSecs: 60,
         phase: 'WORK',
         restSecs: 40,
         load: { lb: 10, each: true },
@@ -856,21 +860,21 @@ export const HOTMUM_SESSIONS = [
         mode: 'hold',
         part: 'main',
         sets: 2,
-        reps: 10,
+        reps: 12,
         secsPerRep: SLOW,
-        holdSecs: 50,
+        holdSecs: 60,
         phase: 'WORK',
         restSecs: 40,
         load: { lb: 10, each: true },
       },
-      // — arms + the athletic carry: her 25:00–30:00 block, plus the arms
-      //   she wrote into the main list. Arms move here because SHORT has to
-      //   stay a real escape hatch, and a curl is the most droppable thing
-      //   in the session.
+      // Her 4:00–25:00 UPPER BODY block is seven movements and these are the
+      // last two of them. They spent a while in the finisher, back when SHORT
+      // existed and a curl was the most droppable thing in the session; with
+      // one whole session there's nothing to drop them out of.
       {
         ex: 'bicep-curl',
         mode: 'hold',
-        part: 'finisher',
+        part: 'main',
         sets: 2,
         reps: 10,
         secsPerRep: SLOW,
@@ -882,7 +886,7 @@ export const HOTMUM_SESSIONS = [
       {
         ex: 'tricep-ext',
         mode: 'hold',
-        part: 'finisher',
+        part: 'main',
         sets: 2,
         reps: 10,
         secsPerRep: STEADY,
@@ -906,14 +910,24 @@ export const HOTMUM_SESSIONS = [
         mode: 'hold',
         part: 'finisher',
         sets: 2,
-        reps: 16,
+        reps: 14,
         secsPerRep: QUICK,
-        holdSecs: 48,
+        holdSecs: 42,
         phase: 'WORK',
-        restSecs: 30,
         load: 'BW',
       },
-      ...CORE,
+      {
+        ex: 'suitcase-hold',
+        mode: 'hold',
+        part: 'finisher',
+        sets: 2,
+        holdSecs: 25,
+        perSide: true,
+        switchSecs: 8,
+        load: { lb: 20 },
+      },
+      // No CORE part on Wednesday: her 25:00–30:00 block IS the core, and the
+      // suitcase hold is the third movement in the rotation above.
     ],
   },
 
@@ -926,19 +940,20 @@ export const HOTMUM_SESSIONS = [
       'One of everything, then the knee finisher. The week’s hardest thirty.',
     parts: {
       warmup: 'WARM-UP',
-      main: 'THE WORK',
+      main: 'FULL BODY',
       finisher: 'KNEE FINISHER',
-      core: 'STANDING CORE',
+      core: 'CORE',
     },
+    rotate: ['finisher'],
     blocks: [
       {
         ex: 'bw-squat',
         mode: 'hold',
         part: 'warmup',
         sets: 1,
-        reps: 12,
+        reps: 16,
         secsPerRep: QUICK,
-        holdSecs: 36,
+        holdSecs: 48,
         phase: 'WORK',
       },
       {
@@ -946,9 +961,9 @@ export const HOTMUM_SESSIONS = [
         mode: 'hold',
         part: 'warmup',
         sets: 1,
-        reps: 12,
+        reps: 16,
         secsPerRep: QUICK,
-        holdSecs: 36,
+        holdSecs: 48,
         phase: 'WORK',
       },
       {
@@ -956,7 +971,7 @@ export const HOTMUM_SESSIONS = [
         mode: 'hold',
         part: 'warmup',
         sets: 1,
-        holdSecs: 30,
+        holdSecs: 45,
       },
       {
         ex: 'knee-lift',
@@ -964,8 +979,8 @@ export const HOTMUM_SESSIONS = [
         part: 'warmup',
         sets: 1,
         reps: 20,
-        secsPerRep: LOOSE,
-        holdSecs: 40,
+        secsPerRep: QUICK,
+        holdSecs: 60,
         phase: 'WORK',
       },
       {
@@ -973,9 +988,9 @@ export const HOTMUM_SESSIONS = [
         mode: 'hold',
         part: 'warmup',
         sets: 1,
-        reps: 12,
+        reps: 16,
         secsPerRep: QUICK,
-        holdSecs: 36,
+        holdSecs: 48,
         phase: 'WORK',
       },
       {
@@ -1219,6 +1234,41 @@ export const setTotal = (session) =>
 /** Seconds under tension across a session — the number tempo training earns. */
 export const timeUnderTension = (session) =>
   session.blocks.reduce((n, b) => n + blockWorkSecs(b), 0);
+
+// ─── Rotations ───────────────────────────────────────────────────────────────
+// Her knee block says "Alternate: Wall Sit / Controlled Sit-to-Stand", and
+// Wednesday says "Rotate through: Farmer Carry / Knee Drive / Suitcase Hold".
+// The first build did those as straight sets — all of one, then all of the
+// next — which is the same movements and the same volume arranged as a
+// different exercise. A rotation gets its rest from CHANGING movement, so
+// straight sets need rest periods bolted on and end up longer and easier.
+//
+// A part listed in `session.rotate` is interleaved for the player: three
+// two-set blocks become A B C A B C, one set each, with no programmed rest —
+// the ten-second change-over between movements is the rest. The SHEET still
+// shows the un-interleaved list (2 × 30s each) so it reads like her plan.
+
+export function expandRotations(session) {
+  if (!session?.rotate?.length) return session;
+  const blocks = [];
+  for (const key of PARTS) {
+    const part = session.blocks.filter((b) => b.part === key);
+    if (!session.rotate.includes(key) || part.length < 2) {
+      blocks.push(...part);
+      continue;
+    }
+    const rounds = Math.max(...part.map((b) => b.sets || 1));
+    for (let r = 0; r < rounds; r++) {
+      for (const b of part) {
+        if (r < (b.sets || 1)) blocks.push({ ...b, sets: 1, restSecs: 0 });
+      }
+    }
+  }
+  return { ...session, blocks };
+}
+
+/** The session as the PLAYER runs it — rotations interleaved. */
+export const playable = (session) => expandRotations(session);
 
 /** A session's blocks grouped into its named parts, in order. */
 export function sessionParts(session) {
