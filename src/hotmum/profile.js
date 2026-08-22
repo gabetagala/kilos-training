@@ -72,6 +72,5 @@ export function greeting(name, _date = new Date(), doneToday = false) {
  */
 export function subGreeting({ doneToday, day, days }) {
   if (doneToday) return "That's today done.";
-  if (day === 1) return `Day one of ${days}. Today's yours to pick.`;
   return `Day ${day} of ${days}. Today's yours to pick.`;
 }

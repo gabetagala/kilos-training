@@ -22,6 +22,7 @@ let ctx = null;
 let gain = null;
 let current = null;
 let queued = [];
+let loading = false;
 let unlocked = false;
 const buffers = new Map(); // slug → AudioBuffer | null (null = known missing)
 
@@ -104,21 +105,40 @@ function start(buf) {
   src.connect(gain);
   src.onended = () => {
     if (current === src) current = null;
-    const next = queued.shift();
-    if (next) speak(next);
+    drain();
   };
   src.start();
   current = src;
+}
+
+// Play one slug, then move on. Deliberately NOT speak() — speak() clears the
+// queue, so draining through it silently threw away everything after the first
+// clip: "Get set. Single-Leg RDL." and never the dose. A missing clip skips to
+// the next phrase rather than stalling the rest of the sentence.
+function playNow(slug) {
+  const cached = buffers.get(slug);
+  if (cached) return start(cached);
+  if (buffers.has(slug)) return drain(); // known missing — don't stall
+  loading = true;
+  load(slug).then((buf) => {
+    loading = false;
+    if (buf) start(buf);
+    else drain();
+  });
+}
+
+/** Next phrase, once the current one is actually finished. */
+function drain() {
+  if (current || loading) return;
+  const next = queued.shift();
+  if (next) playNow(next);
 }
 
 /** Say it now, cutting off whatever is mid-word. Beats are time-critical. */
 export function speak(slug) {
   if (!slug) return;
   queued = [];
-  const cached = buffers.get(slug);
-  if (cached) return start(cached);
-  if (cached === null && buffers.has(slug)) return; // known missing
-  load(slug).then(start); // first time only — after this it's instant
+  playNow(slug);
 }
 
 /**
@@ -131,8 +151,10 @@ export function speak(slug) {
  */
 export function speakAfter(slug) {
   if (!slug) return;
-  if (current) queued.push(slug);
-  else speak(slug);
+  queued.push(slug);
+  // Always queue, then drain — checking `current` first raced with the
+  // async load of a cold clip and let the second phrase clear the first.
+  drain();
 }
 
 /**

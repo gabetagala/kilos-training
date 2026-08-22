@@ -116,13 +116,11 @@ const REF_PATH = resolve(ROOT, opt('ref', PACKS[PACK].ref));
 // of the FIGURE the key has stained (a bad roll bleeds the key into the edges).
 const CHROMAS = {
   magenta: {
-    note: '#FF00FF',
     // high red AND blue, starved green
     cast: (d, i) => Math.min(d[i], d[i + 2]) - d[i + 1],
     saturated: (d, i) => d[i] - d[i + 1] > 100 && d[i + 2] - d[i + 1] > 50,
   },
   green: {
-    note: '#00FF00',
     // high green, starved red AND blue
     cast: (d, i) => d[i + 1] - Math.max(d[i], d[i + 2]),
     saturated: (d, i) => d[i + 1] - d[i] > 90 && d[i + 1] - d[i + 2] > 60,

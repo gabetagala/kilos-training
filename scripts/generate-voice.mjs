@@ -108,8 +108,10 @@ function hotmumPhrases() {
   // (src/hotmum/cues.js setAnnounce), so the units and the hold lengths need
   // clips of their own.
   for (const w of Object.values(SEC_SLUGS)) {
-    out[w] = w[0].toUpperCase() + w.slice(1).replace('-', '-');
+    out[w] = w[0].toUpperCase() + w.slice(1);
   }
+  // Lowercase on purpose: these two land mid-sentence ("Six reps."), and the
+  // capitalised form reads to the model as the start of one.
   out.reps = 'reps';
   out.seconds = 'seconds';
   for (const [id, ex] of Object.entries(HOTMUM_EXERCISES)) out[`name-${id}`] = ex.name;

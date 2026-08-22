@@ -173,10 +173,10 @@ export function buildShareData({
           ? session.name.toUpperCase()
           : 'HOTMUM',
     blurb: session?.blurb || '',
+    sub: session?.sub || '',
     secs: record?.secs || 0,
     sets: record?.sets || 0,
     tut: record?.tut || 0,
-    dose: record?.dose ? record.dose.toUpperCase() : '',
     day,
     days,
     daysToGo,
@@ -227,9 +227,11 @@ function drawWorkout(ctx, d) {
 
   ctx.fillStyle = INK;
   display(ctx, d.activity, PAD, PAD + 190, 150);
-  if (d.dose) {
+  // Was the dose — FULL / SHORT / MINI — which no longer exists, so the line
+  // had gone permanently blank. The session's own subtitle says more anyway.
+  if (d.sub) {
     ctx.fillStyle = CREAM;
-    tracked(ctx, d.dose, PAD, PAD + 232, 22, 0.2);
+    tracked(ctx, d.sub.toUpperCase(), PAD, PAD + 232, 22, 0.2);
   }
 
   // The movements — ALL of them. This printed the first 9 of a 13-row session
