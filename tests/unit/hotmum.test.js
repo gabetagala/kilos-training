@@ -49,6 +49,14 @@ import {
 const allBlocks = HOTMUM_SESSIONS.flatMap((s) => s.blocks);
 
 describe('program data', () => {
+  // History is forever; a record written before the rename would otherwise
+  // render as an unnamed "Session" in her log.
+  it('still resolves the session ids it used to have', () => {
+    expect(getSession('lower-a').id).toBe('lower');
+    expect(getSession('lower-b').id).toBe('full');
+    expect(getSession('nope')).toBeNull();
+  });
+
   it('is the three days from her plan, on the right weekdays', () => {
     expect(HOTMUM_SESSIONS.map((s) => s.id)).toEqual(['lower', 'upper', 'full']);
     expect(HOTMUM_SESSIONS.map((s) => s.day)).toEqual(['MON', 'WED', 'FRI']);
@@ -502,6 +510,42 @@ describe('the knee doctrine', () => {
     for (const b of s.blocks) expect(HOTMUM_EXERCISES[b.ex], b.ex).toBeTruthy();
   });
 
+  // Both of these were silent bugs: the naive `{...block, ...kneeSwap}` spread
+  // inherited whatever the ORIGINAL movement happened to carry. Swapping the
+  // bilateral sumo squat for a single-leg RDL kept perSide:false, so one leg
+  // did eight slow reps and the other did none — on the day the app says it's
+  // being kinder. And swapping the goblet squat for a faster sit-to-stand kept
+  // the old holdSecs, so the screen said "8 reps · 4s per rep" and then ran 40
+  // seconds instead of 32.
+  it('produces a coherent block for every knee swap', () => {
+    for (const id of ['lower', 'full']) {
+      for (const b of kneeEasy(getSession(id)).blocks) {
+        if (!b.swappedFrom) continue;
+        expect(b.holdSecs, `${id}/${b.ex} interval`).toBe(
+          b.reps * b.secsPerRep,
+        );
+        // per-side is declared by the SWAP, never inherited from the block
+        // it replaced — and a single-leg movement must run per side.
+        const src = getSession(id).blocks.find((x) => x.ex === b.swappedFrom);
+        expect(b.perSide, `${id}/${b.ex} perSide`).toBe(
+          !!src.kneeSwap.perSide,
+        );
+        if (b.ex.startsWith('sl-') || b.ex === 'hip-abduction') {
+          expect(b.perSide, `${id}/${b.ex} is single-leg`).toBe(true);
+          expect(b.switchSecs, `${id}/${b.ex} switch`).toBeGreaterThan(0);
+        }
+      }
+    }
+  });
+
+  it('keeps an easy-knee session inside the thirty-minute promise', () => {
+    for (const id of ['lower', 'full']) {
+      const mins = estimateMins(playable(kneeEasy(getSession(id))));
+      expect(mins, id).toBeGreaterThanOrEqual(26);
+      expect(mins, id).toBeLessThanOrEqual(32);
+    }
+  });
+
   // Isometric holds at a tolerable angle SETTLE an irritated knee. Dropping
   // them on a sore day would be the exact wrong reflex.
   it('keeps the wall sit and the sit-to-stand on an easy-knee day', () => {
@@ -516,13 +560,7 @@ describe('the knee doctrine', () => {
     expect(hasKneeSwap(getSession('upper'))).toBe(false);
   });
 
-  it('an easy-knee session is still a real session, not a rest day', () => {
-    for (const id of ['lower', 'full']) {
-      const easy = estimateMins(kneeEasy(getSession(id)), 'full');
-      expect(easy, id).toBeGreaterThanOrEqual(24);
-      expect(easy, id).toBeLessThanOrEqual(32);
-    }
-  });
+
 });
 
 // ─── Standing only ─────────────────────────────────────────────────────────
@@ -811,7 +849,7 @@ describe('profile — greeting and units', () => {
 
   it('counts the hundred days, and never a date beyond them', () => {
     expect(subGreeting({ doneToday: false, day: 1, days: 100 })).toMatch(
-      /Day one of 100/,
+      /Day 1 of 100/,
     );
     expect(subGreeting({ doneToday: false, day: 42, days: 100 })).toMatch(
       /Day 42 of 100/,

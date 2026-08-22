@@ -372,9 +372,10 @@ export const HOTMUM_EXERCISES = {
 // It used to count down to Christmas. Her rewritten plan counts 100 days
 // instead, and the two never lined up — 20 Aug to Christmas is 128 days, so a
 // "100 days" that was really 128 had a lie in it. The hundred won and the
-// Christmas framing is GONE, not demoted: day 100 is Friday 27 Nov and that's
-// the whole story. Don't reintroduce a second deadline — one finish line is
-// the entire reason this mechanic works.
+// Christmas framing is GONE, not demoted: day 100 is the whole story. Don't
+// reintroduce a second deadline — one finish line is the entire reason this
+// mechanic works. (The dates live in SEASON below; don't restate them here,
+// which is how this comment came to name the wrong day.)
 
 export const SEASON = {
   id: 'hundred-days',
@@ -706,7 +707,13 @@ export const HOTMUM_SESSIONS = [
         switchSecs: 10,
         restSecs: 45,
         load: { lb: 15, each: true },
-        kneeSwap: { ex: 'hip-abduction', secsPerRep: STEADY, load: 'BW' },
+        kneeSwap: {
+          ex: 'hip-abduction',
+          secsPerRep: STEADY,
+          perSide: true,
+          switchSecs: 8,
+          load: 'BW',
+        },
       },
       // The bilateral anchor. Two legs still move the most total load, and
       // cutting them entirely would cost her the strength the plan is for.
@@ -734,7 +741,13 @@ export const HOTMUM_SESSIONS = [
         phase: 'WORK',
         restSecs: 40,
         load: { lb: 20 },
-        kneeSwap: { ex: 'sl-rdl', secsPerRep: SLOW, load: { lb: 15 } },
+        kneeSwap: {
+          ex: 'sl-rdl',
+          secsPerRep: SLOW,
+          perSide: true,
+          switchSecs: 10,
+          load: { lb: 15 },
+        },
       },
       {
         ex: 'sl-calf-raise',
@@ -1019,7 +1032,13 @@ export const HOTMUM_SESSIONS = [
         switchSecs: 10,
         restSecs: 45,
         load: { lb: 15, each: true },
-        kneeSwap: { ex: 'hip-abduction', secsPerRep: STEADY, load: 'BW' },
+        kneeSwap: {
+          ex: 'hip-abduction',
+          secsPerRep: STEADY,
+          perSide: true,
+          switchSecs: 8,
+          load: 'BW',
+        },
       },
       {
         ex: 'goblet-squat',
@@ -1115,8 +1134,13 @@ export const HOTMUM_SESSIONS = [
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+// The 2026-08-22 rewrite renamed the lower days. A live run from before it is
+// dropped on restore (the schema guard in app.js), but HISTORY is forever —
+// without this, her logged Lower A days render as an unnamed "Session".
+const LEGACY_IDS = { 'lower-a': 'lower', 'lower-b': 'full' };
+
 export const getSession = (id) =>
-  HOTMUM_SESSIONS.find((s) => s.id === id) || null;
+  HOTMUM_SESSIONS.find((s) => s.id === (LEGACY_IDS[id] || id)) || null;
 
 /** "3 × 6 reps · 30s / side" — what a block asks for, in one line. */
 export function blockDetail(block) {
@@ -1182,10 +1206,34 @@ export function kneeEasy(session) {
   return {
     ...session,
     easyKnee: true,
-    blocks: session.blocks.map((b) =>
-      b.kneeSwap ? { ...b, ...b.kneeSwap, swappedFrom: b.ex } : b,
-    ),
+    blocks: session.blocks.map((b) => (b.kneeSwap ? swapped(b) : b)),
   };
+}
+
+/**
+ * Merge a kneeSwap over its block — and then make the result make sense.
+ *
+ * A naive spread inherits whatever the ORIGINAL movement happened to carry,
+ * which produced two silent bugs: swapping the (bilateral) sumo squat for a
+ * single-leg RDL kept `perSide: false`, so she'd have done eight slow reps on
+ * one leg and none on the other — on the day the app is telling her it's being
+ * kinder. And swapping the goblet squat for a faster sit-to-stand kept the old
+ * `holdSecs`, so the screen said "8 reps · 4s per rep" and then ran for 40
+ * seconds instead of 32.
+ *
+ * So: per-side is declared by the SWAP, never inherited, and the interval is
+ * recomputed from reps × pace — the same invariant progressBlock() maintains.
+ */
+function swapped(block) {
+  const out = {
+    ...block,
+    perSide: false,
+    switchSecs: 0,
+    ...block.kneeSwap,
+    swappedFrom: block.ex,
+  };
+  if (out.reps && out.secsPerRep) out.holdSecs = out.reps * out.secsPerRep;
+  return out;
 }
 
 /** Everything the app has to do to a session before it plays. */
@@ -1197,14 +1245,17 @@ export function sessionForToday(session, { day, easyKnee = false } = {}) {
 
 // ─── Length maths ────────────────────────────────────────────────────────────
 
-/** Seconds of WORK in a block — no rests, no prep. */
+/**
+ * Seconds of WORK in a block — no rests, no prep.
+ *
+ * Every block is `hold` (one timed interval per set). This used to branch on
+ * `tempo` and `reps` modes; the tempo branch called a `tempoSecs()` helper the
+ * rewrite deleted, so it was a ReferenceError waiting for the first block that
+ * set `mode: 'tempo'` again.
+ */
 export function blockWorkSecs(block) {
   const sides = block.perSide ? 2 : 1;
-  const sets = block.sets || 1;
-  if (block.mode === 'tempo')
-    return sets * sides * block.reps * tempoSecs(block.tempo);
-  if (block.mode === 'reps') return sets * sides * block.reps * block.holdSecs;
-  return sets * sides * block.holdSecs; // hold
+  return (block.sets || 1) * sides * block.holdSecs;
 }
 
 /**
@@ -1217,11 +1268,7 @@ export function estimateSecs(session) {
     const sides = block.perSide ? 2 : 1;
     const rest = (block.restSecs || 0) * (sets - 1);
     const switches = (block.switchSecs || 0) * (sides - 1) * sets;
-    const reset =
-      block.mode === 'reps'
-        ? (block.resetSecs || 0) * (block.reps - 1) * sets * sides
-        : 0;
-    return total + 10 + blockWorkSecs(block) + rest + switches + reset;
+    return total + 10 + blockWorkSecs(block) + rest + switches;
   }, 0);
 }
 
