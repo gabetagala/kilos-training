@@ -15,6 +15,7 @@ import {
   loadLabel,
   MOVEMENTS,
   PARTS,
+  PHASES,
   playable,
   progress,
   SEASON,
@@ -121,6 +122,36 @@ describe('program data', () => {
         expect(b.secsPerRep, `${b.ex} secsPerRep`).toBeGreaterThan(0);
         expect(b.holdSecs, `${b.ex} interval`).toBe(b.reps * b.secsPerRep);
       }
+    }
+  });
+
+  // The engine defaults an unset phase to 'HOLD'. That's right for a wall sit
+  // and wrong for arm circles — four mobility drills shipped telling her to
+  // HOLD a movement whose whole point is that it keeps moving. Declared on
+  // every block now, and checked here so nothing can inherit it again.
+  it('every block says what the body is actually doing', () => {
+    for (const b of allBlocks) {
+      expect(b.phase, `${b.ex} has no phase`).toBeTruthy();
+      expect(PHASES, `${b.ex} phase ${b.phase}`).toContain(b.phase);
+    }
+  });
+
+  it('reserves HOLD for the isometrics and LOOSEN for the mobility work', () => {
+    const phaseOf = (ex) => allBlocks.find((b) => b.ex === ex).phase;
+    expect(phaseOf('wall-sit')).toBe('HOLD');
+    expect(phaseOf('suitcase-hold')).toBe('HOLD');
+    expect(phaseOf('farmer-carry')).toBe('CARRY');
+    for (const ex of [
+      'hip-circles',
+      'arm-circles',
+      'shoulder-rolls',
+      'torso-rotation',
+    ]) {
+      expect(phaseOf(ex), ex).toBe('LOOSEN');
+    }
+    // and anything with a rep target is WORK, never a hold
+    for (const b of allBlocks.filter((x) => x.reps)) {
+      expect(b.phase, `${b.ex} has reps`).toBe('WORK');
     }
   });
 

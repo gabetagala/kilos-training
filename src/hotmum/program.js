@@ -56,6 +56,17 @@
 // and dead bugs. Everything here can be done in shoes, next to a chair, with
 // a baby monitor in view. Don't reintroduce floor work without asking her.
 //
+// PHASE is the word the player prints while she's working, and it has to
+// match what the body is actually doing. It's declared on every block, never
+// inherited: the engine defaults an unset one to 'HOLD', which is right for a
+// wall sit and wrong for arm circles — four mobility drills sat there telling
+// her to HOLD a movement whose whole point is that it keeps moving.
+//   WORK   — reps against a clock
+//   HOLD   — isometric: the wall sit, the suitcase hold
+//   CARRY  — the farmer carry
+//   LOOSEN — warm-up mobility that never stops moving
+export const PHASES = ['WORK', 'HOLD', 'CARRY', 'LOOSEN'];
+
 // Blocks match the engine schema in src/workout/rehab.js. Everything here is
 // `hold` — one timed interval per set — because that is now what a set IS: a
 // stretch of work with a rep target in it. HOTMUM's own additions on top:
@@ -597,7 +608,14 @@ const WARMUP_LOWER = [
     holdSecs: 60,
     phase: 'WORK',
   },
-  { ex: 'hip-circles', mode: 'hold', part: 'warmup', sets: 1, holdSecs: 45 },
+  {
+    ex: 'hip-circles',
+    mode: 'hold',
+    part: 'warmup',
+    sets: 1,
+    holdSecs: 45,
+    phase: 'LOOSEN',
+  },
   {
     ex: 'calf-raise',
     mode: 'hold',
@@ -611,9 +629,30 @@ const WARMUP_LOWER = [
 ];
 
 const WARMUP_UPPER = [
-  { ex: 'arm-circles', mode: 'hold', part: 'warmup', sets: 1, holdSecs: 50 },
-  { ex: 'shoulder-rolls', mode: 'hold', part: 'warmup', sets: 1, holdSecs: 45 },
-  { ex: 'torso-rotation', mode: 'hold', part: 'warmup', sets: 1, holdSecs: 45 },
+  {
+    ex: 'arm-circles',
+    mode: 'hold',
+    part: 'warmup',
+    sets: 1,
+    holdSecs: 50,
+    phase: 'LOOSEN',
+  },
+  {
+    ex: 'shoulder-rolls',
+    mode: 'hold',
+    part: 'warmup',
+    sets: 1,
+    holdSecs: 45,
+    phase: 'LOOSEN',
+  },
+  {
+    ex: 'torso-rotation',
+    mode: 'hold',
+    part: 'warmup',
+    sets: 1,
+    holdSecs: 45,
+    phase: 'LOOSEN',
+  },
   {
     ex: 'good-morning',
     mode: 'hold',
@@ -645,6 +684,7 @@ const CORE = [
     ex: 'suitcase-hold',
     mode: 'hold',
     part: 'core',
+    phase: 'HOLD',
     sets: 1,
     holdSecs: 30,
     perSide: true,
@@ -933,6 +973,7 @@ export const HOTMUM_SESSIONS = [
         ex: 'suitcase-hold',
         mode: 'hold',
         part: 'finisher',
+        phase: 'HOLD',
         sets: 2,
         holdSecs: 25,
         perSide: true,
@@ -985,6 +1026,7 @@ export const HOTMUM_SESSIONS = [
         part: 'warmup',
         sets: 1,
         holdSecs: 45,
+        phase: 'LOOSEN',
       },
       {
         ex: 'knee-lift',
