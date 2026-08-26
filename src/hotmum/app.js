@@ -879,18 +879,14 @@ function renderHome() {
   const block = blockForDay(day);
   const done = doneToday();
   const grid = hundredGrid();
-  const hist = history();
 
-  const recent = hist
-    .slice(-3)
-    .reverse()
-    .map((h) => {
-      return `<div class="wk">
-        <span class="nm">${esc(historyName(h))}</span>
-        <span class="lbl lbl-sm">${esc(h.date)}</span>
-      </div>`;
-    })
-    .join('');
+  // NO "RECENT" LIST. There was one — two rows of what she last did — and it
+  // is exactly what the calendar above now shows, only worse: the calendar
+  // has every day rather than two, and since 2026-08-22 each box opens the
+  // day to show or change what was logged. Keeping both meant the grid had to
+  // give up its height to make room, and ten rows squeezed into 190px stop
+  // reading as a hundred days and start reading as a hundred dashes. The full
+  // log lives on the Me tab.
 
   const card = `<button class="today-card" id="open-today">
       <div>
@@ -939,7 +935,6 @@ function renderHome() {
 
       <div class="pane pane-c">
         ${card}
-        ${recent ? `<h2 class="sec-h">Recent</h2>${recent}` : ''}
         <p class="fine">Everything lives on this phone.</p>
       </div>
     </div>
