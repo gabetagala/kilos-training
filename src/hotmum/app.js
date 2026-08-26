@@ -16,6 +16,7 @@ import { demoFor, stillDemo } from './demos.js';
 import {
   buildStepQueue,
   estimateSessionMins,
+  estimateSessionSecs,
   nextWorkLabel,
 } from './engine.js';
 import {
@@ -40,6 +41,8 @@ import {
   SEASON,
   sessionForToday,
   sessionParts,
+  setTotal,
+  timeUnderTension,
   WALK,
 } from './program.js';
 import {
@@ -859,7 +862,14 @@ function hundredGrid() {
       filled++;
     } else if (k === today) cls = 'today';
     else if (k < today) cls = 'past';
-    cells.push(`<i class="bx ${cls}"></i>`);
+    // A day that has already happened is tappable — that's how she logs the
+    // walk she did on Tuesday and forgot to open the app for. A day that
+    // hasn't happened yet is just a box.
+    cells.push(
+      k <= today
+        ? `<button class="bx ${cls}" data-day="${k}" aria-label="${dayLabel(k)}${cls === 'done' ? ' — logged' : ''}"></button>`
+        : `<i class="bx ${cls}"></i>`,
+    );
   }
   return { html: cells.join(''), filled, total: SEASON.days };
 }
@@ -943,7 +953,128 @@ function renderHome() {
     renderHome();
   });
   app.querySelector('#open-today')?.addEventListener('click', openPicker);
+  for (const b of app.querySelectorAll('[data-day]')) {
+    b.addEventListener('click', () => openDay(b.dataset.day));
+  }
 }
+
+// ─── Logging a day she missed ──────────────────────────────────────────────
+// "I walked on Tuesday and never opened the app." Tapping that day's box
+// backfills it.
+//
+// A box is ~30px across, which is under the 44px touch target this app holds
+// itself to everywhere else — a hundred of them can't be, on a phone. The
+// mitigation is that a tap COMMITS NOTHING: it opens a sheet with the date in
+// large type at the top, so a mis-tap is obvious and closing costs one more
+// tap. Nothing is written until she picks a movement.
+
+const DAY_FMT = { weekday: 'long', day: 'numeric', month: 'long' };
+const dayLabel = (k) =>
+  new Date(`${k}T00:00:00`).toLocaleDateString('en-GB', DAY_FMT);
+
+/** What a backfilled session/movement is worth, dosed for the day it was. */
+function backfillRecord(id, dateKey) {
+  if (id === 'walk' || getMovement(id).id === id) {
+    const move = getMovement(id);
+    return { kind: 'walk', moveId: move.id, secs: move.mins * 60 };
+  }
+  const s = playable(prepped(id, { day: dayNumber(dateKey) }));
+  return {
+    kind: 'session',
+    sessionId: id,
+    secs: estimateSessionSecs(s),
+    sets: setTotal(s),
+    tut: timeUnderTension(s),
+  };
+}
+
+function openDay(dateKey) {
+  const logged = history().filter((h) => h.date === dateKey);
+  const isToday = dateKey === todayKey();
+
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet';
+  const paint = () => {
+    const rows = logged.length
+      ? logged
+          .map(
+            (h, i) => `<div class="row">
+              <div>
+                <div class="row-t">${esc(historyName(h))}</div>
+                <div class="row-s">${esc(historyDetail(h))}</div>
+              </div>
+              <button class="del" data-undo="${i}" aria-label="Remove this entry">✕</button>
+            </div>`,
+          )
+          .join('')
+      : [...HOTMUM_SESSIONS.map((x) => x.id), ...MOVEMENTS.map((m) => m.id)]
+          .map((id) => {
+            const s = getSession(id);
+            const name = s ? `${s.day} · ${s.sub}` : getMovement(id).name;
+            const mins = s
+              ? estimateSessionMins(
+                  playable(prepped(id, { day: dayNumber(dateKey) })),
+                )
+              : getMovement(id).mins;
+            return `<button class="row row-tap" data-log="${esc(id)}">
+              <div><div class="row-t">${esc(name)}</div></div>
+              <span class="lbl lbl-sm lbl-hot">${mins} MIN</span>
+            </button>`;
+          })
+          .join('');
+
+    sheet.innerHTML = `<div class="sheet-card sheet-session" role="dialog" aria-label="${esc(dayLabel(dateKey))}">
+      <div class="sheet-top">
+        <div>
+          <span class="lbl lbl-sm">DAY ${dayNumber(dateKey)} OF ${SEASON.days}</span>
+          <h3 class="sheet-day">${esc(dayLabel(dateKey).toUpperCase())}</h3>
+        </div>
+        <button class="icon-btn" id="sheet-x" aria-label="Close">✕</button>
+      </div>
+      <p class="row-s">${
+        logged.length
+          ? 'Already logged. Remove it if that was a mistake.'
+          : isToday
+            ? 'Log what you did today, without running it.'
+            : 'Did something that day and forget to log it? Add it here.'
+      }</p>
+      <div class="sheet-scroll">${rows}</div>
+    </div>`;
+
+    for (const b of sheet.querySelectorAll('[data-log]')) {
+      b.addEventListener('click', () => {
+        logDone(backfillRecord(b.dataset.log, dateKey), dateKey);
+        sheet.remove();
+        renderHome();
+      });
+    }
+    for (const b of sheet.querySelectorAll('[data-undo]')) {
+      b.addEventListener('click', () => {
+        const target = logged[Number(b.dataset.undo)];
+        set(
+          K.history,
+          history().filter((h) => h !== target && !sameEntry(h, target)),
+        );
+        sheet.remove();
+        renderHome();
+      });
+    }
+  };
+  paint();
+  document.body.appendChild(sheet);
+  sheet.addEventListener('click', (e) => {
+    if (e.target === sheet || e.target.id === 'sheet-x') sheet.remove();
+  });
+}
+
+// Records are plain objects re-read from storage, so identity comparison
+// never matches — match on the fields that make an entry unique.
+const sameEntry = (a, b) =>
+  a.date === b.date &&
+  a.at === b.at &&
+  a.kind === b.kind &&
+  a.sessionId === b.sessionId &&
+  a.moveId === b.moveId;
 
 // ─── She picks the day ─────────────────────────────────────────────────────
 // There is no schedule. All three sessions and the walk are always available,
@@ -1711,9 +1842,12 @@ function finishRun() {
   renderFinish(done);
 }
 
-function logDone(rec) {
+function logDone(rec, date = todayKey()) {
   const list = history();
-  list.push({ date: todayKey(), at: Date.now(), ...rec });
+  list.push({ date, at: Date.now(), ...rec });
+  // Kept in DATE order, not insertion order — a backfilled Tuesday added on
+  // Thursday would otherwise sit at the end and lead the "Recent" list.
+  list.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
   set(K.history, list.slice(-400));
   queuePush(); // fire-and-forget; the loop never waits on the network
 }
