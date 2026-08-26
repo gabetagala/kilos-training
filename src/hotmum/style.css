@@ -1040,8 +1040,24 @@ body {
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.18);
 }
+/* The past ones are buttons (openDay backfills a missed day). Reset the UA
+   button chrome so they still read as boxes, not controls. */
+button.bx {
+  padding: 0;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+button.bx:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
 .bx.done {
   background: #fff;
+}
+button.bx.done:hover {
+  background: var(--cream);
 }
 .bx.today {
   background: var(--cream);
@@ -1070,16 +1086,25 @@ body {
      uncapped full-width square is 335px tall and pushes the card off screen. */
   .scr-home .pane-b {
     display: block;
-    /* The grid is SQUARE, so capping the width is the only way to cap the
-       height. The 400px is the rest of the screen measured: top bar, greeting,
-       the label and key rows, the card at its minimum, and the padding the
-       floating nav needs. dvh, not vh, because iOS Safari's toolbars move. */
-    width: min(100%, calc(100dvh - 415px));
-    margin-inline: auto;
   }
+  /* EDGE TO EDGE. The first pass capped the block's WIDTH to keep the boxes
+     square and still fit one fold, which inset the calendar on any screen
+     short enough for the cap to bite. Full width wins: the GRID's height is
+     capped instead and the rows divide whatever is left, so on a short phone
+     the boxes go slightly wider than tall rather than the whole calendar
+     shrinking away from the edges. On a tall phone the cap never bites and
+     they come out square anyway.
+     The subtrahend is the rest of the screen, measured: top bar, greeting,
+     the label and key rows, the card at its minimum, and the padding the
+     floating nav needs. dvh, not vh, because iOS toolbars move. */
   .scr-home .boxes {
     grid-template-columns: repeat(10, 1fr);
+    grid-auto-rows: minmax(0, 1fr);
     gap: 4px;
+    height: min(calc(100dvh - 415px), calc(100vw - 40px));
+  }
+  .scr-home .bx {
+    aspect-ratio: auto;
   }
   .scr-home .today-card {
     flex: 1;
