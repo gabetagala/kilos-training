@@ -1084,33 +1084,52 @@ button.bx.done:hover {
      centred together. The cap is in vh because the grid is SQUARE — capping
      the width is the only way to cap the height, and on a 667px phone an
      uncapped full-width square is 335px tall and pushes the card off screen. */
-  .scr-home .pane-b {
-    display: block;
-  }
-  /* EDGE TO EDGE. The first pass capped the block's WIDTH to keep the boxes
-     square and still fit one fold, which inset the calendar on any screen
-     short enough for the cap to bite. Full width wins: the GRID's height is
-     capped instead and the rows divide whatever is left, so on a short phone
-     the boxes go slightly wider than tall rather than the whole calendar
-     shrinking away from the edges. On a tall phone the cap never bites and
-     they come out square anyway.
-     The subtrahend is the rest of the screen, measured: top bar, greeting,
-     the label and key rows, the card at its minimum, and the padding the
-     floating nav needs. dvh, not vh, because iOS toolbars move. */
+  /* pane-b stays `display: contents` (the global rule). It briefly became a
+     block, to hang a width cap on — and that quietly made the calendar a
+     BLOCK child, so its `flex: 1` had no flex parent to grow into and the
+     rows sat at their 19px floor no matter how much room was free. */
+  /* EDGE TO EDGE, AND THE CALENDAR IS WHAT FLEXES.
+     Two earlier passes got this wrong. The first capped the block's WIDTH to
+     keep the boxes square, which inset the calendar on short screens. The
+     second capped the grid's HEIGHT against a hardcoded `100dvh - 415px` —
+     which held only as long as nothing else appeared below the day card. The
+     moment she logged a day, RECENT rendered, the page overflowed, the card
+     was squeezed until its own subtitle clipped, and the floating nav sat on
+     top of the list.
+     So no magic number: the grid takes `flex: 1` and every sibling keeps its
+     natural height. Whatever is below — RECENT today, anything later — the
+     calendar gives up the room and the fold still holds. `max-height` keeps
+     it from going taller than square when there's room to spare. */
   .scr-home .boxes {
     grid-template-columns: repeat(10, 1fr);
-    grid-auto-rows: minmax(0, 1fr);
+    /* The floor is on the ROW, not the grid. A grid-level min-height let ten
+       rows divide it into 8px slivers the moment RECENT and a two-line
+       greeting both showed up — a hundred dashes, not a hundred days. Below
+       this the page scrolls instead, which is the better failure. */
+    grid-auto-rows: minmax(19px, 1fr);
     gap: 4px;
-    height: min(calc(100dvh - 415px), calc(100vw - 40px));
+    flex: 1 1 0;
+    max-height: calc(100vw - 40px);
   }
   .scr-home .bx {
     aspect-ratio: auto;
   }
+  /* Sized by its content — `flex: 1` here is what clipped the subtitle. */
   .scr-home .today-card {
-    flex: 1;
+    flex: 0 0 auto;
     align-items: center;
     margin-top: 14px;
     margin-bottom: 0;
+  }
+  /* RECENT is two rows of context, not a log — the Me tab has the log, and
+     the calendar above already says which days are done. */
+  .scr-home .sec-h {
+    margin: 16px 0 0;
+    padding-bottom: 4px;
+  }
+  .scr-home .wk {
+    padding: 7px 0;
+    min-height: 0;
   }
   /* Decoration, and the one thing on this screen worth losing to fit. */
   .scr-home .fine {
@@ -1125,8 +1144,20 @@ button.bx.done:hover {
   .scr-home .page-h {
     font-size: 30px;
   }
-  .scr-home .hello .row-s {
+  /* Both of these say something the screen says again a few pixels later —
+     the label row repeats the day count, and the card's headline already
+     asks the question its subtitle explains. On a short phone they're what
+     the calendar takes its height back from. */
+  .scr-home .hello .row-s,
+  .scr-home .today-card .row-s {
     display: none;
+  }
+  .scr-home .today-card {
+    padding: 16px 18px;
+    margin-top: 10px;
+  }
+  .scr-home .boxes {
+    grid-auto-rows: minmax(17px, 1fr);
   }
 }
 
