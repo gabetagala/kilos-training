@@ -362,8 +362,9 @@
     }
     .ctx > span{flex:0 0 auto}
     .ctx{padding:5px 0; border:0; background:none}
-    .dock #ctx{min-height:0}
-    .dock[data-sheet=element]{height:auto; max-height:120px}
+    /* same lane height as every other sheet — controls wrap to fill it */
+    .dock #ctx{min-height:0; flex-wrap:wrap; overflow:visible; row-gap:8px; align-content:flex-start}
+    .dock #ctx > span{flex-wrap:wrap; row-gap:8px; flex:0 1 auto}
     .ctx button{flex:0 0 auto; padding:7px 11px; min-height:34px}
     .ctx button.ic{padding:7px 9px}
     .ctx input[type=range]{width:110px}
