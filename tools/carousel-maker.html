@@ -11,13 +11,13 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Studio">
-<meta name="theme-color" content="#efece7">
+<meta name="theme-color" content="#f1ede0">
 
 <style>
   :root{
-    --paper:#efece7; --card:#fbfaf8; --sunk:#e4ded5; --ink:#1a1917; --ink2:#55504a;
-    --dim:#8d867c; --line:#e4ddd3; --line2:#d3cbbf; --clay:#a9613f; --ok:#5c7a5c;
-    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --paper:#f1ede0; --card:#faf7ec; --sunk:#e6dfca; --ink:#33281d; --ink2:#5c4c3a;
+    --dim:#93866c; --line:#e6dfc9; --line2:#d3c8aa; --clay:#a8522e; --ok:#5c7a5c;
+    --serif:"Avenir Next Condensed","Arial Narrow",Arial,sans-serif;
     --sh:0 1px 2px rgba(26,25,23,.06),0 6px 20px rgba(26,25,23,.07);
   }
   *{box-sizing:border-box}
@@ -34,7 +34,7 @@
     display:flex; align-items:center; gap:14px; padding:0 16px; height:52px; flex:0 0 52px;
     background:var(--card); border-bottom:1px solid var(--line); position:relative; z-index:20;
   }
-  .brand{margin:0; font:italic 400 18px/1 var(--serif); padding-right:4px; display:block}
+  .brand{margin:0; font:700 16px/1 var(--serif); letter-spacing:.09em; text-transform:uppercase; padding-right:4px; display:block}
   .brand b{font:500 9px/1 -apple-system,sans-serif; letter-spacing:.2em; text-transform:uppercase; color:var(--dim); display:block; margin-top:4px; font-weight:500}
   .grow{flex:1}
   .lbl{font-size:10px; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); font-weight:600; white-space:nowrap}
@@ -143,7 +143,7 @@
   .dock .tools{flex:0 0 auto}
   .dock #cap{width:238px}
   h3{font-size:10px; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); margin:0; font-weight:600; display:flex; align-items:center; gap:8px}
-  h3 em{font:italic 400 12px/1 var(--serif); letter-spacing:0; text-transform:none; color:var(--ink)}
+  h3 em{font:700 11.5px/1 var(--serif); letter-spacing:.06em; font-style:normal; color:var(--clay)}
   h3 .grow{flex:1}
   .sect{display:flex; flex-direction:column; gap:9px; min-height:0}
   .chips{display:flex; gap:5px}
@@ -262,7 +262,7 @@
   .ctx .seg button{padding:4px 7px; font-size:12px; min-width:0}
   .ctx button.ic{padding:5px 6px; line-height:0}
   .ctx button.ic svg{width:14px; height:14px}
-  .ctx button.ic.on{background:var(--ink); border-color:var(--ink); color:#fbfaf8}
+  .ctx button.ic.on,.ctx button.on{background:var(--ink); border-color:var(--ink); color:var(--card)}
   #tedit{
     position:absolute; z-index:35; margin:0; padding:0; border:1px solid var(--ink); border-radius:2px;
     background:rgba(255,255,255,.92); resize:none; overflow:hidden; outline:none;
@@ -296,7 +296,7 @@
     display:flex; align-items:center; gap:12px; padding:16px 20px;
     padding-top:calc(16px + env(safe-area-inset-top,0px)); border-bottom:1px solid var(--line); background:var(--card);
   }
-  .phead h2{margin:0; font:italic 400 22px/1 var(--serif); text-transform:none; letter-spacing:0; color:var(--ink)}
+  .phead h2{margin:0; font:700 19px/1 var(--serif); letter-spacing:.09em; text-transform:uppercase; color:var(--ink)}
   .pgrid{
     flex:1; overflow-y:auto; display:grid; gap:14px; padding:18px 20px 40px;
     grid-template-columns:repeat(auto-fill,minmax(168px,1fr)); align-content:start;
@@ -523,6 +523,7 @@
         <div class="seg" id="tAlign">
           <button data-a="left">◧</button><button data-a="center">▣</button><button data-a="right">◨</button>
         </div>
+        <button id="tPress" title="Letterpress — pressed into the photo">Deboss</button>
         <button id="tEdit">Edit</button>
       </span>
       <button id="fitStrip">Span all</button>
@@ -946,10 +947,16 @@ function processLayer(l){
 const LW = l => l.crop.w, LH = l => l.crop.h;
 const mctx = document.createElement('canvas').getContext('2d');
 const fontOf = t => t.size + 'px ' + FONTS[t.font];
+const lhOf = t => t.size * (t.press ? 1.8 : 1.25);   // pressed marks breathe like a blind deboss
+const prepType = (g, t) => {
+  g.font = fontOf(t);
+  if ('letterSpacing' in g) g.letterSpacing = (t.press ? t.size * .5 : 0) + 'px';
+};
 function linesOf(t){
-  mctx.font = fontOf(t);
+  prepType(mctx, t);
   const out = [];
-  String(t.text || '').split('\n').forEach(par => {
+  const raw = t.press ? String(t.text || '').toUpperCase() : String(t.text || '');
+  raw.split('\n').forEach(par => {
     let cur = '';
     par.split(' ').forEach(w => {
       const test = cur ? cur + ' ' + w : w;
@@ -959,7 +966,7 @@ function linesOf(t){
   });
   return out;
 }
-const textH = t => Math.max(t.size, linesOf(t).length * t.size * 1.25);
+const textH = t => Math.max(t.size, linesOf(t).length * lhOf(t));
 // on-canvas footprint of any element
 const bw = l => isText(l) ? l.w : LW(l) * l.scale;
 const bh = l => isText(l) ? textH(l) : LH(l) * l.scale;
@@ -1104,10 +1111,34 @@ function visIn(s, c){
 /* ---------- painting ---------- */
 function drawText(g, t){
   g.save();
-  g.font = fontOf(t); g.fillStyle = t.color; g.textBaseline = 'top'; g.textAlign = t.align;
-  const lh = t.size * 1.25;
+  prepType(g, t);
+  g.textBaseline = 'top'; g.textAlign = t.align;
+  const lh = lhOf(t);
   const x = t.align === 'center' ? t.x + t.w/2 : t.align === 'right' ? t.x + t.w : t.x;
-  linesOf(t).forEach((ln, i) => g.fillText(ln, x, t.y + i * lh));
+  const lines = linesOf(t);
+  const paint = (col, dy) => {
+    g.fillStyle = col;
+    lines.forEach((ln, i) => g.fillText(ln, x, t.y + i * lh + dy));
+  };
+  if (t.press){
+    // blind deboss: draw the glyphs far off-canvas and let only their blurred
+    // shadows land — a soft cavity shadow above, paper catching light below
+    const d = Math.max(1.4, t.size * .045), OFF = 20000;
+    const cast = (col, dy, blur) => {
+      g.save();
+      g.shadowColor = col;
+      g.shadowBlur = blur;
+      g.shadowOffsetX = 0; g.shadowOffsetY = OFF + dy;
+      g.fillStyle = 'rgba(0,0,0,1)';
+      lines.forEach((ln, i) => g.fillText(ln, x, t.y + i * lh - OFF));
+      g.restore();
+    };
+    cast('rgba(255,255,255,.55)', d, d * 1.1);      // lit lower lip
+    cast('rgba(0,0,0,.60)', -d * .9, d * 1.5);      // cavity shadow
+    paint('rgba(0,0,0,.10)', 0);                     // the press itself
+  } else {
+    paint(t.color, 0);
+  }
   g.restore();
 }
 function drawLayers(g, keep){
@@ -1824,6 +1855,14 @@ $$('#tAlign button').forEach(b => b.onclick = () => {
   const l = selLayer(); if (!l || !isText(l)) return;
   mark(); l.align = b.dataset.a; draw();
 });
+$('#tPress').onclick = () => {
+  const l = selLayer(); if (!l || !isText(l)) return;
+  mark();
+  l.press = !l.press;
+  const c = cellRect(l) || {x:l.x, w:l.w};
+  l.x = Math.min(Math.max(l.x, c.x - l.w), c.x + c.w);   // keep it in reach after reflow
+  draw();
+};
 
 /* ---------- zoom ---------- */
 $('#zIn').onclick  = () => { S.zoom = clamp(S.zoom * 1.25, .25, 6); draw(); };
@@ -2326,6 +2365,7 @@ function syncUI(){
     $('#scaleVal').textContent = Math.round(sl.scale * 100) + '%';
   }
   if (txt){
+    $('#tPress').classList.toggle('on', !!sl.press);
     $('#tFont').value = sl.font;
     $('#tSize').value = clamp(Math.round(sl.size / panelW() * 1000), 10, 200);
     $('#tColor').value = sl.color;

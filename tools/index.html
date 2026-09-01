@@ -11,12 +11,12 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Studio">
-<meta name="theme-color" content="#efece7">
+<meta name="theme-color" content="#f1ede0">
 <style>
   :root{
-    --paper:#efece7; --card:#fbfaf8; --ink:#1a1917; --ink2:#55504a; --dim:#8d867c;
-    --line:#e4ddd3; --line2:#d3cbbf; --clay:#a9613f;
-    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --paper:#f1ede0; --card:#faf7ec; --ink:#33281d; --ink2:#5c4c3a; --dim:#93866c;
+    --line:#e6dfc9; --line2:#d3c8aa; --clay:#a8522e;
+    --serif:"Avenir Next Condensed","Arial Narrow",Arial,sans-serif;
   }
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -28,7 +28,8 @@
     max-width:560px; margin-inline:auto;
   }
   header h1{margin:0}
-  header .wm{display:block; width:min(258px, 72%); height:auto}
+  header .wm{display:block; width:min(300px, 82%); height:auto; margin-inline:auto}
+  header{text-align:center}
   header h1 b{
     display:block; font:600 10px/1 -apple-system,sans-serif; letter-spacing:.24em;
     text-transform:uppercase; color:var(--dim); margin-top:12px;
@@ -72,7 +73,7 @@
     fill:#fff; filter:drop-shadow(0 1px 3px rgba(26,25,23,.35));
   }
   .txt{flex:1; min-width:0}
-  .txt h2{margin:0; font:italic 400 21px/1.2 var(--serif)}
+  .txt h2{margin:0; font:700 19px/1.2 var(--serif); letter-spacing:.08em; text-transform:uppercase}
   .txt p{margin:5px 0 0; color:var(--ink2); font-size:12.5px; line-height:1.55}
   .go{color:var(--line2); flex:0 0 auto}
   footer{margin-top:auto; padding-top:34px; text-align:center}
@@ -82,7 +83,7 @@
 </head>
 <body>
 <header>
-  <h1><img class="wm" src="/studio-wordmark.png" alt="STUDIO"><b>By Kilos</b></h1>
+  <h1><img class="wm" src="/studio-wordmark.png" alt="STUDIO — BY KILOS"></h1>
   <p>What are you making today?</p>
 </header>
 
