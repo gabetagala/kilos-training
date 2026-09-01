@@ -361,7 +361,8 @@
       overflow-x:auto; -webkit-overflow-scrolling:touch;
     }
     .ctx > span{flex:0 0 auto}
-    .ctx{padding:5px 8px}
+    .ctx{padding:5px 0; border:0; background:none}
+    .dock #ctx{min-height:0}
     .ctx button{flex:0 0 auto; padding:7px 11px; min-height:34px}
     .ctx button.ic{padding:7px 9px}
     .ctx input[type=range]{width:110px}
@@ -2371,8 +2372,19 @@ function fitPanel(){
 }
 
 /* ---------- contextual toolbar ---------- */
+let _sheetSel;
 function placeCtx(){
   const el = $('#ctx'), sl = selLayer();
+  if (isPhone()){
+    el.hidden = !sl;
+    if (S.sel !== _sheetSel){
+      _sheetSel = S.sel;
+      if (sl) openSheet('element', true);
+      else if (dock.dataset.sheet === 'element' && dock.classList.contains('open')) closeSheet();
+    }
+    return;
+  }
+  _sheetSel = S.sel;
   if (!sl || !S.layers.length){ el.hidden = true; return; }
   el.hidden = false;
   const r = cv.getBoundingClientRect(), w = $('.work').getBoundingClientRect();
@@ -2572,16 +2584,16 @@ $('#newProj').onclick = newProject;
 $('#docName').onchange = () => { queueSave(); toast('Renamed'); };
 
 /* ---------- mobile shell ---------- */
-const GROUPS = {photos:['#mPhotos'], layout:['.head', '.lays'], style:['.tools'], post:['#mPost']};
-const ALLG = ['#mPhotos', '.head', '.lays', '.tools', '#mPost'];
+const GROUPS = {photos:['#mPhotos'], layout:['.head', '.lays'], style:['.tools'], post:['#mPost'], element:['#ctx']};
+const ALLG = ['#mPhotos', '.head', '.lays', '.tools', '#mPost', '#ctx'];
 function showGroups(list){
   ALLG.forEach(sel => {
     const el = document.querySelector(sel);
     if (el) el.classList.toggle('g-off', !list.includes(sel));
   });
 }
-function openSheet(name){
-  if (dock.classList.contains('open') && dock.dataset.sheet === name) return closeSheet();
+function openSheet(name, force){
+  if (!force && dock.classList.contains('open') && dock.dataset.sheet === name) return closeSheet();
   dock.dataset.sheet = name;
   dock.classList.add('open');
   showGroups(GROUPS[name]);
@@ -2604,13 +2616,19 @@ function placeControls(){
   mobileNow = phone;
   const posts = $('#countSeg').closest('.field'), ratio = $('#ratio').closest('.field');
   const add = $('#add'), text = $('#addText');
+  const ctxEl = $('#ctx');
   if (phone){
+    dock.insertBefore(ctxEl, dock.firstChild);
+    ctxEl.classList.add('g-off');
     $('#mPhotos').append(add, text);
     $('#mPost').insertBefore(ratio, $('#mPost').children[1]);
     $('#mPost').insertBefore(posts, $('#mPost').children[1]);
     showGroups([]);
     closeSheet();
   } else {
+    document.querySelector('.work').insertBefore(ctxEl, $('#toast'));
+    ctxEl.classList.remove('g-off');
+    $('#tedit') && null;
     const a = $('#topAnchor');
     a.after(ratio); a.after(posts);
     a.parentNode.insertBefore(add, $('#file'));
