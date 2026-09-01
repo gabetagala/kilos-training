@@ -346,11 +346,11 @@
     }
     #docName:focus{border-color:var(--line2); background:#fff}
     #back{display:inline-flex}
-    #dlTxt{max-width:64px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+    #dlTxt{white-space:nowrap}
 
     main{flex-direction:column; min-height:0}
     .work{flex:1; min-height:0}
-    .canvaswrap{padding:8px; min-height:170px}
+    .canvaswrap{padding:8px; min-height:170px; overflow-y:hidden; align-items:center}
     .prompt{font-size:12px; margin-top:12px}
 
     /* selected element's controls sit right above the rail */
@@ -398,14 +398,16 @@
     #countSeg{max-width:none; overflow-x:auto}
     #ratio{flex:1; margin-left:10px}
 
-    .lays{flex-wrap:nowrap; overflow-x:auto; padding-bottom:3px; -webkit-overflow-scrolling:touch}
-    .lay{width:54px; flex:0 0 54px}
-    .lay em{font-size:9px}
+    .lays{flex-wrap:nowrap; overflow-x:auto; padding-bottom:2px; -webkit-overflow-scrolling:touch;
+          height:72px; flex:0 0 72px; align-items:flex-start}
+    .lay em{font-size:9px; margin-top:2px}
     .dock .tools{width:100%; gap:9px}
     .dock #cap{flex:1; width:auto; min-width:110px}
     .dock input[type=range]{flex:1; width:auto; min-width:80px}
-    .chips{gap:6px}
-    .chips button{padding:8px 0; min-height:36px}
+    .chips{gap:5px}
+    .chips button{padding:3px 0; min-height:24px; font-size:11px; letter-spacing:.02em}
+    .dock .head{gap:6px}
+    .dock:before{margin-bottom:0}
     .status{display:none}
 
     aside{
@@ -1681,7 +1683,15 @@ function paintThumbs(){
   const r = S.ratio.h / S.ratio.w;
   $$('.lay').forEach(b => {
     const L = LAYOUT(b.dataset.id), th = b.querySelector('.th');
-    const w = th.clientWidth || 66, h = Math.max(18, Math.round(w * r));
+    let w;
+    if (isPhone()){
+      w = Math.max(24, Math.min(56, Math.floor(56 / r)));   // fit a 56px height cap
+      b.style.width = b.style.flexBasis = w + 'px';
+    } else {
+      b.style.width = b.style.flexBasis = '';
+      w = th.clientWidth || 66;
+    }
+    const h = Math.max(18, Math.round(w * r));
     th.style.height = h + 'px';
     th.innerHTML = '';
     cellsFor(L, w, h, S.frameScale, 0).forEach(c => {
@@ -1986,8 +1996,7 @@ cv.addEventListener('pointerdown', e => {
 cv.addEventListener('pointermove', e => {
   if (pts.has(e.pointerId)) pts.set(e.pointerId, {x:e.clientX, y:e.clientY});
   if (pan){
-    cwrap.scrollLeft = pan.sx - (e.clientX - pan.x0);
-    cwrap.scrollTop  = pan.sy - (e.clientY - pan.y0);
+    cwrap.scrollLeft = pan.sx - (e.clientX - pan.x0);   // sideways only — the strip never rides up
     return;
   }
   if (pinch && pts.size === 2){
