@@ -35,6 +35,19 @@ const commit =
     }
   })()
 
+// Every page (Kilos + sub-apps) carries its build moment in the HTML itself,
+// so a page can fetch itself cache-busted and know whether a newer deploy landed.
+const stampMeta = () => ({
+  name: 'stamp-meta',
+  transformIndexHtml(html) {
+    return html.replace(
+      '</title>',
+      `</title>\n<meta name="kilos-build" content="${new Date().toISOString()}">` +
+        `<meta name="kilos-commit" content="${commit}">`,
+    )
+  },
+})
+
 export default defineConfig({
   define: {
     // build stamp + commit — full ISO so the client renders "Updated
@@ -65,6 +78,7 @@ export default defineConfig({
   },
   plugins: [
     subAppTrailingSlash(),
+    stampMeta(),
     VitePWA({
       // Auto-activates new SW immediately — users always get the latest on next open
       registerType: 'autoUpdate',

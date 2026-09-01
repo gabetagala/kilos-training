@@ -329,18 +329,19 @@
     /* one slim header: back · name · export — same paper as the status area */
     .top{
       flex-wrap:nowrap; gap:6px; padding:0 6px;
-      height:calc(42px + env(safe-area-inset-top,0px)); flex-basis:auto;
+      height:calc(34px + env(safe-area-inset-top,0px)); flex-basis:auto;
       padding-top:env(safe-area-inset-top,0px);
       background:var(--paper); border-bottom:1px solid var(--line);
     }
-    .top button{padding:5px 9px}
-    #dl{padding:6px 10px}
+    .top button{padding:3px 7px; min-height:26px}
+    #dl{padding:4px 9px; font-size:12.5px}
+    #dl .i{width:13px; height:13px}
     .top .brand,.top .switch,.top .vr,.top .grow,.top .field,
     .top #add,.top #addText,#undo,#redo,#reset,#opts,#peek,#openProj{display:none}
     #docName{
       display:block; flex:1; min-width:0; text-align:center; border:1px solid transparent;
       background:transparent; border-radius:5px;
-      font:600 13.5px/1.2 -apple-system,sans-serif; color:var(--ink); padding:6px;
+      font:600 13px/1.2 -apple-system,sans-serif; color:var(--ink); padding:4px;
       text-overflow:ellipsis;
     }
     #docName:focus{border-color:var(--line2); background:#fff}
@@ -381,23 +382,25 @@
     .dock{
       display:none; flex-direction:column; align-items:stretch; gap:8px;
       padding:8px 14px 10px; border-top:1px solid var(--line2); background:var(--card);
-      max-height:40vh; overflow-y:auto;
+      height:152px; max-height:152px; overflow-y:auto;
     }
     .dock.open{display:flex}
     .dock:before{content:""; width:34px; height:4px; border-radius:2px; background:var(--line2); align-self:center; margin-bottom:2px}
     .dock .head{min-width:0; width:100%; gap:8px}
     .dock .grow,.msegs{display:none}
     .sheetTitle{display:flex; margin-bottom:2px}
-    #mPhotos{display:flex; gap:9px; flex-direction:column}
-    #mPhotos .icon{justify-content:center; padding:11px; font-size:14px}
-    #mPost{display:flex; flex-direction:column; gap:12px}
+    #mPhotos{display:flex; gap:8px; flex-direction:column}
+    #mPhotos .icon{justify-content:center; padding:10px; font-size:13.5px}
+    #mPost{display:flex; flex-direction:column; gap:8px}
+    #mPost button,#mPost select{padding:5px 8px}
     #mPost .field{justify-content:space-between; width:100%}
     #mPost .lbl{display:block}
     #countSeg{max-width:none; overflow-x:auto}
     #ratio{flex:1; margin-left:10px}
 
-    .lay{width:56px; flex:0 0 56px}
-    .lay em{font-size:9.5px}
+    .lays{flex-wrap:nowrap; overflow-x:auto; padding-bottom:3px; -webkit-overflow-scrolling:touch}
+    .lay{width:54px; flex:0 0 54px}
+    .lay em{font-size:9px}
     .dock .tools{width:100%; gap:9px}
     .dock #cap{flex:1; width:auto; min-width:110px}
     .dock input[type=range]{flex:1; width:auto; min-width:80px}
@@ -2019,6 +2022,7 @@ cv.addEventListener('pointermove', e => {
   const p = at(e);
   let nx = p.x - drag.ox, ny = p.y - drag.oy;
   if (!e.altKey){ const sn = snap(l, nx, ny); nx = sn.x; ny = sn.y; }
+  if (isPhone() && !isText(l)) ny = l.y;   // photos slide side to side only — no vertical drift
   l.x = nx; l.y = ny; drag.moved = true; l.placed = true;
   draw();
 });

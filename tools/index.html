@@ -35,6 +35,16 @@
     text-transform:uppercase; color:var(--dim); margin-top:12px;
   }
   header p{color:var(--ink2); margin:14px 0 0; font-size:14.5px}
+  #stamp{
+    display:inline-flex; align-items:center; gap:7px; margin-top:13px;
+    border:0; background:none; padding:4px 6px; cursor:pointer;
+    font:600 10px/1 var(--serif); letter-spacing:.18em; color:var(--dim);
+  }
+  #stamp i{width:6px; height:6px; border-radius:50%; background:var(--line2); flex:0 0 6px}
+  #stamp.ok i{background:#5c7a5c}
+  #stamp.new i{background:var(--clay); animation:pulse 1.4s infinite}
+  #stamp.new{color:var(--clay)}
+  @keyframes pulse{50%{opacity:.35}}
   .apps{display:flex; flex-direction:column; gap:16px; margin-top:30px}
   a.app{
     display:flex; align-items:center; gap:18px; text-decoration:none; color:var(--ink);
@@ -84,6 +94,7 @@
 <body>
 <header>
   <h1><img class="wm" src="/studio-wordmark.png" alt="STUDIO — BY KILOS"></h1>
+  <button id="stamp" title="Tap to fetch the latest"><i></i><span>CHECKING…</span></button>
   <p>What are you making today?</p>
 </header>
 
@@ -107,5 +118,40 @@
 </nav>
 
 <footer><a href="/">← back to <b>KILOS</b></a></footer>
+<script>
+(function(){
+  var meta = function(n){ var el = document.querySelector('meta[name="'+n+'"]'); return el ? el.content : ''; };
+  var btn = document.getElementById('stamp'), txt = btn.querySelector('span');
+  var mine = meta('kilos-commit'), raw = meta('kilos-build');
+  var d = raw ? new Date(raw) : null;
+  var pretty = (d && !isNaN(d))
+    ? 'UPDATED ' + d.toLocaleDateString('en-US',{month:'short',day:'numeric'}).toUpperCase() +
+      ' · ' + d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})
+    : 'DEV BUILD';
+  var fresh = null;
+  function label(state){
+    if (state === 'new'){ btn.className = 'new'; txt.textContent = pretty + ' — UPDATE READY, TAP'; }
+    else if (state === 'ok'){ btn.className = 'ok'; txt.textContent = pretty + ' · UP TO DATE'; }
+    else { btn.className = ''; txt.textContent = pretty; }
+  }
+  label('');
+  // ask the server for THIS page, cache-busted, and compare the baked commit
+  fetch(location.pathname + '?u=' + Date.now(), {cache:'no-store'})
+    .then(function(r){ return r.text(); })
+    .then(function(t){
+      var m = t.match(/name="kilos-commit" content="([^"]+)"/);
+      fresh = m && m[1];
+      label(fresh && mine && fresh !== mine ? 'new' : (fresh ? 'ok' : ''));
+    })
+    .catch(function(){ label(''); });
+  btn.addEventListener('click', function(){
+    txt.textContent = 'FETCHING LATEST…';
+    var go = function(){ location.replace(location.pathname + '?u=' + Date.now()); };
+    if (window.caches && caches.keys) caches.keys().then(function(ks){
+      return Promise.all(ks.map(function(k){ return caches.delete(k); }));
+    }).then(go, go); else go();
+  });
+})();
+</script>
 </body>
 </html>
