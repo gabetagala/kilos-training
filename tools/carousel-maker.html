@@ -326,17 +326,21 @@
   .hrow{display:flex; align-items:center; gap:10px}
   @media (max-width:860px){
     .mobileOnly{display:inline-flex}
-    /* one slim header: back · name · export */
+    /* one slim header: back · name · export — same paper as the status area */
     .top{
-      flex-wrap:nowrap; gap:8px; padding:0 8px;
-      height:calc(50px + env(safe-area-inset-top,0px)); padding-top:env(safe-area-inset-top,0px);
+      flex-wrap:nowrap; gap:6px; padding:0 6px;
+      height:calc(42px + env(safe-area-inset-top,0px)); flex-basis:auto;
+      padding-top:env(safe-area-inset-top,0px);
+      background:var(--paper); border-bottom:1px solid var(--line);
     }
+    .top button{padding:5px 9px}
+    #dl{padding:6px 10px}
     .top .brand,.top .switch,.top .vr,.top .grow,.top .field,
     .top #add,.top #addText,#undo,#redo,#reset,#opts,#peek,#openProj{display:none}
     #docName{
       display:block; flex:1; min-width:0; text-align:center; border:1px solid transparent;
       background:transparent; border-radius:5px;
-      font:600 14px/1.2 -apple-system,sans-serif; color:var(--ink); padding:8px 6px;
+      font:600 13.5px/1.2 -apple-system,sans-serif; color:var(--ink); padding:6px;
       text-overflow:ellipsis;
     }
     #docName:focus{border-color:var(--line2); background:#fff}
@@ -345,7 +349,7 @@
 
     main{flex-direction:column; min-height:0}
     .work{flex:1; min-height:0}
-    .canvaswrap{padding:10px}
+    .canvaswrap{padding:8px; min-height:170px}
     .prompt{font-size:12px; margin-top:12px}
 
     /* selected element's controls sit right above the rail */
@@ -356,8 +360,9 @@
       overflow-x:auto; -webkit-overflow-scrolling:touch;
     }
     .ctx > span{flex:0 0 auto}
-    .ctx button{flex:0 0 auto; padding:9px 13px; min-height:38px}
-    .ctx button.ic{padding:9px 11px}
+    .ctx{padding:5px 8px}
+    .ctx button{flex:0 0 auto; padding:7px 11px; min-height:34px}
+    .ctx button.ic{padding:7px 9px}
     .ctx input[type=range]{width:110px}
 
     /* tools live in one rail in the thumb zone */
@@ -374,9 +379,9 @@
 
     /* one sheet at a time, from the bottom */
     .dock{
-      display:none; flex-direction:column; align-items:stretch; gap:9px;
-      padding:10px 14px 12px; border-top:1px solid var(--line2); background:var(--card);
-      max-height:52vh; overflow-y:auto;
+      display:none; flex-direction:column; align-items:stretch; gap:8px;
+      padding:8px 14px 10px; border-top:1px solid var(--line2); background:var(--card);
+      max-height:40vh; overflow-y:auto;
     }
     .dock.open{display:flex}
     .dock:before{content:""; width:34px; height:4px; border-radius:2px; background:var(--line2); align-self:center; margin-bottom:2px}
@@ -974,7 +979,7 @@ const panelW = () => Math.round(S.panelH * S.ratio.w / S.ratio.h);
 const stripW = () => panelW() * S.count;
 const layer = id => S.layers.find(l => l.id === id);
 const selLayer = () => layer(S.sel);
-const DEFAULT_LAYOUT = 'gallery';        // start framed — full bleed is one click away
+const DEFAULT_LAYOUT = 'full';           // start full-bleed — frames are one tap away
 const slot = i => {
   const s = S.slots[i] || (S.slots[i] = {layout:DEFAULT_LAYOUT, cap:''});
   if (!s.layout) s.layout = DEFAULT_LAYOUT;
@@ -1121,9 +1126,46 @@ function drawText(g, t){
     lines.forEach((ln, i) => g.fillText(ln, x, t.y + i * lh + dy));
   };
   if (t.press){
-    // blind deboss: draw the glyphs far off-canvas and let only their blurred
-    // shadows land — a soft cavity shadow above, paper catching light below
-    const d = Math.max(1.4, t.size * .045), OFF = 20000;
+    // Real deboss: the pixels already painted underneath are pulled down inside
+    // the glyph cavity, then the rim is shaded. Sampled from the live canvas.
+    const d = Math.max(1.4, t.size * .05), OFF = 20000;
+    const H = textH(t), pad = d * 4 + t.size * .1;
+    const bx = t.x - pad, by = t.y - pad, bw2 = t.w + pad * 2, bh2 = H + pad * 2;
+    const M = g.getTransform();                      // axis-aligned everywhere we draw
+    const p0 = M.transformPoint(new DOMPoint(bx, by));
+    const p1 = M.transformPoint(new DOMPoint(bx + bw2, by + bh2));
+    let rx = Math.floor(Math.min(p0.x, p1.x)), ry = Math.floor(Math.min(p0.y, p1.y));
+    let rx2 = Math.ceil(Math.max(p0.x, p1.x)), ry2 = Math.ceil(Math.max(p0.y, p1.y));
+    rx = Math.max(0, rx); ry = Math.max(0, ry);
+    rx2 = Math.min(g.canvas.width, rx2); ry2 = Math.min(g.canvas.height, ry2);
+    const rw = rx2 - rx, rh = ry2 - ry;
+    const kx = Math.abs(M.a) || 1, ky = Math.abs(M.d) || 1;
+    if (rw > 2 && rh > 2){
+      // glyph mask in device pixels
+      const mask = document.createElement('canvas'); mask.width = rw; mask.height = rh;
+      const mg = mask.getContext('2d');
+      mg.setTransform(kx, 0, 0, ky, Math.min(p0.x, p1.x) - rx, Math.min(p0.y, p1.y) - ry);
+      mg.translate(-bx, -by);
+      prepType(mg, t);
+      mg.textBaseline = 'top'; mg.textAlign = t.align;
+      mg.fillStyle = '#000';
+      lines.forEach((ln, i) => mg.fillText(ln, x, t.y + i * lh));
+      // backdrop, displaced downward into the cavity and dimmed
+      const pressed = document.createElement('canvas'); pressed.width = rw; pressed.height = rh;
+      const pg = pressed.getContext('2d');
+      pg.filter = 'blur(' + Math.max(.4, d * ky * .18) + 'px)';
+      pg.drawImage(g.canvas, rx, ry - d * ky * .9, rw, rh, 0, 0, rw, rh);
+      pg.filter = 'none';
+      pg.globalCompositeOperation = 'source-atop';
+      pg.fillStyle = 'rgba(0,0,0,.07)'; pg.fillRect(0, 0, rw, rh);
+      pg.globalCompositeOperation = 'destination-in';
+      pg.drawImage(mask, 0, 0);
+      g.save();
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.drawImage(pressed, rx, ry);
+      g.restore();
+    }
+    // rim: soft cavity shadow above, lit paper lip below
     const cast = (col, dy, blur) => {
       g.save();
       g.shadowColor = col;
@@ -1133,9 +1175,8 @@ function drawText(g, t){
       lines.forEach((ln, i) => g.fillText(ln, x, t.y + i * lh - OFF));
       g.restore();
     };
-    cast('rgba(255,255,255,.55)', d, d * 1.1);      // lit lower lip
-    cast('rgba(0,0,0,.60)', -d * .9, d * 1.5);      // cavity shadow
-    paint('rgba(0,0,0,.10)', 0);                     // the press itself
+    cast('rgba(255,255,255,.50)', d, d * 1.0);
+    cast('rgba(0,0,0,.55)', -d * .85, d * 1.4);
   } else {
     paint(t.color, 0);
   }
@@ -1887,7 +1928,7 @@ const at = e => { const r = cv.getBoundingClientRect(); return {x:(e.clientX-r.l
 const inBox = (l, x, y) => x >= l.x && x <= l.x + bw(l) && y >= l.y && y <= l.y + bh(l);
 let drag = null, wheelMark = 0;
 const pts = new Map();
-let pinch = null;
+let pinch = null, pan = null;
 const dist = () => {
   const [a, b] = [...pts.values()];
   return Math.hypot(a.x - b.x, a.y - b.y);
@@ -1901,7 +1942,7 @@ cv.addEventListener('pointerdown', e => {
   pts.set(e.pointerId, {x:e.clientX, y:e.clientY});
   if (pts.size === 2){                       // two fingers = resize what's selected
     const l = selLayer();
-    drag = null;
+    drag = null; pan = null;
     if (l && !l.locked){
       mark();
       pinch = {id:l.id, d0:dist(), s0:isText(l) ? l.size : l.scale, w0:isText(l) ? l.w : 0};
@@ -1913,7 +1954,7 @@ cv.addEventListener('pointerdown', e => {
   if (c != null) S.cell = c;
   const plus = plusAt(p.x, p.y);
   if (plus){ S.preview = plus[0]; S.cell = plus[1]; pendingAt = plus; syncCat(); draw(); $('#file').click(); return; }
-  let hit = null;
+  let hit = null, wasSel = null;
   const cc = c != null ? c : nearestCell(p.x, p.y, s);
   if (c != null){
     const vis = visIn(s, c);
@@ -1925,17 +1966,27 @@ cv.addEventListener('pointerdown', e => {
   // clicking the mat still means "this photo": fall back to the nearest slot's owner
   if (!hit) hit = S.layers.find(l => !isText(l) && l.mode === 'cell' && l.slot === s && cellIdx(l) === cc) || null;
   if (hit && c == null) S.cell = cc;
+  wasSel = hit && hit.id === S.sel;
   S.sel = hit ? hit.id : null;
-  if (hit && !hit.locked){
+  // On a phone the first touch selects and pans; only an already-selected photo drags.
+  if (hit && !hit.locked && (!isPhone() || wasSel)){
     const redoWas = future.slice();
     mark();
     drag = {id:hit.id, ox:p.x - hit.x, oy:p.y - hit.y, moved:false, redoWas};
     cv.setPointerCapture(e.pointerId); cv.classList.add('grab');
+  } else if (isPhone()){
+    pan = {x0:e.clientX, y0:e.clientY, sx:cwrap.scrollLeft, sy:cwrap.scrollTop};
+    cv.setPointerCapture(e.pointerId);
   }
   syncCat(); draw();
 });
 cv.addEventListener('pointermove', e => {
   if (pts.has(e.pointerId)) pts.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if (pan){
+    cwrap.scrollLeft = pan.sx - (e.clientX - pan.x0);
+    cwrap.scrollTop  = pan.sy - (e.clientY - pan.y0);
+    return;
+  }
   if (pinch && pts.size === 2){
     const l = layer(pinch.id); if (!l) return;
     const k = clamp(dist() / pinch.d0, .1, 12), m = mid();
@@ -1974,6 +2025,7 @@ cv.addEventListener('pointermove', e => {
 ['pointerup','pointercancel'].forEach(t => window.addEventListener(t, e => {
   pts.delete(e.pointerId);
   if (pts.size < 2) pinch = null;
+  pan = null;
   if (drag && !drag.moved){ past.pop(); future = drag.redoWas || future; }   // a plain click costs nothing
   drag = null; guides = []; cv.classList.remove('grab');
   draw();
