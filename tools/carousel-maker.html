@@ -363,6 +363,7 @@
     .ctx > span{flex:0 0 auto}
     .ctx{padding:5px 0; border:0; background:none}
     .dock #ctx{min-height:0}
+    .dock[data-sheet=element]{height:auto; max-height:120px}
     .ctx button{flex:0 0 auto; padding:7px 11px; min-height:34px}
     .ctx button.ic{padding:7px 9px}
     .ctx input[type=range]{width:110px}
@@ -1331,11 +1332,19 @@ function draw(){
       let vis = [];
       if (sl.mode === 'strip') for (let i = 0; i < S.count; i++) vis = vis.concat(cellsOf(i));
       else { const c = cellRect(sl); if (c) vis = [c]; }
-      ctx.strokeStyle = 'rgba(169,97,63,.95)'; ctx.lineWidth = 1.6 / vs;
+      const phone = isPhone();
+      ctx.strokeStyle = 'rgba(169,97,63,.95)';
+      ctx.lineWidth = (phone ? 3 : 1.6) / vs;
       vis.forEach(c => {
         const x1 = Math.max(sl.x, c.x), y1 = Math.max(sl.y, c.y);
         const x2 = Math.min(sl.x + W, c.x + c.w), y2 = Math.min(sl.y + H, c.y + c.h);
-        if (x2 > x1 && y2 > y1) ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+        if (x2 > x1 && y2 > y1){
+          if (phone){                       // unmistakably "held"
+            ctx.fillStyle = 'rgba(168,82,46,.16)';
+            ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
+          }
+          ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+        }
       });
     }
     ctx.restore();
@@ -1866,6 +1875,7 @@ function addTextEl(){
   S.layers.push(t);
   S.sel = t.id;
   draw();
+  if (isPhone()) openSheet('element', true);
   editText(t);
 }
 function editText(t){
@@ -1989,15 +1999,20 @@ cv.addEventListener('pointerdown', e => {
     drag = {id:hit.id, ox:p.x - hit.x, oy:p.y - hit.y, moved:false, redoWas};
     cv.setPointerCapture(e.pointerId); cv.classList.add('grab');
   } else if (isPhone()){
-    pan = {x0:e.clientX, y0:e.clientY, sx:cwrap.scrollLeft, sy:cwrap.scrollTop};
+    pan = {x0:e.clientX, sx:cwrap.scrollLeft, moved:false};
     cv.setPointerCapture(e.pointerId);
   }
   syncCat(); draw();
+  if (isPhone()){
+    if (S.sel) openSheet('element', true);
+    else if (dock.dataset.sheet === 'element' && dock.classList.contains('open')) closeSheet();
+  }
 });
 cv.addEventListener('pointermove', e => {
   if (pts.has(e.pointerId)) pts.set(e.pointerId, {x:e.clientX, y:e.clientY});
   if (pan){
     cwrap.scrollLeft = pan.sx - (e.clientX - pan.x0);   // sideways only — the strip never rides up
+    if (Math.abs(e.clientX - pan.x0) > 8) pan.moved = true;
     return;
   }
   if (pinch && pts.size === 2){
@@ -2039,8 +2054,11 @@ cv.addEventListener('pointermove', e => {
 ['pointerup','pointercancel'].forEach(t => window.addEventListener(t, e => {
   pts.delete(e.pointerId);
   if (pts.size < 2) pinch = null;
+  const panned = pan && pan.moved;
   pan = null;
   if (drag && !drag.moved){ past.pop(); future = drag.redoWas || future; }   // a plain click costs nothing
+  else if (drag && drag.moved && isPhone()) S.sel = null;   // let go after a move = released
+  if (panned) S.sel = null;                                  // panning is navigation, not holding
   drag = null; guides = []; cv.classList.remove('grab');
   draw();
 }));
@@ -2112,6 +2130,15 @@ function snap(l, x, y){
   const ry = fit(y, h, gy); if (ry){ y = ry.val; guides.push({axis:'y', pos:ry.pos}); }
   return {x, y};
 }
+
+// On the phone a selected photo is "held": touching anything that isn't the
+// photo's own controls, the canvas, the text editor or an open modal lets go.
+document.addEventListener('pointerdown', e => {
+  if (!isPhone() || !S.sel) return;
+  if (e.target.closest && e.target.closest('#ctx, #strip, #tedit, .modal')) return;
+  S.sel = null;
+  draw();
+}, true);
 
 /* ---------- preview swipe ---------- */
 let swipe = null;
@@ -2372,19 +2399,13 @@ function fitPanel(){
 }
 
 /* ---------- contextual toolbar ---------- */
-let _sheetSel;
 function placeCtx(){
   const el = $('#ctx'), sl = selLayer();
   if (isPhone()){
     el.hidden = !sl;
-    if (S.sel !== _sheetSel){
-      _sheetSel = S.sel;
-      if (sl) openSheet('element', true);
-      else if (dock.dataset.sheet === 'element' && dock.classList.contains('open')) closeSheet();
-    }
+    if (!sl && dock.dataset.sheet === 'element' && dock.classList.contains('open')) closeSheet();
     return;
   }
-  _sheetSel = S.sel;
   if (!sl || !S.layers.length){ el.hidden = true; return; }
   el.hidden = false;
   const r = cv.getBoundingClientRect(), w = $('.work').getBoundingClientRect();
