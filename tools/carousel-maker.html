@@ -2047,7 +2047,6 @@ cv.addEventListener('pointermove', e => {
   const p = at(e);
   let nx = p.x - drag.ox, ny = p.y - drag.oy;
   if (!e.altKey){ const sn = snap(l, nx, ny); nx = sn.x; ny = sn.y; }
-  if (isPhone() && !isText(l)) ny = l.y;   // photos slide side to side only — no vertical drift
   l.x = nx; l.y = ny; drag.moved = true; l.placed = true;
   draw();
 });
