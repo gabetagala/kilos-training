@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Studio</title>
+<link rel="manifest" href="/studio.webmanifest">
+<link rel="apple-touch-icon" sizes="180x180" href="/studio-icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Studio">
+<meta name="theme-color" content="#efece7">
+<style>
+  :root{
+    --paper:#efece7; --card:#fbfaf8; --ink:#1a1917; --ink2:#55504a; --dim:#8d867c;
+    --line:#e4ddd3; --line2:#d3cbbf; --clay:#a9613f;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Inter,sans-serif;
+    -webkit-font-smoothing:antialiased; display:flex; flex-direction:column;
+    padding:calc(28px + env(safe-area-inset-top,0px)) 22px calc(26px + env(safe-area-inset-bottom,0px));
+    max-width:560px; margin-inline:auto;
+  }
+  header h1{margin:0; font:italic 400 34px/1.1 var(--serif)}
+  header h1 b{
+    display:block; font:600 10px/1 -apple-system,sans-serif; letter-spacing:.24em;
+    text-transform:uppercase; color:var(--dim); margin-top:9px;
+  }
+  header p{color:var(--ink2); margin:14px 0 0; font-size:14.5px}
+  .apps{display:flex; flex-direction:column; gap:16px; margin-top:30px}
+  a.app{
+    display:flex; align-items:center; gap:18px; text-decoration:none; color:var(--ink);
+    background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px;
+    box-shadow:0 1px 2px rgba(26,25,23,.05), 0 8px 26px rgba(26,25,23,.07);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  a.app:active{transform:scale(.985)}
+  .pic{
+    width:88px; height:88px; flex:0 0 88px; border-radius:12px; background:var(--paper);
+    border:1px solid var(--line); position:relative; overflow:hidden;
+  }
+  /* carousel mark: three slides drifting past */
+  .pic.carousel i{
+    position:absolute; top:16px; bottom:16px; width:40px; border-radius:4px;
+    background:#fff; border:1px solid var(--line2);
+    box-shadow:0 1px 3px rgba(26,25,23,.12);
+  }
+  .pic.carousel i b{position:absolute; inset:6px; border-radius:2px; background:linear-gradient(150deg,#c9a98c,#8a9b8e); display:block}
+  .pic.carousel i:nth-child(1){left:-16px; transform:rotate(-2deg)}
+  .pic.carousel i:nth-child(2){left:33px; top:13px; bottom:13px; width:44px}
+  .pic.carousel i:nth-child(2) b{background:linear-gradient(150deg,#8a9b8e,#6f7f92)}
+  .pic.carousel i:nth-child(3){left:86px; transform:rotate(2deg)}
+  .pic.carousel i:nth-child(3) b{background:linear-gradient(150deg,#6f7f92,#a9836b)}
+  /* loop mark: stacked frames + play */
+  .pic.loop i{
+    position:absolute; inset:18px; border-radius:6px; background:#fff;
+    border:1px solid var(--line2); box-shadow:0 1px 3px rgba(26,25,23,.12);
+  }
+  .pic.loop i:nth-child(1){transform:rotate(-5deg)}
+  .pic.loop i:nth-child(1) b{position:absolute; inset:5px; border-radius:3px; background:linear-gradient(150deg,#a9836b,#c9a98c); display:block}
+  .pic.loop i:nth-child(2){transform:rotate(3deg)}
+  .pic.loop i:nth-child(2) b{position:absolute; inset:5px; border-radius:3px; background:linear-gradient(150deg,#8a9b8e,#d8cbb8); display:block}
+  .pic.loop svg{
+    position:absolute; left:50%; top:50%; width:26px; height:26px; transform:translate(-50%,-50%);
+    fill:#fff; filter:drop-shadow(0 1px 3px rgba(26,25,23,.35));
+  }
+  .txt{flex:1; min-width:0}
+  .txt h2{margin:0; font:italic 400 21px/1.2 var(--serif)}
+  .txt p{margin:5px 0 0; color:var(--ink2); font-size:12.5px; line-height:1.55}
+  .go{color:var(--line2); flex:0 0 auto}
+  footer{margin-top:auto; padding-top:34px; text-align:center}
+  footer a{color:var(--dim); text-decoration:none; font-size:12px; letter-spacing:.06em}
+  footer a b{color:var(--ink2)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Studio<b>By Kilos</b></h1>
+  <p>What are you making today?</p>
+</header>
+
+<nav class="apps">
+  <a class="app" href="./carousel-maker.html">
+    <span class="pic carousel"><i><b></b></i><i><b></b></i><i><b></b></i></span>
+    <span class="txt">
+      <h2>Carousel</h2>
+      <p>Seamless swipe-through posts. Layouts, frames, film looks, text — exports JPGs sized for Instagram.</p>
+    </span>
+    <svg class="go" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+  </a>
+  <a class="app" href="./gif-maker.html">
+    <span class="pic loop"><i><b></b></i><i><b></b></i><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span>
+    <span class="txt">
+      <h2>Loop</h2>
+      <p>Photos on a timer, cut or crossfade — exports an Instagram-ready MP4, plus a GIF for everywhere else.</p>
+    </span>
+    <svg class="go" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+  </a>
+</nav>
+
+<footer><a href="/">← back to <b>KILOS</b></a></footer>
+</body>
+</html>

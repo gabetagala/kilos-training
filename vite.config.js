@@ -9,7 +9,7 @@ const page = (p) => fileURLToPath(new URL(p, import.meta.url))
 // fallback serves the Kilos shell instead — silently, with a 200 — so the
 // dev server sends the bare path to the slashed one. Prod does this in
 // vercel.json rewrites.
-const SUB_APPS = ['hotmum', 'tayo', 'coach-cilyn']
+const SUB_APPS = ['hotmum', 'tayo', 'coach-cilyn', 'tools']
 const subAppTrailingSlash = () => ({
   name: 'subapp-trailing-slash',
   configureServer(server) {
@@ -56,6 +56,10 @@ export default defineConfig({
         // HOTMUM — Sam's app. Own page, own icon, own localStorage namespace;
         // shares only the step engine and the fonts (hotmum/PLAN.md §4).
         hotmum: page('hotmum/index.html'),
+        // Studio — the Instagram carousel + loop makers. Own home, own manifest.
+        studio: page('tools/index.html'),
+        carousel: page('tools/carousel-maker.html'),
+        loop: page('tools/gif-maker.html'),
       },
     },
   },
@@ -80,6 +84,7 @@ export default defineConfig({
           /^\/coach-/,
           /^\/tayo/,
           /^\/hotmum/,
+          /^\/tools/,
         ],
 
         // Nuke old caches when a new SW activates

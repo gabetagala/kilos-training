@@ -26,7 +26,15 @@
       "destination": "/tayo/index.html"
     },
     {
-      "source": "/((?!coach-cilyn|hotmum|tayo).*)",
+      "source": "/tools",
+      "destination": "/tools/index.html"
+    },
+    {
+      "source": "/tools/",
+      "destination": "/tools/index.html"
+    },
+    {
+      "source": "/((?!coach-cilyn|hotmum|tayo|tools).*)",
       "destination": "/index.html"
     }
   ]
