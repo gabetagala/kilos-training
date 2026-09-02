@@ -2000,6 +2000,11 @@ function applyDragPoint(clientX, clientY, noSnap){
   const r = cv.getBoundingClientRect();
   let nx = (clientX - r.left) / vs - drag.ox, ny = (clientY - r.top) / vs - drag.oy;
   if (!noSnap){ const sn = snap(l, nx, ny); nx = sn.x; ny = sn.y; }
+  if (!drag.moved){
+    // the moment a drag begins, the photo comes to the front — visible wherever it goes
+    const i = S.layers.indexOf(l);
+    if (i > -1 && i < S.layers.length - 1){ S.layers.splice(i, 1); S.layers.push(l); }
+  }
   l.x = nx; l.y = ny; drag.moved = true; l.placed = true;
   draw();
 }
