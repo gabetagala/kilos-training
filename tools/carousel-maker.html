@@ -1129,9 +1129,10 @@ const hits = (l, r) => l.x < r.x + r.w && l.x + bw(l) > r.x &&
 // Photos flow freely between single-slot posts — that is the continuous strip.
 // A post with a grid stays sealed, so its photos never leak into a neighbour or a sibling cell.
 function visIn(s, c){
-  const single = cellsOf(s).length === 1;
+  const single = cellsOf(s).length === 1 && slot(s).fit !== 'fit';
   return l => l.mode === 'strip' || (l.slot === s && cellIdx(l) === c) ||
-    (single && l.mode === 'cell' && l.slot !== s && cellsOf(l.slot).length === 1);
+    (single && l.mode === 'cell' && l.slot !== s &&
+     cellsOf(l.slot).length === 1 && slot(l.slot).fit !== 'fit');
 }
 
 /* ---------- painting ---------- */
@@ -1215,8 +1216,9 @@ function drawLayers(g, keep){
 function paintSlot(g, i, editor){
   const pw = panelW(), L = layoutOf(i), cs = cellsOf(i), cap = (slot(i).cap || '').trim();
   const paper = paperOf(i), ink = inkOn(paper);
-  const spill = cs.length === 1
-    ? new Set(S.layers.filter(l => l.mode === 'cell' && l.slot !== i && cellsOf(l.slot).length === 1).map(l => l.id))
+  const spill = (cs.length === 1 && slot(i).fit !== 'fit')
+    ? new Set(S.layers.filter(l => l.mode === 'cell' && l.slot !== i &&
+        cellsOf(l.slot).length === 1 && slot(l.slot).fit !== 'fit').map(l => l.id))
     : new Set();
   const keep = ci => l => l.mode === 'strip' || (l.slot === i && cellIdx(l) === ci) || spill.has(l.id);
   g.save();
@@ -1764,11 +1766,8 @@ function setLayout(id, all){
 $$('#slotFit button').forEach(b => b.onclick = () => {
   mark();
   slot(S.preview).fit = b.dataset.f;
-  S.layers.forEach(l => {
-    if (l.mode === 'cell' && l.slot === S.preview){ l.placed = false; refit(l); }
-  });
   draw();
-  toast(b.dataset.f === 'fit' ? 'Photos fit inside the frame' : 'Photos fill the frame');
+  toast(b.dataset.f === 'fit' ? 'This page is sealed — photos stay inside their frames' : 'Photos on this page may bleed across');
 });
 $('#layAll').onclick = () => {
   const src = slot(S.preview);
