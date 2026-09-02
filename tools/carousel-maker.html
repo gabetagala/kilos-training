@@ -395,14 +395,15 @@
     .dock.open + .rail{border-top-color:transparent}
     .rail{
       display:flex; flex:0 0 auto; background:var(--card); border-top:1px solid var(--line);
-      /* ride into the home-indicator zone — the labels sit just above it,
-         so the safe area stops reading as a dead band */
-      padding-bottom:max(2px, calc(env(safe-area-inset-bottom,0px) - 24px));
     }
+    /* the safe-area ride lives INSIDE the buttons, so the active fill
+       reaches the very bottom edge — no unfilled strip under it */
     .rail button{
-      flex:1; border:0; background:none; border-radius:0; padding:5px 0 5px; display:flex;
+      flex:1; border:0; background:none; border-radius:0; display:flex;
+      padding:6px 0 max(10px, calc(env(safe-area-inset-bottom,0px) - 12px));
       flex-direction:column; align-items:center; gap:3px; color:var(--dim); font-size:10.5px; font-weight:500;
     }
+    .rail button.on{background:var(--paper)}
     .rail button svg{width:21px; height:21px; stroke:currentColor; fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round}
     .rail button.on{color:var(--ink)}
 
