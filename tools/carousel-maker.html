@@ -323,7 +323,15 @@
 
   /* ---------- mobile ---------- */
   .mobileOnly{display:none}
-  .hrow{display:flex; align-items:center; gap:10px}
+  .hrow{display:flex; align-items:center; gap:8px}
+  #paperBtn{padding:3px; line-height:0}
+  #paperBtn i{display:block; width:20px; height:20px; border-radius:4px; border:1px solid var(--line2); background:#fff}
+  #layAll2{padding:3px 9px}
+  .swatches{display:grid; grid-template-columns:repeat(7,1fr); gap:8px}
+  .swatches button{
+    aspect-ratio:1; padding:0; border-radius:6px; border:1px solid rgba(26,25,23,.14); min-height:0;
+  }
+  .swatches button.on{outline:2px solid var(--ink); outline-offset:2px}
   @media (max-width:860px){
     .mobileOnly{display:inline-flex}
     /* one slim header: back · name · export — same paper as the status area */
@@ -406,7 +414,7 @@
     #ratio{flex:1; margin-left:10px}
 
     .lays{flex-wrap:nowrap; overflow-x:auto; padding-bottom:2px; -webkit-overflow-scrolling:touch;
-          height:68px; flex:0 0 68px; align-items:flex-start}
+          height:64px; flex:0 0 64px; align-items:flex-start}
     .lay em{font-size:9px; margin-top:2px}
     .dock .tools{width:100%; gap:9px}
     .dock #cap{flex:1; width:auto; min-width:110px}
@@ -414,6 +422,7 @@
     .chips{gap:5px}
     .chips button{padding:3px 0; min-height:24px; font-size:11px; letter-spacing:.02em}
     #slotFit button{padding:2px 8px; min-height:22px; font-size:11px}
+    #layAll2{padding:2px 8px; min-height:22px; font-size:11px}
     .dock .hrow{min-height:24px}
     .dock .head{gap:6px}
     .dock:before{margin-bottom:0}
@@ -575,6 +584,8 @@
           <div class="seg" id="slotFit" title="How photos fill this post's frames">
             <button data-f="cover" class="on">Fill</button><button data-f="fit">Fit</button>
           </div>
+          <button id="paperBtn" title="Page colour"><i></i></button>
+          <button id="layAll2" title="Apply this page's layout, colour and fit everywhere">All</button>
           <div class="seg msegs mobileOnly" id="msegs">
             <button data-m="layout" class="on">Layout</button><button data-m="style">Style</button>
           </div>
@@ -583,20 +594,6 @@
       </div>
       <div class="lays" id="lays"></div>
       <div class="grow"></div>
-      <div class="dcol tools">
-        <h3 class="sheetTitle">Style <em id="fSlot2"></em></h3>
-        <div class="r">
-          <span class="lbl">Margin</span>
-          <input type="range" id="fsize" min="0.3" max="2" step="0.05" value="1">
-          <span class="val" id="fsVal">100%</span>
-          <input type="color" id="paper" value="#ffffff" title="Paper colour">
-          <button id="layAll">Apply to all</button>
-        </div>
-        <div class="r">
-          <span class="lbl" style="width:56px">Caption</span>
-          <input type="text" id="cap" placeholder="Prints under the photo">
-        </div>
-      </div>
       <div id="mPhotos"><h3 class="sheetTitle">Photos</h3></div>
       <div id="mPost">
         <h3 class="sheetTitle">Post</h3>
@@ -609,9 +606,6 @@
       </button>
       <button data-sheet="layout">
         <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 10h18M10 10v11"/></svg>Layout
-      </button>
-      <button data-sheet="style">
-        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>Style
       </button>
       <button data-sheet="post">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1M5.6 18.4l2.1-2.1m8.6-8.6 2.1-2.1"/></svg>Post
@@ -678,6 +672,20 @@
 </main>
 
 
+<div class="modal" id="paperModal">
+  <div class="box" style="max-width:340px">
+    <div class="hd">
+      <span class="lbl">Page colour</span>
+      <div class="grow"></div>
+      <button class="pri" id="paperDone">Done</button>
+    </div>
+    <div class="swatches" id="swatches"></div>
+    <div class="r" style="margin-top:12px">
+      <span class="lbl" style="width:56px">Custom</span>
+      <input type="color" id="paper" value="#ffffff">
+    </div>
+  </div>
+</div>
 <div class="modal" id="filmModal">
   <div class="box">
     <div class="hd">
@@ -1728,7 +1736,7 @@ function paintThumbs(){
     const L = LAYOUT(b.dataset.id), th = b.querySelector('.th');
     let w;
     if (isPhone()){
-      w = Math.max(22, Math.min(53, Math.floor(53 / r)));   // fit a 53px height cap
+      w = Math.max(20, Math.min(49, Math.floor(49 / r)));   // fit a 49px height cap
       b.style.width = b.style.flexBasis = w + 'px';
     } else {
       b.style.width = b.style.flexBasis = '';
@@ -1769,7 +1777,7 @@ $$('#slotFit button').forEach(b => b.onclick = () => {
   draw();
   toast(b.dataset.f === 'fit' ? 'This page is sealed — photos stay inside their frames' : 'Photos on this page may bleed across');
 });
-$('#layAll').onclick = () => {
+$('#layAll2').onclick = () => {
   const src = slot(S.preview);
   for (let i = 0; i < S.count; i++){ slot(i).paper = src.paper; slot(i).fit = src.fit; }
   setLayout(src.layout, true);
@@ -1826,16 +1834,34 @@ $('#panelH').oninput = e => {
   S.panelHAuto = false; rescaleAll(v / S.panelH); S.panelH = v; draw();
 };
 $('#autoH').onclick = () => { mark(); S.panelHAuto = true; applyAuto(); draw(); };
+// muted, pinterest-ish page colours — warm papers, sages, clays, dusty blues
+const PAPERS = [
+  '#ffffff','#faf6ee','#f3ead9','#eadfca','#ddcfb6','#cbbb9f','#b9a98c',
+  '#e7e3d5','#d5d6c5','#bfc6b1','#a3af9b','#8a9a8b','#748578','#5c6b5f',
+  '#e9dcd4','#dcc5b6','#cbaa96','#b98d7a','#a9765f','#8d5f4d','#6f4a3c',
+  '#dfe3e6','#c9d2d8','#aebbc4','#93a3ae','#77879a','#5b6a7c','#3f4c5c',
+];
+function buildSwatches(){
+  const host = $('#swatches'); if (host.children.length) return syncSwatches();
+  PAPERS.forEach(c => {
+    const b = document.createElement('button');
+    b.style.background = c; b.dataset.c = c; b.title = c;
+    b.onclick = () => { mark(); setPaper(c); $('#paper').value = c; syncSwatches(); draw(); };
+    host.appendChild(b);
+  });
+  syncSwatches();
+}
+function syncSwatches(){
+  const cur = paperOf(S.preview).toLowerCase();
+  [...$('#swatches').children].forEach(b => b.classList.toggle('on', b.dataset.c.toLowerCase() === cur));
+}
+$('#paperBtn').onclick = () => { buildSwatches(); $('#paperModal').classList.add('on'); };
+$('#paperDone').onclick = () => $('#paperModal').classList.remove('on');
+$('#paperModal').addEventListener('pointerdown', e => { if (e.target.id === 'paperModal') $('#paperModal').classList.remove('on'); });
 $('#paper').onpointerdown = () => mark();
-$('#paper').oninput = e => { setPaper(e.target.value); draw(); };
+$('#paper').oninput = e => { setPaper(e.target.value); syncSwatches(); draw(); };
 $('#q').onchange = e => { S.quality = parseFloat(e.target.value); queueSave(); };
 $('#name').oninput = () => { syncUI(); queueSave(); };
-$('#fsize').onpointerdown = () => mark();
-$('#fsize').oninput = e => {
-  S.frameScale = parseFloat(e.target.value);
-  S.layers.forEach(autofit); paintThumbs(); draw();
-};
-$('#cap').oninput = e => { slot(S.preview).cap = e.target.value; draw(); };
 $('#scale').onpointerdown = () => mark();
 $('#scale').oninput = e => {
   const l = selLayer(); if (!l || isText(l)) return;
@@ -2009,7 +2035,7 @@ cwrap.addEventListener('drop', e => {
 
 const at = e => { const r = cv.getBoundingClientRect(); return {x:(e.clientX-r.left)/vs, y:(e.clientY-r.top)/vs}; };
 const inBox = (l, x, y) => x >= l.x && x <= l.x + bw(l) && y >= l.y && y <= l.y + bh(l);
-let drag = null, wheelMark = 0, edgeRAF = 0;
+let drag = null, wheelMark = 0, edgeRAF = 0, plusArm = null;
 function applyDragPoint(clientX, clientY, noSnap){
   const l = drag && layer(drag.id); if (!l) return;
   const r = cv.getBoundingClientRect();
@@ -2065,7 +2091,12 @@ cv.addEventListener('pointerdown', e => {
   S.preview = s;
   if (c != null) S.cell = c;
   const plus = plusAt(p.x, p.y);
-  if (plus){ S.preview = plus[0]; S.cell = plus[1]; pendingAt = plus; syncCat(); draw(); $('#file').click(); return; }
+  if (plus){
+    S.preview = plus[0]; S.cell = plus[1];
+    plusArm = {at:plus, x:e.clientX, y:e.clientY};   // fires on release, when the tap is real
+    syncCat(); draw();
+    return;
+  }
   let hit = null, wasSel = null;
   const cc = c != null ? c : nearestCell(p.x, p.y, s);
   if (c != null){
@@ -2144,6 +2175,11 @@ cv.addEventListener('pointermove', e => {
   if (pts.size < 2) pinch = null;
   const panned = pan && pan.moved;
   pan = null;
+  if (plusArm){
+    const still = Math.hypot(e.clientX - plusArm.x, e.clientY - plusArm.y) < 12;
+    if (still){ pendingAt = plusArm.at; $('#file').click(); }
+    plusArm = null;
+  }
   if (drag && !drag.moved){ past.pop(); future = drag.redoWas || future; }   // a plain click costs nothing
   else if (drag && drag.moved){
     const l = layer(drag.id);
@@ -2249,6 +2285,7 @@ $('#media').addEventListener('pointerup', e => {
 
 /* ---------- keys ---------- */
 document.addEventListener('keydown', e => {
+  if ($('#paperModal').classList.contains('on')){ if (e.key === 'Escape') $('#paperModal').classList.remove('on'); return; }
   if ($('#filmModal').classList.contains('on')){ if (e.key === 'Escape') closeFilm(); return; }
   if ($('#cropModal').classList.contains('on')){
     if (e.key === 'Escape') closeCrop();
@@ -2522,7 +2559,6 @@ function syncInputs(){
   $('#ratio').value = S.ratio.id;
   $('#panelH').value = S.panelH;
   $('#paper').value = paperOf(S.preview);
-  $('#fsize').value = S.frameScale;
 }
 function syncUI(){
   const has = S.layers.length > 0, sl = selLayer(), cells = cellsOf(S.preview);
@@ -2533,7 +2569,6 @@ function syncUI(){
   $('#counter').textContent = (S.preview + 1) + '/' + S.count;
   $('#pIdx').textContent = (S.preview + 1) + ' / ' + S.count;
   $('#fSlot').textContent = 'post ' + (S.preview + 1);
-  $('#fSlot2').textContent = 'post ' + (S.preview + 1);
   $('#zVal').textContent = Math.round(S.zoom * 100) + '%';
   $('#undo').disabled = !past.length;
   $('#redo').disabled = !future.length;
@@ -2547,11 +2582,7 @@ function syncUI(){
   for (let i = 0; i < S.count; i++){ const d = document.createElement('i'); if (i === S.preview) d.className = 'on'; pips.appendChild(d); }
 
   $('#paper').value = paperOf(S.preview);
-  const cap = $('#cap'), room = capBand(S.preview) > panelW() * .045;
-  if (document.activeElement !== cap) cap.value = slot(S.preview).cap || '';
-  cap.disabled = !room;
-  cap.placeholder = room ? 'Caption for this post' : 'This layout has no bottom margin';
-  $('#fsVal').textContent = Math.round(S.frameScale * 100) + '%';
+  $('#paperBtn').querySelector('i').style.background = paperOf(S.preview);
   [...$('#lays').children].forEach(el => el.classList.toggle('on', el.dataset.id === slot(S.preview).layout));
   $$('#slotFit button').forEach(b => b.classList.toggle('on', b.dataset.f === slot(S.preview).fit));
 
@@ -2709,8 +2740,8 @@ $('#newProj').onclick = newProject;
 $('#docName').onchange = () => { queueSave(); toast('Renamed'); };
 
 /* ---------- mobile shell ---------- */
-const GROUPS = {photos:['#mPhotos'], layout:['.head', '.lays'], style:['.tools'], post:['#mPost'], element:['#ctx']};
-const ALLG = ['#mPhotos', '.head', '.lays', '.tools', '#mPost', '#ctx'];
+const GROUPS = {photos:['#mPhotos'], layout:['.head', '.lays'], post:['#mPost'], element:['#ctx']};
+const ALLG = ['#mPhotos', '.head', '.lays', '#mPost', '#ctx'];
 function showGroups(list){
   ALLG.forEach(sel => {
     const el = document.querySelector(sel);
@@ -2750,18 +2781,20 @@ function placeControls(){
     $('#mPhotos').append(add, text);
     $('#mPost').insertBefore(ratio, $('#mPost').children[1]);
     $('#mPost').insertBefore(posts, $('#mPost').children[1]);
+
     showGroups([]);
     closeSheet();
   } else {
     document.querySelector('.work').insertBefore(ctxEl, $('#toast'));
     ctxEl.classList.remove('g-off');
+
     $('#tedit') && null;
     const a = $('#topAnchor');
     a.after(ratio); a.after(posts);
     a.parentNode.insertBefore(add, $('#file'));
     $('#file').after(text);
     dock.classList.remove('open');
-    showGroups(['.head', '.lays', '.tools', '#ctx']);   // ctx floats on desktop — placeCtx owns its visibility
+    showGroups(['.head', '.lays', '#ctx']);   // ctx floats on desktop — placeCtx owns its visibility
   }
 }
 
