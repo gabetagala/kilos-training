@@ -574,8 +574,8 @@
       <div class="vr"></div>
       <button class="ic" id="dup" title="Duplicate (⌘D)"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg></button>
       <button class="ic" id="lock" title="Lock (⌘L)"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></button>
-      <button class="ic" id="fwd" title="Bring forward (⌘])"><svg class="i" viewBox="0 0 24 24"><path d="M12 4v12m0-12 5 5m-5-5-5 5M4 20h16"/></svg></button>
-      <button class="ic" id="bwd" title="Send back (⌘[)"><svg class="i" viewBox="0 0 24 24"><path d="M12 16V4m0 12 5-5m-5 5-5-5M4 20h16"/></svg></button>
+      <button class="ic" id="fwd" title="Bring to front (⌘])"><svg class="i" viewBox="0 0 24 24"><path d="M12 4v12m0-12 5 5m-5-5-5 5M4 20h16"/></svg></button>
+      <button class="ic" id="bwd" title="Send to back (⌘[)"><svg class="i" viewBox="0 0 24 24"><path d="M12 16V4m0 12 5-5m-5 5-5-5M4 20h16"/></svg></button>
       <button class="ic" id="del" title="Remove (⌫)"><svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/></svg></button>
     </div>
     <textarea id="tedit" hidden spellcheck="false"></textarea>
@@ -1416,6 +1416,17 @@ function draw(){
       ctx.strokeStyle = 'rgba(169,97,63,.55)'; ctx.lineWidth = 1.5;
       ctx.strokeRect(ac.x*vs + .75, ac.y*vs + .75, ac.w*vs - 1.5, ac.h*vs - 1.5);
     }
+    if (sizeMatch){
+      const o2 = layer(sizeMatch);
+      if (o2){
+        ctx.save(); ctx.scale(vs, vs);
+        ctx.strokeStyle = 'rgba(92,122,92,.95)';
+        ctx.lineWidth = 2.5 / vs;
+        ctx.setLineDash([8/vs, 6/vs]);
+        ctx.strokeRect(o2.x, o2.y, bw(o2), bh(o2));
+        ctx.restore();
+      }
+    }
     if (drag && guides.length){
       ctx.strokeStyle = 'rgba(169,97,63,.9)'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
       guides.forEach(g => {
@@ -1948,10 +1959,10 @@ function duplicate(){
 function reorder(dir){
   const i = S.layers.findIndex(l => l.id === S.sel);
   if (i < 0) return;
-  const j = clamp(i + dir, 0, S.layers.length - 1);
-  if (i === j) return;
+  if (dir > 0 ? i === S.layers.length - 1 : i === 0) return;
   mark();
-  S.layers.splice(j, 0, S.layers.splice(i, 1)[0]);
+  const [l] = S.layers.splice(i, 1);
+  dir > 0 ? S.layers.push(l) : S.layers.unshift(l);   // straight to the very front / very back
   draw();
 }
 function toggleLock(){
@@ -2062,12 +2073,17 @@ function applyDragPoint(clientX, clientY, noSnap){
   const r = cv.getBoundingClientRect();
   let nx = (clientX - r.left) / vs - drag.ox, ny = (clientY - r.top) / vs - drag.oy;
   if (!noSnap){ const sn = snap(l, nx, ny); nx = sn.x; ny = sn.y; }
-  if (!drag.moved){
-    // the moment a drag begins, the photo comes to the front — visible wherever it goes
-    const i = S.layers.indexOf(l);
-    if (i > -1 && i < S.layers.length - 1){ S.layers.splice(i, 1); S.layers.push(l); }
-  }
   l.x = nx; l.y = ny; drag.moved = true; l.placed = true;
+  // only a drag that LEAVES its page comes to the front — rearranging within
+  // the page never disturbs the stacking you set up
+  if (!drag.raised && !isText(l) && l.mode === 'cell'){
+    const centreSlot = clamp(Math.floor((l.x + bw(l)/2) / panelW()), 0, S.count - 1);
+    if (centreSlot !== drag.homeSlot){
+      const i = S.layers.indexOf(l);
+      if (i > -1 && i < S.layers.length - 1){ S.layers.splice(i, 1); S.layers.push(l); }
+      drag.raised = true;
+    }
+  }
   draw();
 }
 // Holding a photo against the screen edge carries it across pages.
@@ -2135,7 +2151,8 @@ cv.addEventListener('pointerdown', e => {
   if (hit && !hit.locked && (!isPhone() || wasSel)){
     const redoWas = future.slice();
     mark();
-    drag = {id:hit.id, ox:p.x - hit.x, oy:p.y - hit.y, moved:false, redoWas};
+    drag = {id:hit.id, ox:p.x - hit.x, oy:p.y - hit.y, moved:false, redoWas,
+            homeSlot: hit.mode === 'cell' ? hit.slot : -1, raised:false};
     cv.setPointerCapture(e.pointerId); cv.classList.add('grab');
     if (!edgeRAF) edgeRAF = requestAnimationFrame(edgeTick);
   } else if (isPhone()){
@@ -2167,7 +2184,7 @@ cv.addEventListener('pointermove', e => {
       l.size = clamp(pinch.s0 * k, 6, panelW());
       l.w = clamp(pinch.w0 * k, l.size, stripW());
       l.x = cx - l.w/2; l.y = cy - textH(l)/2;
-    } else scaleAround(l, pinch.s0 * k, m.x, m.y);
+    } else scaleAround(l, snapScale(l, pinch.s0 * k), m.x, m.y);
     draw();
     return;
   }
@@ -2188,7 +2205,7 @@ cv.addEventListener('pointermove', e => {
 });
 ['pointerup','pointercancel'].forEach(t => window.addEventListener(t, e => {
   pts.delete(e.pointerId);
-  if (pts.size < 2) pinch = null;
+  if (pts.size < 2){ pinch = null; if (sizeMatch){ sizeMatch = 0; draw(); } }
   const panned = pan && pan.moved;
   pan = null;
   if (plusArm){
@@ -2240,11 +2257,28 @@ cv.addEventListener('wheel', e => {
     l.size = clamp(l.size * k, 6, panelW());
     l.w = clamp(l.w * k, l.size, stripW());
     l.x = cx - l.w/2; l.y = cy - textH(l)/2;
-  } else scaleAround(l, l.scale * k, p.x, p.y);
+  } else scaleAround(l, snapScale(l, l.scale * k), p.x, p.y);
   draw();
 }, {passive:false});
 
-let guides = [];
+let guides = [], sizeMatch = 0;
+// While resizing, lock on when the photo's width or height matches a sibling
+// on the same page — the sibling flashes a ring so you see what you matched.
+function snapScale(l, s){
+  if (isText(l) || l.mode !== 'cell') return s;
+  const W = LW(l), H = LH(l);
+  let best = null;
+  S.layers.forEach(o => {
+    if (o === l || isText(o) || o.mode !== 'cell' || o.slot !== l.slot) return;
+    for (const cand of [bw(o) / W, bh(o) / H]){
+      const d = Math.abs(cand - s) / s;
+      if (d < .035 && (!best || d < best.d)) best = {d, s: cand, id: o.id};
+    }
+  });
+  if (best){ sizeMatch = best.id; return best.s; }
+  sizeMatch = 0;
+  return s;
+}
 // Snap edges AND centres — to posts, slots, the strip itself and every other element.
 function snap(l, x, y){
   const tol = 7 / vs, w = bw(l), h = bh(l);
@@ -2503,23 +2537,41 @@ async function download(){
   $('#dl').disabled = true;
   try{
   const base = ($('#name').value || 'carousel').replace(/[^\w.-]+/g, '-');
-  const pw = panelW(), ph = S.panelH;
-  for (let i = 0; i < S.count; i++){
-    $('#dlTxt').textContent = 'Rendering ' + (i + 1) + '/' + S.count;
-    const c = document.createElement('canvas');
-    c.width = pw; c.height = ph;
-    const g = c.getContext('2d');
-    g.translate(-i * pw, 0);
-    paintSlot(g, i, false);
-    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', S.quality));
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = base + '-' + String(i + 1).padStart(2, '0') + '.jpg';
-    document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-      await new Promise(r => setTimeout(r, 220));
+    const pw = panelW(), ph = S.panelH;
+    const files2 = [];
+    for (let i = 0; i < S.count; i++){
+      $('#dlTxt').textContent = 'Rendering ' + (i + 1) + '/' + S.count;
+      const c = document.createElement('canvas');
+      c.width = pw; c.height = ph;
+      const g = c.getContext('2d');
+      g.translate(-i * pw, 0);
+      paintSlot(g, i, false);
+      const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', S.quality));
+      files2.push(new File([blob], base + '-' + String(i + 1).padStart(2, '0') + '.jpg', {type:'image/jpeg'}));
     }
-    toast(S.count + ' JPGs downloaded');
+    // Phones: one share sheet with every page — "Save Images" puts them straight
+    // into the photo library. Anywhere else: plain downloads.
+    let shared = false;
+    if (navigator.canShare && navigator.canShare({files: files2})){
+      try {
+        await navigator.share({files: files2});
+        shared = true;
+        toast('In the share sheet — "Save Images" adds them to Photos');
+      } catch (err) {
+        if (err && err.name === 'AbortError'){ shared = true; toast('Share closed'); }
+      }
+    }
+    if (!shared){
+      for (const f of files2){
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(f);
+        a.download = f.name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+        await new Promise(r => setTimeout(r, 220));
+      }
+      toast(S.count + ' JPGs downloaded');
+    }
   }catch(err){
     toast('Export failed — try a smaller height');
   }finally{
