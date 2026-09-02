@@ -362,9 +362,13 @@
     }
     .ctx > span{flex:0 0 auto}
     .ctx{padding:5px 0; border:0; background:none}
-    /* same lane height as every other sheet — controls wrap to fill it */
-    .dock #ctx{min-height:0; flex-wrap:wrap; overflow:visible; row-gap:8px; align-content:flex-start}
-    .dock #ctx > span{flex-wrap:wrap; row-gap:8px; flex:0 1 auto}
+    /* same lane height as every other sheet; separators become row breaks:
+       [ SIZE ——————— 100% ] / [ Crop Film Fill Span ] / [ dup lock ↑ ↓ del ] */
+    .dock #ctx{min-height:0; flex-wrap:wrap; overflow:visible; row-gap:9px; align-content:flex-start}
+    .dock #ctx > span:not([hidden]){display:contents}
+    .dock #ctx .vr{flex-basis:100%; width:auto; height:0; background:none; margin:-2px 0}
+    .dock #ctx input[type=range]{flex:1; width:auto; min-width:0}
+    .dock #ctx .seg{flex:0 0 auto}
     .ctx button{flex:0 0 auto; padding:7px 11px; min-height:34px}
     .ctx button.ic{padding:7px 9px}
     .ctx input[type=range]{width:110px}
@@ -2006,7 +2010,10 @@ cv.addEventListener('pointerdown', e => {
   syncCat(); draw();
   if (isPhone()){
     if (S.sel) openSheet('element', true);
-    else if (dock.dataset.sheet === 'element' && dock.classList.contains('open')) closeSheet();
+    else if (dock.dataset.sheet === 'element' && dock.classList.contains('open')){
+      handoffAt = Date.now();
+      openSheet('photos', true);
+    }
   }
 });
 cv.addEventListener('pointermove', e => {
@@ -2403,7 +2410,10 @@ function placeCtx(){
   const el = $('#ctx'), sl = selLayer();
   if (isPhone()){
     el.hidden = !sl;
-    if (!sl && dock.dataset.sheet === 'element' && dock.classList.contains('open')) closeSheet();
+    if (!sl && dock.dataset.sheet === 'element' && dock.classList.contains('open')){
+      handoffAt = Date.now();
+      openSheet('photos', true);            // hand off, same lane — no abrupt collapse
+    }
     return;
   }
   if (!sl || !S.layers.length){ el.hidden = true; return; }
@@ -2613,6 +2623,7 @@ function showGroups(list){
     if (el) el.classList.toggle('g-off', !list.includes(sel));
   });
 }
+let handoffAt = 0;
 function openSheet(name, force){
   if (!force && dock.classList.contains('open') && dock.dataset.sheet === name) return closeSheet();
   dock.dataset.sheet = name;
@@ -2626,7 +2637,8 @@ function closeSheet(){
   [...rail.children].forEach(b => b.classList.remove('on'));
   requestAnimationFrame(() => { fitPanel(); draw(); });
 }
-[...rail.children].forEach(b => b.onclick = () => openSheet(b.dataset.sheet));
+// a tap that just triggered the deselect hand-off must not toggle the sheet shut
+[...rail.children].forEach(b => b.onclick = () => openSheet(b.dataset.sheet, Date.now() - handoffAt < 450));
 $('#peek2').onclick = () => { closeSheet(); $('#peek').click(); };
 
 // move shared controls between the header and the mobile sheets
