@@ -324,8 +324,15 @@
   /* ---------- mobile ---------- */
   .mobileOnly{display:none}
   .hrow{display:flex; align-items:center; gap:8px}
-  #paperBtn{padding:3px; line-height:0}
-  #paperBtn i{display:block; width:20px; height:20px; border-radius:4px; border:1px solid var(--line2); background:#fff}
+  #colorRow{display:flex; align-items:center; gap:9px}
+  #quickPapers{display:flex; gap:7px; flex:1}
+  #quickPapers button{
+    width:24px; height:24px; padding:0; border-radius:50%; min-height:0;
+    border:1px solid rgba(26,25,23,.16);
+  }
+  #quickPapers button.on{outline:2px solid var(--ink); outline-offset:2px}
+  #paperBtn{display:inline-flex; align-items:center; gap:6px; padding:3px 9px 3px 4px}
+  #paperBtn i{display:block; width:18px; height:18px; border-radius:50%; border:1px solid var(--line2); background:#fff}
   #layAll2{padding:3px 9px}
   .swatches{display:grid; grid-template-columns:repeat(7,1fr); gap:8px}
   .swatches button{
@@ -358,7 +365,7 @@
 
     main{flex-direction:column; min-height:0}
     .work{flex:1; min-height:0}
-    .canvaswrap{padding:8px; min-height:170px; overflow-y:hidden; align-items:center}
+    .canvaswrap{padding:8px 8px 64px; min-height:170px; overflow-y:hidden; align-items:center}
     .prompt{display:none}   /* drag-and-drop copy is desktop-only; phones have the + slots */
 
     /* selected element's controls sit right above the rail */
@@ -381,23 +388,38 @@
     .ctx button.ic{padding:7px 9px}
     .ctx input[type=range]{width:110px}
 
-    /* tools live in one rail in the thumb zone */
+    /* floating liquid-glass pill, same family as KILOS/HOTMUM:
+       icons collapse, the active tab expands into a bright pill with its label */
     .rail{
-      display:flex; flex:0 0 auto; background:var(--card); border-top:1px solid var(--line);
-      padding-bottom:env(safe-area-inset-bottom,0px);
+      display:flex; position:fixed; left:50%; transform:translateX(-50%);
+      bottom:max(12px, calc(env(safe-area-inset-bottom,0px) - 8px)); z-index:45;
+      align-items:center; gap:6px; padding:6px; border-radius:999px; border:0;
+      background:rgba(24,20,16,.74);
+      -webkit-backdrop-filter:blur(26px) saturate(160%); backdrop-filter:blur(26px) saturate(160%);
+      transition:bottom .22s cubic-bezier(.4,0,.2,1);
     }
     .rail button{
-      flex:1; border:0; background:none; border-radius:0; padding:8px 0 9px; display:flex;
-      flex-direction:column; align-items:center; gap:4px; color:var(--dim); font-size:10.5px; font-weight:500;
+      flex:0 0 auto; display:flex; flex-direction:row; align-items:center;
+      border:0; background:none; border-radius:999px; height:42px; padding:0 13px;
+      color:rgba(255,252,245,.55); min-height:0;
+      transition:background .32s cubic-bezier(.4,0,.2,1), color .2s, padding .32s cubic-bezier(.4,0,.2,1);
     }
-    .rail button svg{width:21px; height:21px; stroke:currentColor; fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round}
-    .rail button.on{color:var(--ink)}
+    .rail button svg{width:21px; height:21px; flex:0 0 auto; stroke:currentColor; fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round}
+    .rail button span{
+      font-size:10.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+      white-space:nowrap; max-width:0; margin-left:0; opacity:0; overflow:hidden;
+      transition:max-width .32s cubic-bezier(.4,0,.2,1), margin-left .32s cubic-bezier(.4,0,.2,1), opacity .24s ease;
+    }
+    .rail button.on{background:var(--card); color:var(--ink); padding:0 16px}
+    .rail button.on svg{stroke-width:2}
+    .rail button.on span{max-width:84px; margin-left:7px; opacity:1}
 
     /* one sheet at a time, from the bottom */
     .dock{
       display:none; flex-direction:column; align-items:stretch; gap:8px;
       padding:8px 14px 10px; border-top:1px solid var(--line2); background:var(--card);
-      height:152px; max-height:152px; overflow-y:auto;
+      height:200px; max-height:200px; overflow-y:auto;
+      padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));
     }
     .dock.open{display:flex}
     .dock:before{content:""; width:34px; height:4px; border-radius:2px; background:var(--line2); align-self:center; margin-bottom:2px}
@@ -414,7 +436,7 @@
     #ratio{flex:1; margin-left:10px}
 
     .lays{flex-wrap:nowrap; overflow-x:auto; padding-bottom:2px; -webkit-overflow-scrolling:touch;
-          height:64px; flex:0 0 64px; align-items:flex-start}
+          height:72px; flex:0 0 72px; align-items:flex-start}
     .lay em{font-size:9px; margin-top:2px}
     .dock .tools{width:100%; gap:9px}
     .dock #cap{flex:1; width:auto; min-width:110px}
@@ -584,7 +606,6 @@
           <div class="seg" id="slotFit" title="How photos fill this post's frames">
             <button data-f="cover" class="on">Fill</button><button data-f="fit">Fit</button>
           </div>
-          <button id="paperBtn" title="Page colour"><i></i></button>
           <button id="layAll2" title="Apply this page's layout, colour and fit everywhere">All</button>
           <div class="seg msegs mobileOnly" id="msegs">
             <button data-m="layout" class="on">Layout</button><button data-m="style">Style</button>
@@ -593,6 +614,11 @@
         <div class="chips" id="cats"></div>
       </div>
       <div class="lays" id="lays"></div>
+      <div class="r" id="colorRow">
+        <span class="lbl">Page colour</span>
+        <div id="quickPapers"></div>
+        <button id="paperBtn" title="All colours"><i></i><span>More</span></button>
+      </div>
       <div class="grow"></div>
       <div id="mPhotos"><h3 class="sheetTitle">Photos</h3></div>
       <div id="mPost">
@@ -602,13 +628,13 @@
     </div>
     <div class="rail" id="rail">
       <button data-sheet="photos">
-        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 15-5-5L5 20"/></svg>Photos
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 15-5-5L5 20"/></svg><span>Photos</span>
       </button>
       <button data-sheet="layout">
-        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 10h18M10 10v11"/></svg>Layout
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 10h18M10 10v11"/></svg><span>Layout</span>
       </button>
       <button data-sheet="post">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1M5.6 18.4l2.1-2.1m8.6-8.6 2.1-2.1"/></svg>Post
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1M5.6 18.4l2.1-2.1m8.6-8.6 2.1-2.1"/></svg><span>Post</span>
       </button>
     </div>
     <div class="status">
@@ -1325,8 +1351,8 @@ const isPhone = () => matchMedia('(max-width:860px)').matches;
 function fitScale(){
   const pad = isPhone() ? 20 : 52;
   const availW = cwrap.clientWidth - pad, availH = cwrap.clientHeight - pad;
-  // phones show one post at a readable size and scroll across; desktop fits the whole strip
-  return Math.min(availW / (isPhone() ? panelW() : stripW()), availH / S.panelH);
+  // phones show one post at a readable size (with breathing room) and scroll across
+  return Math.min(availW / (isPhone() ? panelW() : stripW()), availH / S.panelH) * (isPhone() ? .9 : 1);
 }
 let followScroll = true, followT = null;
 function scrollToPost(){
@@ -1598,12 +1624,13 @@ async function boot(){
     if (last && (list || []).some(x => x.id === last)){
       booting = false;
       await openProject(last);
-      setSaved('Saved'); placeControls(); relayout();
+      setSaved('Saved'); placeControls(); relayout(); defaultSheet();
       return;
     }
     booting = false;
     placeControls(); relayout();
     setSaved('Autosave on');
+    defaultSheet();
     if ((list || []).length) openProjects();
     return;
   }
@@ -1611,6 +1638,7 @@ async function boot(){
   setSaved('Autosave off');
   placeControls(); relayout();
 }
+function defaultSheet(){ if (isPhone()) openSheet('layout', true); }
 
 /* ---------- loading photos ---------- */
 function addFiles(files, at){
@@ -1736,7 +1764,7 @@ function paintThumbs(){
     const L = LAYOUT(b.dataset.id), th = b.querySelector('.th');
     let w;
     if (isPhone()){
-      w = Math.max(20, Math.min(49, Math.floor(49 / r)));   // fit a 49px height cap
+      w = Math.max(22, Math.min(56, Math.floor(56 / r)));   // fit a 56px height cap
       b.style.width = b.style.flexBasis = w + 'px';
     } else {
       b.style.width = b.style.flexBasis = '';
@@ -1841,6 +1869,16 @@ const PAPERS = [
   '#e9dcd4','#dcc5b6','#cbaa96','#b98d7a','#a9765f','#8d5f4d','#6f4a3c',
   '#dfe3e6','#c9d2d8','#aebbc4','#93a3ae','#77879a','#5b6a7c','#3f4c5c',
 ];
+const QUICK = ['#ffffff','#f3ead9','#ddcfb6','#bfc6b1','#93a3ae','#5c6b5f'];
+function buildQuick(){
+  const host = $('#quickPapers'); if (host.children.length) return;
+  QUICK.forEach(c => {
+    const b = document.createElement('button');
+    b.style.background = c; b.dataset.c = c; b.title = c;
+    b.onclick = () => { mark(); setPaper(c); $('#paper').value = c; draw(); };
+    host.appendChild(b);
+  });
+}
 function buildSwatches(){
   const host = $('#swatches'); if (host.children.length) return syncSwatches();
   PAPERS.forEach(c => {
@@ -2092,9 +2130,7 @@ cv.addEventListener('pointerdown', e => {
   if (c != null) S.cell = c;
   const plus = plusAt(p.x, p.y);
   if (plus){
-    S.preview = plus[0]; S.cell = plus[1];
-    plusArm = {at:plus, x:e.clientX, y:e.clientY};   // fires on release, when the tap is real
-    syncCat(); draw();
+    plusArm = {at:plus, x:e.clientX, y:e.clientY};   // silent until release — no flash
     return;
   }
   let hit = null, wasSel = null;
@@ -2177,7 +2213,7 @@ cv.addEventListener('pointermove', e => {
   pan = null;
   if (plusArm){
     const still = Math.hypot(e.clientX - plusArm.x, e.clientY - plusArm.y) < 12;
-    if (still){ pendingAt = plusArm.at; $('#file').click(); }
+    if (still){ S.preview = plusArm.at[0]; S.cell = plusArm.at[1]; pendingAt = plusArm.at; $('#file').click(); }
     plusArm = null;
   }
   if (drag && !drag.moved){ past.pop(); future = drag.redoWas || future; }   // a plain click costs nothing
@@ -2583,6 +2619,9 @@ function syncUI(){
 
   $('#paper').value = paperOf(S.preview);
   $('#paperBtn').querySelector('i').style.background = paperOf(S.preview);
+  buildQuick();
+  const curP = paperOf(S.preview).toLowerCase();
+  [...$('#quickPapers').children].forEach(b => b.classList.toggle('on', b.dataset.c === curP));
   [...$('#lays').children].forEach(el => el.classList.toggle('on', el.dataset.id === slot(S.preview).layout));
   $$('#slotFit button').forEach(b => b.classList.toggle('on', b.dataset.f === slot(S.preview).fit));
 
@@ -2679,7 +2718,7 @@ async function openProject(id){
   if (d.q){ S.quality = d.q; $('#q').value = String(d.q); }
   past = []; future = [];
   await DB.set('last', id);
-  closeProjects(); relayout();
+  closeProjects(); relayout(); defaultSheet();
 }
 function newProject(){
   curId = null;
@@ -2688,7 +2727,7 @@ function newProject(){
   S.layers = []; S.slots = []; S.sel = null; S.preview = 0; S.cell = 0; S.panelHAuto = true; S.panelH = 1350;
   quiet = false;
   past = []; future = [];
-  closeProjects(); paintThumbs(); relayout();
+  closeProjects(); paintThumbs(); relayout(); defaultSheet();
 }
 async function renderProjects(){
   const grid = $('#pgrid');
@@ -2740,8 +2779,8 @@ $('#newProj').onclick = newProject;
 $('#docName').onchange = () => { queueSave(); toast('Renamed'); };
 
 /* ---------- mobile shell ---------- */
-const GROUPS = {photos:['#mPhotos'], layout:['.head', '.lays'], post:['#mPost'], element:['#ctx']};
-const ALLG = ['#mPhotos', '.head', '.lays', '#mPost', '#ctx'];
+const GROUPS = {photos:['#mPhotos'], layout:['.head', '.lays', '#colorRow'], post:['#mPost'], element:['#ctx']};
+const ALLG = ['#mPhotos', '.head', '.lays', '#colorRow', '#mPost', '#ctx'];
 function showGroups(list){
   ALLG.forEach(sel => {
     const el = document.querySelector(sel);
@@ -2749,18 +2788,24 @@ function showGroups(list){
   });
 }
 let handoffAt = 0;
+function railRide(){
+  if (!isPhone()){ rail.style.bottom = ''; return; }
+  rail.style.bottom = dock.classList.contains('open')
+    ? (dock.offsetHeight + 12) + 'px'
+    : '';
+}
 function openSheet(name, force){
   if (!force && dock.classList.contains('open') && dock.dataset.sheet === name) return closeSheet();
   dock.dataset.sheet = name;
   dock.classList.add('open');
   showGroups(GROUPS[name]);
   [...rail.children].forEach(b => b.classList.toggle('on', b.dataset.sheet === name));
-  requestAnimationFrame(() => { fitPanel(); draw(); });
+  requestAnimationFrame(() => { railRide(); fitPanel(); draw(); });
 }
 function closeSheet(){
   dock.classList.remove('open');
   [...rail.children].forEach(b => b.classList.remove('on'));
-  requestAnimationFrame(() => { fitPanel(); draw(); });
+  requestAnimationFrame(() => { railRide(); fitPanel(); draw(); });
 }
 // a tap that just triggered the deselect hand-off must not toggle the sheet shut
 [...rail.children].forEach(b => b.onclick = () => openSheet(b.dataset.sheet, Date.now() - handoffAt < 450));
@@ -2794,7 +2839,7 @@ function placeControls(){
     a.parentNode.insertBefore(add, $('#file'));
     $('#file').after(text);
     dock.classList.remove('open');
-    showGroups(['.head', '.lays', '#ctx']);   // ctx floats on desktop — placeCtx owns its visibility
+    showGroups(['.head', '.lays', '#colorRow', '#ctx']);   // ctx floats on desktop
   }
 }
 
