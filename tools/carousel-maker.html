@@ -21,8 +21,12 @@
     --sh:0 1px 2px rgba(26,25,23,.06),0 6px 20px rgba(26,25,23,.07);
   }
   *{box-sizing:border-box}
-  html,body{height:100%}
+  /* iOS standalone: a % -height body leaves a white band under the nav
+     (the bare html shows through). Fixed/inset root fills the true
+     viewport — the same fix KILOS uses; 100dvh under-reports there. */
+    html{height:100%; background:var(--paper)}
   body{
+    position:fixed; inset:0;
     margin:0; background:var(--paper); color:var(--ink); overflow:hidden;
     font:13px/1.45 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Inter,sans-serif;
     display:flex; flex-direction:column; -webkit-font-smoothing:antialiased;
