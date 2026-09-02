@@ -1994,7 +1994,31 @@ cwrap.addEventListener('drop', e => {
 
 const at = e => { const r = cv.getBoundingClientRect(); return {x:(e.clientX-r.left)/vs, y:(e.clientY-r.top)/vs}; };
 const inBox = (l, x, y) => x >= l.x && x <= l.x + bw(l) && y >= l.y && y <= l.y + bh(l);
-let drag = null, wheelMark = 0;
+let drag = null, wheelMark = 0, edgeRAF = 0;
+function applyDragPoint(clientX, clientY, noSnap){
+  const l = drag && layer(drag.id); if (!l) return;
+  const r = cv.getBoundingClientRect();
+  let nx = (clientX - r.left) / vs - drag.ox, ny = (clientY - r.top) / vs - drag.oy;
+  if (!noSnap){ const sn = snap(l, nx, ny); nx = sn.x; ny = sn.y; }
+  l.x = nx; l.y = ny; drag.moved = true; l.placed = true;
+  draw();
+}
+// Holding a photo against the screen edge carries it across pages.
+function edgeTick(){
+  if (!drag){ edgeRAF = 0; return; }
+  const r = cwrap.getBoundingClientRect(), Z = 48;
+  const x = drag.lastX;
+  let v = 0;
+  if (x != null){
+    if (x < r.left + Z) v = -(4 + (r.left + Z - x) * .3);
+    else if (x > r.right - Z) v = 4 + (x - (r.right - Z)) * .3;
+  }
+  if (v && cwrap.scrollWidth > cwrap.clientWidth + 1){
+    cwrap.scrollLeft += v;
+    applyDragPoint(drag.lastX, drag.lastY, true);   // canvas moved under the finger
+  }
+  edgeRAF = requestAnimationFrame(edgeTick);
+}
 const pts = new Map();
 let pinch = null, pan = null;
 const dist = () => {
@@ -2043,6 +2067,7 @@ cv.addEventListener('pointerdown', e => {
     mark();
     drag = {id:hit.id, ox:p.x - hit.x, oy:p.y - hit.y, moved:false, redoWas};
     cv.setPointerCapture(e.pointerId); cv.classList.add('grab');
+    if (!edgeRAF) edgeRAF = requestAnimationFrame(edgeTick);
   } else if (isPhone()){
     pan = {x0:e.clientX, sx:cwrap.scrollLeft, moved:false};
     cv.setPointerCapture(e.pointerId);
@@ -2091,12 +2116,8 @@ cv.addEventListener('pointermove', e => {
     cv.style.cursor = over ? 'grab' : (pl ? 'pointer' : 'default');
     return;
   }
-  const l = layer(drag.id); if (!l) return;
-  const p = at(e);
-  let nx = p.x - drag.ox, ny = p.y - drag.oy;
-  if (!e.altKey){ const sn = snap(l, nx, ny); nx = sn.x; ny = sn.y; }
-  l.x = nx; l.y = ny; drag.moved = true; l.placed = true;
-  draw();
+  drag.lastX = e.clientX; drag.lastY = e.clientY;
+  applyDragPoint(e.clientX, e.clientY, e.altKey);
 });
 ['pointerup','pointercancel'].forEach(t => window.addEventListener(t, e => {
   pts.delete(e.pointerId);
@@ -2104,9 +2125,18 @@ cv.addEventListener('pointermove', e => {
   const panned = pan && pan.moved;
   pan = null;
   if (drag && !drag.moved){ past.pop(); future = drag.redoWas || future; }   // a plain click costs nothing
-  else if (drag && drag.moved && isPhone()) S.sel = null;   // let go after a move = released
+  else if (drag && drag.moved){
+    const l = layer(drag.id);
+    if (l && l.mode === 'cell'){                      // it now belongs where it landed
+      const cx = l.x + bw(l)/2, cy = l.y + bh(l)/2;
+      const p2 = clamp(Math.floor(cx / panelW()), 0, S.count - 1);
+      if (p2 !== l.slot){ l.slot = p2; l.cell = nearestCell(cx, cy, p2); S.preview = p2; syncCat(); }
+    }
+    if (isPhone()) S.sel = null;                      // let go after a move = released
+  }
   if (panned) S.sel = null;                                  // panning is navigation, not holding
   drag = null; guides = []; cv.classList.remove('grab');
+  if (edgeRAF){ cancelAnimationFrame(edgeRAF); edgeRAF = 0; }
   draw();
 }));
 cv.addEventListener('pointerleave', () => { if (hoverPlus){ hoverPlus = ''; draw(); } });
