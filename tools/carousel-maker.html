@@ -333,7 +333,6 @@
   #quickPapers button.on{outline:2px solid var(--ink); outline-offset:2px}
   #paperBtn{display:inline-flex; align-items:center; gap:6px; padding:3px 9px 3px 4px}
   #paperBtn i{display:block; width:18px; height:18px; border-radius:50%; border:1px solid var(--line2); background:#fff}
-  #layAll2{padding:3px 9px}
   .swatches{display:grid; grid-template-columns:repeat(7,1fr); gap:8px}
   .swatches button{
     aspect-ratio:1; padding:0; border-radius:6px; border:1px solid rgba(26,25,23,.14); min-height:0;
@@ -446,7 +445,6 @@
     .chips{gap:5px}
     .chips button{padding:3px 0; min-height:24px; font-size:11px; letter-spacing:.02em}
     #slotFit button{padding:2px 8px; min-height:22px; font-size:11px}
-    #layAll2{padding:2px 8px; min-height:22px; font-size:11px}
     .dock .hrow{min-height:24px}
     .dock .head{gap:6px}
     .dock:before{margin-bottom:0}
@@ -608,7 +606,6 @@
           <div class="seg" id="slotFit" title="How photos fill this post's frames">
             <button data-f="cover" class="on">Fill</button><button data-f="fit">Fit</button>
           </div>
-          <button id="layAll2" title="Apply this page's layout, colour and fit everywhere">All</button>
           <div class="seg msegs mobileOnly" id="msegs">
             <button data-m="layout" class="on">Layout</button><button data-m="style">Style</button>
           </div>
@@ -1807,12 +1804,7 @@ $$('#slotFit button').forEach(b => b.onclick = () => {
   draw();
   toast(b.dataset.f === 'fit' ? 'This page is sealed — photos stay inside their frames' : 'Photos on this page may bleed across');
 });
-$('#layAll2').onclick = () => {
-  const src = slot(S.preview);
-  for (let i = 0; i < S.count; i++){ slot(i).paper = src.paper; slot(i).fit = src.fit; }
-  setLayout(src.layout, true);
-  toast('Layout and paper applied to every post');
-};
+
 
 /* ---------- top bar ---------- */
 const countSeg = $('#countSeg');
