@@ -406,13 +406,15 @@
     #ratio{flex:1; margin-left:10px}
 
     .lays{flex-wrap:nowrap; overflow-x:auto; padding-bottom:2px; -webkit-overflow-scrolling:touch;
-          height:72px; flex:0 0 72px; align-items:flex-start}
+          height:68px; flex:0 0 68px; align-items:flex-start}
     .lay em{font-size:9px; margin-top:2px}
     .dock .tools{width:100%; gap:9px}
     .dock #cap{flex:1; width:auto; min-width:110px}
     .dock input[type=range]{flex:1; width:auto; min-width:80px}
     .chips{gap:5px}
     .chips button{padding:3px 0; min-height:24px; font-size:11px; letter-spacing:.02em}
+    #slotFit button{padding:2px 8px; min-height:22px; font-size:11px}
+    .dock .hrow{min-height:24px}
     .dock .head{gap:6px}
     .dock:before{margin-bottom:0}
     .status{display:none}
@@ -570,6 +572,9 @@
       <div class="dcol head">
         <div class="hrow">
           <h3>Layout <em id="fSlot">post 1</em></h3>
+          <div class="seg" id="slotFit" title="How photos fill this post's frames">
+            <button data-f="cover" class="on">Fill</button><button data-f="fit">Fit</button>
+          </div>
           <div class="seg msegs mobileOnly" id="msegs">
             <button data-m="layout" class="on">Layout</button><button data-m="style">Style</button>
           </div>
@@ -999,6 +1004,7 @@ const slot = i => {
   const s = S.slots[i] || (S.slots[i] = {layout:DEFAULT_LAYOUT, cap:''});
   if (!s.layout) s.layout = DEFAULT_LAYOUT;
   if (s.cap == null) s.cap = '';
+  if (!s.fit) s.fit = 'cover';
   return s;
 };
 const layoutOf = i => LAYOUT(slot(i).layout);
@@ -1429,8 +1435,8 @@ function drawPreview(){
 }
 
 /* ---------- fitting ---------- */
-function coverRect(l, r){
-  const s = Math.max(r.w / LW(l), r.h / LH(l));
+function coverRect(l, r, contain){
+  const s = (contain ? Math.min : Math.max)(r.w / LW(l), r.h / LH(l));
   l.scale = s;
   l.x = r.x + (r.w - LW(l)*s) / 2;
   l.y = r.y + (r.h - LH(l)*s) / 2;
@@ -1440,13 +1446,14 @@ function coverStrip(l){ coverRect(l, {x:0, y:0, w:stripW(), h:S.panelH}); }
 function autofit(l){ if (!l.placed) refit(l); }
 function refit(l){
   const c = l.mode === 'strip' ? {x:0, y:0, w:stripW(), h:S.panelH} : cellRect(l);
+  const contain = l.mode === 'cell' && slot(l.slot).fit === 'fit';
   if (isText(l)){
     l.w = Math.min(l.w, c.w * .9);
     l.x = c.x + (c.w - l.w) / 2;
     l.y = c.y + (c.h - textH(l)) / 2;
     return;
   }
-  coverRect(l, c);
+  coverRect(l, c, contain);
 }
 function scaleAround(l, s, cx, cy){
   s = clamp(s, .02, 4);
@@ -1719,7 +1726,7 @@ function paintThumbs(){
     const L = LAYOUT(b.dataset.id), th = b.querySelector('.th');
     let w;
     if (isPhone()){
-      w = Math.max(24, Math.min(56, Math.floor(56 / r)));   // fit a 56px height cap
+      w = Math.max(22, Math.min(53, Math.floor(53 / r)));   // fit a 53px height cap
       b.style.width = b.style.flexBasis = w + 'px';
     } else {
       b.style.width = b.style.flexBasis = '';
@@ -1754,9 +1761,18 @@ function setLayout(id, all){
   S.layers.forEach(l => { if (l.mode === 'cell' && targets.includes(l.slot)) autofit(l); });
   paintThumbs(); draw();
 }
+$$('#slotFit button').forEach(b => b.onclick = () => {
+  mark();
+  slot(S.preview).fit = b.dataset.f;
+  S.layers.forEach(l => {
+    if (l.mode === 'cell' && l.slot === S.preview){ l.placed = false; refit(l); }
+  });
+  draw();
+  toast(b.dataset.f === 'fit' ? 'Photos fit inside the frame' : 'Photos fill the frame');
+});
 $('#layAll').onclick = () => {
   const src = slot(S.preview);
-  for (let i = 0; i < S.count; i++) slot(i).paper = src.paper;
+  for (let i = 0; i < S.count; i++){ slot(i).paper = src.paper; slot(i).fit = src.fit; }
   setLayout(src.layout, true);
   toast('Layout and paper applied to every post');
 };
@@ -2538,6 +2554,7 @@ function syncUI(){
   cap.placeholder = room ? 'Caption for this post' : 'This layout has no bottom margin';
   $('#fsVal').textContent = Math.round(S.frameScale * 100) + '%';
   [...$('#lays').children].forEach(el => el.classList.toggle('on', el.dataset.id === slot(S.preview).layout));
+  $$('#slotFit button').forEach(b => b.classList.toggle('on', b.dataset.f === slot(S.preview).fit));
 
   const txt = sl && isText(sl);
   $('#ctxPhoto').hidden = !sl || txt;
