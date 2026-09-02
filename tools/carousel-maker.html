@@ -1851,8 +1851,13 @@ function movePage(dir){
   const fromSlot = l.slot, fromCell = cellIdx(l);
   const tc = Math.min(fromCell, cellsOf(t).length - 1);
   const occ = S.layers.find(o => o !== l && !isText(o) && o.mode === 'cell' && o.slot === t && cellIdx(o) === tc);
-  l.slot = t; l.cell = tc; l.placed = false; refit(l);
-  if (occ){ occ.slot = fromSlot; occ.cell = fromCell; occ.placed = false; refit(occ); }  // they trade places
+  const dx = (t - fromSlot) * panelW();
+  l.slot = t; l.cell = tc;
+  if (l.placed) l.x += dx; else refit(l);            // hand-placed photos carry their framing with them
+  if (occ){
+    occ.slot = fromSlot; occ.cell = fromCell;
+    if (occ.placed) occ.x -= dx; else refit(occ);    // the occupant keeps its framing too
+  }
   S.preview = t; S.cell = tc;
   syncCat(); draw(); scrollToPost();
 }
