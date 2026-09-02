@@ -364,7 +364,7 @@
 
     main{flex-direction:column; min-height:0}
     .work{flex:1; min-height:0}
-    .canvaswrap{padding:8px 8px 64px; min-height:170px; overflow-y:hidden; align-items:center}
+    .canvaswrap{padding:8px; min-height:170px; overflow-y:hidden; align-items:center}
     .prompt{display:none}   /* drag-and-drop copy is desktop-only; phones have the + slots */
 
     /* selected element's controls sit right above the rail */
@@ -387,40 +387,23 @@
     .ctx button.ic{padding:7px 9px}
     .ctx input[type=range]{width:110px}
 
-    /* floating liquid-glass pill, same family as KILOS/HOTMUM:
-       icons collapse, the active tab expands into a bright pill with its label */
+    /* tools live in one bar in the thumb zone */
     .rail{
-      display:flex; position:fixed; left:50%; transform:translateX(-50%);
-      bottom:max(12px, calc(env(safe-area-inset-bottom,0px) - 8px)); z-index:45;
-      align-items:center; gap:6px; padding:6px; border-radius:999px; border:0;
-      background:rgba(24,20,16,.74);
-      -webkit-backdrop-filter:blur(26px) saturate(160%); backdrop-filter:blur(26px) saturate(160%);
-      transition:bottom .22s cubic-bezier(.4,0,.2,1);
+      display:flex; flex:0 0 auto; background:var(--card); border-top:1px solid var(--line);
+      padding-bottom:env(safe-area-inset-bottom,0px);
     }
     .rail button{
-      flex:0 0 auto; display:flex; flex-direction:row; align-items:center;
-      border:0; background:none; border-radius:999px; height:42px; padding:0 13px;
-      color:rgba(255,252,245,.55); min-height:0;
-      transition:background .32s cubic-bezier(.4,0,.2,1), color .2s, padding .32s cubic-bezier(.4,0,.2,1);
+      flex:1; border:0; background:none; border-radius:0; padding:8px 0 9px; display:flex;
+      flex-direction:column; align-items:center; gap:4px; color:var(--dim); font-size:10.5px; font-weight:500;
     }
-    .rail button svg{width:21px; height:21px; flex:0 0 auto; stroke:currentColor; fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round}
-    .rail button span{
-      font-size:10.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
-      white-space:nowrap; max-width:0; margin-left:0; opacity:0; overflow:hidden;
-      transition:max-width .32s cubic-bezier(.4,0,.2,1), margin-left .32s cubic-bezier(.4,0,.2,1), opacity .24s ease;
-    }
-    .rail button.on{background:var(--card); color:var(--ink); padding:0 16px}
-    .rail button.on svg{stroke-width:2}
-    .rail button.on span{max-width:84px; margin-left:7px; opacity:1}
+    .rail button svg{width:21px; height:21px; stroke:currentColor; fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round}
+    .rail button.on{color:var(--ink)}
 
     /* one sheet at a time, from the bottom */
     .dock{
       display:none; flex-direction:column; align-items:stretch; gap:8px;
       padding:8px 14px 10px; border-top:1px solid var(--line2); background:var(--card);
       height:200px; max-height:200px; overflow-y:auto;
-      margin:0 10px calc(70px + env(safe-area-inset-bottom,0px));
-      border:1px solid var(--line2); border-radius:16px;
-      box-shadow:0 10px 30px rgba(26,25,23,.14);
     }
     .dock.open{display:flex}
     .dock:before{content:""; width:34px; height:4px; border-radius:2px; background:var(--line2); align-self:center; margin-bottom:2px}
@@ -1144,7 +1127,6 @@ const occupied = (s, c) => S.layers.some(l => !isText(l) && l.mode === 'cell' &&
 const cellIdx = l => Math.min(l.cell, cellsOf(l.slot).length - 1);
 const cellRect = l => cellsOf(l.slot)[cellIdx(l)];
 const plusR = c => Math.min(c.w, c.h) * .11;
-let hoverPlus = '';
 // is this point on an empty slot's "+" button?
 function plusAt(x, y){
   const i = clamp(Math.floor(x / panelW()), 0, S.count - 1);
@@ -1317,10 +1299,8 @@ function paintSlot(g, i, editor){
       pathRect(g, c); g.stroke();
       g.setLineDash([]);
       const cx = c.x + c.w/2, cy = c.y + c.h/2, R = plusR(c), t = R * .42;
-      const hot = hoverPlus === i + ',' + ci;
-      if (hot){ g.fillStyle = 'rgba(169,97,63,.10)'; g.beginPath(); g.arc(cx, cy, R, 0, Math.PI*2); g.fill(); }
-      g.strokeStyle = hot ? 'rgba(169,97,63,.9)' : 'rgba(26,25,23,.3)';
-      g.lineWidth = Math.max(1, pw * (hot ? .0032 : .0024));
+      g.strokeStyle = 'rgba(26,25,23,.3)';
+      g.lineWidth = Math.max(1, pw * .0024);
       g.beginPath(); g.arc(cx, cy, R, 0, Math.PI*2); g.stroke();
       g.beginPath();
       g.moveTo(cx - t, cy); g.lineTo(cx + t, cy);
@@ -2192,10 +2172,7 @@ cv.addEventListener('pointermove', e => {
       over = S.layers.some(l => vis(l) && !l.locked && inBox(l, p.x, p.y));
     }
     over = over || S.layers.some(l => !isText(l) && !l.locked && l.mode === 'cell' && l.slot === s && cellIdx(l) === cc);
-    const pl = over ? null : plusAt(p.x, p.y);
-    const key = pl ? pl.join(',') : '';
-    if (key !== hoverPlus){ hoverPlus = key; draw(); }
-    cv.style.cursor = over ? 'grab' : (pl ? 'pointer' : 'default');
+    cv.style.cursor = over ? 'grab' : (plusAt(p.x, p.y) ? 'pointer' : 'default');
     return;
   }
   drag.lastX = e.clientX; drag.lastY = e.clientY;
@@ -2226,7 +2203,6 @@ cv.addEventListener('pointermove', e => {
   if (edgeRAF){ cancelAnimationFrame(edgeRAF); edgeRAF = 0; }
   draw();
 }));
-cv.addEventListener('pointerleave', () => { if (hoverPlus){ hoverPlus = ''; draw(); } });
 cv.addEventListener('dblclick', () => {
   const l = selLayer(); if (!l) return;
   isText(l) ? editText(l) : openCrop();
