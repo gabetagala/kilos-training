@@ -526,6 +526,9 @@
         <input type="range" id="scale" min="2" max="400" step="1" value="100">
         <span class="val" id="scaleVal">100%</span>
         <div class="vr"></div>
+        <div class="seg" id="pageMove" title="Send to another page">
+          <button id="mvL">‹</button><span class="lbl" style="align-self:center;padding:0 7px">page</span><button id="mvR">›</button>
+        </div>
         <button id="crop">Crop</button>
         <button id="film">Film</button>
         <button id="fitCell">Fill slot</button>
@@ -1309,11 +1312,27 @@ function fitScale(){
   // phones show one post at a readable size and scroll across; desktop fits the whole strip
   return Math.min(availW / (isPhone() ? panelW() : stripW()), availH / S.panelH);
 }
+let followScroll = true, followT = null;
 function scrollToPost(){
   if (!isPhone()) return;
+  followScroll = false;                       // programmatic — don't re-derive the page from it
   const x = (S.preview + .5) * panelW() * vs;
   cwrap.scrollLeft = Math.max(0, x - cwrap.clientWidth / 2);
+  setTimeout(() => { followScroll = true; }, 220);
 }
+cwrap.addEventListener('scroll', () => {
+  if (!isPhone() || !followScroll) return;
+  clearTimeout(followT);
+  followT = setTimeout(() => {
+    const centre = (cwrap.scrollLeft + cwrap.clientWidth / 2) / vs;
+    const p2 = clamp(Math.floor(centre / panelW()), 0, S.count - 1);
+    if (p2 !== S.preview){
+      S.preview = p2;
+      S.cell = Math.min(S.cell, cellsOf(p2).length - 1);
+      syncCat(); draw();
+    }
+  }, 90);
+});
 function draw(){
   const has = S.layers.length > 0;
   $('#prompt').hidden = has;
@@ -1824,6 +1843,21 @@ $('#fitStrip').onclick = () => {
   const l = selLayer(); if (!l) return;
   mark(); l.mode = 'strip'; l.placed = false; applyAuto(); refit(l); draw();
 };
+function movePage(dir){
+  const l = selLayer(); if (!l || isText(l) || l.mode === 'strip') return;
+  const t = clamp(l.slot + dir, 0, S.count - 1);
+  if (t === l.slot) return;
+  mark();
+  const fromSlot = l.slot, fromCell = cellIdx(l);
+  const tc = Math.min(fromCell, cellsOf(t).length - 1);
+  const occ = S.layers.find(o => o !== l && !isText(o) && o.mode === 'cell' && o.slot === t && cellIdx(o) === tc);
+  l.slot = t; l.cell = tc; l.placed = false; refit(l);
+  if (occ){ occ.slot = fromSlot; occ.cell = fromCell; occ.placed = false; refit(occ); }  // they trade places
+  S.preview = t; S.cell = tc;
+  syncCat(); draw(); scrollToPost();
+}
+$('#mvL').onclick = () => movePage(-1);
+$('#mvR').onclick = () => movePage(1);
 $('#crop').onclick = () => openCrop();
 $('#pPrev').onclick = () => setPreview(S.preview - 1);
 $('#pNext').onclick = () => setPreview(S.preview + 1);
@@ -2472,6 +2506,9 @@ function syncUI(){
   if (sl && !txt){
     $('#scale').value = clamp(Math.round(sl.scale * 100), 2, 400);
     $('#scaleVal').textContent = Math.round(sl.scale * 100) + '%';
+    const canMove = sl.mode !== 'strip';
+    $('#mvL').disabled = !canMove || sl.slot === 0;
+    $('#mvR').disabled = !canMove || sl.slot === S.count - 1;
   }
   if (txt){
     $('#tPress').classList.toggle('on', !!sl.press);
