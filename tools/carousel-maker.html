@@ -2761,7 +2761,7 @@ function placeControls(){
     a.parentNode.insertBefore(add, $('#file'));
     $('#file').after(text);
     dock.classList.remove('open');
-    showGroups(['.head', '.lays', '.tools']);
+    showGroups(['.head', '.lays', '.tools', '#ctx']);   // ctx floats on desktop — placeCtx owns its visibility
   }
 }
 
