@@ -419,7 +419,9 @@
       display:none; flex-direction:column; align-items:stretch; gap:8px;
       padding:8px 14px 10px; border-top:1px solid var(--line2); background:var(--card);
       height:200px; max-height:200px; overflow-y:auto;
-      padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));
+      margin:0 10px calc(70px + env(safe-area-inset-bottom,0px));
+      border:1px solid var(--line2); border-radius:16px;
+      box-shadow:0 10px 30px rgba(26,25,23,.14);
     }
     .dock.open{display:flex}
     .dock:before{content:""; width:34px; height:4px; border-radius:2px; background:var(--line2); align-self:center; margin-bottom:2px}
@@ -1862,14 +1864,15 @@ $('#panelH').oninput = e => {
   S.panelHAuto = false; rescaleAll(v / S.panelH); S.panelH = v; draw();
 };
 $('#autoH').onclick = () => { mark(); S.panelHAuto = true; applyAuto(); draw(); };
-// muted, pinterest-ish page colours — warm papers, sages, clays, dusty blues
+// muted page colours across the wheel — papers, dusty reds/pinks,
+// mustards/olives, sages, dusty blues, mauves. Nothing bright.
 const PAPERS = [
-  '#ffffff','#faf6ee','#f3ead9','#eadfca','#ddcfb6','#cbbb9f','#b9a98c',
-  '#e7e3d5','#d5d6c5','#bfc6b1','#a3af9b','#8a9a8b','#748578','#5c6b5f',
-  '#e9dcd4','#dcc5b6','#cbaa96','#b98d7a','#a9765f','#8d5f4d','#6f4a3c',
-  '#dfe3e6','#c9d2d8','#aebbc4','#93a3ae','#77879a','#5b6a7c','#3f4c5c',
+  '#ffffff','#f6f1e7','#e8dfcd','#d3c7b0','#b6a890','#8f826c','#5d5546',
+  '#e8c9c1','#ddaa9d','#cf8b7b','#b96b5c','#a25245','#d9a7b0','#a87683',
+  '#ecd9a8','#ddc077','#c2a45e','#a9b38a','#8ba173','#6d8a6b','#4f6f5c',
+  '#c7d3d8','#a3b8c2','#7f9aab','#5f7d92','#8e9ab0','#9b8ea6','#6f6274',
 ];
-const QUICK = ['#ffffff','#f3ead9','#ddcfb6','#bfc6b1','#93a3ae','#5c6b5f'];
+const QUICK = ['#ffffff','#e8dfcd','#cf8b7b','#ddc077','#8ba173','#7f9aab'];
 function buildQuick(){
   const host = $('#quickPapers'); if (host.children.length) return;
   QUICK.forEach(c => {
@@ -2788,24 +2791,18 @@ function showGroups(list){
   });
 }
 let handoffAt = 0;
-function railRide(){
-  if (!isPhone()){ rail.style.bottom = ''; return; }
-  rail.style.bottom = dock.classList.contains('open')
-    ? (dock.offsetHeight + 12) + 'px'
-    : '';
-}
 function openSheet(name, force){
   if (!force && dock.classList.contains('open') && dock.dataset.sheet === name) return closeSheet();
   dock.dataset.sheet = name;
   dock.classList.add('open');
   showGroups(GROUPS[name]);
   [...rail.children].forEach(b => b.classList.toggle('on', b.dataset.sheet === name));
-  requestAnimationFrame(() => { railRide(); fitPanel(); draw(); });
+  requestAnimationFrame(() => { fitPanel(); draw(); });
 }
 function closeSheet(){
   dock.classList.remove('open');
   [...rail.children].forEach(b => b.classList.remove('on'));
-  requestAnimationFrame(() => { railRide(); fitPanel(); draw(); });
+  requestAnimationFrame(() => { fitPanel(); draw(); });
 }
 // a tap that just triggered the deselect hand-off must not toggle the sheet shut
 [...rail.children].forEach(b => b.onclick = () => openSheet(b.dataset.sheet, Date.now() - handoffAt < 450));
