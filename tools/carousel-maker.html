@@ -392,14 +392,15 @@
     .ctx input[type=range]{width:110px}
 
     /* tools live in one bar in the thumb zone */
+    .dock.open + .rail{border-top-color:transparent}
     .rail{
       display:flex; flex:0 0 auto; background:var(--card); border-top:1px solid var(--line);
       /* ride into the home-indicator zone — the labels sit just above it,
          so the safe area stops reading as a dead band */
-      padding-bottom:max(6px, calc(env(safe-area-inset-bottom,0px) - 14px));
+      padding-bottom:max(2px, calc(env(safe-area-inset-bottom,0px) - 24px));
     }
     .rail button{
-      flex:1; border:0; background:none; border-radius:0; padding:6px 0 6px; display:flex;
+      flex:1; border:0; background:none; border-radius:0; padding:5px 0 5px; display:flex;
       flex-direction:column; align-items:center; gap:3px; color:var(--dim); font-size:10.5px; font-weight:500;
     }
     .rail button svg{width:21px; height:21px; stroke:currentColor; fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round}
@@ -409,7 +410,7 @@
     .dock{
       display:none; flex-direction:column; align-items:stretch; gap:8px;
       padding:8px 14px 10px; border-top:1px solid var(--line2); background:var(--card);
-      height:222px; max-height:222px; overflow-y:auto;
+      height:208px; max-height:208px; overflow-y:auto;
     }
     .dock.open{display:flex}
     .dock:before{content:""; width:34px; height:4px; border-radius:2px; background:var(--line2); align-self:center; margin-bottom:2px}
@@ -1337,7 +1338,7 @@ function fitScale(){
   const pad = isPhone() ? 20 : 52;
   const availW = cwrap.clientWidth - pad, availH = cwrap.clientHeight - pad;
   // phones show one post at a readable size (with breathing room) and scroll across
-  return Math.min(availW / (isPhone() ? panelW() : stripW()), availH / S.panelH) * (isPhone() ? .9 : 1);
+  return Math.min(availW / (isPhone() ? panelW() : stripW()), availH / S.panelH) * (isPhone() ? .96 : 1);
 }
 let followScroll = true, followT = null;
 function scrollToPost(){
