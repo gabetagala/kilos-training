@@ -392,7 +392,6 @@
     .ctx input[type=range]{width:110px}
 
     /* tools live in one bar in the thumb zone */
-    .dock.open + .rail{border-top-color:transparent}
     .rail{
       display:flex; flex:0 0 auto; background:var(--card); border-top:1px solid var(--line);
     }
@@ -400,7 +399,8 @@
        reaches the very bottom edge — no unfilled strip under it */
     .rail button{
       flex:1; border:0; background:none; border-radius:0; display:flex;
-      padding:6px 0 max(10px, calc(env(safe-area-inset-bottom,0px) - 12px));
+      /* content optically centred between the top line and the home indicator */
+      padding:9px 0 max(12px, calc(env(safe-area-inset-bottom,0px) - 10px));
       flex-direction:column; align-items:center; gap:3px; color:var(--dim); font-size:10.5px; font-weight:500;
     }
     .rail button.on{background:var(--paper)}
