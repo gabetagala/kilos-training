@@ -1992,8 +1992,9 @@ cv.addEventListener('pointerdown', e => {
       if (vis(l) && inBox(l, p.x, p.y)){ hit = l; break; }
     }
   }
-  // clicking the mat still means "this photo": fall back to the nearest slot's owner
-  if (!hit) hit = S.layers.find(l => !isText(l) && l.mode === 'cell' && l.slot === s && cellIdx(l) === cc) || null;
+  // Desktop: clicking the mat still means "this photo". On the phone only the
+  // photo itself takes the hold — the page around it is for panning.
+  if (!hit && !isPhone()) hit = S.layers.find(l => !isText(l) && l.mode === 'cell' && l.slot === s && cellIdx(l) === cc) || null;
   if (hit && c == null) S.cell = cc;
   wasSel = hit && hit.id === S.sel;
   S.sel = hit ? hit.id : null;
