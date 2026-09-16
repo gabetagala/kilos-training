@@ -8,6 +8,13 @@
 > voice: if a phrase is added in code, generate its clip in the same run.
 > iOS throttles speechSynthesis mid-session, so a phrase without a clip is
 > effectively silent on iPhone — TTS is a desktop-only last resort.
+> `npm run verify:voice` proves the pack covers every cue the player can
+> speak (both coach levels, every reachable session queue); run it after
+> adding an exercise, a rep count or a phrase, and generate what it lists.
+> `npx playwright test tests/e2e/audio-timeline.spec.js` then plays whole
+> sessions in WebKit on a fake clock and checks the recorded audio graph:
+> no two voices overlap, no tone rings under a word, the words match
+> `announce.js` exactly, and a pocket gap stays silent until play.
 
 The rest of this doc is the **optional personal-voice path**: drop files
 into `public/voice/` named `<slug>.m4a` (or `.mp3`) and they take over

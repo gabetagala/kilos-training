@@ -17,6 +17,7 @@
     "art:generate": "node scripts/generate-art.mjs",
     "prepare": "git config core.hooksPath .githooks || true",
     "verify:program": "node scripts/verify-program.mjs",
+    "verify:voice": "node scripts/verify-voice.mjs",
     "block:sheet": "node scripts/block-sheet.mjs"
   },
   "devDependencies": {

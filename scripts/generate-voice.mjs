@@ -8,9 +8,11 @@
 // hard-trimmed (no lead silence, ~30ms tail), peak-normalized to 0.89,
 // AAC 48kHz mono via macOS afconvert (no ffmpeg dependency).
 //
-// Phrase list = the 3 milestone pushes + every line in src/workout/formCues.js
-// (the in-app source of truth). Identical texts are generated once and copied
-// to each slug, saving credits.
+// Phrase list = every word src/workout/announce.js can put in a cue (exercise
+// names, the numbers 1–50, the units) + the milestone pushes + every line in
+// src/workout/formCues.js. scripts/verify-voice.mjs proves the pack covers
+// the program; this script is how a miss gets filled. Identical texts are
+// generated once and copied to each slug, saving credits.
 //
 // Usage:
 //   node scripts/generate-voice.mjs [--only slug[,slug]] [--force] [--dry-run]
@@ -27,9 +29,12 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { FORM_CUES } from '../src/workout/formCues.js';
 import { HOTMUM_EXERCISES } from '../src/hotmum/program.js';
 import { NUM_SLUGS, SEC_SLUGS } from '../src/hotmum/cues.js';
+import { numberSlug } from '../src/workout/announce.js';
+import { FORM_CUES } from '../src/workout/formCues.js';
+import { PROGRAM_EXERCISES } from '../src/workout/program.js';
+import { REHAB_EXERCISES } from '../src/workout/rehab.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const PACKS = {
@@ -68,8 +73,30 @@ const MILESTONES = {
   'forty-five': 'Forty-five',
   'each-side': 'Each side',
 };
+// Exercise names as SPOKEN: "DB" is "dumbbell" out loud, "&" is "and",
+// "90/90" is "ninety-ninety", and "QL" gets spelled.
+const speakName = (name) =>
+  name
+    .replace(/\bDB\b/g, 'Dumbbell')
+    .replace(/&/g, 'and')
+    .replace(/90\/90/g, 'Ninety-ninety')
+    .replace(/\bQL\b/g, 'Q-L');
 function kilosPhrases() {
   const out = { ...MILESTONES };
+  // one … fifty: rep counts (a death-by ladder climbs to 46), seconds, and
+  // the hold-set positions — every number announce.js can resolve to a slug
+  for (let n = 1; n <= 50; n++) {
+    const w = numberSlug(n);
+    out[w] = w[0].toUpperCase() + w.slice(1);
+  }
+  out.length = 'length';
+  out.lengths = 'lengths';
+  for (const [id, ex] of Object.entries({
+    ...REHAB_EXERCISES,
+    ...PROGRAM_EXERCISES,
+  })) {
+    out[`name-${id}`] = speakName(ex.name);
+  }
   for (const cues of Object.values(FORM_CUES)) {
     for (const { slug, text } of cues) out[slug] = text;
   }
