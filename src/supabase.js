@@ -6,6 +6,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from './config.js';
+import { newerBlock } from './workout/block.js';
 
 // Graceful degradation — app works fully without Supabase configured
 export const isConfigured =
@@ -37,6 +38,11 @@ const SYNC_KEYS = [
   'customWorkouts',
   'userProfile',
   'kilos-checkins',
+  // The block restart record { start, setAt, ramp } (2026-09-21). The start
+  // date used to live only on the device that seeded it, so a restart on the
+  // phone left the laptop in week 7 and each device built a different queue
+  // for the same day. Merged last-writer-wins by setAt (newerBlock).
+  'kilos-block',
 ];
 
 // ─── ACTIVE-SESSION HANDOFF (2026-08-15) ─────────────────────────────────────
@@ -235,6 +241,10 @@ function mergeRecords(remote) {
     ...remoteCI.filter((e) => !localDates.has(e.date)),
   ].sort((a, b) => (a.date < b.date ? -1 : 1));
   _set('kilos-checkins', mergedCI);
+
+  // Block restart — the newest restart wins on every device
+  const blk = newerBlock(_get('kilos-block'), remote['kilos-block']);
+  if (blk) _set('kilos-block', blk);
 }
 
 // Push all local data to Supabase (called after every meaningful action).

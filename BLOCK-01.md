@@ -175,6 +175,105 @@ which turns out to be the better-supported position.
 **If it fires** (Bell's moderate tier): **5–7 days, volume −40–60%, load −10%,
 RIR 2–3, frequency unchanged.** Otherwise carry straight on.
 
+### Restarting after time off: the ramp (added 2026-09-21)
+
+A deload is for a block you're *doing*. Weeks you *missed* are different. On
+21 Sep the calendar said week 7, but illness and weeks of broken newborn nights
+meant only a handful of sessions had been trained, and the first ones back left
+you gassed. Counting on from week 7 would have meant tests and the PRESS phase
+on a body that hadn't done the weeks before them.
+
+**Restart** (Program page → block banner → *Time off? Restart with a
+ramp-up*): two ramp weeks start today, then a fresh week 1 on the Monday after.
+Restarting on Fri–Sun adds one extra week, so ramp week 1 has real training
+days in it. History, PRs and weights are untouched. The restart is synced, so
+every device agrees on the week.
+
+| | Lift days | Rehab days | Anchor load |
+|---|---|---|---|
+| **Ramp 1** | piece **2 rounds**, a rest minute between · anchor **one set down** · ~21–25 min | holds + core cap, **no finisher** | **EASE** target ≈ 90% of last |
+| **Ramp 2** | piece **3 rounds**, rest minute · anchor full · ~30–35 min | holds + core cap, **no finisher** | **EASE** target ≈ 90% of last |
+| **Week 1** | the full block: 40 min, the week-1 tests | finishers back | normal +2.5 targets |
+
+**Why rounds and rest, not load.** Three weeks off costs little strength or
+muscle (McMaster 2013; Ogasawara 2013's 3-week breaks caught up within weeks),
+but VO2max and work capacity drop 4–14% in 2–4 weeks (Mujika & Padilla 2000).
+Sleep loss hits the same place, repeated efforts more than one heavy set
+(Craven 2022). The gassing lives in the piece's density, so the ramp cuts
+that.
+
+**Why no scores.** A finisher score set while detrained becomes the LAST you
+chase for a month, and the baseline tests only mean something once you're
+back. Both return in week 1.
+
+**Why before week 1, not inside it.** The 12 weeks are the audited unit:
+MEV every week, the 30-minute floor, week 1 vs week 12. Ramp weeks sit in
+front of the block, so none of that changes. They serve the week-11/12 rotation
+columns, so week 1 opens on pieces you haven't just done.
+`scripts/verify-program.mjs` runs every restriction over the ramp weeks as well,
+and adds two checks of its own: ramp 1 < ramp 2 < the full day on every lift
+day, and nothing scored or self-paced.
+
+### The short day: for the nights the baby wins (added 2026-09-23)
+
+Every day has a **~15-minute version**, chosen on the day: open the session,
+tap **SHORT** next to FULL, and the preview redraws to what you'll actually
+do. Roughly 12–15 minutes against the day's 29–40.
+
+| | Full | Short |
+|---|---|---|
+| **Lift day** | anchor 4 sets · piece 4 rounds | anchor **2 sets** · **one trip** through the piece |
+| **Rehab day** | holds + supporting cast + finisher + core cap | the **six fixed favourites at half duration** + the core cap |
+
+**It still counts as that day.** Same session id, so the calendar ticks, the
+streak holds and the rotation advances exactly as a full day would. History
+marks it `· short` so the log stays honest.
+
+**The McGill core cap is never scaled.** Ten-second holds at a three-second
+re-brace *are* the protocol; half of one is not a smaller dose of it, it's a
+different exercise. The halving is scoped to the long positional holds (60s+),
+where the minutes actually are and where "break when you must" is already the
+rule.
+
+**Why this is a real dose, not a token:** about a third of normal volume
+maintains strength and size for weeks in trained lifters (Bickel 2011;
+Spiering 2021 on maintenance dosing). And the alternative isn't a full
+session — it's no session, which costs the streak and tomorrow's decision too.
+`scripts/verify-program.mjs` holds it to 10–20 minutes, checks the lift day
+keeps its anchor and the rehab day keeps all six favourites, and fails the
+build if anything ever scales the core cap.
+
+### After a gap: what the app does about it (added 2026-09-23)
+
+His question: *"if I haven't worked out in days, what should I do? if I
+skipped a day or two, what do I do?"* The app now answers it instead of
+serving the same day regardless. One read of history gives the gap, and the
+gap sets what Home says, which dose the preview leads with, and whether the
+anchor target steps back (`src/workout/comeback.js`).
+
+| Days since last session | What the app does |
+|---|---|
+| **0–1** | Nothing. Today as written. |
+| **2** | Says *"nothing to make up — today is today"*, and serves the full day. |
+| **3–6** | Leads with the **short version**, same weights. Full day tomorrow. |
+| **7–13** | Short version, and the anchor target reads **EASE ≈90%** instead of +2.5. |
+| **14+** | Says the block is worth restarting, on the banner's restart control. |
+
+**The first rule is the one people get wrong: you never make up a missed
+session.** Doubling up repays a debt that doesn't exist and buys fatigue with
+it. That's why a two-day gap changes nothing about the prescription and only
+earns a sentence — the instinct to catch up is what actually does damage.
+
+**Why the thresholds sit there:** strength and muscle hold for ~3 weeks
+(McMaster 2013; Ogasawara 2013), so under a week nothing has gone anywhere and
+only the first-session-back friction needs solving. Conditioning is what
+moves first (4–14% in 2–4 weeks: Mujika & Padilla 2000), which is why 7+ days
+eases the load as well as the volume. A fortnight out isn't a bad week, it's a
+broken block — so it points at the restart rather than pretending week 9 is
+still week 9.
+
+**It leads, it never locks.** Every suggestion is one tap from the full day.
+
 ---
 
 ## 4. Testing — three tests, three time domains

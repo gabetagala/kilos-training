@@ -36,6 +36,21 @@ export function suggestNextWeight(lastLogs, targetRepsStr) {
   return allMet ? Math.round((topW + 2.5) * 2) / 2 : topW;
 }
 
+// The anchor's load target inside a RAMP week (block.js): ~10% under the last
+// working weight, on the nearest loadable 2.5, and never a +2.5. The last
+// weight was set before the time off, and the first sessions back are for
+// finding the groove again. A PR attempt comes later. The 2–4 RIR cap still
+// governs every set; this only keeps the screen from asking for more than he
+// had. Null when there's nothing to base it on, like suggestNextWeight.
+export function rampWeight(lastLogs) {
+  const weights = (lastLogs || [])
+    .map((l) => parseFloat(l.weight))
+    .filter((w) => w > 0);
+  if (!weights.length) return null;
+  const eased = Math.round((Math.max(...weights) * 0.9) / 2.5) * 2.5;
+  return eased > 0 ? eased : null;
+}
+
 // Estimated 1-rep max (Epley formula) — the headline strength metric every
 // serious tracker trends. Returns kg rounded to 0.5; the actual weight for a
 // true single; null for junk input (no weight or no reps).

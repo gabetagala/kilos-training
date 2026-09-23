@@ -37,6 +37,8 @@ import {
 import {
   applyFormats,
   applyPhase,
+  applyRamp,
+  applyShort,
   BLOCK_WEEKS,
   blockState,
   currentWeek,
@@ -44,11 +46,21 @@ import {
   PHASE_NAMES,
   phaseOf,
   phaseSwaps,
+  RAMP_WEEKS,
+  rampWeek,
+  rawWeek,
+  restartStartISO,
+  rotationWeek,
   TEST_WEEKS,
   testsForWeek,
   weekStart,
 } from './workout/block.js';
 import { addCheckin, bodyKgAsOf, checkinStatus } from './workout/checkin.js';
+import {
+  comebackAdvice,
+  daysSince,
+  lastSessionDate,
+} from './workout/comeback.js';
 import { FORM_CUES, pickFormCue } from './workout/formCues.js';
 import { loggedExercisesOf, resolveMuscleGroup } from './workout/muscles.js';
 import { OPTIONAL_SESSIONS } from './workout/volume.js';
@@ -65,6 +77,7 @@ import {
   bestE1RM,
   estimate1RM,
   estimateKcal,
+  rampWeight,
   repTargetTop,
   suggestNextWeight,
 } from './workout/progression.js';
@@ -826,9 +839,17 @@ function renderDayHero() {
       );
     }, 0);
     const labels = plan.map((i) => b(i.label)).join(' + ');
-    line = plan.length
-      ? `${labels} on today's plan — about ${b(`${mins} min`)} all in.`
-      : `Nothing on the plan — an off day, on purpose.`;
+    // AFTER A GAP, THE GAP IS THE HEADLINE (2026-09-23). The minutes matter
+    // less than knowing there is nothing to make up — the sentence he'd
+    // otherwise have to ask someone for.
+    const gap = comebackNow();
+    line = !plan.length
+      ? `Nothing on the plan — an off day, on purpose.`
+      : gap.level === 'carry-on'
+        ? `${b(gap.headline)} — nothing to make up. ${labels} today, as written.`
+        : gap.dose === 'short'
+          ? `${b(gap.headline)} — take the ${b('short version')} of ${labels} today.`
+          : `${labels} on today's plan — about ${b(`${mins} min`)} all in.`;
   }
   sumEl.innerHTML = line;
 }
@@ -1708,10 +1729,31 @@ function benchmarkTrend(b, score, prev) {
 
 // ── The block banner — "where am I in the 12 weeks?" ────────────────────────
 const DELOAD_SEEN_KEY = 'kilos-deload-seen';
+const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 function renderBlockBanner() {
   const el = document.getElementById('block-banner');
   if (!el) return;
   const b = blockNow();
+  if (b.ramp) {
+    // THE RAMP (2026-09-21): a restarted block's easy weeks. Say what is
+    // being cut and when the real thing starts, so a shorter day reads as
+    // the plan working, not the program shrinking.
+    const start = new Date(blockStartISO());
+    el.innerHTML = `
+      <div class="blk blk-pre">
+        <div class="blk-top">
+          <div class="blk-name">RAMP-UP · WK ${b.ramp}/${RAMP_WEEKS}</div>
+          <div class="blk-phase">WK 1 · ${start.getDate()} ${SHORT_MONTHS[start.getMonth()].toUpperCase()}</div>
+        </div>
+        <div class="blk-track"><div class="blk-fill" style="width:${Math.round((b.ramp / RAMP_WEEKS) * 100)}%"></div></div>
+        <div class="blk-pre-note">${b.ramp === 1 ? 'Two' : 'Three'} rounds of
+        each piece instead of four, with a rest minute between. No scored
+        finishers yet: rehab days are the holds and the core cap. Week 1 begins
+        Monday ${start.getDate()} ${SHORT_MONTHS[start.getMonth()]} with the full forty minutes and the
+        baseline tests.</div>
+      </div>`;
+    return;
+  }
   if (b.week == null) {
     // Not started yet — say so, and say plainly that nothing is being missed.
     const start = new Date(blockStartISO());
@@ -1727,12 +1769,13 @@ function renderBlockBanner() {
         </div>
         <div class="blk-pre-note">Until then, train whatever you feel like — the
         whole program is here and nothing counts as missed. Week 1 begins
-        ${start.getDate()} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][start.getMonth()]}.</div>
+        ${start.getDate()} ${SHORT_MONTHS[start.getMonth()]}.</div>
       </div>`;
     return;
   }
   const done = Math.min(b.weekInBlock, BLOCK_WEEKS);
   const pct = Math.round((done / BLOCK_WEEKS) * 100);
+  const gap = comebackNow();
   const testNames = b.tests.map((id) => getBenchmark(id)?.name).filter(Boolean);
   el.innerHTML = `
     <div class="blk">
@@ -1747,10 +1790,43 @@ function renderBlockBanner() {
           : ''
       }
       ${b.deloadCheckpoint ? '<button class="blk-flag blk-check" type="button">DELOAD CHECKPOINT — tap to decide</button>' : ''}
+      <div class="blk-restart">
+        <button class="blk-restart-open" type="button" aria-expanded="false">${
+          gap.level === 'restart'
+            ? `${esc(gap.headline)} — restart with a ramp-up`
+            : 'Time off? Restart with a ramp-up'
+        }</button>
+      </div>
     </div>`;
   el.querySelector('.blk-check')?.addEventListener('click', () =>
     openDeloadCheck(done),
   );
+  // RESTART (2026-09-21). A missed month shouldn't leave the block counting
+  // weeks nobody trained. One confirm, inline, because it rewrites which
+  // week it is on every device. Nothing is deleted: history, PRs and
+  // weights all stay.
+  el.querySelector('.blk-restart-open')?.addEventListener('click', (e) => {
+    const box = e.currentTarget.parentElement;
+    const start = new Date(restartStartISO());
+    box.innerHTML = `
+      <div class="blk-pre-note">${RAMP_WEEKS} easy weeks from today, then
+      week 1 on Monday ${start.getDate()} ${SHORT_MONTHS[start.getMonth()]}. Your history, PRs and
+      weights stay.</div>
+      <div class="blk-restart-row">
+        <button class="blk-restart-yes" type="button">Restart</button>
+        <button class="blk-restart-no" type="button">Keep week ${done}</button>
+      </div>`;
+    box.querySelector('.blk-restart-no').addEventListener('click', () =>
+      renderBlockBanner(),
+    );
+    box.querySelector('.blk-restart-yes').addEventListener('click', () => {
+      restartBlock();
+      renderRehabPage();
+      renderDayHero();
+      renderTodayCard();
+      renderMonthGrid();
+    });
+  });
   // Surface it once per block-week, unprompted — a checkpoint you have to
   // remember to go looking for isn't a checkpoint.
   if (b.deloadCheckpoint && get(DELOAD_SEEN_KEY) !== done) {
@@ -2008,12 +2084,15 @@ document.getElementById('bm-score-skip')?.addEventListener('click', () => {
 // pair 2026-08-16).
 const CAL_PINNED = new Set(['daily', 'sunday', 'wod']);
 
+// ROTATIONS READ blockNow().rotWeek, not the block week: inside a RAMP (a
+// restarted block's first weeks) the block week is null but the rotation
+// keeps moving — ramp weeks serve the week-11/12 columns, so week 1 is fresh.
 const rehabVariantIdx = (sessionId) => {
   if (sessionId?.startsWith('d40')) {
-    // blockStartISO(), not the raw key — it's what lazily seeds the block, so
-    // reading the key directly can return null on a first-run path and
-    // silently serve the week-1 variants forever.
-    const w = currentWeek(blockStartISO());
+    // blockNow() goes through blockStartISO(), not the raw key — it's what
+    // lazily seeds the block, so reading the key directly can return null on
+    // a first-run path and silently serve the week-1 variants forever.
+    const w = blockNow().rotWeek;
     return w == null ? 0 : w - 1;
   }
   // 'daily' is CALENDAR-PINNED like the lift rotation (2026-08-11): the k-th
@@ -2023,7 +2102,7 @@ const rehabVariantIdx = (sessionId) => {
   // rotating distillate slot rides the same index (8-deep pool → each
   // supporting movement ~once per two weeks).
   if (sessionId === 'daily') {
-    const w = currentWeek(blockStartISO());
+    const w = blockNow().rotWeek;
     const day = new Date().getDay();
     // rehab days in week order (Mon-start): Tue → Thu → Sat. An OFF-day
     // (Mon/Wed/Fri) resolves to the NEXT rehab day's slot — browsing on a
@@ -2040,7 +2119,7 @@ const rehabVariantIdx = (sessionId) => {
   // like the lift rotation — a skipped Sunday must never desync the printed
   // sheet from what the app serves.
   if (sessionId === 'sunday' || sessionId === 'wod') {
-    const w = currentWeek(blockStartISO());
+    const w = blockNow().rotWeek;
     return w == null ? 0 : w - 1;
   }
   // Other rehab sessions — per completed run. Salvaged partial runs
@@ -2105,7 +2184,30 @@ function upcomingMondayISO(from = new Date()) {
 // says nothing about whether the BLOCK began.
 const BLOCK_SEED_V2_KEY = 'kilos-block-seed-v2';
 
+// A RESTART (2026-09-21) is a synced record, { start, setAt, ramp }. Only a
+// restart ever writes it, and once it exists it outranks the per-device seed
+// below on every device (supabase.js merges it last-writer-wins).
+const BLOCK_SYNC_KEY = 'kilos-block';
+
+/** Start the block over: RAMP_WEEKS easy weeks from today, then week 1. */
+function restartBlock() {
+  const start = restartStartISO();
+  set(BLOCK_SYNC_KEY, {
+    start,
+    setAt: new Date().toISOString(),
+    ramp: RAMP_WEEKS,
+  });
+  // the device-local key follows, so a sign-out (which clears synced keys)
+  // still leaves this device on the restarted block
+  set(BLOCK_START_KEY, start);
+  set(DELOAD_SEEN_KEY, null);
+  calOpenWeek = null;
+  pushData();
+}
+
 function blockStartISO() {
+  const restart = get(BLOCK_SYNC_KEY);
+  if (restart?.start) return restart.start;
   let v = get(BLOCK_START_KEY);
   if (!get(BLOCK_SEED_V2_KEY)) {
     set(BLOCK_SEED_V2_KEY, true);
@@ -2124,14 +2226,31 @@ function blockStartISO() {
   return v;
 }
 
-const blockNow = () => blockState(blockStartISO());
+// THE SHORT DAY (2026-09-23): a dose chosen on the day, not by the calendar.
+// It must be re-applied on EVERY path that rebuilds a queue — the saved run
+// carries `dose`, and a rebuild that forgets it produces a different queue,
+// which the fingerprint reads as a retired session and salvages.
+const dosed = (s, dose) => (dose === 'short' ? applyShort(s) : s);
+
+const blockRampLen = () => get(BLOCK_SYNC_KEY)?.ramp || 0;
+
+// WHAT THE GAP SINCE THE LAST SESSION MEANS FOR TODAY (2026-09-23, his ask:
+// "if I haven't worked out in days, what should I do?"). One read of history,
+// used by the preview (which dose to lead with), the player (whether the
+// anchor eases) and the banner (whether a restart is the honest answer).
+const comebackNow = () =>
+  comebackAdvice(daysSince(lastSessionDate(get('workoutHistory') || [])));
+const blockNow = () => blockState(blockStartISO(), new Date(), blockRampLen());
 // Apply the week's phase (volume step) AND its piece formats to a session.
 // Safe on anything — returns the session untouched when neither applies.
 // Order matters: phase first (it can add a member), then format (which may
 // need to compute per-round reps for every member, including the new one).
+// A RAMP week replaces the formats: plain EMOM, fewer rounds, the rest minute
+// back, no scored finisher (block.js applyRamp).
 const phased = (s) => {
   if (!s) return s;
   const b = blockNow();
+  if (b.ramp) return applyRamp(applyPhase(s, b.phase), b.ramp);
   return applyFormats(applyPhase(s, b.phase), b.weekInBlock);
 };
 
@@ -2148,6 +2267,8 @@ let rhSession = null;
 let rhQueue = [];
 let rhVariant = 0; // which rotation built rhQueue — persisted, so rebuilds match
 let rhPhase = 1; // which block phase built rhQueue — persisted for the same reason
+let rhDose = null; // 'short' when this run is the bad-night version
+let rhEaseLoad = false; // a week+ away: the anchor target steps back, not up
 // A benchmark's time score must measure the WORK. rhStartedAt is when the
 // player opened, which includes the 10s prep and however long the notes were
 // read for; and a crash-restore the next morning would otherwise score ~12h.
@@ -2684,6 +2805,7 @@ function rhPersist() {
     counted: [...rhCounted],
     loggedEmom: [...rhLoggedEmom],
     phase: rhPhase, // the queue's shape depends on it — see openRehabPlayer
+    dose: rhDose, // ditto: 'short' means half a day, and the queue shows it
     firstWorkAt: rhFirstWorkAt,
     awayMs: rhAwayMs,
     liftSets: rhLiftSets,
@@ -2764,6 +2886,7 @@ function rhSalvageStale(saved) {
       // a retired partial: the calendar still counts the day as trained, but
       // variant rotation ignores it — only COMPLETED runs advance a pool
       interrupted: true,
+      ...(saved.dose === 'short' ? { short: true } : {}),
       date,
       duration,
       totalWeight: Math.round(
@@ -2871,7 +2994,7 @@ function rhRestorable() {
   if (session && saved.queueSig) {
     try {
       const q = buildStepQueue(
-        applyPhase(session, saved.phase ?? blockNow().phase),
+        dosed(applyPhase(session, saved.phase ?? blockNow().phase), saved.dose),
         getSwaps(),
         saved.variant ?? rehabVariantIdx(session.id),
       );
@@ -3376,7 +3499,7 @@ function rhApplySwap(chosenId) {
   // — without applyPhase, a phase-2+ session rebuilt shorter and fell into
   // the lossy fallback below, which can't carry an alt's flags.
   const rebuilt = buildStepQueue(
-    applyPhase(rhSession, rhPhase),
+    dosed(applyPhase(rhSession, rhPhase), rhDose),
     swaps,
     rhVariant,
   );
@@ -3678,12 +3801,20 @@ function rhRenderStep() {
             // that shows a target would suggest +2.5 every exposure, up to
             // three times a week on the rotating slots. The anchor comes
             // round ~monthly per variant, where +2.5 per exposure is sane.
-            const sugg = step.anchor
-              ? suggestNextWeight(lastLogs, step.reps)
-              : null;
+            // A RAMP week eases in instead: ~10% under the last weight, and
+            // the label says RAMP so the step back reads as the plan, not a
+            // bug (rampWeight in progression.js).
+            // a ramp week and a week away are the same problem: the last
+            // weight was set by a fitter, fresher version of today
+            const easing = !!rhSession?.ramp || rhEaseLoad;
+            const sugg = !step.anchor
+              ? null
+              : easing
+                ? rampWeight(lastLogs)
+                : suggestNextWeight(lastLogs, step.reps);
             ctx = `LAST ${toDisplayWeight(top.weight)}×${top.reps || '—'}`;
             if (sugg) {
-              ctx += ` · TARGET ${toDisplayWeight(sugg)}${weightUnit()}`;
+              ctx += ` · ${easing ? 'EASE' : 'TARGET'} ${toDisplayWeight(sugg)}${weightUnit()}`;
             }
           }
         }
@@ -3984,13 +4115,23 @@ function openRehabPlayer(session, saved = null, variantOverride = null) {
   // which shifts every index after that block. Resuming a week-4 pause on the
   // Monday of week 5 would otherwise restore rhIdx onto a different step.
   rhPhase = saved?.phase ?? blockNow().phase;
+  // a fresh run is handed the session already dosed (the preview's choice);
+  // a restored one carries the dose it was built with
+  rhDose = saved?.dose ?? session.dose ?? null;
+  // read once per run: finishing the session would otherwise reset the gap
+  // to zero mid-workout and quietly raise the target on the next anchor set
+  rhEaseLoad = comebackNow().easeLoad;
   rhFirstWorkAt = saved?.firstWorkAt ?? null;
   // the app was shut between savedAt and now — that gap was not training
   rhAwayMs =
     (saved?.awayMs ?? 0) +
     (saved?.savedAt ? Math.max(0, Date.now() - saved.savedAt) : 0);
   rhVariant = saved?.variant ?? variantOverride ?? rehabVariantIdx(session.id);
-  rhQueue = buildStepQueue(applyPhase(session, rhPhase), getSwaps(), rhVariant);
+  rhQueue = buildStepQueue(
+    dosed(applyPhase(session, rhPhase), rhDose),
+    getSwaps(),
+    rhVariant,
+  );
   rhIdx = Math.min(saved?.idx ?? 0, rhQueue.length - 1);
   rhCounted = new Set(saved?.counted || []);
   // mirrors rhCounted's lifetime — a fresh (or restored) run must be able to
@@ -4179,6 +4320,10 @@ function rhFinish() {
     entry = {
       name: completed.name,
       type: 'strength',
+      // a short day is marked, never renamed: the id is what the calendar
+      // tick, the streak and the rotation read, and all three should count
+      // this as the day it is (2026-09-23)
+      ...(rhDose === 'short' ? { short: true } : {}),
       programId: session.id,
       date: new Date().toISOString(),
       duration: durationStr,
@@ -4234,6 +4379,7 @@ function rhFinish() {
     entry = {
       name: completed.name,
       type: 'rehab',
+      ...(rhDose === 'short' ? { short: true } : {}),
       rehabId: session.id,
       date: new Date().toISOString(),
       duration: durationStr,
@@ -4368,14 +4514,19 @@ const WEEK_MARKS_KEY = 'kilos-week-marks';
 // on every render would be wasted work on a page that opens between sets.
 let calOpenWeek = null;
 
-function calDayPlan(sessionId, week, isRehab = false) {
-  const ph = phaseOf(week);
+// `ramp` (1..RAMP_WEEKS) plans a RAMP row: week is then 0 or below, the
+// session is ramp-scaled instead of formatted, and the rotation reads the
+// same rotationWeek() the live day does.
+function calDayPlan(sessionId, week, isRehab = false, ramp = null) {
+  const ph = phaseOf(Math.max(week, 1));
   const base = isRehab
     ? getRehabSession(sessionId)
     : getProgramSession(sessionId);
   if (!base) return null;
-  const s = applyFormats(applyPhase(base, ph), week);
-  const v = sessionVariantCount(s) > 1 ? week - 1 : 0;
+  const s = ramp
+    ? applyRamp(applyPhase(base, ph), ramp)
+    : applyFormats(applyPhase(base, ph), week);
+  const v = sessionVariantCount(s) > 1 ? rotationWeek(week) - 1 : 0;
   const rows = sessionOverview(s, phaseSwaps(ph), v);
   // No finisher any more (2026-08-10) — the last round of every piece carries
   // the empty-the-tank note instead of a second clock, so a piece row is just
@@ -4408,7 +4559,18 @@ function renderBlockCalendar() {
   const el = document.getElementById('block-calendar');
   if (!el) return;
   const startISO = blockStartISO();
-  const nowWeek = Math.min(currentWeek(startISO) ?? 1, BLOCK_WEEKS);
+  const blk = blockNow();
+  // A restarted block lists its RAMP weeks above week 1: from the week of
+  // the restart to the week before the block (usually two rows, three after
+  // a Fri–Sun restart). They stay listed once done, ticks and all.
+  const restart = get(BLOCK_SYNC_KEY);
+  const rampLen = blockRampLen();
+  const firstW = rampLen
+    ? Math.min(1, rawWeek(startISO, new Date(restart.setAt)) ?? 1)
+    : 1;
+  const nowWeek = blk.ramp
+    ? rawWeek(startISO)
+    : Math.min(currentWeek(startISO) ?? 1, BLOCK_WEEKS);
   if (calOpenWeek == null) calOpenWeek = nowWeek;
 
   const hist = get('workoutHistory') || [];
@@ -4418,7 +4580,8 @@ function renderBlockCalendar() {
   const todayK = dateKey(new Date());
 
   const weeks = [];
-  for (let w = 1; w <= BLOCK_WEEKS; w++) {
+  for (let w = firstW; w <= BLOCK_WEEKS; w++) {
+    const ramp = w < 1 ? rampWeek(startISO, rampLen, weekStart(startISO, w)) : null;
     const monday = weekStart(startISO, w);
     const tests = testsForWeek(w)
       .map((id) => getBenchmark(id)?.name)
@@ -4437,6 +4600,9 @@ function renderBlockCalendar() {
       w === 9
         ? '<span class="cal-flag cal-flag-dim">PHASE 3 — Friday pull-ups step to 5 reps</span>'
         : '',
+      ramp
+        ? `<span class="cal-flag cal-flag-dim">RAMP — ${ramp === 1 ? 'two' : 'three'} rounds a piece, rest minute back, no finishers</span>`
+        : '',
     ].join('');
 
     let body = '';
@@ -4448,7 +4614,7 @@ function renderBlockCalendar() {
         const k = dateKey(d);
         const lift = WEEK_PLAN[offset].find((i) => i.type === 'lift');
         const plans = lift
-          ? [calDayPlan(lift.session, w)]
+          ? [calDayPlan(lift.session, w, false, ramp)]
           : WEEK_PLAN[offset]
               .filter((i) => i.type === 'rehab' && i.session)
               // required first (Sunday's 'sunday' rest session leads its
@@ -4459,7 +4625,7 @@ function renderBlockCalendar() {
                   (OPTIONAL_SESSIONS.has(b.session) ? 1 : 0),
               )
               .map((i) => ({
-                ...calDayPlan(i.session, w, true),
+                ...calDayPlan(i.session, w, true, ramp),
                 optional: OPTIONAL_SESSIONS.has(i.session),
               }));
         // The Back & Hips day only runs on the days that carry it —
@@ -4472,17 +4638,22 @@ function renderBlockCalendar() {
         // label and minutes — the finisher variety was invisible exactly
         // where he'd look for it. Same math as rehabVariantIdx.
         const rehabSlot = { 2: 0, 4: 1, 6: 2, 0: 3 }[offset] ?? 0;
-        const rehabV = hasRehab ? (w - 1) * 4 + rehabSlot : 0;
+        const rehabV = hasRehab ? (rotationWeek(w) - 1) * 4 + rehabSlot : 0;
+        // a ramp row's daily has no finisher (applyRamp), so it has no
+        // finisher name either — the day is the holds and the core cap
+        const daily = ramp
+          ? applyRamp(getRehabSession('daily'), ramp)
+          : getRehabSession('daily');
         // by POSITION, not mode: the finisher is the second-to-last block
         // (the core cap closes the day) — mode-matching missed the scored
         // EMOMs (The Arm Farm, the death-by ladders, The Porter)
-        const rehabFinisher = hasRehab
-          ? sessionBlocks(getRehabSession('daily'), rehabV).at(-2)?.name
-          : null;
+        const rehabFinisher =
+          hasRehab && !ramp ? sessionBlocks(daily, rehabV).at(-2)?.name : null;
+        const rehabTitle = ramp
+          ? 'Back & Hips'
+          : `Back & Hips + ${rehabFinisher || 'Finisher'}`;
         const rehabMins = hasRehab
-          ? Math.round(
-              estimateSessionSecs(getRehabSession('daily'), rehabV) / 60,
-            )
+          ? Math.round(estimateSessionSecs(daily, rehabV) / 60)
           : 0;
         // the day's headline minutes are its REQUIRED work — optional extras
         // (the Bonus WOD, Open Up, The Long Way) are not the day's ask
@@ -4528,9 +4699,7 @@ function renderBlockCalendar() {
             .filter((p) => p && !p.optional)
             .map((p) => p.name)
             .join(' + ') ||
-          (hasRehab
-            ? `Back & Hips + ${rehabFinisher || 'Finisher'}`
-            : 'Rest');
+          (hasRehab ? rehabTitle : 'Rest');
         rows.push(`
           <div class="cal-day${k === todayK ? ' cal-today' : ''}${isDone ? ' cal-done' : ''}">
             <div class="cal-day-top">
@@ -4542,7 +4711,7 @@ function renderBlockCalendar() {
               hasRehab
                 ? `<button class="cal-part cal-part-btn${rehabDone ? ' cal-part-done' : ''}" data-cal-session="daily" data-cal-variant="${rehabV}" data-cal-day="${['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'][offset]}">
               <span class="cal-tag cal-r">R</span>
-              <span class="cal-part-body"><span class="cal-pt">Back &amp; Hips + ${esc(rehabFinisher || 'Finisher')}</span><span class="cal-pd"> · ${rehabMins} min</span></span>
+              <span class="cal-part-body"><span class="cal-pt">${esc(rehabTitle)}</span><span class="cal-pd"> · ${rehabMins} min</span></span>
             </button>`
                 : ''
             }
@@ -4559,9 +4728,9 @@ function renderBlockCalendar() {
     weeks.push(`
       <div class="cal-week${open ? ' open' : ''}${w === nowWeek ? ' cal-now' : ''}">
         <button class="cal-week-head" data-cal-week="${w}" aria-expanded="${open}">
-          <span class="cal-wk">WK ${w}</span>
-          <span class="cal-phase">${PHASE_NAMES[phaseOf(w)]}</span>
-          <span class="cal-dates">${weekStart(startISO, w).getDate()} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][monday.getMonth()]}</span>
+          <span class="cal-wk">${ramp ? `RAMP ${ramp}` : `WK ${w}`}</span>
+          <span class="cal-phase">${ramp ? 'EASE IN' : PHASE_NAMES[phaseOf(w)]}</span>
+          <span class="cal-dates">${monday.getDate()} ${SHORT_MONTHS[monday.getMonth()]}</span>
           <span class="cal-caret">${open ? '−' : '+'}</span>
         </button>
         ${flags ? `<div class="cal-flags">${flags}</div>` : ''}
@@ -4847,9 +5016,19 @@ function renderCheckin() {
 }
 
 // ── Session preview — what's inside, before you press go ────────────────────
-let _spSession = null;
+// FULL / SHORT lives here rather than on a card, because the preview is the
+// one screen that can show what the choice actually costs: pick SHORT and the
+// list below REDRAWS to the session you'll really do. A button that silently
+// started something other than what was on screen would be the one thing this
+// screen exists to prevent.
+let _spSession = null; // the dosed session — what Start will run
+let _spFull = null; // the day as programmed
 let _spAfter = null;
 let _spVariant = null;
+let _spOrigin = null;
+let _spHeader = 'TODAY';
+let _spShort = false;
+let _spComeback = null;
 function openSessionPreview(
   session,
   after = null,
@@ -4859,11 +5038,35 @@ function openSessionPreview(
   // every cell resolved to today's). null = today's rotation, as before.
   variantOverride = null,
   headerLabel = 'TODAY',
+  // Only TODAY'S card applies the gap's advice; everywhere else the preview
+  // shows the program as written and merely SAYS what it advises. Browsing
+  // Friday's session, or a week-8 cell in the calendar, must never redraw
+  // itself into a twelve-minute day — that reads as the program shrinking,
+  // not as the app helping.
+  lead = false,
 ) {
-  _spSession = session;
+  _spFull = session;
   _spAfter = after;
-  const spVariant = variantOverride ?? rehabVariantIdx(session.id);
-  _spVariant = spVariant;
+  _spOrigin = originEl;
+  _spHeader = headerLabel;
+  _spVariant = variantOverride ?? rehabVariantIdx(session.id);
+  // THE GAP DECIDES WHAT TO LEAD WITH (2026-09-23). Normally the full day:
+  // a short day is a decision made today, never a setting that persists into
+  // a day he feels fine. But after three days off the app should not make
+  // him work out what to do — it leads with SHORT and says why, one tap from
+  // the full day if he disagrees.
+  _spComeback = comebackNow();
+  _spShort = lead && _spComeback.dose === 'short';
+  spRender(originEl);
+}
+
+function spRender(animateFrom = null) {
+  const session = _spShort ? applyShort(_spFull) : _spFull;
+  _spSession = session;
+  const originEl = animateFrom;
+  const headerLabel = _spHeader;
+  const after = _spAfter;
+  const spVariant = _spVariant;
   document.getElementById('sp-header-title').textContent = headerLabel;
   const spLabel =
     CAL_PINNED.has(session.id) ? null : variantLabel(session, spVariant);
@@ -4953,10 +5156,63 @@ function openSessionPreview(
   const afterEl = document.getElementById('sp-after');
   afterEl.textContent = after ? `THEN — ${after.toUpperCase()}` : '';
   afterEl.style.display = after ? '' : 'none';
+  spRenderDose(spVariant);
   // Hero expansion when launched from the action line (else a flat slide).
   heroExpandPage(document.getElementById('session-preview'), originEl);
   fitLineFont(document.querySelector('.sp-title'), isLaptop() ? 92 : 62, 28);
 }
+// THE SHORT DAY SWITCH. Hidden unless a short version is meaningfully
+// shorter than the day itself — on the 10-minute Daily Reset or the power
+// primer there is nothing to halve, and an option that changes nothing is
+// just another thing to read at 5am.
+function spRenderDose(spVariant) {
+  const box = document.getElementById('sp-dose');
+  if (!box) return;
+  const full = estimateSessionMins(_spFull, spVariant);
+  const short = estimateSessionMins(applyShort(_spFull), spVariant);
+  const worth = full - short >= 5;
+  box.hidden = !worth;
+  if (!worth) {
+    if (_spShort) {
+      _spShort = false;
+      spRender();
+    }
+    return;
+  }
+  document.getElementById('sp-dose-full-min').textContent = `~${full}`;
+  document.getElementById('sp-dose-short-min').textContent = `~${short}`;
+  for (const [id, on] of [
+    ['sp-dose-full', !_spShort],
+    ['sp-dose-short', _spShort],
+  ]) {
+    const b = document.getElementById(id);
+    b.setAttribute('aria-pressed', String(on));
+    b.classList.toggle('on', on);
+  }
+  // The promise, in his words: it still counts. A short day logs as the day
+  // it is — same session, same tick on the calendar, streak intact. After a
+  // gap the note explains the RECOMMENDATION instead — the number of days is
+  // the reason, and saying it out loud is the whole feature.
+  const gap = _spComeback;
+  document.getElementById('sp-dose-note').textContent =
+    gap && gap.level !== 'none'
+      ? `${gap.headline}. ${gap.note}`
+      : _spShort
+        ? 'Bad night? Half the work, same movements. It still counts as today.'
+        : '';
+}
+
+for (const [id, short] of [
+  ['sp-dose-full', false],
+  ['sp-dose-short', true],
+]) {
+  document.getElementById(id)?.addEventListener('click', () => {
+    if (_spShort === short) return;
+    _spShort = short;
+    spRender();
+  });
+}
+
 // A death-by minute that beats him ends the PIECE, not the session: jump
 // past its remaining minutes without counting them, land on what follows
 // (the core cap) — clean data, honest score, medicine intact.
@@ -5026,7 +5282,14 @@ function renderRehabToday() {
       <div class="rhs-meta">${doneStr}~${estimateSessionMins(session, rehabVariantIdx(session.id))} MIN · START NOW</div>
     </button>`;
   document.getElementById('rh-today-btn').addEventListener('click', () => {
-    openSessionPreview(session, null, document.getElementById('rh-today-btn'));
+    openSessionPreview(
+      session,
+      null,
+      document.getElementById('rh-today-btn'),
+      null,
+      'TODAY',
+      true, // today's card leads with what the gap advises
+    );
   });
 }
 function renderRehabPage() {
@@ -5045,7 +5308,10 @@ function renderRehabPage() {
     // the same expression rhRestorable verified the fingerprint against, so
     // the "STEP x OF y" it promises is the queue the resume will serve
     const queueLen = buildStepQueue(
-      applyPhase(savedSession, saved.phase ?? blockNow().phase),
+      dosed(
+        applyPhase(savedSession, saved.phase ?? blockNow().phase),
+        saved.dose,
+      ),
       getSwaps(),
       saved.variant ?? rehabVariantIdx(savedSession.id),
     ).length;
@@ -5077,8 +5343,12 @@ function renderRehabPage() {
     resumeSlot.innerHTML = '';
   }
 
+  // phased() on rehab sessions too: a RAMP week reshapes the daily (no
+  // finisher), and the card, the preview and the crash-restore fingerprint
+  // must all see the same session or a refresh salvages the run
   document.getElementById('rehab-session-list').innerHTML = REHAB_SESSIONS.map(
-    (s) => {
+    (raw) => {
+      const s = phased(raw);
       const v = rehabVariantIdx(s.id);
       const vl = CAL_PINNED.has(s.id) ? null : variantLabel(s, v);
       return `
@@ -5093,7 +5363,7 @@ function renderRehabPage() {
     .querySelectorAll('#rehab-session-list [data-rehab]')
     .forEach((card) => {
       card.addEventListener('click', () => {
-        openSessionPreview(getRehabSession(card.dataset.rehab), null, card);
+        openSessionPreview(getGuidedSession(card.dataset.rehab), null, card);
       });
     });
 
@@ -5738,7 +6008,14 @@ function renderTodayCard() {
   card.onclick = () => {
     if (session) {
       const rest = undone.filter((i) => i.sessionId && i !== first);
-      openSessionPreview(session, rest.length ? rest[0].label : null, card);
+      openSessionPreview(
+        session,
+        rest.length ? rest[0].label : null,
+        card,
+        null,
+        'TODAY',
+        true, // Home's action line is today's card too
+      );
     } else {
       renderRehabPage();
       heroExpandPage(document.getElementById('rehab-page'), card);
@@ -8519,11 +8796,14 @@ function renderHistory() {
             ? 'sets'
             : 'sets';
       const rpeStr = h.rpe ? ` · ${h.rpe}` : '';
+      // a short day says so in its own line rather than in its name: the
+      // name is what the streak, the calendar and the share card all read
+      const shortStr = h.short ? ' · short' : '';
       const meta = isCF
         ? `${d} · ${h.cfFormat || h.type} · ${h.duration}`
         : h.type === 'cardio'
           ? `${d} · ${h.distance || '—'}${rpeStr}`
-          : `${d} · ${h.sets || 0} sets · ${h.duration}`;
+          : `${d} · ${h.sets || 0} sets · ${h.duration}${shortStr}`;
 
       // Drill-down: show best set per exercise when expanded
       const detailHtml =

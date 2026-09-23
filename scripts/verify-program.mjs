@@ -20,8 +20,12 @@ import {
   BLOCK_WEEKS,
   OPEN_PACE_BANNED,
   PIECE_FORMATS,
+  RAMP_WEEKS,
   applyFormats,
   applyPhase,
+  applyRamp,
+  applyShort,
+  rotationWeek,
   descendingReps,
   formatsFor,
   phaseOf,
@@ -84,6 +88,80 @@ function* allQueues() {
         }
         if (!s) continue;
         yield { w, d, s, q: buildStepQueue(s, sw, v) };
+      }
+    }
+  }
+  yield* rampQueues();
+  yield* shortQueues();
+}
+
+// THE SHORT DAY (2026-09-23): the ~15-minute version of any day, chosen on
+// the day. Audited by every RESTRICTION above — it is a real session he will
+// really run, on the nights the baby wins. Like the ramp it carries a string
+// `w`, so the GOALS checks (which walk numeric weeks) skip it: a short day is
+// a deliberate dip under MEV, taken instead of skipping.
+function* shortQueues() {
+  for (let week = 1; week <= BLOCK_WEEKS; week++) {
+    const ph = phaseOf(week);
+    const sw = phaseSwaps(ph);
+    for (let d = 0; d < 7; d++) {
+      for (const item of WEEK_PLAN[d]) {
+        let s = null;
+        let v = 0;
+        if (item.type === 'lift') {
+          s = applyShort(
+            applyFormats(applyPhase(getProgramSession(item.session), ph), week),
+          );
+          v = sessionVariantCount(s) > 1 ? week - 1 : 0;
+        } else if (item.type === 'rehab') {
+          const base = getRehabSession(item.session || 'daily');
+          s = base && applyShort(base);
+          if (s && sessionVariantCount(s) > 1) {
+            v =
+              s.id === 'daily'
+                ? (week - 1) * 4 + (REHAB_DAY_SLOT[d] ?? 0)
+                : week - 1;
+          }
+        }
+        if (!s) continue;
+        yield { w: `SHORT·wk${week}`, d, s, v, q: buildStepQueue(s, sw, v) };
+      }
+    }
+  }
+}
+
+// THE RAMP (2026-09-21): a restarted block's easy weeks, audited by every
+// RESTRICTION above like any other week — a rule that only holds inside the
+// block isn't a rule. Ramp weeks carry a string `w` ('R1·wk11'), so the
+// GOALS checks, which walk numeric weeks 1–12, skip them: the ramp is below
+// MEV on purpose and is not a week of the block. Every (raw week × ramp
+// level) the runtime can meet is covered: raw weeks −2..0 (a Fri–Sun restart
+// has three) at both levels, each with the rotation column it really reads.
+function* rampQueues() {
+  for (let raw = -RAMP_WEEKS; raw <= 0; raw++) {
+    const rw = rotationWeek(raw);
+    for (let r = 1; r <= RAMP_WEEKS; r++) {
+      const w = `R${r}·wk${rw}`;
+      for (let d = 0; d < 7; d++) {
+        for (const item of WEEK_PLAN[d]) {
+          let s = null;
+          let v = 0;
+          if (item.type === 'lift') {
+            s = applyRamp(applyPhase(getProgramSession(item.session), 1), r);
+            v = sessionVariantCount(s) > 1 ? rw - 1 : 0;
+          } else if (item.type === 'rehab') {
+            const base = getRehabSession(item.session || 'daily');
+            s = base && applyRamp(base, r);
+            if (s && sessionVariantCount(s) > 1) {
+              v =
+                s.id === 'daily'
+                  ? (rw - 1) * 4 + (REHAB_DAY_SLOT[d] ?? 0)
+                  : rw - 1;
+            }
+          }
+          if (!s) continue;
+          yield { w, d, s, q: buildStepQueue(s, {}, v), ramp: r };
+        }
       }
     }
   }
@@ -853,6 +931,126 @@ const muscles = [...new Set(weekVol.flatMap(Object.keys))];
   // 12 lift pieces + 16 finishers (2026-08-15) — the floor tracks reality
   // so a silent pool shrink fails the build instead of passing at 12
   check('VARIETY', 'the named-piece pool covers a month on every day', fins.size >= 24 && fmts.size >= 3, `${fins.size} named pieces · ${fmts.size} formats`);
+}
+
+// ── THE RAMP (2026-09-21) ───────────────────────────────────────────────────
+// What makes it a ramp and not just a short week: it CLIMBS (ramp 1 < ramp 2
+// < the block's own day, on every lift day, in every rotation variant), and
+// it asks for nothing scored or self-paced: no finisher, no for-time, no
+// AMRAP, no death-by. The optional Bonus WOD stays opt-in and is not the
+// ramp's ask.
+{
+  const bad = [];
+  const seen = { 1: [], 2: [], full: [] };
+  for (const s of DENSITY40_SESSIONS) {
+    const base = applyPhase(s, 1);
+    for (let v = 0; v < sessionVariantCount(base); v++) {
+      const r1 = estimateSessionMins(applyRamp(base, 1), v);
+      const r2 = estimateSessionMins(applyRamp(base, 2), v);
+      const full = estimateSessionMins(applyFormats(base, v + 1), v);
+      seen[1].push(r1);
+      seen[2].push(r2);
+      seen.full.push(full);
+      if (!(r1 < r2 && r2 < full)) bad.push(`${s.id} v${v}: ${r1}/${r2}/${full} min`);
+    }
+  }
+  const span = (a) => `${Math.min(...a)}–${Math.max(...a)}`;
+  check(
+    'RAMP',
+    'the ramp climbs: ramp 1 < ramp 2 < the full day, on every lift day',
+    bad.length === 0,
+    bad.slice(0, 3).join(', ') ||
+      `lift days: ramp 1 ${span(seen[1])} · ramp 2 ${span(seen[2])} · full ${span(seen.full)} min`,
+  );
+  const scored = [];
+  for (const { w, s, q } of rampQueues()) {
+    if (OPTIONAL.has(s.id)) continue;
+    // on a rehab day only the finisher carries a piece name (the holds and
+    // the core cap don't), and the scored EMOMs (The Arm Farm, The Porter,
+    // The Complex) look like any other EMOM step, so ANY named piece there
+    // is a finisher that leaked
+    const rehabDay = !s.id.startsWith('d40');
+    for (const st of q) {
+      if (st.kind !== 'work') continue;
+      if (
+        st.amrap ||
+        st.ladder ||
+        st.bail ||
+        (st.piece && !st.emom) ||
+        (rehabDay && st.piece)
+      ) {
+        scored.push(`${w} ${s.id} ${st.piece || st.exId}`);
+      }
+    }
+  }
+  check(
+    'RAMP',
+    'the ramp serves nothing scored or self-paced',
+    scored.length === 0,
+    scored.slice(0, 3).join(', '),
+  );
+}
+
+// ── THE SHORT DAY (2026-09-23) ──────────────────────────────────────────────
+// Three properties make it worth having. It is SHORT (10–20 min — under the
+// 20 he'd still skip after a bad night, over the 10 that is a token). It is
+// still THAT DAY: the lift day keeps its anchor, the rehab day keeps all six
+// fixed favorites, and both log under the same session id, so the calendar
+// tick and the streak are honest. And it never touches the McGill core cap,
+// whose 10-second holds at a 3-second re-brace ARE the protocol.
+{
+  const FAVOURITES = [
+    't-spine-reach',
+    'back-extension',
+    'hip-internal-rotation',
+    'couch-stretch',
+    'elephant-walk',
+    'seated-good-morning',
+  ];
+  const bad = [];
+  const capped = [];
+  const thin = [];
+  let lo = Infinity;
+  let hi = 0;
+  for (const { w, s, v, q } of shortQueues()) {
+    if (OPTIONAL.has(s.id)) continue;
+    const mins = estimateSessionMins(s, v);
+    lo = Math.min(lo, mins);
+    hi = Math.max(hi, mins);
+    if (mins < 10 || mins > 20) bad.push(`${w} ${s.id} ${mins} min`);
+    const ids = new Set(q.map((st) => st.exId));
+    if (s.id.startsWith('d40')) {
+      if (!q.some((st) => st.piece === 'The Anchor')) thin.push(`${w} ${s.id} no anchor`);
+    } else if (s.id === 'daily' || s.id === 'sunday') {
+      for (const ex of FAVOURITES) {
+        if (!ids.has(ex)) thin.push(`${w} ${s.id} lost ${ex}`);
+      }
+    }
+    // the core cap: 10s holds, never halved
+    for (const b of s.blocks.flatMap((x) => x.rotate || [x])) {
+      if (b.mode === 'reps' && b.holdSecs !== 10) {
+        capped.push(`${w} ${s.id} ${b.ex} ${b.holdSecs}s`);
+      }
+    }
+  }
+  check(
+    'SHORT DAY',
+    'every short day is 10–20 minutes — short enough to do, long enough to count',
+    bad.length === 0,
+    bad.slice(0, 3).join(', ') || `${lo}–${hi} min`,
+  );
+  check(
+    'SHORT DAY',
+    'a short day is still THAT day — the anchor stays, the six favourites stay',
+    thin.length === 0,
+    thin.slice(0, 3).join(', '),
+  );
+  check(
+    'SHORT DAY',
+    'the McGill core cap is never scaled',
+    capped.length === 0,
+    capped.slice(0, 3).join(', '),
+  );
 }
 
 // ── Report ──────────────────────────────────────────────────────────────────

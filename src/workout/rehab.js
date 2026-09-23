@@ -811,7 +811,11 @@ export const REHAB_SESSIONS = [
       // thins: ~1 exposure per two weeks each. Sunday's two columns (indices
       // 3 and 7) still live here so paused pre-split sessions restore, but
       // the Tue/Thu/Sat stride never reaches them — SUNDAY_CAST serves them.
+      // `cast` marks the supporting-cast slot: the first thing a SHORT day
+      // (block.js) spends its minutes on — the six fixed favorites are the
+      // dose that must survive a bad night, this slot is the extra
       {
+        cast: true,
         rotate: [
           perSide('ql-plank', 'HOLD', 12),
           perSide('side-hip-abduction', 'WORK', 12),
@@ -823,7 +827,9 @@ export const REHAB_SESSIONS = [
           perSide('side-hip-adduction', 'WORK', 12),
         ],
       },
-      { rotate: TOPPERS },
+      // `finisher` marks the scored metcon so a RAMP week (block.js) can
+      // leave it out — no score gets set while he's finding his feet again
+      { rotate: TOPPERS, finisher: true },
       { rotate: CORE_CAPS },
     ],
   },
@@ -839,7 +845,7 @@ export const REHAB_SESSIONS = [
       'The holds and nothing else — no finisher, no clock, no score. Medicine, not training. Feeling fresh? The Bonus WOD is one tap away, and skipping it costs nothing.',
     blocks: [
       ...DISTILLATE_BLOCKS,
-      { rotate: SUNDAY_CAST },
+      { rotate: SUNDAY_CAST, cast: true },
       { rotate: SUNDAY_CAPS },
     ],
   },

@@ -305,20 +305,238 @@ export function applyFormats(session, week) {
   };
 }
 
+// ── THE RAMP — coming back after time off (2026-09-21, his ask) ─────────────
+// Sick, then weeks of broken nights with a newborn: the block kept counting
+// (week 7) while he trained a handful of times, and his first sessions back
+// left him gassed. A restart puts TWO RAMP WEEKS in front of a fresh week 1.
+//
+// WHAT THE RAMP CUTS, AND WHY THAT AND NOT LOAD: a few weeks off costs
+// conditioning well before it costs strength. Strength and muscle hold for
+// ~3 weeks of no training (McMaster 2013; Ogasawara 2013 had 3-week breaks
+// regain their ground within weeks), while VO2max and work capacity fall 4–14%
+// in 2–4 weeks (Mujika & Padilla 2000). Sleep loss hits the same place:
+// repeated-effort and endurance work suffer more than a single heavy set
+// (Craven 2022). The gassing lives in the piece's density — 32 minutes
+// straight, no rest minute — so the ramp cuts ROUNDS and gives back the REST
+// MINUTE between trips. The anchor's long clock was never what gassed him.
+// Its sets drop by one in ramp week 1, and the load target starts ~10% under
+// his last (see rampWeight in progression.js).
+//
+//   ramp 1 — two trips through the piece, a rest minute between (~50%)
+//   ramp 2 — three trips, same rest (~75%)
+//   week 1 — the full block, forty minutes, and the week-1 tests
+//
+// NO SCORES IN THE RAMP. The rehab-day finishers exist to test his top heart
+// rate, and a score set while detrained becomes the LAST he races for a month.
+// So the ramp's rehab days are the holds and the core cap, and the benchmarks
+// wait for week 1, when a baseline means something.
+//
+// WHY THE RAMP SITS BEFORE WEEK 1 AND NOT INSIDE IT: the 12-week block is the
+// audited unit. Every week clears MEV, the 30-minute floor, and the week-1 vs
+// week-12 test comparison. Putting half-rounds into weeks 1–2 would make all
+// three untrue. In front of the block, the ramp is a separate overlay with its
+// own checks in verify-program.mjs, and the block stays as designed.
+export const RAMP_WEEKS = 2;
+export const RAMP = {
+  1: { pieceRounds: 2, anchorSets: 3 },
+  2: { pieceRounds: 3, anchorSets: 4 },
+};
+// His original pre-EMOM40 spec: a full minute off between trips.
+export const RAMP_REST_SECS = 60;
+
+const RAMP_CUE = 'Ramp week — leave every station with something left.';
+
+/**
+ * Where a restarted block's week 1 begins: the Monday RAMP_WEEKS after this
+ * one. A restart late in the week (Fri–Sun) buys one more week, so ramp week
+ * 1 has real training days in it and doesn't end after a single rest day.
+ */
+export function restartStartISO(now = new Date()) {
+  const late = [5, 6, 0].includes(new Date(now).getDay());
+  const d = mondayOf(now);
+  d.setDate(d.getDate() + (RAMP_WEEKS + (late ? 1 : 0)) * 7);
+  return d.toISOString();
+}
+
+/**
+ * The block week `now` falls in, WITHOUT currentWeek()'s null for "not
+ * started": 0 is the week before week 1, -1 the one before that. Used by the
+ * ramp, which is the only thing that lives before week 1.
+ */
+export function rawWeek(startISO, now = new Date()) {
+  if (!startISO) return null;
+  const weeks = Math.round(
+    (mondayOf(now) - mondayOf(new Date(startISO))) / (7 * DAY_MS),
+  );
+  return weeks + 1;
+}
+
+/**
+ * Which ramp week (1..rampLen) `now` falls in, or null. Only a block that was
+ * started WITH a ramp has one: `rampLen` is 0 for the first-install block,
+ * whose pre-start days keep their old "train whatever, nothing counts" terms.
+ * A late-week restart puts ramp week 1 more than RAMP_WEEKS out, so it clamps.
+ */
+export function rampWeek(startISO, rampLen, now = new Date()) {
+  if (!rampLen) return null;
+  const w = rawWeek(startISO, now);
+  if (w == null || w >= 1) return null;
+  return Math.max(1, rampLen + w);
+}
+
+/**
+ * The week the ROTATIONS read. Ramp weeks sit where weeks 11–12 of the
+ * previous cycle would, so they serve pieces he won't meet again in week 1,
+ * and every pool depth (4, 8, 16) divides the 12- and 48-step offsets, so the
+ * rotation stays continuous across the join. Never negative — a negative
+ * index is an undefined rotate slot.
+ */
+export const rotationWeek = (w) =>
+  w == null ? null : w <= 0 ? w + BLOCK_WEEKS : w;
+
+/**
+ * Scale a session for a ramp week. Pure. Pieces (the blocks that declare
+ * `formats` — only lift-day pieces do) lose rounds, gain the rest minute and
+ * run as plain EMOM: no descending opener, no for-time week, nothing that
+ * removes forced rest. The anchor drops a set in ramp 1. The daily's scored
+ * finisher (`finisher: true`) leaves the session entirely.
+ */
+export function applyRamp(session, ramp) {
+  const r = RAMP[ramp];
+  if (!session?.blocks || !r) return session;
+  const shape = (b) => {
+    if (!b) return b;
+    if (b.anchor) {
+      return { ...b, rounds: (b.warmupRounds || 0) + r.anchorSets };
+    }
+    if (b.isPiece) {
+      const { formats, formatLabel, ...rest } = b;
+      return {
+        ...rest,
+        mode: 'emom',
+        rounds: r.pieceRounds,
+        roundRestSecs: RAMP_REST_SECS,
+        members: b.members.map(({ lastRoundNote, repsPerRound, ...m }) => ({
+          ...m,
+          note: m.note || RAMP_CUE,
+        })),
+      };
+    }
+    return b;
+  };
+  return {
+    ...session,
+    ramp,
+    blocks: session.blocks
+      .filter((b) => !b.finisher)
+      .map((b) => (b.rotate ? { ...b, rotate: b.rotate.map(shape) } : shape(b))),
+  };
+}
+
+// ── THE SHORT DAY — for the nights the baby won (2026-09-23, his ask) ───────
+// "A short version of each day for bad nights so I can still work out."
+//
+// The point is NEVER-MISS-TWICE, not a training effect. A session you skip
+// costs more than a session you shrink: the streak, the habit, and the next
+// day's decision. So every day has a ~15-minute version that still counts as
+// that day — same movements, same order, same session id in history.
+//
+// It is also a defensible dose rather than a token: roughly a third of normal
+// volume maintains strength and size for weeks in trained lifters (Bickel
+// 2011; Spiering 2021 on maintenance dosing), and sleep loss hits repeated
+// efforts hardest (Craven 2022) — which is exactly what gets cut here.
+//
+//   lift day  — anchor 2 sets, ONE trip through the piece (~13–16 min)
+//   rehab day — the long holds at half duration, no supporting cast, no
+//               finisher, and the McGill core cap UNTOUCHED (~14 min)
+//
+// THE CORE CAP IS NEVER SCALED: 10-second holds at a 3-second re-brace are
+// the protocol, and half of a McGill hold is not a McGill hold. The halving
+// is scoped to the LONG positional holds (60s+), which is where the minutes
+// actually are — and where "break when you must" is already the rule.
+export const SHORT = { pieceRounds: 1, anchorSets: 2, holdFloorSecs: 60 };
+
+/**
+ * The ~15-minute version of a session. Pure, and IDEMPOTENT via `dose` —
+ * halving an already-halved hold would quietly turn the medicine into a
+ * token, and every restore path re-applies this to a rebuilt session.
+ * Safe on top of a ramp week: the rounds are absolute, the finisher is
+ * already gone, and the holds it halves are ones the ramp never touched.
+ */
+export function applyShort(session) {
+  if (!session?.blocks || session.dose === 'short') return session;
+  const shape = (b) => {
+    if (!b) return b;
+    if (b.anchor) {
+      return { ...b, rounds: (b.warmupRounds || 0) + SHORT.anchorSets };
+    }
+    if (b.isPiece) {
+      const { formats, formatLabel, roundRestSecs, ...rest } = b;
+      return {
+        ...rest,
+        mode: 'emom',
+        rounds: SHORT.pieceRounds,
+        members: b.members.map(({ lastRoundNote, repsPerRound, ...m }) => m),
+      };
+    }
+    // the long positional holds — half the clock, never below a minute
+    if (b.mode === 'hold' && b.holdSecs >= SHORT.holdFloorSecs) {
+      return {
+        ...b,
+        holdSecs: Math.max(
+          SHORT.holdFloorSecs,
+          Math.round(b.holdSecs / 2 / 10) * 10,
+        ),
+      };
+    }
+    // the t-spine reach is repped, not held — halve the reps instead
+    if (b.mode === 'tempo' && b.reps >= 8) {
+      return { ...b, reps: Math.ceil(b.reps / 2) };
+    }
+    return b;
+  };
+  return {
+    ...session,
+    dose: 'short',
+    blocks: session.blocks
+      // the supporting cast and the scored finisher are what a short day
+      // spends its minutes on first — both are flagged at the source
+      .filter((b) => !b.finisher && !b.cast)
+      .map((b) => (b.rotate ? { ...b, rotate: b.rotate.map(shape) } : shape(b))),
+  };
+}
+
+/**
+ * The newer of two synced block records ({ start, setAt, ramp }) — last
+ * writer wins by when the restart was made, never by which start is later: a
+ * fresh device's auto-seed is a later Monday and must not reset a running
+ * block. Pure; null-safe.
+ */
+export function newerBlock(a, b) {
+  if (!a?.start) return b?.start ? b : null;
+  if (!b?.start) return a;
+  return new Date(b.setAt) > new Date(a.setAt) ? b : a;
+}
+
 /**
  * Everything the app needs to serve a day correctly, from one date.
  * `null` week (no block started) resolves to phase 1 and no tests, so the
  * program still runs — a block is an overlay on the week, not a gate on it.
+ * `rampLen` > 0 marks a block started WITH a ramp (a restart); inside its
+ * ramp weeks `ramp` is 1..rampLen and the rotations read `rotWeek`.
  */
-export function blockState(startISO, now = new Date()) {
+export function blockState(startISO, now = new Date(), rampLen = 0) {
   const week = currentWeek(startISO, now);
   const clamped = week == null ? null : Math.min(week, BLOCK_WEEKS);
   const phase = clamped == null ? 1 : phaseOf(clamped);
+  const ramp = rampWeek(startISO, rampLen, now);
   return {
     week,
     weekInBlock: clamped,
+    ramp,
+    rotWeek: ramp ? rotationWeek(rawWeek(startISO, now)) : week,
     phase,
-    phaseName: PHASE_NAMES[phase],
+    phaseName: ramp ? 'RAMP' : PHASE_NAMES[phase],
     swaps: phaseSwaps(phase),
     tests: clamped == null ? [] : testsForWeek(clamped),
     deloadCheckpoint: clamped != null && isDeloadCheckpoint(clamped),
