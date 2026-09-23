@@ -1,6 +1,13 @@
 import { expect, test } from '@playwright/test';
 import { announceCue } from '../../src/workout/announce.js';
-import { applyFormats, applyPhase, blockState, phaseSwaps } from '../../src/workout/block.js';
+import {
+  applyFormats,
+  applyPhase,
+  applyRamp,
+  applyShort,
+  blockState,
+  phaseSwaps,
+} from '../../src/workout/block.js';
 import { PROGRAM_EXERCISES, getProgramSession } from '../../src/workout/program.js';
 import {
   REHAB_EXERCISES,
@@ -197,8 +204,22 @@ const WEEK2_START = (() => {
   return d.toISOString().slice(0, 10);
 })();
 
+// The RAMP puts a rest ROUND inside Monday's piece, which never had one —
+// and a rest step is the one place a cue names the NEXT exercise while the
+// step after it names itself. That is the collision his ear would hear as
+// two voices at once (2026-09-23, his report of garbled audio on the
+// lateral raise and the band pull-apart — Monday's two adjacent stations).
+const RAMP_START = (() => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7) + 14);
+  return d.toISOString();
+})();
+
 const SCENARIOS = [
   { name: 'EMOM half, skipped to the piece', card: ['d40', 'd40-b1'], piece: true, coach: 'minimal' },
+  { name: 'Monday piece — the lateral raise and pull-apart stations', card: ['d40', 'd40-a1'], piece: true, coach: 'minimal' },
+  { name: 'Monday piece in a RAMP week (rest rounds)', card: ['d40', 'd40-a1'], piece: true, coach: 'minimal', ramp: true },
   { name: 'daily rehab session, from the first step', card: ['rehab', 'daily'], piece: false, coach: 'minimal' },
   { name: 'Sunday optional piece (for-time stations)', card: ['rehab', 'wod'], piece: false, coach: 'minimal' },
   { name: 'EMOM half at the FULL coach level', card: ['d40', 'd40-b1'], piece: true, coach: 'full' },
@@ -214,12 +235,18 @@ for (const sc of SCENARIOS) {
     page.on('pageerror', (e) => errors.push(String(e)));
     await page.addInitScript(INSTRUMENT);
     await page.addInitScript(
-      ({ start, coach }) => {
+      ({ start, coach, ramp, rampStart }) => {
         localStorage.setItem('kilos-block-start', JSON.stringify(start));
         localStorage.setItem('kilos-block-seed-v2', 'true');
         localStorage.setItem('kilos-coach-level', JSON.stringify(coach));
+        if (ramp) {
+          localStorage.setItem(
+            'kilos-block',
+            JSON.stringify({ start: rampStart, setAt: new Date().toISOString(), ramp: 2 }),
+          );
+        }
       },
-      { start: WEEK2_START, coach: sc.coach },
+      { start: WEEK2_START, coach: sc.coach, ramp: !!sc.ramp, rampStart: RAMP_START },
     );
     await page.goto('/');
     await dismissOnboarding(page);
@@ -242,9 +269,14 @@ for (const sc of SCENARIOS) {
     const b = blockState(await stored(page, 'kilos-block-start'));
     const swaps = { ...phaseSwaps(st.phase), ...((await stored(page, 'kilos-swaps')) || {}) };
     const base = getProgramSession(st.sessionId) || getRehabSession(st.sessionId);
+    // every shape the player can serve: the week's formats, the raw session,
+    // and the scaled doses (a ramp week, a short day) added 2026-09-23
     const shaped = [
       applyFormats(applyPhase(base, st.phase), b.weekInBlock),
       applyPhase(base, st.phase),
+      applyRamp(applyPhase(base, st.phase), 1),
+      applyRamp(applyPhase(base, st.phase), 2),
+      applyShort(applyPhase(base, st.phase)),
     ];
     const queue = shaped
       .map((s) => buildStepQueue(s, swaps, st.variant))
