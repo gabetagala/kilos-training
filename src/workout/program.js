@@ -726,6 +726,12 @@ const PIECE = (
   rotate: names.map((name, v) => ({
     mode: 'emom',
     name,
+    // THE SLOT'S IDENTITY, not its shape (2026-09-23). A scaled day (a ramp
+    // week, a short day) rewrites rounds and strips `formats`, so anything
+    // that recognised a piece BY its formats stopped recognising it the
+    // moment it had been scaled once — a short day inside a ramp week left
+    // the piece at the ramp's rounds.
+    isPiece: true,
     rounds,
     ...(roundRestSecs ? { roundRestSecs } : {}),
     formats,
