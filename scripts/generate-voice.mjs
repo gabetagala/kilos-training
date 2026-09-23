@@ -54,6 +54,21 @@ const VOICES = {
 const MODEL = 'eleven_multilingual_v2';
 const TARGET_PEAK = 0.89; // matches the measured existing pack
 const TAIL_PAD_S = 0.03;
+// ── THE RAMBLE GUARD (2026-09-23, his report: "lateral raise and band pull
+// aparts has like a garbled shin na rsoun de asroyn") ───────────────────────
+// Asked for a single word, a TTS model sometimes answers with the word, a
+// pause, and then invented speech — "Twelve" came back 2.13s long with a
+// second utterance glued on. Nobody listens to 244 clips, so it shipped, and
+// the player faithfully played the ramble mid-set. Two defences, because
+// either alone leaks: CUT the clip at the first real gap when the phrase is
+// short enough to be gapless, and REJECT a take that is still far longer
+// than its words justify, trying again for a clean one.
+const GAP_CUT_S = 0.18; // a pause this long inside a short phrase is a tell
+const GAP_CUT_MAX_CHARS = 16; // "Forty-seven" yes, a coaching sentence no
+const TAKES = 3;
+// What the words should take to say, generously: a lead-in plus per-character
+// time. Only wrong by a factor, which is all the guard needs.
+const expectedSecs = (text) => 0.25 + 0.085 * text.length;
 
 // ── the phrase list ──────────────────────────────────────────────────────────
 const MILESTONES = {
@@ -237,44 +252,55 @@ function canonicalWav(pcm) {
   h.writeUInt32LE(pcm.length, 40);
   return Buffer.concat([h, pcm]);
 }
-function trimAndLevel(wavIn, wavOut) {
+function trimAndLevel(wavIn, wavOut, { cutAtGap = false } = {}) {
   const b = readFileSync(wavIn);
   const data = findChunk(b, 'data');
   if (!data) return null;
   const n = data.length >> 1;
+  const gapSamples = Math.round(GAP_CUT_S * 48000);
   let peak = 0;
   let first = -1;
   let last = -1;
+  let firstRunEnd = -1; // last loud sample before the first real gap
+  let quiet = 0;
   for (let i = 0; i < n; i++) {
     const v = Math.abs(data.readInt16LE(i * 2)) / 32768;
     if (v > peak) peak = v;
     if (v > 0.012) {
       if (first < 0) first = i;
       last = i;
+      quiet = 0;
+    } else if (first >= 0) {
+      quiet += 1;
+      if (firstRunEnd < 0 && quiet >= gapSamples) firstRunEnd = last;
     }
   }
   if (first < 0 || peak === 0) return null; // silence — API returned junk
-  const tail = Math.min(n, last + Math.round(TAIL_PAD_S * 48000));
+  const end = cutAtGap && firstRunEnd > 0 ? firstRunEnd : last;
+  const tail = Math.min(n, end + Math.round(TAIL_PAD_S * 48000));
   const gain = TARGET_PEAK / peak;
   const outN = tail - first;
+  const cut = end < last; // a ramble was trimmed off the back
   const pcm = Buffer.alloc(outN * 2);
   for (let i = 0; i < outN; i++) {
     const v = data.readInt16LE((first + i) * 2) * gain;
     pcm.writeInt16LE(Math.max(-32768, Math.min(32767, Math.round(v))), i * 2);
   }
   writeFileSync(wavOut, canonicalWav(pcm));
-  return { seconds: outN / 48000, peakBefore: peak };
+  return { seconds: outN / 48000, peakBefore: peak, cut };
 }
 
 const afconvert = (...a) => execFileSync('afconvert', a, { stdio: 'pipe' });
 
-async function generateSlug(key, slug, mp3) {
+async function generateSlug(key, slug, mp3, text) {
   const mp3Path = join(WORK, `${slug}.mp3`);
   const rawWav = join(WORK, `${slug}.raw.wav`);
   const cutWav = join(WORK, `${slug}.cut.wav`);
   writeFileSync(mp3Path, mp3);
   afconvert(mp3Path, '-f', 'WAVE', '-d', 'LEI16@48000', '-c', '1', rawWav);
-  const info = trimAndLevel(rawWav, cutWav);
+  const info = trimAndLevel(rawWav, cutWav, {
+    cutAtGap: (text || '').length <= GAP_CUT_MAX_CHARS,
+  });
   if (!info) return null;
   const outPath = join(OUT_DIR, `${slug}.m4a`);
   afconvert(cutWav, '-f', 'm4af', '-d', 'aac', '-b', '64000', outPath);
@@ -313,20 +339,38 @@ for (const slug of targets) {
     console.log(`  = ${slug}.m4a (copy of ${doneSlug})`);
     continue;
   }
-  const mp3 = await ttsMp3(key, PHRASES[slug]);
-  if (!mp3) {
-    failures.push(slug);
-    console.warn(`  ✗ ${slug} — TTS failed`);
-    continue;
+  // Up to TAKES attempts, keeping the first take whose length the words
+  // justify. A model that rambles once usually behaves on the next roll, and
+  // the cut above handles the rest.
+  const budget = expectedSecs(text);
+  let info = null;
+  let note = '';
+  for (let take = 1; take <= TAKES; take++) {
+    const mp3 = await ttsMp3(key, PHRASES[slug]);
+    if (!mp3) continue;
+    const got = await generateSlug(key, slug, mp3, text);
+    if (!got) continue;
+    if (!info || got.seconds < info.seconds) info = got;
+    if (got.seconds <= budget) break;
+    note = ` — take ${take} ran ${got.seconds.toFixed(2)}s vs ~${budget.toFixed(2)}s`;
+    if (take < TAKES) console.warn(`  ↻ ${slug}${note}, retrying`);
   }
-  const info = await generateSlug(key, slug, mp3);
   if (!info) {
     failures.push(slug);
-    console.warn(`  ✗ ${slug} — silent audio returned`);
+    console.warn(`  ✗ ${slug} — no usable take`);
+    continue;
+  }
+  if (info.seconds > budget * 1.6) {
+    failures.push(slug);
+    console.warn(
+      `  ✗ ${slug} — every take rambled (${info.seconds.toFixed(2)}s vs ~${budget.toFixed(2)}s); clip left in place for a human ear`,
+    );
     continue;
   }
   byText.set(text, slug);
-  console.log(`  ✓ ${slug}.m4a (${info.seconds.toFixed(2)}s)`);
+  console.log(
+    `  ✓ ${slug}.m4a (${info.seconds.toFixed(2)}s${info.cut ? ', ramble cut' : ''})`,
+  );
 }
 
 if (failures.length) {
