@@ -448,7 +448,7 @@ export const PROGRAM_EXERCISES = {
     feel: 'One flowing shot: hips snap, bells ride up, press to lockout',
     avoid: 'Bending past the knees, pressing with a soft brace',
     cue: 'Bells at the hips, hinge only to the knee — snap the hips, ride the bells to the shoulders, press out. One flow, every rep crisp.',
-    why: "The hang clean carve-out, same terms as the hang snatch: above the knee, light DBs, forced-rest clocks only — never a barbell, never from the floor, never open pace.",
+    why: 'The hang clean carve-out, same terms as the hang snatch: above the knee, light DBs, forced-rest clocks only — never a barbell, never from the floor, never open pace.',
     yt: 'dumbbell hang clean and press',
   },
   'db-kickback': {
@@ -721,7 +721,9 @@ const PIECE = (
   names,
   rounds,
   slots,
-  { formats = ['emom', 'emom-desc'], roundRestSecs = 0 } = {},
+  // three deliveries against a four-deep exercise rotation: every one of the
+  // twelve block weeks is a different pairing (2026-09-27)
+  { formats = ['emom', 'emom-desc', 'emom-heavy'], roundRestSecs = 0 } = {},
 ) => ({
   rotate: names.map((name, v) => ({
     mode: 'emom',
@@ -1016,9 +1018,7 @@ export const DENSITY40_SESSIONS = [
               ex: 'db-hang-snatch',
               reps: '5/side',
               fixedReps: true,
-              alts: [
-                { ex: 'db-hang-clean-press', reps: '5', fixedReps: true },
-              ],
+              alts: [{ ex: 'db-hang-clean-press', reps: '5', fixedReps: true }],
             },
             // week 3's primary is the hang clean & press (2026-08-16 QA):
             // the slot now rotates all THREE overhead flavors — push press,
@@ -1035,9 +1035,7 @@ export const DENSITY40_SESSIONS = [
               ex: 'db-hang-snatch',
               reps: '5/side',
               fixedReps: true,
-              alts: [
-                { ex: 'db-hang-clean-press', reps: '5', fixedReps: true },
-              ],
+              alts: [{ ex: 'db-hang-clean-press', reps: '5', fixedReps: true }],
             },
           ],
           // WAS a second quad station. His legs are already where he wants them

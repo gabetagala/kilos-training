@@ -162,6 +162,12 @@ export const PIECE_FORMATS = {
   // Same forced rest, but reps step DOWN as the piece goes on: hardest set
   // while freshest. Same number of sets.
   'emom-desc': { id: 'emom-desc', label: 'EMOM ↓', pace: 'forced' },
+  // THE HEAVY WEEK (2026-09-27, his ask: "vary it, but it should hit the
+  // same"). Same exercises, same sets, same forced rest — fewer reps under
+  // more load, three seconds down on every one. Growth tracks hard sets taken
+  // near failure across a wide rep range, so the stimulus holds; what changes
+  // is how the week feels. Only loadable stations change (see heavyReps).
+  'emom-heavy': { id: 'emom-heavy', label: 'EMOM · HEAVY', pace: 'forced' },
   // Self-paced rounds against a running clock. NO forced rest, so this is
   // gated by the per-piece allowlist below.
   fortime: { id: 'fortime', label: 'FOR TIME', pace: 'open' },
@@ -249,6 +255,41 @@ export function descendingReps(reps, rounds) {
   return Array.from({ length: rounds }, (_, i) => `${top - i}${suffix}`);
 }
 
+// Heavy-week reps: ~70% of the prescription, suffix kept ("6/side" → "4/side").
+// 70%, not 75%, because every rep also gains a second on the way down — the
+// verifier budgets heavy reps at (tempo + 1)s each against the same 75% of
+// the minute. Small prescriptions (< 5) stay as written: dropping 3 to 2 is a
+// token, not a heavy set.
+export const HEAVY_EXTRA_SECS = 1;
+export function heavyReps(reps) {
+  const str = String(reps ?? '');
+  const nums = str.match(/\d+/g);
+  if (!nums) return null;
+  const last = nums[nums.length - 1];
+  const n = Number.parseInt(last, 10);
+  if (n < 5) return null;
+  const at = str.lastIndexOf(last);
+  return `${str.slice(0, at)}${Math.round(n * 0.7)}${str.slice(at + last.length)}`;
+}
+
+// Which members a heavy week touches: something you can put more load on.
+// Bands and bodyweight log no weight; timed work, the fixed-dose members
+// (ballistics, the RDL hinge) and rep-logged bodyweight stay as written.
+// The explosive DB lifts stay as written too: a push press is driven, not
+// lowered for three seconds, and "heavier overhead" is not a lever this back
+// program pulls.
+const HEAVY_EXCLUDED = [
+  'db-push-press',
+  'db-hang-clean-press',
+  'db-hang-snatch',
+];
+export const heavyEligible = (m) =>
+  !m.secs &&
+  !m.fixedReps &&
+  m.logWeight !== false &&
+  !m.logReps &&
+  !HEAVY_EXCLUDED.includes(m.ex);
+
 /**
  * Rewrite a piece into the given format. Set count is never touched —
  * only how the sets are delivered.
@@ -265,6 +306,32 @@ export function applyPieceFormat(block, formatId) {
         const per =
           m.secs || m.fixedReps ? null : descendingReps(m.reps, block.rounds);
         return per ? { ...m, repsPerRound: per } : m;
+      }),
+    };
+  }
+  if (formatId === 'emom-heavy') {
+    return {
+      ...block,
+      formatLabel: 'EMOM · HEAVY',
+      members: block.members.map((m) => {
+        const reps = heavyEligible(m) ? heavyReps(m.reps) : null;
+        return reps
+          ? {
+              ...m,
+              reps,
+              // an alt swapped in serves the heavy week too — same rule
+              ...(m.alts
+                ? {
+                    alts: m.alts.map((a) => {
+                      const r = heavyEligible(a) ? heavyReps(a.reps) : null;
+                      return r ? { ...a, reps: r } : a;
+                    }),
+                  }
+                : {}),
+              heavy: true,
+              note: 'Heavy week — more load than last time, three seconds down every rep.',
+            }
+          : m;
       }),
     };
   }
@@ -429,7 +496,9 @@ export function applyRamp(session, ramp) {
     ramp,
     blocks: session.blocks
       .filter((b) => !b.finisher)
-      .map((b) => (b.rotate ? { ...b, rotate: b.rotate.map(shape) } : shape(b))),
+      .map((b) =>
+        b.rotate ? { ...b, rotate: b.rotate.map(shape) } : shape(b),
+      ),
   };
 }
 
@@ -502,7 +571,9 @@ export function applyShort(session) {
       // the supporting cast and the scored finisher are what a short day
       // spends its minutes on first — both are flagged at the source
       .filter((b) => !b.finisher && !b.cast)
-      .map((b) => (b.rotate ? { ...b, rotate: b.rotate.map(shape) } : shape(b))),
+      .map((b) =>
+        b.rotate ? { ...b, rotate: b.rotate.map(shape) } : shape(b),
+      ),
   };
 }
 
