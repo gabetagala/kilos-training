@@ -66,3 +66,53 @@ test('a run parked by another device is offered here, and resumes', async ({
     'PAUSED AT STEP',
   );
 });
+
+// 2026-09-27 (his report): "discard & start new" on the phone, refresh the
+// laptop — the laptop still offered the old run. The phone's NEXT run had
+// overwritten the tombstone, and a different-run pause with logged sets is
+// untouchable. The envelope's `ended` list is what retires it now.
+test('a run discarded elsewhere is gone here, even after a new run started', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await dismissOnboarding(page);
+  await page.locator('.nav-btn[data-screen="train"]').click();
+  await page.locator('#btn-rehab-open').click();
+  await page.locator('[data-rehab="daily"]').click();
+  await page.locator('#sp-start').click();
+  await expect(page.locator('#rehab-player')).toHaveClass(/open/);
+  await page.locator('#rp-skip').click();
+  await page.locator('#rp-close').click();
+
+  // this laptop's paused run carries logged sets (the untouchable case);
+  // the phone discarded it and is already on a NEW run
+  await page.evaluate(() => {
+    const state = JSON.parse(localStorage.getItem('kilos-rehab-state'));
+    state.counted = [0, 1];
+    localStorage.setItem('kilos-rehab-state', JSON.stringify(state));
+    localStorage.setItem('kilos-device-id', JSON.stringify('this-device'));
+    localStorage.setItem(
+      'kilos-active-sync',
+      JSON.stringify({
+        state: { ...state, runId: 'phone-new-run', counted: [] },
+        runId: 'phone-new-run',
+        deviceId: 'other-device',
+        updatedAt: Date.now(),
+        ended: [state.runId],
+      }),
+    );
+  });
+  await page.reload();
+  // the old run is retired; the phone's new run is what's on offer
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => JSON.parse(localStorage.getItem('kilos-rehab-state') || 'null')?.runId,
+      ),
+    )
+    .not.toBe(undefined);
+  const runId = await page.evaluate(
+    () => JSON.parse(localStorage.getItem('kilos-rehab-state') || 'null')?.runId,
+  );
+  expect(runId).toBe('phone-new-run');
+});

@@ -178,11 +178,18 @@ test('week 1 runs The Gate as an EMOM', async ({ page }) => {
 });
 
 // Consolidating the day into one piece put the hinge inside it, so every piece
-// now runs on forced rest — the rotation is EMOM → EMOM ↓ → EMOM. A self-paced
-// clock has no rest floor, and the hinge needs one.
-test('week 3 comes back round to the EMOM — never self-paced', async ({ page }) => {
+// now runs on forced rest — the rotation is EMOM → EMOM ↓ → HEAVY (2026-09-27)
+// → EMOM. A self-paced clock has no rest floor, and the hinge needs one.
+test('week 3 is the heavy week — still forced rest, same slots', async ({ page }) => {
   const t = await gateOverview(page, 3);
   console.log('GATE wk3:', t?.slice(-200));
+  expect(t).toContain('HEAVY');
+  expect(t).not.toContain('for time');
+  for (const slot of GATE_SLOTS) expect(t, String(slot)).toMatch(slot);
+});
+
+test('week 4 comes back round to the EMOM — never self-paced', async ({ page }) => {
+  const t = await gateOverview(page, 4);
   expect(t).toContain('EMOM 25');
   expect(t).not.toContain('for time');
   for (const slot of GATE_SLOTS) expect(t, String(slot)).toMatch(slot);

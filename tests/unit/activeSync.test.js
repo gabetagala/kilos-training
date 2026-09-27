@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { newerEnvelope } from '../../src/supabase.js';
+import { mergeEnded, newerEnvelope } from '../../src/supabase.js';
 
 // The handoff envelope is last-writer-wins: two devices cannot both be
 // right about one running workout, so the newest save is the truth.
@@ -47,5 +47,43 @@ describe('newerEnvelope', () => {
       updatedAt: 999,
     };
     expect(newerEnvelope(tomb, otherRun)).toBe(otherRun);
+  });
+
+  // 2026-09-27: "discard & start new" on the phone never reached the laptop —
+  // the next run's first save overwrote the one-slot tombstone
+  it('the ended list survives the next run overwriting the tombstone', () => {
+    const phoneNewRun = {
+      state: { sessionId: 'daily', runId: 'r2' },
+      runId: 'r2',
+      deviceId: 'phone',
+      updatedAt: 200,
+      ended: ['r1'],
+    };
+    const laptopStale = {
+      state: { sessionId: 'daily', runId: 'r1' },
+      runId: 'r1',
+      deviceId: 'laptop',
+      updatedAt: 900, // a later clock must not resurrect the discarded run
+    };
+    expect(newerEnvelope(laptopStale, phoneNewRun)).toBe(phoneNewRun);
+    expect(newerEnvelope(phoneNewRun, laptopStale)).toBe(phoneNewRun);
+  });
+
+  it('merges both sides\' ended lists into the winner', () => {
+    const a = { state: null, runId: 'r1', updatedAt: 100, ended: ['r0', 'r1'] };
+    const b = {
+      state: { runId: 'r3' },
+      runId: 'r3',
+      updatedAt: 300,
+      ended: ['r2'],
+    };
+    const win = newerEnvelope(a, b);
+    expect(win.state.runId).toBe('r3');
+    expect(win.ended).toEqual(['r0', 'r1', 'r2']);
+  });
+
+  it('keeps the ended memory short', () => {
+    const ids = Array.from({ length: 20 }, (_, i) => `r${i}`);
+    expect(mergeEnded(ids)).toEqual(ids.slice(-12));
   });
 });

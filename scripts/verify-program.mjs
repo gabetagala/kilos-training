@@ -27,6 +27,9 @@ import {
   applyShort,
   rotationWeek,
   descendingReps,
+  HEAVY_EXTRA_SECS,
+  heavyEligible,
+  heavyReps,
   formatsFor,
   phaseOf,
   phaseSwaps,
@@ -429,6 +432,7 @@ const ANCHOR_IDS = new Set(anchorSpecs().map(({ b }) => b.members[0].ex));
         if (v?.mode !== 'emom') continue;
         const interval = v.intervalSecs ?? 60;
         const desc = (v.formats || []).includes('emom-desc');
+        const heavy = (v.formats || []).includes('emom-heavy');
         for (const m of v.members || []) {
           if (m.secs != null && m.secs > interval * 0.75) {
             bad.push(`${s.id} ${v.name} ${m.ex} ${m.secs}s work in ${interval}s`);
@@ -442,6 +446,14 @@ const ANCHOR_IDS = new Set(anchorSpecs().map(({ b }) => b.members[0].ex));
             if (!tempo || !reps) continue;
             if (reps * tempo > interval * 0.75) {
               bad.push(`${s.id} ${v.name} ${cand.ex} ${reps * tempo}s of work in ${interval}s`);
+            }
+            // the heavy week: fewer reps, each a second slower on the way
+            // down — the same 75% budget at (tempo + 1)s a rep
+            if (heavy && heavyEligible(cand)) {
+              const hr = totalReps(heavyReps(cand.reps));
+              if (hr && hr * (tempo + HEAVY_EXTRA_SECS) > interval * 0.75) {
+                bad.push(`${s.id} ${v.name} ${cand.ex} heavy ${hr * (tempo + HEAVY_EXTRA_SECS)}s in ${interval}s`);
+              }
             }
             // the descending top only ever applies to the primary member —
             // a swapped-in alt runs flat (resolveSwap drops repsPerRound)
@@ -457,7 +469,7 @@ const ANCHOR_IDS = new Set(anchorSpecs().map(({ b }) => b.members[0].ex));
       }
     }
   }
-  check('RESTRICTIONS', 'every station fits inside its minute, descending weeks included', bad.length === 0, bad.slice(0, 3).join(', '));
+  check('RESTRICTIONS', 'every station fits inside its minute, descending and heavy weeks included', bad.length === 0, bad.slice(0, 3).join(', '));
 }
 
 // ONE PULLEY, ONE ATTACHMENT (2026-08-11, his gym). The cable stack and the

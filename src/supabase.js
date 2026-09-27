@@ -47,7 +47,7 @@ const SYNC_KEYS = [
 
 // ─── ACTIVE-SESSION HANDOFF (2026-08-15) ─────────────────────────────────────
 // The paused player state rides the cloud row as an ENVELOPE
-// { state, deviceId, updatedAt } — `state` is the kilos-rehab-state payload,
+// { state, runId, deviceId, updatedAt, ended } — `state` is the kilos-rehab-state payload,
 // or null as a tombstone after a finish/discard. It is last-writer-wins, not
 // a union: two devices can't both be right about one running workout, so the
 // newest save is the truth and everything else defers to it. Adoption rules
@@ -63,6 +63,10 @@ export const ACTIVE_SYNC_KEY = 'kilos-active-sync';
 export function newerEnvelope(a, b) {
   if (!a) return b || null;
   if (!b) return a;
+  return withEnded(pickEnvelope(a, b), a, b);
+}
+
+function pickEnvelope(a, b) {
   const aTomb = a.state == null;
   const bTomb = b.state == null;
   if (aTomb !== bTomb) {
@@ -70,7 +74,33 @@ export function newerEnvelope(a, b) {
     const live = aTomb ? b : a;
     if (tomb.runId && tomb.runId === live.state?.runId) return tomb;
   }
+  // a save of a run the OTHER side has already ended can never win — the
+  // same rule as above, remembered past the moment the next run started
+  const liveId = (e) => e.state?.runId;
+  if (liveId(a) && b.ended?.includes(liveId(a))) return b;
+  if (liveId(b) && a.ended?.includes(liveId(b))) return a;
   return (b.updatedAt || 0) > (a.updatedAt || 0) ? b : a;
+}
+
+// ENDED RUNS OUTLIVE THE TOMBSTONE (2026-09-27, his report: "discard & start
+// new" on the phone never reached the laptop). The envelope is ONE slot, so
+// the next run's first save overwrote the tombstone within seconds — the
+// laptop then saw a DIFFERENT run, and its own paused run (logged sets ->
+// untouchable) survived. `ended` is the short memory of finished/discarded
+// run ids that rides every envelope; both sides' lists merge on every pick.
+export const ENDED_MEMORY = 12;
+export function mergeEnded(...lists) {
+  const out = [];
+  for (const l of lists)
+    for (const id of l || []) if (id && !out.includes(id)) out.push(id);
+  return out.slice(-ENDED_MEMORY);
+}
+function withEnded(win, a, b) {
+  const ended = mergeEnded(a.ended, b.ended);
+  const same =
+    ended.length === (win.ended?.length || 0) &&
+    ended.every((id, i) => win.ended[i] === id);
+  return same ? win : { ...win, ended };
 }
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
@@ -276,7 +306,10 @@ export async function pushData() {
   });
   // Active-session handoff: carry the NEWEST envelope, and keep the local
   // copy caught up so adoption on this device sees what the cloud sees.
-  const activeEnv = newerEnvelope(_get(ACTIVE_SYNC_KEY), row?.data?.activeSession);
+  const activeEnv = newerEnvelope(
+    _get(ACTIVE_SYNC_KEY),
+    row?.data?.activeSession,
+  );
   if (activeEnv) {
     data.activeSession = activeEnv;
     _set(ACTIVE_SYNC_KEY, activeEnv);

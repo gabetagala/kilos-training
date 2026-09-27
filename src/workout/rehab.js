@@ -122,7 +122,8 @@ export const REHAB_EXERCISES = {
     avoid: 'Chin tucking, spine bending to lift',
     cue: 'Hands under the low back, one knee bent. Lift head + shoulders barely off the floor — the spine never bends.',
     why: 'Front-side stiffness without spine flexion.',
-    scale: 'Harder: elbows hovering → hands off the floor → pre-tense the abs hard before each lift',
+    scale:
+      'Harder: elbows hovering → hands off the floor → pre-tense the abs hard before each lift',
     yt: 'mcgill curl up form',
   },
   'side-plank': {
@@ -131,7 +132,8 @@ export const REHAB_EXERCISES = {
     avoid: 'Hips sagging toward the floor',
     cue: 'Elbow under shoulder, hips tall. One straight line from ear to ankle.',
     why: 'Side-core stiffness with near-zero disc load.',
-    scale: 'Easier: from the knees · Harder: feet stacked → top leg raised → weighted vest',
+    scale:
+      'Easier: from the knees · Harder: feet stacked → top leg raised → weighted vest',
     yt: 'side plank mcgill big 3',
   },
   'bird-dog': {
@@ -140,7 +142,8 @@ export const REHAB_EXERCISES = {
     avoid: 'Hips rotating as the leg reaches',
     cue: 'Opposite arm + leg out. Reach long, not high — hips stay square, spine stays still.',
     why: 'Back-side stiffness while the limbs move around a quiet spine.',
-    scale: 'Easier: leg only · Harder: slow square with hand + foot → wrist/ankle weights',
+    scale:
+      'Easier: leg only · Harder: slow square with hand + foot → wrist/ankle weights',
     yt: 'bird dog exercise mcgill',
   },
   'glute-bridge': {
@@ -237,7 +240,7 @@ export const REHAB_EXERCISES = {
     cue: 'Sit tall, knees bent, feet wide. Drop one knee inward, then lift that foot off the floor — small lifts, the hip does all of it.',
     why: 'The rotation a hip loses first. Without it the spine turns instead.',
     scale: 'Easier: body weight · Harder: ankle weight',
-    how: 'Small lifts, one after another — no counting, the clock is the set. 10/10 burn = pause, resume.',
+    how: 'Follow the count: lift, squeeze two, lower. 10/10 burn = pause, then pick the count back up.',
     yt: 'seated hip internal rotation lift off',
   },
   'hip-airplane': {
@@ -248,7 +251,7 @@ export const REHAB_EXERCISES = {
     why: 'Teaches the hip to rotate under load so the low back stops doing it.',
     scale:
       'Easier: body weight, less bend · Harder: ankle weight, more bend over',
-    how: 'Slow turns — open, then closed, no counting. Keep moving until the beep.',
+    how: 'Follow the count: three seconds open, three closed. Lose balance = touch down, reset, carry on.',
     yt: 'hip airplane exercise',
   },
   'side-hip-abduction': {
@@ -258,7 +261,7 @@ export const REHAB_EXERCISES = {
     cue: 'Lie on your side, body in one line. Lift the top leg up and slightly back, toes level. No rolling.',
     why: 'Glute-med endurance — the muscle that keeps the pelvis level every step you take.',
     scale: 'Easier: body weight · Harder: ankle weight',
-    how: 'Steady lifts, ~2s up, ~2s down — no target. Break at a true 10/10 burn, then back on.',
+    how: 'Follow the count: two up, two down. Break at a true 10/10 burn, then back on.',
     yt: 'side lying hip abduction form',
   },
   'side-hip-adduction': {
@@ -309,7 +312,7 @@ export const REHAB_EXERCISES = {
     why: 'The single biggest lever on a back that hurts: extensors with real endurance.',
     scale:
       'Easier: isometric hold · Harder: reps → + vest → single-leg hold → single-leg reps',
-    how: 'Slow reps, ~3s each, no target — the clock is the set. At a 10/10 burn: breathe, then back on.',
+    how: 'Follow the count: lift, squeeze at straight, lower. At a 10/10 burn: breathe, then back on.',
     yt: 'roman chair back extension form',
   },
   'wall-groin-stretch': {
@@ -330,7 +333,7 @@ export const REHAB_EXERCISES = {
     cue: 'Sit in 90/90, both shins square. Push the floor away and come up tall over the front hip, then sit back down. Slow both ways.',
     why: 'Strength at end-range rotation — the hip position everyone stretches and nobody trains.',
     scale: 'Easier: two hands down · Harder: one hand, then none',
-    how: 'Slow reps, ~3s up, ~3s down — no target, the clock is the set. 10/10 burn = breathe, resume.',
+    how: 'Follow the count: three up, three down. 10/10 burn = breathe, resume.',
     yt: '90 90 hip lift off push up',
   },
   'couch-stretch': {
@@ -353,7 +356,7 @@ export const REHAB_EXERCISES = {
     why: 'Hamstring length earned through movement, without one second of spinal flexion.',
     scale:
       'Easier: hands on a higher surface · Harder: hands lower, then floor',
-    how: 'Keep walking the whole time, one leg then the other. Nothing to count, no burn to chase.',
+    how: 'One rep = one leg bends, then the other. Follow the count — no burn to chase.',
     yt: 'elephant walk hamstring exercise',
   },
   // Added 2026-08-11 at his ask — his favorite feel from the source coach's
@@ -391,6 +394,56 @@ const TSPINE_TEMPO = [
 // kind of minute it is (WORK = burn to failure and back, HOLD = isometric,
 // BREATHE = a stretch you are not fighting).
 const MINS = (n) => n * 60;
+
+// ── REPS, NOT A CLOCK, FOR ANYTHING THAT MOVES (2026-09-27, his ask) ────────
+// "It's time bound, which makes it very hard to see if I'm doing it
+// correctly." The dynamic movements now run as COUNTED tempo sets — the
+// player shows the rep number and the phase, and ticks the cadence — sized
+// so each lands near its old duration: the dose stayed, the guesswork left.
+// What stays on a clock is what doesn't move: the stretches (BREATHE) and
+// the true isometrics (plank, QL plank, hip-flexor lift, adduction hold).
+// The method is unchanged — 10/10 burn, 0/10 pain, pause mid-set when you
+// must — and the progression trigger reads the same: all the reps unbroken,
+// then take the next step on that movement's ladder.
+const LIFT_SQUEEZE_LOWER = (lift, squeeze, lower) => [
+  ['LIFT', lift],
+  ['SQUEEZE', squeeze],
+  ['LOWER', lower],
+];
+const repped = (
+  ex,
+  reps,
+  tempo,
+  { perSide = false, switchSecs = 15 } = {},
+) => ({
+  ex,
+  mode: 'tempo',
+  sets: 1,
+  reps,
+  tempo,
+  ...(perSide ? { perSide: true, switchSecs } : {}),
+});
+// 5s a rep × 40 = 3:20 (was 4:00 of "slow reps, no target")
+const BACK_EXTENSION = repped(
+  'back-extension',
+  40,
+  LIFT_SQUEEZE_LOWER(2, 1, 2),
+);
+// 4s a rep × 25/side = 1:40 a side (was 2:00)
+const HIP_IR = repped(
+  'hip-internal-rotation',
+  25,
+  LIFT_SQUEEZE_LOWER(1, 2, 1),
+  {
+    perSide: true,
+  },
+);
+// a rep is BOTH legs — 4s × 40 = 2:40 (was 4:00 of walking; it was never the
+// burn movement, and forty honest swaps is more than the clock was getting)
+const ELEPHANT_WALK = repped('elephant-walk', 40, [
+  ['LEFT', 2],
+  ['RIGHT', 2],
+]);
 
 // Per-side blocks: 2 minutes each side, a real changeover between them (some
 // of these need you to get up and reset the whole position, not just roll over).
@@ -498,7 +551,11 @@ const TOPPERS = [
         // fields an alt doesn't define, so a bare alt would serve
         // 'undefined reps' and prompt for kilograms on a push-up
         alts: [
-          { ex: 'elevated-pushup', repScheme: [16, 12, 8, 4], logWeight: false },
+          {
+            ex: 'elevated-pushup',
+            repScheme: [16, 12, 8, 4],
+            logWeight: false,
+          },
         ],
       },
     ],
@@ -610,7 +667,18 @@ const TOPPERS = [
         ex: 'band-pull-apart',
         reps: '10',
         logWeight: false,
-        repsPerRound: ['10', '14', '18', '22', '26', '30', '34', '38', '42', '46'],
+        repsPerRound: [
+          '10',
+          '14',
+          '18',
+          '22',
+          '26',
+          '30',
+          '34',
+          '38',
+          '42',
+          '46',
+        ],
       },
     ],
   },
@@ -731,10 +799,22 @@ const CAP_PLANK = () => CORE_CAP('plank');
 // the k∈{0,1,2} columns of this square — the k=3 column moved to the
 // 'sunday' session below, extracted so the month's coverage is unchanged.
 const CORE_CAPS = [
-  CAP_CURL(), CAP_SIDE(), CAP_BIRD(), CAP_PLANK(),
-  CAP_SIDE(), CAP_BIRD(), CAP_PLANK(), CAP_CURL(),
-  CAP_BIRD(), CAP_PLANK(), CAP_CURL(), CAP_SIDE(),
-  CAP_PLANK(), CAP_CURL(), CAP_SIDE(), CAP_BIRD(),
+  CAP_CURL(),
+  CAP_SIDE(),
+  CAP_BIRD(),
+  CAP_PLANK(),
+  CAP_SIDE(),
+  CAP_BIRD(),
+  CAP_PLANK(),
+  CAP_CURL(),
+  CAP_BIRD(),
+  CAP_PLANK(),
+  CAP_CURL(),
+  CAP_SIDE(),
+  CAP_PLANK(),
+  CAP_CURL(),
+  CAP_SIDE(),
+  CAP_BIRD(),
 ];
 
 // ── THE SUNDAY SPLIT (2026-08-16, his ask: "rest days on Sundays") ──────────
@@ -775,10 +855,10 @@ const DISTILLATE_BLOCKS = [
     perSide: true,
     tempo: TSPINE_TEMPO,
   },
-  straight('back-extension', 'WORK'),
-  perSide('hip-internal-rotation', 'WORK'),
+  BACK_EXTENSION,
+  HIP_IR,
   perSide('couch-stretch', 'BREATHE', 20),
-  straight('elephant-walk', 'WORK'),
+  ELEPHANT_WALK,
   {
     ex: 'seated-good-morning',
     mode: 'hold',
@@ -818,10 +898,46 @@ export const REHAB_SESSIONS = [
         cast: true,
         rotate: [
           perSide('ql-plank', 'HOLD', 12),
-          perSide('side-hip-abduction', 'WORK', 12),
-          perSide('90-90-pushup', 'WORK', 20),
+          // 4s × 25/side = 1:40 a side
+          repped(
+            'side-hip-abduction',
+            25,
+            [
+              ['LIFT', 2],
+              ['LOWER', 2],
+            ],
+            {
+              perSide: true,
+              switchSecs: 12,
+            },
+          ),
+          // 6s × 15/side = 1:30 a side
+          repped(
+            '90-90-pushup',
+            15,
+            [
+              ['UP', 3],
+              ['DOWN', 3],
+            ],
+            {
+              perSide: true,
+              switchSecs: 20,
+            },
+          ),
           perSide('hip-flexor-lift', 'WORK'),
-          perSide('hip-airplane', 'WORK', 20),
+          // 6s × 15/side = 1:30 a side
+          repped(
+            'hip-airplane',
+            15,
+            [
+              ['OPEN', 3],
+              ['CLOSE', 3],
+            ],
+            {
+              perSide: true,
+              switchSecs: 20,
+            },
+          ),
           straight('plank', 'HOLD'),
           straight('wall-groin-stretch', 'BREATHE'),
           perSide('side-hip-adduction', 'WORK', 12),

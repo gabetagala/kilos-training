@@ -14,6 +14,7 @@ import {
   applyPieceFormat,
   descendingReps,
   formatsFor,
+  heavyReps,
   pieceFormatFor,
   OPEN_PACE_BANNED,
   TEST_WEEKS,
@@ -256,15 +257,41 @@ describe('format rotation', () => {
     // it, and the hinge is spine-loaded — so every piece now runs on forced
     // rest, and the rotation is EMOM → EMOM ↓ → EMOM. That is the honest
     // consequence of the merge, not an oversight: a self-paced clock has no
-    // rest floor, and the hinge needs one.
+    // rest floor, and the hinge needs one. 2026-09-27: a third forced-rest
+    // delivery, the HEAVY week — EMOM → EMOM ↓ → HEAVY, then round again.
     const gate = pieceIn('d40-c1', 'The Gate', 0);
-    expect(gate.formats).toEqual(['emom', 'emom-desc']);
-    expect(formatsFor(gate)).toEqual(['emom', 'emom-desc']);
-    expect([1, 2, 3].map((w) => pieceFormatFor(gate, w))).toEqual([
-      'emom',
-      'emom-desc',
+    const all = ['emom', 'emom-desc', 'emom-heavy'];
+    expect(gate.formats).toEqual(all);
+    expect(formatsFor(gate)).toEqual(all);
+    expect([1, 2, 3, 4].map((w) => pieceFormatFor(gate, w))).toEqual([
+      ...all,
       'emom',
     ]);
+  });
+
+  it('a heavy week keeps every set and only lightens loadable reps', () => {
+    const forge = pieceIn('d40-b1', 'The Forge', 0);
+    const heavy = applyPieceFormat(forge, 'emom-heavy');
+    expect(heavy.rounds).toBe(forge.rounds);
+    expect(heavy.members.map((m) => m.ex)).toEqual(
+      forge.members.map((m) => m.ex),
+    );
+    for (const [i, m] of heavy.members.entries()) {
+      const was = forge.members[i];
+      if (m.heavy) {
+        expect(Number.parseInt(m.reps, 10)).toBeLessThan(
+          Number.parseInt(was.reps, 10),
+        );
+      } else {
+        expect(m.reps).toBe(was.reps); // bands, bodyweight, carries, explosive
+      }
+    }
+    // the push press is driven, never a slow-lowered heavy set
+    expect(heavy.members.find((m) => m.ex === 'db-push-press')?.heavy).toBe(
+      undefined,
+    );
+    expect(heavyReps('6/side')).toBe('4/side');
+    expect(heavyReps('3')).toBeNull();
   });
 
   // The safety gate. for-time removes the rest floor that makes EMOM the
