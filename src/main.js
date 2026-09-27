@@ -5762,6 +5762,43 @@ document.getElementById('btn-discard-no').addEventListener('click', () => {
   let dist = 0;
   let pulling = false;
   let refreshing = false;
+  // The pull is over: sync if it went far enough, otherwise tuck the pill
+  // away. Shared by the finger (touchend) and the trackpad (wheel goes idle).
+  const release = () => {
+    ptr.classList.remove('drag');
+    if (dist >= THRESH && !refreshing) {
+      refreshing = true;
+      ptr.style.transform = `translate(-50%, ${THRESH}px)`;
+      if (!currentUser) {
+        // honest when signed out: nothing to pull, say so briefly
+        ptrLabel.textContent = 'THIS DEVICE ONLY';
+        setTimeout(() => {
+          ptr.classList.remove('on');
+          ptr.style.transform = '';
+          refreshing = false;
+        }, 900);
+        return;
+      }
+      ptrLabel.textContent = 'SYNCING…';
+      rhLastFgPull = Date.now(); // an explicit pull resets the throttle
+      Promise.resolve(refreshFromCloud()).finally(() => {
+        ptrLabel.textContent = 'SYNCED ✓';
+        setTimeout(() => {
+          ptr.classList.remove('on');
+          ptr.style.transform = '';
+          refreshing = false;
+        }, 700);
+      });
+    } else {
+      ptr.classList.remove('on');
+      ptr.style.transform = '';
+    }
+  };
+  const show = () => {
+    ptr.classList.add('on', 'drag');
+    ptr.style.transform = `translate(-50%, ${dist}px)`;
+    ptrLabel.textContent = dist >= THRESH ? 'RELEASE TO SYNC' : 'PULL TO SYNC';
+  };
   for (const sc of document.querySelectorAll('.screen')) {
     const onMove = (e) => {
       if (startY == null || refreshing) return;
@@ -5770,10 +5807,7 @@ document.getElementById('btn-discard-no').addEventListener('click', () => {
       pulling = true;
       dist = Math.max(0, Math.min(110, dy * 0.45));
       e.preventDefault();
-      ptr.classList.add('on', 'drag');
-      ptr.style.transform = `translate(-50%, ${dist}px)`;
-      ptrLabel.textContent =
-        dist >= THRESH ? 'RELEASE TO SYNC' : 'PULL TO SYNC';
+      show();
     };
     const end = () => {
       sc.removeEventListener('touchmove', onMove);
@@ -5781,34 +5815,7 @@ document.getElementById('btn-discard-no').addEventListener('click', () => {
       startY = null;
       if (!pulling) return;
       pulling = false;
-      ptr.classList.remove('drag');
-      if (dist >= THRESH && !refreshing) {
-        refreshing = true;
-        ptr.style.transform = `translate(-50%, ${THRESH}px)`;
-        if (!currentUser) {
-          // honest when signed out: nothing to pull, say so briefly
-          ptrLabel.textContent = 'THIS DEVICE ONLY';
-          setTimeout(() => {
-            ptr.classList.remove('on');
-            ptr.style.transform = '';
-            refreshing = false;
-          }, 900);
-          return;
-        }
-        ptrLabel.textContent = 'SYNCING…';
-        rhLastFgPull = Date.now(); // an explicit pull resets the throttle
-        Promise.resolve(refreshFromCloud()).finally(() => {
-          ptrLabel.textContent = 'SYNCED ✓';
-          setTimeout(() => {
-            ptr.classList.remove('on');
-            ptr.style.transform = '';
-            refreshing = false;
-          }, 700);
-        });
-      } else {
-        ptr.classList.remove('on');
-        ptr.style.transform = '';
-      }
+      release();
     };
     sc.addEventListener(
       'touchstart',
@@ -5823,6 +5830,39 @@ document.getElementById('btn-discard-no').addEventListener('click', () => {
     );
     sc.addEventListener('touchend', end, { passive: true });
     sc.addEventListener('touchcancel', end, { passive: true });
+
+    // THE DESKTOP PULL (2026-09-27, his ask): a trackpad or wheel scrolled UP
+    // past the top draws the same pill; when the wheel goes quiet, that's the
+    // release. Only a gesture that BEGAN at the top counts — a long scroll up
+    // that coasts into the top on momentum must never fire a sync.
+    let wheelIdle = null;
+    let lastWheelAt = 0;
+    let gestureAtTop = false;
+    sc.addEventListener(
+      'wheel',
+      (e) => {
+        if (refreshing || e.ctrlKey) return; // ctrl+wheel = pinch zoom
+        const now = Date.now();
+        if (now - lastWheelAt > 250) gestureAtTop = sc.scrollTop <= 0;
+        lastWheelAt = now;
+        if (!gestureAtTop || sc.scrollTop > 0) return;
+        if (e.deltaY >= 0 && dist === 0) return; // scrolling down: not a pull
+        const px = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+        dist = Math.max(0, Math.min(110, dist - px * 0.35));
+        if (dist === 0) {
+          ptr.classList.remove('on', 'drag');
+          ptr.style.transform = '';
+          return;
+        }
+        show();
+        clearTimeout(wheelIdle);
+        wheelIdle = setTimeout(() => {
+          release();
+          dist = 0;
+        }, 220);
+      },
+      { passive: true },
+    );
   }
 })();
 
@@ -5848,7 +5888,9 @@ function refreshFromCloud() {
 // app"): moving phone → laptop keeps the browser window VISIBLE the whole
 // time, so visibilitychange never fires — but window focus does.
 window.addEventListener('focus', () => {
-  if (currentUser && Date.now() - rhLastFgPull > 60000) {
+  // 5s, not a minute (2026-09-27): coming back to the laptop from the phone
+  // should always show the phone's latest — this only damps focus storms
+  if (currentUser && Date.now() - rhLastFgPull > 5000) {
     rhLastFgPull = Date.now();
     refreshFromCloud();
   }
