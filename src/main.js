@@ -16,11 +16,12 @@ import {
 } from './personalization.js';
 import { buildShareData, renderShareCard } from './shareCard.js';
 import {
-  deleteAccount,
   ACTIVE_SYNC_KEY,
+  deleteAccount,
   getSession,
   hasPendingSync,
   isConfigured,
+  mergeEnded,
   pullAndMerge,
   pushData,
   signInWithPassword,
@@ -28,7 +29,7 @@ import {
   signUpWithPassword,
   supabase,
 } from './supabase.js';
-import { TTS_ONLY, announceCue } from './workout/announce.js';
+import { announceCue, TTS_ONLY } from './workout/announce.js';
 import {
   compareBenchmark,
   formatBenchmarkScore,
@@ -63,7 +64,6 @@ import {
 } from './workout/comeback.js';
 import { FORM_CUES, pickFormCue } from './workout/formCues.js';
 import { loggedExercisesOf, resolveMuscleGroup } from './workout/muscles.js';
-import { OPTIONAL_SESSIONS } from './workout/volume.js';
 import {
   BENCHMARK_SESSIONS,
   DENSITY40_SESSIONS,
@@ -99,6 +99,7 @@ import { PROGRAM_DEMOS, REHAB_DEMOS } from './workout/rehabDemos.js';
 import { currentStreak, longestStreak } from './workout/streak.js';
 import { NUM_SLUGS, tempoBeatSlug } from './workout/tempoCues.js';
 import { mayInterject, ttsWindowMs } from './workout/voiceMic.js';
+import { OPTIONAL_SESSIONS } from './workout/volume.js';
 
 // ─── STORAGE ──────────────────────────────────────────────────────────────────
 const get = (k) => {
@@ -1665,13 +1666,16 @@ function rhWriteEnvelope(state, opts = {}) {
   const playerOpen = !!document
     .getElementById('rehab-player')
     ?.classList.contains('open');
-  if (!opts.force && !playerOpen && cur && cur.deviceId !== rhDeviceId)
-    return;
+  if (!opts.force && !playerOpen && cur && cur.deviceId !== rhDeviceId) return;
+  const runId = state?.runId ?? opts.runId ?? rhRunId ?? null;
   set(ACTIVE_SYNC_KEY, {
     state,
-    runId: state?.runId ?? opts.runId ?? rhRunId ?? null,
+    runId,
     deviceId: rhDeviceId,
     updatedAt: Date.now(),
+    // a tombstone is one slot and the next run overwrites it in seconds —
+    // `ended` carries every finished/discarded run forward (see supabase.js)
+    ended: mergeEnded(cur?.ended, state == null && runId ? [runId] : []),
   });
 }
 function rhQueueActiveSync() {
@@ -1729,7 +1733,20 @@ function benchmarkTrend(b, score, prev) {
 
 // ── The block banner — "where am I in the 12 weeks?" ────────────────────────
 const DELOAD_SEEN_KEY = 'kilos-deload-seen';
-const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const SHORT_MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
 function renderBlockBanner() {
   const el = document.getElementById('block-banner');
   if (!el) return;
@@ -1816,9 +1833,9 @@ function renderBlockBanner() {
         <button class="blk-restart-yes" type="button">Restart</button>
         <button class="blk-restart-no" type="button">Keep week ${done}</button>
       </div>`;
-    box.querySelector('.blk-restart-no').addEventListener('click', () =>
-      renderBlockBanner(),
-    );
+    box
+      .querySelector('.blk-restart-no')
+      .addEventListener('click', () => renderBlockBanner());
     box.querySelector('.blk-restart-yes').addEventListener('click', () => {
       restartBlock();
       renderRehabPage();
@@ -2928,15 +2945,27 @@ function rhSalvageStale(saved) {
 function rhAdoptCloudSession() {
   if (rhSession) return false;
   const env = get(ACTIVE_SYNC_KEY);
-  if (!env || env.deviceId === rhDeviceId) return false;
-  const local = get(REHAB_STATE_KEY);
+  let local = get(REHAB_STATE_KEY);
+  // a run finished or discarded ANYWHERE is over everywhere — checked before
+  // the own-device guard, because the merged envelope may be this device's
+  // own while its ended list came from the phone. Then fall through: the
+  // phone's NEW run is exactly what this device should offer next.
+  let retired = false;
+  if (local?.runId && env?.ended?.includes(local.runId)) {
+    try {
+      localStorage.removeItem(REHAB_STATE_KEY);
+    } catch {}
+    local = null;
+    retired = true;
+  }
+  if (!env || env.deviceId === rhDeviceId) return retired;
   const hasSets = (st) =>
     (st?.counted?.length || 0) > 0 || (st?.liftSets?.length || 0) > 0;
   if (env.state == null) {
     // tombstone — clears ONLY the run it names; a different local run
     // (different nonce) is someone else's business, never touched. Legacy
     // states without a runId fall back to recency.
-    if (!local) return false;
+    if (!local) return retired;
     const sameRun = env.runId && local.runId === env.runId;
     const legacyNewer = !local.runId && env.updatedAt > (local.savedAt || 0);
     if (sameRun || legacyNewer) {
@@ -3123,6 +3152,15 @@ function rhRenderPlayBtn() {
   const active = rhRunning || !!rhGuide;
   document.getElementById('rp-play-icon').style.display = active ? 'none' : '';
   document.getElementById('rp-pause-icon').style.display = active ? '' : 'none';
+  // END EARLY shows only while paused, once the session is under way — a
+  // running clock keeps the screen clean, and the death-by bail owns the
+  // slot while it's up
+  const step = rhStep();
+  const bailUp = !!(step?.bail && step.kind === 'work');
+  const endEl = document.getElementById('rp-endearly');
+  if (endEl)
+    endEl.style.display =
+      !active && rhIdx > 0 && !step?.manual && !bailUp ? '' : 'none';
 }
 
 function rhRenderWeight() {
@@ -3384,8 +3422,9 @@ function rhRenderOverview() {
   const overlay = document.getElementById('rp-overview');
   if (!overlay.classList.contains('open') || !rhSession) return;
   // 'daily' cycles 8 calendar-pinned variants — a bare A–H letter is noise
-  const vl =
-    CAL_PINNED.has(rhSession.id) ? null : variantLabel(rhSession, rhVariant);
+  const vl = CAL_PINNED.has(rhSession.id)
+    ? null
+    : variantLabel(rhSession, rhVariant);
   document.getElementById('rpo-title').textContent =
     `${rhSession.name}${vl ? ` · DAY ${vl}` : ''} · FULL SESSION`.toUpperCase();
   const currentBi = rhStep()?.bi ?? 0;
@@ -3443,18 +3482,29 @@ document
   .addEventListener('click', rhOpenOverview);
 // MORE is retired — the cue now shows in full (compact), so there's no button
 // to wire. The element stays hidden in the DOM.
-// Finish early from the overview — logged work saves, the queue is skipped.
-document.getElementById('rpo-finish').addEventListener('click', () => {
+// Finish early — logged work saves, the queue is skipped. Two doors: the
+// overview sheet, and (2026-09-27, his ask: "a button to finish anyway") the
+// END EARLY button the paused player shows under the clock.
+function rhOpenFinishConfirm() {
   document.getElementById('rp-overview').classList.remove('open');
+  rhStop();
+  rhRenderPlayBtn();
+  rhPersist();
   const n = rhCounted.size;
   document.getElementById('rhfinish-sub').textContent = n
     ? `${n} set${n === 1 ? '' : 's'} logged and saved. The remaining steps are skipped.`
     : 'Nothing logged yet — this saves the session as done anyway.';
   document.getElementById('rhfinish-confirm').classList.add('open');
-});
+}
+document
+  .getElementById('rpo-finish')
+  .addEventListener('click', rhOpenFinishConfirm);
+document
+  .getElementById('rp-endearly')
+  .addEventListener('click', rhOpenFinishConfirm);
 document.getElementById('btn-rhfinish-yes').addEventListener('click', () => {
   document.getElementById('rhfinish-confirm').classList.remove('open');
-  rhFinish();
+  rhFinish({ early: true });
 });
 document.getElementById('btn-rhfinish-no').addEventListener('click', () => {
   document.getElementById('rhfinish-confirm').classList.remove('open');
@@ -3614,9 +3664,7 @@ function rhSetNextLine(nextEl, preview) {
     return;
   }
   nextEl.textContent = '';
-  nextEl.appendChild(
-    document.createTextNode(`NEXT · ${m[1].toUpperCase()} `),
-  );
+  nextEl.appendChild(document.createTextNode(`NEXT · ${m[1].toUpperCase()} `));
   const b = document.createElement('b');
   b.className = 'rp-next-rx';
   b.textContent = m[2];
@@ -3861,8 +3909,7 @@ function rhRenderStep() {
   // "the clock ends it, not you" needs a button that means it
   const bailEl = document.getElementById('rp-bail');
   if (bailEl) {
-    bailEl.style.display =
-      step.bail && step.kind === 'work' ? '' : 'none';
+    bailEl.style.display = step.bail && step.kind === 'work' ? '' : 'none';
     if (step.bail) bailEl.textContent = `${step.bail} →`;
   }
   const swapEl = document.getElementById('rp-swap');
@@ -4106,8 +4153,7 @@ function rhJump(dir) {
 function openRehabPlayer(session, saved = null, variantOverride = null) {
   rhSession = session;
   // a resumed run keeps its identity; a fresh one mints it
-  rhRunId =
-    saved?.runId ?? `${Date.now().toString(36)}-${rhDeviceId}`;
+  rhRunId = saved?.runId ?? `${Date.now().toString(36)}-${rhDeviceId}`;
   // A saved run keeps the variant it was built with (its step index maps
   // onto THAT queue); a fresh run picks up wherever the rotation is.
   // A saved run keeps the PHASE it was built with as well as the variant:
@@ -4224,7 +4270,7 @@ function closeRehabPlayer() {
 }
 
 // ── Finish → history entry (counts toward streak) + the normal summary ────────
-function rhFinish() {
+function rhFinish({ early = false } = {}) {
   if (!rhSession) return;
   rhStop();
   rhCue('finish');
@@ -4324,6 +4370,9 @@ function rhFinish() {
       // tick, the streak and the rotation read, and all three should count
       // this as the day it is (2026-09-23)
       ...(rhDose === 'short' ? { short: true } : {}),
+      // ended on purpose before the queue ran out (2026-09-27) — the logged
+      // sets are real, the history line just says it stopped short
+      ...(early ? { endedEarly: true } : {}),
       programId: session.id,
       date: new Date().toISOString(),
       duration: durationStr,
@@ -4380,6 +4429,9 @@ function rhFinish() {
       name: completed.name,
       type: 'rehab',
       ...(rhDose === 'short' ? { short: true } : {}),
+      // ended on purpose before the queue ran out (2026-09-27) — the logged
+      // sets are real, the history line just says it stopped short
+      ...(early ? { endedEarly: true } : {}),
       rehabId: session.id,
       date: new Date().toISOString(),
       duration: durationStr,
@@ -4581,7 +4633,8 @@ function renderBlockCalendar() {
 
   const weeks = [];
   for (let w = firstW; w <= BLOCK_WEEKS; w++) {
-    const ramp = w < 1 ? rampWeek(startISO, rampLen, weekStart(startISO, w)) : null;
+    const ramp =
+      w < 1 ? rampWeek(startISO, rampLen, weekStart(startISO, w)) : null;
     const monday = weekStart(startISO, w);
     const tests = testsForWeek(w)
       .map((id) => getBenchmark(id)?.name)
@@ -4698,8 +4751,7 @@ function renderBlockCalendar() {
           plans
             .filter((p) => p && !p.optional)
             .map((p) => p.name)
-            .join(' + ') ||
-          (hasRehab ? rehabTitle : 'Rest');
+            .join(' + ') || (hasRehab ? rehabTitle : 'Rest');
         rows.push(`
           <div class="cal-day${k === todayK ? ' cal-today' : ''}${isDone ? ' cal-done' : ''}">
             <div class="cal-day-top">
@@ -5068,8 +5120,9 @@ function spRender(animateFrom = null) {
   const after = _spAfter;
   const spVariant = _spVariant;
   document.getElementById('sp-header-title').textContent = headerLabel;
-  const spLabel =
-    CAL_PINNED.has(session.id) ? null : variantLabel(session, spVariant);
+  const spLabel = CAL_PINNED.has(session.id)
+    ? null
+    : variantLabel(session, spVariant);
   document.getElementById('sp-title').textContent = session.name.toUpperCase();
   document.getElementById('sp-meta').textContent =
     `~${estimateSessionMins(session, spVariant)} MIN · ${sessionBlocks(session, spVariant).length} BLOCKS${spLabel ? ` · DAY ${spLabel}` : ''}`;
@@ -8798,7 +8851,8 @@ function renderHistory() {
       const rpeStr = h.rpe ? ` · ${h.rpe}` : '';
       // a short day says so in its own line rather than in its name: the
       // name is what the streak, the calendar and the share card all read
-      const shortStr = h.short ? ' · short' : '';
+      const shortStr =
+        (h.short ? ' · short' : '') + (h.endedEarly ? ' · ended early' : '');
       const meta = isCF
         ? `${d} · ${h.cfFormat || h.type} · ${h.duration}`
         : h.type === 'cardio'

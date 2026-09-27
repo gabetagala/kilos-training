@@ -75,9 +75,9 @@ describe('rehab program data', () => {
 
   it('every supporting-cast movement survives in the rotating slot', () => {
     const daily = getRehabSession('daily');
-    const slot = daily.blocks.find(
-      (b) => b.rotate && b.rotate.every((v) => v.mode === 'hold'),
-    );
+    // found by its marker — since 2026-09-27 the moving members are counted
+    // tempo sets, so "every member is a hold" no longer describes the slot
+    const slot = daily.blocks.find((b) => b.rotate && b.cast);
     expect(slot.rotate.map((v) => v.ex).sort()).toEqual(
       [
         'ql-plank',
@@ -411,9 +411,11 @@ describe('player helpers', () => {
   it('the daily protocol and the easy day land in believable bands', () => {
     // 48 min of work + prep and side changeovers. Anything under 48 means a
     // duration got trimmed; much over means the changeovers have crept.
-    // EMOM40 (2026-08-11): ~25 min of holds + the 12-min topper
+    // EMOM40 (2026-08-11): ~25 min of holds + the 12-min topper. Floor 30
+    // since 2026-09-27: the moving blocks became counted reps sized a little
+    // under their old clocks (back extension 40 × 5s = 3:20, was 4:00)
     const d = estimateSessionMins(getRehabSession('daily'));
-    expect(d).toBeGreaterThanOrEqual(33);
+    expect(d).toBeGreaterThanOrEqual(30);
     expect(d).toBeLessThanOrEqual(40);
     const r = estimateSessionMins(getRehabSession('reset'));
     expect(r).toBeGreaterThanOrEqual(8);
