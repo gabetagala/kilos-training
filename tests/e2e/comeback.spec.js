@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { dismissOnboarding } from './helpers.js';
+import { dismissOnboarding, checkInGood } from './helpers.js';
+
+// QA round: an unanswered back check serves the lighter 'unchecked' dose —
+// these specs exercise the full session, so today's check is GOOD
+test.beforeEach(async ({ page }) => {
+  await checkInGood(page);
+});
 
 // AFTER A GAP (2026-09-23): the app answers "I haven't trained in days —
 // what do I do?" before he has to ask it. In a real browser because the
@@ -85,7 +91,8 @@ test('browsing a session still shows the program, with the advice alongside', as
   // itself into a twelve-minute day; that reads as the program shrinking.
   await page.locator('[data-d40="d40-b1"]').click();
   await expect(page.locator('#sp-dose-full')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('#sp-meta')).toContainText('~40 MIN');
+  // the full day: 30–45 minutes (the cap is 45 since the 45-min round)
+  await expect(page.locator('#sp-meta')).toContainText(/~(3\d|4[0-5]) MIN/);
   await expect(page.locator('#sp-dose-note')).toContainText('4 days off');
 });
 
@@ -99,7 +106,9 @@ test('nine days off: the anchor target steps back instead of up', async ({
   await page.locator('#sp-start').click();
   let ctx = '';
   const seen = [];
-  for (let i = 0; i < 14; i++) {
+  // Wednesday opens with the warm-up and the Power EMOM (2026-10-10), so
+  // the anchor's first working set sits ~15 steps in
+  for (let i = 0; i < 40; i++) {
     ctx = (await page.locator('#rp-context').textContent()) || '';
     const meta = (await page.locator('#rp-meta').textContent()) || '';
     seen.push(`${meta}>>${ctx}`);
@@ -119,8 +128,10 @@ test('three weeks off: the banner names the gap and offers the restart', async (
 }) => {
   await withGap(page, 21);
   await openProgram(page);
-  await expect(page.locator('.blk-restart-open')).toContainText('21 days off');
-  await page.locator('.blk-restart-open').click();
+  // the deload button shares the restart button's styling class (2026-10-10)
+  const restart = page.locator('.blk-restart-open:not(.blk-deload-on)');
+  await expect(restart).toContainText('21 days off');
+  await restart.click();
   await page.locator('.blk-restart-yes').click();
   await expect(page.locator('.blk-name')).toHaveText('RAMP-UP · WK 1/2');
 });

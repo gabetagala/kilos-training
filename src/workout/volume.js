@@ -27,6 +27,15 @@ export const MUSCLE_MAP = {
   'overhead-triceps': { triceps: 1 },
   'db-kickback': { triceps: 1 },
   'diamond-pushup': { triceps: 1, chest: 0.5 },
+  'ring-dip': { chest: 1, triceps: 1, frontdelt: 0.5 },
+  'db-calf-raise': { calves: 1 },
+  'slider-leg-curl': { hams: 1, glutes: 0.5 },
+  'cable-leg-curl': { hams: 1 },
+  // the amber-day stand-in for the RDL and split squats
+  'glute-bridge': { glutes: 1, hams: 0.5 },
+  'lying-db-extension': { triceps: 1 },
+  'incline-y-raise': { upperback: 1, reardelt: 0.5 },
+  'ring-row': { upperback: 1, reardelt: 0.5, biceps: 0.5 },
   'hammer-curl': { biceps: 1, forearm: 0.5 },
   'supinated-curl': { biceps: 1 },
   'reverse-curl': { biceps: 1, forearm: 0.5 },
@@ -34,17 +43,26 @@ export const MUSCLE_MAP = {
   'rfe-split-squat': { quads: 1, glutes: 1 },
   'box-squat': { quads: 1, glutes: 0.5 },
   'box-step-up': { quads: 1, glutes: 0.5 },
-  rdl: { hams: 1, glutes: 1, upperback: 0.5 },
+  // honest credits (2026-10-10, coach QA): the RDL's upper-back "credit" was
+  // isometric holding, the push press's quads were a dip, a suitcase carry
+  // isn't a lateral raise — all three removed
+  rdl: { hams: 1, glutes: 1 },
   'single-leg-bridge': { glutes: 1, hams: 0.5 },
-  'suitcase-carry': { obliques: 1, forearm: 1, sidedelt: 0.5 },
+  'suitcase-carry': { obliques: 1, forearm: 1 },
   'farmer-carry': { forearm: 1, upperback: 0.5 },
   'wrist-curl': { forearm: 1 },
   'reverse-wrist-curl': { forearm: 1 },
   'side-plank': { obliques: 1 },
   // CrossFit movements (2026-08-10) — same fractional model as everything else.
-  'db-push-press': { frontdelt: 1, triceps: 0.5, quads: 0.5 },
+  'db-push-press': { frontdelt: 1, triceps: 0.5 },
   'db-hang-snatch': { frontdelt: 0.5, upperback: 0.5, hams: 0.5, glutes: 0.5 },
-  'db-hang-clean-press': { frontdelt: 0.5, triceps: 0.5, upperback: 0.5, hams: 0.5, glutes: 0.5 },
+  'db-hang-clean-press': {
+    frontdelt: 0.5,
+    triceps: 0.5,
+    upperback: 0.5,
+    hams: 0.5,
+    glutes: 0.5,
+  },
   'db-front-rack-lunge': { quads: 1, glutes: 1 },
   'bear-crawl': { obliques: 1, frontdelt: 0.5 },
   // The cardio stations are a CONDITIONING stimulus, not a hypertrophy one —
@@ -57,6 +75,7 @@ export const MUSCLE_MAP = {
   'shadow-boxing': {}, // conditioning, not a set of anything — same rule as the cardio stations
 
   'high-knees': {},
+  sprint: {},
   'skater-bound': {},
   'reverse-lunge': { quads: 0.5, glutes: 0.5 },
   // Anchor variants that were MISSING from the verifier's map until
@@ -67,6 +86,7 @@ export const MUSCLE_MAP = {
   'db-split-squat': { quads: 1, glutes: 1 },
   'db-floor-press': { chest: 1, triceps: 0.5, frontdelt: 0.5 },
   'incline-db-press': { chest: 1, triceps: 0.5, frontdelt: 0.5 },
+  'db-bench-press': { chest: 1, triceps: 0.5, frontdelt: 0.5 },
   // Ballistic work, same reasoning as the cardio stations: a jump has almost no
   // time under tension, so it is power, not growth volume. The explosive
   // push-up is the exception — it is a bodyweight press through a full range,
@@ -86,24 +106,40 @@ export const WASTEFUL = 30;
 // muscles he is actually chasing get a REAL floor, enforced weekly by
 // verify-program.mjs: the triangle (his stated physique goal) at 10+ —
 // the bottom of the 10–20 productive band — and the 3-D support muscles
-// at 7+. Everything absent here keeps the MEV floor: legs are maintenance
-// BY GOAL ("legs are already there; cuts are a body-fat thing"), obliques
-// get their real dose from the daily side-core medicine the tally
-// deliberately excludes, and front delts are EXPECTED_LOW.
+// at 7+. Everything absent here keeps the MEV floor: obliques get their
+// real dose from the daily side-core medicine the tally deliberately
+// excludes, and front delts are EXPECTED_LOW.
+//
+// LEGS GROW NOW (2026-10-10, his call: "go further and grow legs too"). They
+// were maintenance by goal since 2026-08-10; quads and glutes now carry the
+// same 10+ floor as the triangle, trained Wednesday and Friday (Monday's
+// hinge feeds glutes and hamstrings). Hamstrings hold 8: one RDL a week (back
+// medicine first) plus the slider leg curls Wednesday and Friday.
+// ROUND 3 (2026-10-10, coach QA: "the triangle is dosed at the floor"): the
+// three muscles that make the triangle read wide now sit above the generic
+// 10 — the anchor pairs and Tuesday's bench press pay for it in zero minutes.
 export const TARGETS = {
-  lats: 10,
-  chest: 10,
-  sidedelt: 10,
+  lats: 11,
+  chest: 12,
+  sidedelt: 12,
   biceps: 10,
   triceps: 10,
   forearm: 10,
   upperback: 7,
   reardelt: 7,
+  quads: 10,
+  glutes: 10,
+  // 2026-10-10 (coach QA): the last two leg gaps — knee-flexion hamstrings
+  // (slider curls) and calves (they had none at all)
+  hams: 8,
+  calves: 8,
 };
 
 // Front delts are intentionally unserved — their MEV is ~0 because every
 // press saturates them. Flagging them red twelve times is noise, not signal.
-export const EXPECTED_LOW = new Set(['frontdelt']);
+// obliques too (round 5): Saturday's suitcase carry credits them, but their
+// real dose is the daily side plank the tally deliberately excludes
+export const EXPECTED_LOW = new Set(['frontdelt', 'obliques']);
 
 // Sessions whose ENTIRE content is exempt from the hypertrophy tally.
 // The rebuilt 'daily' carries a topper EMOM that IS hypertrophy work, so its

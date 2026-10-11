@@ -1,3 +1,4 @@
+import './muteAutomation.js'; // must run before any audio is created
 import {
   COACHES_DATA,
   EXERCISES_DB,
@@ -36,6 +37,12 @@ import {
   scoreFromRun,
 } from './workout/benchmark.js';
 import {
+  applyAmber,
+  applyTired,
+  applyNoFolds,
+  applyUnchecked,
+  hasDose,
+  hasMorningWork,
   applyFormats,
   applyPhase,
   applyRamp,
@@ -78,6 +85,8 @@ import {
   estimate1RM,
   estimateKcal,
   rampWeight,
+  REPS_FIRST,
+  suggestRepsFirst,
   repTargetTop,
   suggestNextWeight,
 } from './workout/progression.js';
@@ -616,6 +625,86 @@ function getLastSession(exerciseName) {
     if (ex?.logs?.length) return ex.logs;
   }
   return null;
+}
+
+// The last session's sets of the SAME week type (2026-10-09). A heavy week's
+// 7 reps at more load must never be the yardstick for a 10-rep week, or the
+// target asks for the heavy weight at full reps — and the other way round.
+// Logs without the flag are ordinary weeks (everything logged before it).
+// …and skips EASED sets (2026-10-10, physio QA): an amber or comeback day
+// logs ~90% loads, and easing from an eased day ratchets 60 → 55 → 50.
+// The last `n` such sessions, newest first — with the date each one ran.
+function getSessionsLike(exerciseName, heavy, n) {
+  const out = [];
+  const history = get('workoutHistory') || [];
+  for (let i = history.length - 1; i >= 0 && out.length < n; i--) {
+    const ex = history[i].exercises?.find((e) => e.name === exerciseName);
+    const logs = ex?.logs?.filter((l) => !!l.heavy === !!heavy && !l.eased);
+    if (logs?.length) {
+      const h = history[i];
+      out.push(
+        Object.assign(logs, {
+          date: h.date,
+          // a full-dose day: the only kind a stall can be judged on
+          full: !(h.short || h.amber || h.tired || h.ramp),
+        }),
+      );
+    }
+  }
+  return out;
+}
+
+// THE SPINE-LOADED LIFTS (2026-10-10, round-3 QA): the ones a disc answers
+// for. Their load rises only on a Good morning AND only if the morning after
+// their last session was not stiff or worse — the disc's real answer to a
+// squat arrives the next day. Everything else (curls, raises, rows, the
+// press, the pulldown) rises unless today is amber or red: a short night or
+// a skipped check no longer freezes the arms for weeks.
+const SPINE_LIFTS = new Set([
+  'front-squat',
+  'rdl',
+  'db-split-squat',
+  'rfe-split-squat',
+  'db-front-rack-lunge',
+]);
+// The first back answer within 48 h of the last session counts as its
+// morning-after; none at all → today's own check decides (round-3 plan QA).
+function morningAfterOK(lastDateISO, exId) {
+  if (!lastDateISO) return true;
+  const checks = get(BACK_CHECK_KEY) || [];
+  // a lift he FLARED on (the player's "back flared" stop) holds next time
+  const flaredOn = checks.find(
+    (e) => e.date === dayKey(new Date(lastDateISO)) && e.flare === exId,
+  );
+  if (flaredOn) return false;
+  for (const add of [1, 2]) {
+    const d = new Date(lastDateISO);
+    d.setDate(d.getDate() + add);
+    const c = checks.find((e) => e.date === dayKey(d) && e.back);
+    if (c) return !(c.back === 'stiff' || RED_BACK.has(c.back));
+  }
+  return true;
+}
+// The RDL's own rule (2026-10-10, both final reviews): weight goes up only
+// with ≥2 reps left last time, and never two exposures running.
+function lastRDLRIR() {
+  const hist = get('workoutHistory') || [];
+  for (let i = hist.length - 1; i >= 0; i--) {
+    if (hist[i].rdlRIR != null) return hist[i].rdlRIR;
+  }
+  return null;
+}
+function rdlRoseLastTime() {
+  const tops = [];
+  const hist = get('workoutHistory') || [];
+  for (let i = hist.length - 1; i >= 0 && tops.length < 2; i--) {
+    const ex = hist[i].exercises?.find((e) => e.name === 'Romanian Deadlift');
+    const w = ex?.logs
+      ?.filter((l) => !l.eased)
+      .map((l) => parseFloat(l.weight) || 0);
+    if (w?.length) tops.push(Math.max(...w));
+  }
+  return tops.length === 2 && tops[0] > tops[1];
 }
 
 // ─── NAVIGATION ───────────────────────────────────────────────────────────────
@@ -1766,7 +1855,7 @@ function renderBlockBanner() {
         <div class="blk-pre-note">${b.ramp === 1 ? 'Two' : 'Three'} rounds of
         each piece instead of four, with a rest minute between. No scored
         finishers yet: rehab days are the holds and the core cap. Week 1 begins
-        Monday ${start.getDate()} ${SHORT_MONTHS[start.getMonth()]} with the full forty minutes and the
+        Monday ${start.getDate()} ${SHORT_MONTHS[start.getMonth()]} with the full session and the
         baseline tests.</div>
       </div>`;
     return;
@@ -1806,26 +1895,44 @@ function renderBlockBanner() {
           ? `<div class="blk-flag">TEST WEEK — ${testNames.join(' + ').toUpperCase()}</div>`
           : ''
       }
-      ${b.deloadCheckpoint ? '<button class="blk-flag blk-check" type="button">DELOAD CHECKPOINT — tap to decide</button>' : ''}
+      ${
+        deloadActive()
+          ? '<button class="blk-flag blk-deload-off" type="button">DELOAD WEEK — every session runs short · tap to undo</button>'
+          : b.deloadCheckpoint
+            ? '<button class="blk-flag blk-check" type="button">DELOAD CHECKPOINT — tap to decide</button>'
+            : ''
+      }
       <div class="blk-restart">
         <button class="blk-restart-open" type="button" aria-expanded="false">${
           gap.level === 'restart'
             ? `${esc(gap.headline)} — restart with a ramp-up`
             : 'Time off? Restart with a ramp-up'
         }</button>
+        ${deloadActive() ? '' : '<button class="blk-restart-open blk-deload-on" type="button">Run-down? Deload this week</button>'}
       </div>
     </div>`;
   el.querySelector('.blk-check')?.addEventListener('click', () =>
     openDeloadCheck(done),
   );
+  el.querySelector('.blk-deload-off')?.addEventListener('click', () => {
+    set(DELOAD_KEY, { monday: null, setAt: new Date().toISOString() });
+    pushData();
+    renderBlockBanner();
+  });
   // RESTART (2026-09-21). A missed month shouldn't leave the block counting
   // weeks nobody trained. One confirm, inline, because it rewrites which
   // week it is on every device. Nothing is deleted: history, PRs and
   // weights all stay.
-  el.querySelector('.blk-restart-open')?.addEventListener('click', (e) => {
-    const box = e.currentTarget.parentElement;
-    const start = new Date(restartStartISO());
-    box.innerHTML = `
+  el.querySelector('.blk-deload-on')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    startDeload();
+  });
+  el.querySelector('.blk-restart-open:not(.blk-deload-on)')?.addEventListener(
+    'click',
+    (e) => {
+      const box = e.currentTarget.parentElement;
+      const start = new Date(restartStartISO());
+      box.innerHTML = `
       <div class="blk-pre-note">${RAMP_WEEKS} easy weeks from today, then
       week 1 on Monday ${start.getDate()} ${SHORT_MONTHS[start.getMonth()]}. Your history, PRs and
       weights stay.</div>
@@ -1833,17 +1940,18 @@ function renderBlockBanner() {
         <button class="blk-restart-yes" type="button">Restart</button>
         <button class="blk-restart-no" type="button">Keep week ${done}</button>
       </div>`;
-    box
-      .querySelector('.blk-restart-no')
-      .addEventListener('click', () => renderBlockBanner());
-    box.querySelector('.blk-restart-yes').addEventListener('click', () => {
-      restartBlock();
-      renderRehabPage();
-      renderDayHero();
-      renderTodayCard();
-      renderMonthGrid();
-    });
-  });
+      box
+        .querySelector('.blk-restart-no')
+        .addEventListener('click', () => renderBlockBanner());
+      box.querySelector('.blk-restart-yes').addEventListener('click', () => {
+        restartBlock();
+        renderRehabPage();
+        renderDayHero();
+        renderTodayCard();
+        renderMonthGrid();
+      });
+    },
+  );
   // Surface it once per block-week, unprompted — a checkpoint you have to
   // remember to go looking for isn't a checkpoint.
   if (b.deloadCheckpoint && get(DELOAD_SEEN_KEY) !== done) {
@@ -1875,7 +1983,10 @@ function renderBlockBanner() {
 // the display name, and hardcoding it here silently broke the floor-press row
 // ('Floor Press' vs the real 'Barbell Floor Press'), which then read
 // "no sets logged yet" forever no matter how many sessions were logged.
-const ANCHOR_IDS = ['pull-up', 'front-squat', 'floor-press'];
+// 2026-10-10 (coach QA): the old list charted weighted pull-ups and the
+// barbell floor press, which no session serves — the V-taper chart read "no
+// sets logged yet" forever. These are the three fixed anchors.
+const ANCHOR_IDS = ['pull-up-bw', 'front-squat', 'incline-db-press'];
 const anchorName = (exId) => GUIDED_EXERCISES[exId]?.name || exId;
 
 // Best estimated 1RM per block-week for one exercise, from logged sets.
@@ -1891,7 +2002,18 @@ function anchorSeries(exName, startISO) {
     const wk = Math.min(w, BLOCK_WEEKS);
     for (const ex of h.exercises || []) {
       if (ex.name !== exName) continue;
-      const e = bestE1RM((ex.logs || []).filter((l) => l.done !== false));
+      const done = (ex.logs || []).filter((l) => l.done !== false && !l.eased);
+      // A bodyweight lift logs 0 kg. Its strength is (body + pack) × reps —
+      // so the chart reads it as an e1RM of the whole system, and week 9's
+      // 2.5 kg backpack shows as the step UP it is, not a drop from 8 reps
+      // to 5 (2026-10-10, coach QA). Pack from week 9, body from check-ins.
+      const bw = !done.some((l) => parseFloat(l.weight) > 0);
+      // the pack he LOGGED (round 3) — never a week-9 guess
+      const pack = bw && ex.name === 'Strict Pull-Up' ? h.pullupPackKg || 0 : 0;
+      const body = bodyKgAsOf(get(CHECKINS_KEY) || [], h.date, 75);
+      const e = bw
+        ? bestE1RM(done.map((l) => ({ weight: body + pack, reps: l.reps })))
+        : bestE1RM(done);
       if (e == null) continue;
       byWeek.set(wk, Math.max(byWeek.get(wk) ?? 0, e));
     }
@@ -1940,6 +2062,7 @@ function renderBlockProgress() {
     }
     const first = series[0][1];
     const last = series.at(-1)[1];
+    const bwChart = false; // bodyweight lifts chart a (body + pack) e1RM now
     const delta = last - first;
     // 1RM test-retest CV is ~2–4%, so a real change has to clear ~5%. Below
     // that it's measurement noise and saying "up" would be a lie.
@@ -1948,16 +2071,55 @@ function renderBlockProgress() {
     rows.push(`
       <div class="bp-row">
         <div class="bp-k">${name}</div>
-        <div class="bp-v">${toDisplayWeight(last)}${weightUnit()}<span class="bp-sub">e1RM</span></div>
+        <div class="bp-v">${bwChart ? `${last}<span class="bp-sub">reps</span>` : `${toDisplayWeight(last)}${weightUnit()}<span class="bp-sub">e1RM</span>`}</div>
         <div class="bp-spark bp-${meaningful ? dir : 'flat'}">${sparkline(series, BLOCK_WEEKS)}</div>
         <div class="bp-d ${meaningful ? `bp-${dir}` : ''}">${
           series.length < 2
             ? 'first week'
             : meaningful
-              ? `${delta > 0 ? '+' : ''}${toDisplayWeight(delta)}${weightUnit()} since wk ${series[0][0]}`
+              ? `${delta > 0 ? '+' : ''}${bwChart ? `${delta} reps` : `${toDisplayWeight(delta)}${weightUnit()}`} since wk ${series[0][0]}`
               : 'flat — inside the noise'
         }</div>
       </div>`);
+  }
+
+  // BROAD JUMP (2026-10-10, coach QA — "athleticism is untracked"): the best
+  // jump he reports after each Wednesday, by block week
+  {
+    const byWeek = new Map();
+    for (const h of get('workoutHistory') || []) {
+      if (h.broadJump == null) continue;
+      const w = currentWeek(startISO, new Date(h.date));
+      if (w == null || w < 1) continue;
+      const wk = Math.min(w, BLOCK_WEEKS);
+      byWeek.set(wk, Math.max(byWeek.get(wk) ?? 0, h.broadJump));
+    }
+    const series = [...byWeek.entries()].sort((a, b) => a[0] - b[0]);
+    if (!series.length) {
+      rows.push(
+        `<div class="bp-row bp-empty"><div class="bp-k">Broad Jump</div><div class="bp-v">—</div><div class="bp-d">logged after Wednesdays</div></div>`,
+      );
+    } else {
+      const first = series[0][1];
+      const last = series.at(-1)[1];
+      const delta = last - first;
+      // a jump measured with a tape is good to a few cm; under 5 is noise
+      const meaningful = Math.abs(delta) >= 5;
+      const dir = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
+      rows.push(`
+      <div class="bp-row">
+        <div class="bp-k">Broad Jump</div>
+        <div class="bp-v">${last}<span class="bp-sub">cm</span></div>
+        <div class="bp-spark bp-${meaningful ? dir : 'flat'}">${sparkline(series, BLOCK_WEEKS)}</div>
+        <div class="bp-d ${meaningful ? `bp-${dir}` : ''}">${
+          series.length < 2
+            ? 'first week'
+            : meaningful
+              ? `${delta > 0 ? '+' : ''}${delta} cm since wk ${series[0][0]}`
+              : 'flat — inside the noise'
+        }</div>
+      </div>`);
+    }
   }
 
   for (const b of BENCHMARK_SESSIONS) {
@@ -2008,8 +2170,14 @@ document.getElementById('deload-no')?.addEventListener('click', () => {
 });
 document.getElementById('deload-yes')?.addEventListener('click', () => {
   document.getElementById('deload-check').classList.remove('open');
+  startDeload();
   document.getElementById('deload-advice')?.classList.add('open');
 });
+function startDeload() {
+  set(DELOAD_KEY, { monday: thisMonday(), setAt: new Date().toISOString() });
+  pushData();
+  renderBlockBanner();
+}
 document.getElementById('deload-ok')?.addEventListener('click', () => {
   document.getElementById('deload-advice')?.classList.remove('open');
 });
@@ -2049,15 +2217,32 @@ function openBenchmarkScorePrompt(session) {
 // routed to a callback — an AMRAP's rounds and a Tabata's worst round only
 // exist in his head, so the app asks while the number is still warm.
 let pendingFinisherSave = null;
+// A QUEUE (2026-10-10): a lift day can now ask two things at the end — the
+// finisher's score and the anchor's reps-in-reserve — and the sheet shows
+// one at a time. A prompt arriving while one is open waits its turn.
+const promptQueue = [];
+function queueScorePrompt(cfg, last, onSave) {
+  // a session the back stopped asks for no scores or reps-left
+  if (rhFlaredRecently()) return;
+  if (document.getElementById('bm-score').classList.contains('open')) {
+    promptQueue.push([cfg, last, onSave]);
+  } else openFinisherScorePrompt(cfg, last, onSave);
+}
+function nextScorePrompt() {
+  const next = promptQueue.shift();
+  if (next) setTimeout(() => openFinisherScorePrompt(...next), 250);
+}
 function openFinisherScorePrompt(cfg, last, onSave) {
   pendingBenchmarkPrompt = null;
   pendingFinisherSave = { cfg, onSave };
-  bmScoreVal = last ?? cfg.def;
+  // `def: null` (2026-10-10, both final reviews): the reps-left question
+  // starts blank — one tap through must not count as "2 left"
+  bmScoreVal = cfg.def === null ? null : (last ?? cfg.def);
   document.getElementById('bm-score-title').textContent = cfg.title;
   document.getElementById('bm-score-sub').textContent =
     `${cfg.sub}${last != null ? ` Last time: ${last}.` : ''}`;
   document.getElementById('bm-unit').textContent = cfg.unit;
-  document.getElementById('bm-val').textContent = bmScoreVal;
+  document.getElementById('bm-val').textContent = bmScoreVal ?? '—';
   document.getElementById('bm-score').classList.add('open');
 }
 function bmScoreAdjust(d) {
@@ -2065,7 +2250,17 @@ function bmScoreAdjust(d) {
     pendingFinisherSave?.cfg ||
     BM_PROMPT[pendingBenchmarkPrompt?.scoreType] ||
     BM_PROMPT.hr;
-  bmScoreVal = Math.max(cfg.min, Math.min(cfg.max, bmScoreVal + d));
+  // from blank, the first tap lands on the middle of the scale
+  bmScoreVal =
+    bmScoreVal == null
+      ? (cfg.start ?? cfg.min)
+      : Math.max(
+          cfg.min,
+          Math.min(
+            cfg.max,
+            Math.round((bmScoreVal + d * (cfg.step || 1)) * 10) / 10,
+          ),
+        );
   document.getElementById('bm-val').textContent = bmScoreVal;
 }
 document
@@ -2077,16 +2272,19 @@ document
 document.getElementById('bm-score-save')?.addEventListener('click', () => {
   if (pendingBenchmarkPrompt)
     saveBenchmarkRun(pendingBenchmarkPrompt.id, bmScoreVal);
-  if (pendingFinisherSave) pendingFinisherSave.onSave(bmScoreVal);
+  if (pendingFinisherSave && bmScoreVal != null)
+    pendingFinisherSave.onSave(bmScoreVal);
   pendingBenchmarkPrompt = null;
   pendingFinisherSave = null;
   document.getElementById('bm-score').classList.remove('open');
   renderRehabPage();
+  nextScorePrompt();
 });
 document.getElementById('bm-score-skip')?.addEventListener('click', () => {
   pendingBenchmarkPrompt = null;
   pendingFinisherSave = null;
   document.getElementById('bm-score').classList.remove('open');
+  nextScorePrompt();
 });
 
 // Which variant of a session runs today — drives every `rotate` pool.
@@ -2247,7 +2445,138 @@ function blockStartISO() {
 // It must be re-applied on EVERY path that rebuilds a queue — the saved run
 // carries `dose`, and a rebuild that forgets it produces a different queue,
 // which the fingerprint reads as a retired session and salvages.
-const dosed = (s, dose) => (dose === 'short' ? applyShort(s) : s);
+// THE AMBER DAY (2026-10-10) rides the same path: a run built amber must be
+// rebuilt amber on every restore, or the fingerprint salvages it.
+// Every dose in the saved string, in a fixed order — each apply* skips the
+// part it already carries, so this is safe on a dosed session (round-6 app
+// QA: 'short+tired' used to restore as 'tired' and retire the run).
+// what the run IS, said in the overview title (round-6 app QA: it always
+// read "FULL SESSION", even on a short or stiff-back day)
+const DOSE_TITLES = {
+  short: 'short version',
+  amber: 'lighter day',
+  tired: 'short-night version',
+  unchecked: 'no jumps until checked in',
+};
+const doseTitle = (dose) =>
+  ['short', 'amber', 'tired', 'unchecked']
+    .filter((p) => hasDose(dose, p))
+    .map((p) => DOSE_TITLES[p])
+    .join(' · ') || 'full session';
+const DOSE_STEPS = {
+  short: applyShort,
+  amber: applyAmber,
+  tired: applyTired,
+  unchecked: applyUnchecked,
+};
+const dosed = (s, dose, noFolds = false) => {
+  const d = ['short', 'amber', 'tired', 'unchecked']
+    .filter((p) => hasDose(dose, p))
+    .reduce((acc, p) => DOSE_STEPS[p](acc), s);
+  // the morning rule rides on top of any dose (applyNoFolds is idempotent)
+  return noFolds ? applyNoFolds(d) : d;
+};
+
+// ── THE MORNING BACK CHECK (2026-10-10, physio QA) ──────────────────────────
+// Nothing used to ask how the back answered the last session — and with a
+// degenerative disc that answer arrives the NEXT MORNING, not during the set.
+// One tap on today's preview: Good / Stiffer than usual / Sore or leg
+// symptoms, plus "slept under 5 h". It sets today's dose and gates every
+// load increase. One record per date, synced.
+const BACK_CHECK_KEY = 'kilos-back-checks';
+const dayKey = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+function todayBackCheck() {
+  return (get(BACK_CHECK_KEY) || []).find((e) => e.date === dayKey()) || null;
+}
+function setTodayBackCheck(patch) {
+  const all = get(BACK_CHECK_KEY) || [];
+  const i = all.findIndex((e) => e.date === dayKey());
+  const rec = { ...(i >= 0 ? all[i] : { date: dayKey() }), ...patch };
+  if (i >= 0) all[i] = rec;
+  else all.push(rec);
+  set(BACK_CHECK_KEY, all.slice(-120));
+  pushData();
+}
+// red = back pain worse than usual, or anything into a leg · amber = stiffer
+// than usual · tired = a fine back after a short night · green = good ·
+// null = not checked in. ('sore' is the pre-2026-10-10 red.)
+const RED_BACK = new Set(['worse', 'leg', 'sore']);
+function backLevel(c = todayBackCheck()) {
+  if (RED_BACK.has(c?.back)) return 'red';
+  if (c?.back === 'stiff') return 'amber';
+  // the morning after a red one starts amber until he says otherwise — and a
+  // short-night tap is NOT saying otherwise (round-4 physio QA: tapping
+  // "slept under 5 h" used to lift a carried amber to the full squat)
+  if (!c?.back && RED_BACK.has(yesterdayBackCheck()?.back)) return 'amber';
+  if (c?.shortSleep) return 'tired';
+  if (c?.back === 'good') return 'green';
+  return null;
+}
+function yesterdayBackCheck() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return (get(BACK_CHECK_KEY) || []).find((e) => e.date === dayKey(d)) || null;
+}
+// ESCALATION (physio QA): repeated bad mornings are a clinician's job, not an
+// app's. Three red mornings in two weeks, or leg symptoms twice, says so.
+function backEscalation() {
+  const since = new Date();
+  since.setDate(since.getDate() - 14);
+  const recent = (get(BACK_CHECK_KEY) || []).filter(
+    (e) => e.date >= dayKey(since),
+  );
+  const reds = recent.filter((e) => RED_BACK.has(e.back)).length;
+  const legs = recent.filter((e) => e.back === 'leg').length;
+  if (reds >= 3 || legs >= 2) {
+    return `${reds} rough mornings in the last two weeks — book a physio to have it checked.`;
+  }
+  return '';
+}
+// PERSISTENT STIFFNESS (round-3 physio QA): five stiff-or-worse mornings in
+// two weeks is a load problem before it is a clinical one — the answer is a
+// lighter week, offered as one tap right there on the check.
+function backWantsDeload() {
+  if (deloadActive()) return false;
+  const checks = get(BACK_CHECK_KEY) || [];
+  const since = (days) => {
+    const d = new Date();
+    d.setDate(d.getDate() - days);
+    return dayKey(d);
+  };
+  const stiff = checks.filter(
+    (e) => e.date >= since(14) && (e.back === 'stiff' || RED_BACK.has(e.back)),
+  ).length;
+  // sleep debt counts too (round-6 physio QA): three short nights in a week
+  const shortNights = checks.filter(
+    (e) => e.date >= since(7) && e.shortSleep,
+  ).length;
+  return stiff >= 5 || shortNights >= 3;
+}
+
+// ── DELOAD = ONE TAP (2026-10-10, coach QA) ─────────────────────────────────
+// A deload used to be advice in a dialog. Now it is a week the app runs
+// short: every session that week leads with the SHORT dose.
+const DELOAD_KEY = 'kilos-deload';
+const thisMonday = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return dayKey(d);
+};
+const deloadActive = () => get(DELOAD_KEY)?.monday === thisMonday();
+
+// The last reps-in-reserve he reported for this lift day's anchor.
+// Per LIFT; records from before anchorEx existed match on the session alone.
+function lastAnchorRIR(sessionId, exId) {
+  const hist = get('workoutHistory') || [];
+  for (let i = hist.length - 1; i >= 0; i--) {
+    const h = hist[i];
+    if (h.anchorRIR == null || h.programId !== sessionId) continue;
+    if (!h.anchorEx || h.anchorEx === exId) return h.anchorRIR;
+  }
+  return null;
+}
 
 const blockRampLen = () => get(BLOCK_SYNC_KEY)?.ramp || 0;
 
@@ -2268,8 +2597,119 @@ const phased = (s) => {
   if (!s) return s;
   const b = blockNow();
   if (b.ramp) return applyRamp(applyPhase(s, b.phase), b.ramp);
-  return applyFormats(applyPhase(s, b.phase), b.weekInBlock);
+  return earnedLadders(
+    applyFormats(applyPhase(s, b.phase), b.weekInBlock),
+    b.weekInBlock,
+  );
 };
+
+// THE LADDERS ARE EARNED (2026-10-10, round-3/4 coach QA). The pull-up and
+// ring-dip rungs (`weekReps`) used to climb on the calendar whatever he
+// logged. Now the calendar only serves the first session; after that the
+// rung is one rep over the weakest set he logged last time on this day.
+// And the pack (week 9+) goes on only after a session where every pull-up
+// set hit 8 — until then it's bodyweight, chasing the 8s.
+const PACK_REPS = 8;
+const LADDER_CAP = 12;
+function pullupPackEarned() {
+  return (get('workoutHistory') || []).some((h) => {
+    const reps = h.exercises
+      ?.find((e) => e.name === 'Strict Pull-Up')
+      ?.logs?.filter((l) => !l.eased)
+      .map((l) => parseInt(l.reps, 10));
+    return reps?.length >= 4 && reps.every((r) => r >= PACK_REPS);
+  });
+}
+function earnedLadders(session, week) {
+  if (!session?.blocks || !isProgramSession(session)) return session;
+  const hist = get('workoutHistory') || [];
+  const lastOnThisDay = (name) => {
+    for (let i = hist.length - 1; i >= 0; i--) {
+      const h = hist[i];
+      if (h.programId !== session.id) continue;
+      const logs = h.exercises
+        ?.find((e) => e.name === name)
+        ?.logs?.filter((l) => !l.eased && parseInt(l.reps, 10) > 0);
+      if (logs?.length) return logs.map((l) => parseInt(l.reps, 10));
+    }
+    return null;
+  };
+  const gate = (m) => {
+    if (!m?.weekReps && !m?.ladderCap) return m;
+    const name = GUIDED_EXERCISES[m.ex]?.name;
+    const done = name && lastOnThisDay(name);
+    // the pack phase: Monday's anchor, week 9 on
+    if (m.weekNotes && week >= 9) {
+      if (pullupPackEarned()) {
+        // THE LADDER KEEPS CLIMBING WITH THE PACK ON (round-5 coach QA: the
+        // calendar's 5 after 5×10 bodyweight was a four-week deload). First
+        // pack day: his bodyweight weakest − 3 (5–8). After that: weakest + 1;
+        // every 8 owned → more weight, back to 6.
+        const packDays = hist.filter(
+          (h) => h.programId === session.id && h.pullupPackKg > 0,
+        );
+        const last = packDays.at(-1);
+        const packReps = last?.exercises
+          ?.find((e) => e.name === name)
+          ?.logs?.filter((l) => !l.eased)
+          .map((l) => parseInt(l.reps, 10))
+          .filter((r) => r > 0);
+        if (packReps?.length) {
+          if (packReps.every((r) => r >= PACK_REPS)) {
+            return {
+              ...m,
+              reps: '6',
+              note: `Every 8 owned at ${last.pullupPackKg} kg — add 2.5 kg and drop to 6.`,
+            };
+          }
+          return {
+            ...m,
+            reps: String(Math.min(PACK_REPS, Math.min(...packReps) + 1)),
+            note: `Pack on — ${last.pullupPackKg} kg, same as last time.`,
+          };
+        }
+        const start = done
+          ? Math.max(5, Math.min(PACK_REPS, Math.min(...done) - 3))
+          : 5;
+        return {
+          ...m,
+          reps: String(start),
+          note: 'Pack on — start at 2.5 kg. Log its kilos after the session.',
+        };
+      }
+      const reps = done
+        ? String(Math.min(PACK_REPS, Math.min(...done) + 1))
+        : String(PACK_REPS);
+      return {
+        ...m,
+        reps,
+        note: 'No pack yet — bodyweight, chasing every 8. Own them all and it goes on.',
+      };
+    }
+    if (!done) return m;
+    // BOTH WAYS (round-4 coach QA): the rung is his weakest logged set + 1 —
+    // a strong day pulls the ladder up, a missed one holds it — capped at 12
+    // (past that, the pack is the lever)
+    const cap = m.ladderCap || LADDER_CAP;
+    const weakest = Math.min(...done);
+    // at the cap: the move's own next step takes over (`ladderNext`)
+    if (weakest >= cap && m.ladderNext) {
+      return { ...m, reps: String(cap), note: m.ladderNext };
+    }
+    const rung = Math.min(cap, weakest + 1);
+    return String(rung) === String(m.reps) ? m : { ...m, reps: String(rung) };
+  };
+  const shape = (b) =>
+    b?.members?.some((m) => m.weekReps || m.ladderCap)
+      ? { ...b, members: b.members.map(gate) }
+      : b;
+  return {
+    ...session,
+    blocks: session.blocks.map((b) =>
+      b.rotate ? { ...b, rotate: b.rotate.map(shape) } : shape(b),
+    ),
+  };
+}
 
 // The athlete's own swaps sit ON TOP of the phase's: a deliberate choice in
 // the player always beats the programmed rotation.
@@ -2285,6 +2725,7 @@ let rhQueue = [];
 let rhVariant = 0; // which rotation built rhQueue — persisted, so rebuilds match
 let rhPhase = 1; // which block phase built rhQueue — persisted for the same reason
 let rhDose = null; // 'short' when this run is the bad-night version
+let rhNoFolds = false; // the morning rule: this run skips the held folds
 let rhEaseLoad = false; // a week+ away: the anchor target steps back, not up
 // A benchmark's time score must measure the WORK. rhStartedAt is when the
 // player opened, which includes the 10s prep and however long the notes were
@@ -2311,6 +2752,9 @@ let rhLiftSets = []; // [{weight, reps}] logged RDL sets
 // stepper to reps (prefilled at the range top), second tap logs the truth.
 // null = weight stage. Exact prescriptions stay single-tap.
 let rhPendingReps = null;
+let rhAnchorReps = null; // a heavy-lift set's reps done, while its minute runs
+// the REPS DONE he dialled, kept across a refresh (round-6 app QA)
+let rhArSaved = null; // { idx, reps }
 const repsIsRange = (r) => /\d\D+\d/.test(String(r ?? ''));
 let rhWeightKg = 40;
 let rhLastBeepSec = null;
@@ -2823,10 +3267,12 @@ function rhPersist() {
     loggedEmom: [...rhLoggedEmom],
     phase: rhPhase, // the queue's shape depends on it — see openRehabPlayer
     dose: rhDose, // ditto: 'short' means half a day, and the queue shows it
+    noFolds: rhNoFolds, // ditto: the morning rule removed the folds
     firstWorkAt: rhFirstWorkAt,
     awayMs: rhAwayMs,
     liftSets: rhLiftSets,
     weightKg: rhWeightKg,
+    arSaved: rhArSaved,
     // the for-time score survives a refresh — without these, a mid-piece
     // crash restores with ELAPSED back at 0:00 and the score lies
     pieceStarts: rhPieceStarts,
@@ -2903,7 +3349,9 @@ function rhSalvageStale(saved) {
       // a retired partial: the calendar still counts the day as trained, but
       // variant rotation ignores it — only COMPLETED runs advance a pool
       interrupted: true,
-      ...(saved.dose === 'short' ? { short: true } : {}),
+      ...(hasDose(saved.dose, 'short') || hasDose(saved.dose, 'amber')
+        ? { short: true }
+        : {}),
       date,
       duration,
       totalWeight: Math.round(
@@ -3023,7 +3471,11 @@ function rhRestorable() {
   if (session && saved.queueSig) {
     try {
       const q = buildStepQueue(
-        dosed(applyPhase(session, saved.phase ?? blockNow().phase), saved.dose),
+        dosed(
+          applyPhase(session, saved.phase ?? blockNow().phase),
+          saved.dose,
+          saved.noFolds,
+        ),
         getSwaps(),
         saved.variant ?? rehabVariantIdx(session.id),
       );
@@ -3070,8 +3522,10 @@ function rhSessionRemainMs() {
 }
 
 function rhRenderSessionRemain() {
-  document.getElementById('rp-count').textContent =
-    `${rhFmt(rhSessionRemainMs())} LEFT`;
+  // the time on top, LEFT as a caption under it (2026-10-09) — side by side
+  // it took the header's width, and the block name is what needs it
+  document.getElementById('rp-count').innerHTML =
+    `${rhFmt(rhSessionRemainMs())}<span class="rp-count-k">LEFT</span>`;
 }
 
 // A for-time piece counts UP from when the piece began — that number IS the
@@ -3426,15 +3880,18 @@ function rhRenderOverview() {
     ? null
     : variantLabel(rhSession, rhVariant);
   document.getElementById('rpo-title').textContent =
-    `${rhSession.name}${vl ? ` · DAY ${vl}` : ''} · FULL SESSION`.toUpperCase();
+    `${rhSession.name}${vl ? ` · DAY ${vl}` : ''} · ${doseTitle(rhDose)}`.toUpperCase();
   const currentBi = rhStep()?.bi ?? 0;
   // a block is done when every one of its steps is behind us
   const lastIdxByBi = {};
   rhQueue.forEach((st, i) => {
     lastIdxByBi[st.bi] = i;
   });
+  // the overview lists what the QUEUE runs — the same dosed, folds-aware
+  // expression the queue is built from, so a resumed short / amber / early
+  // run never shows the full day's rows (round-6 test QA)
   document.getElementById('rpo-list').innerHTML = sessionOverview(
-    rhSession,
+    dosed(applyPhase(rhSession, rhPhase), rhDose, rhNoFolds),
     getSwaps(),
     rhVariant,
   )
@@ -3502,6 +3959,34 @@ document
 document
   .getElementById('rp-endearly')
   .addEventListener('click', rhOpenFinishConfirm);
+// THE BACK FLARED (2026-10-10, round-5 physio QA: "symptoms are a hard
+// stop"). One tap mid-session: the sets done so far are saved, today's check
+// becomes PAIN WORSE (with the lift it flared on), so tomorrow starts amber,
+// the escalation counts it, and the load gate holds — no extra questions.
+// Two taps (round-6 app QA: one tap ended the session, 8px under Finish):
+// the first arms it for three seconds, the second stops. After a flare the
+// session asks nothing and celebrates nothing — it shows the warning signs.
+let rhFlareArmed = null;
+let rhFlaredAt = 0;
+const rhFlaredRecently = () => Date.now() - rhFlaredAt < 5 * 60 * 1000;
+document.getElementById('rpo-flare')?.addEventListener('click', (e) => {
+  const btn = e.currentTarget;
+  if (!rhFlareArmed) {
+    btn.textContent = 'Tap again to stop — back flared';
+    rhFlareArmed = setTimeout(() => {
+      rhFlareArmed = null;
+      btn.textContent = 'Back flared — stop here';
+    }, 3000);
+    return;
+  }
+  clearTimeout(rhFlareArmed);
+  rhFlareArmed = null;
+  btn.textContent = 'Back flared — stop here';
+  document.getElementById('rp-overview').classList.remove('open');
+  rhFlaredAt = Date.now();
+  setTodayBackCheck({ back: 'worse', flare: rhStep()?.exId || null });
+  rhFinish({ early: true });
+});
 document.getElementById('btn-rhfinish-yes').addEventListener('click', () => {
   document.getElementById('rhfinish-confirm').classList.remove('open');
   rhFinish({ early: true });
@@ -3549,7 +4034,7 @@ function rhApplySwap(chosenId) {
   // — without applyPhase, a phase-2+ session rebuilt shorter and fell into
   // the lossy fallback below, which can't carry an alt's flags.
   const rebuilt = buildStepQueue(
-    dosed(applyPhase(rhSession, rhPhase), rhDose),
+    dosed(applyPhase(rhSession, rhPhase), rhDose, rhNoFolds),
     swaps,
     rhVariant,
   );
@@ -3683,9 +4168,18 @@ function rhRenderStep() {
   overlay.classList.toggle('phase-work', step.kind === 'work');
   // Inside a metcon the header becomes the PIECE, not the session — the whole
   // point is that these minutes are one named workout, not N separate items.
+  // …and a superset or warm-up names its BLOCK (2026-10-09). A for-time
+  // piece drops its round count here — the meta line already says ROUND 1
+  // OF 3, and the long form wrapped the header onto four lines.
   document.getElementById('rp-session-name').textContent = step.piece
-    ? `${step.piece.toUpperCase()} · ${step.pieceFormat}`
-    : rhSession.name.toUpperCase();
+    ? `${step.piece} · ${String(step.pieceFormat)
+        .replace(/^\d+ ROUNDS FOR TIME$/, 'FOR TIME')
+        // a piece already NAMED for its format doesn't say it twice
+        .replace(
+          /^TABATA /,
+          /tabata/i.test(step.piece) ? '' : 'TABATA ',
+        )}`.toUpperCase()
+    : (step.blockLabel || rhSession.name).toUpperCase();
   rhRenderSessionRemain();
 
   // Demo — licensed illustration if present, else the built-in figure.
@@ -3693,7 +4187,16 @@ function rhRenderStep() {
   rhRenderDemo(demoEl, step.exId);
   demoEl.classList.toggle('flip', step.side === 'RIGHT');
 
-  document.getElementById('rp-exname').textContent = ex.name;
+  const exEl = document.getElementById('rp-exname');
+  exEl.textContent = ex.name;
+  // ONE LINE on a phone (2026-10-09): "Chest-Supported DB Row" wrapping to two
+  // lines pushed the weight dial — the thing being logged — off the screen
+  if (window.innerWidth < 1000) {
+    fitLineFont(exEl, Math.min(48, Math.max(36, window.innerWidth * 0.11)), 28);
+  } else {
+    exEl.style.fontSize = '';
+    exEl.style.whiteSpace = '';
+  }
   // THE PRESCRIPTION RIDES ON THE MOVEMENT (2026-08-11, his ask): mid-EMOM
   // the one number he needs — reps, or seconds for timed work — leads the
   // meta line, big enough to read gassed (2026-08-14, his ask: at a glance,
@@ -3744,8 +4247,12 @@ function rhRenderStep() {
   } else {
     cueEl.textContent =
       step.kind === 'prep'
-        ? `${ex.cue} — ${ex.why}`
-        : [ex.cue, step.cueNote].filter(Boolean).join(' — ');
+        ? // a block that brings its own cue (the back-extension HOLD) says it
+          // from GET SET on, never the movement's rep cue
+          `${rhQueue[rhIdx + 1]?.cue || ex.cue} — ${ex.why}`
+        : step.warmup && step.cueNote
+          ? step.cueNote // a warm-up move needs its one line, not the lecture
+          : [step.cue || ex.cue, step.cueNote].filter(Boolean).join(' — ');
   }
   // Full cue always shows now (no clamp, compact type) — MORE stays hidden.
   const moreEl = document.getElementById('rp-cue-more');
@@ -3772,14 +4279,15 @@ function rhRenderStep() {
   // minutes) stay clean — a how-line there is noise.
   const howEl = document.getElementById('rp-how');
   if (howEl) {
+    const how = step.how || ex.how;
     const showHow =
-      !!ex.how &&
+      !!how &&
       !step.piece &&
       !step.emom &&
       !step.tempo &&
       step.rep == null &&
       (step.kind === 'work' || step.kind === 'prep');
-    howEl.textContent = showHow ? ex.how : '';
+    howEl.textContent = showHow ? how : '';
     howEl.style.display = showHow ? '' : 'none';
   }
 
@@ -3803,7 +4311,33 @@ function rhRenderStep() {
   document
     .getElementById('rehab-player')
     .classList.toggle('rp-dense', showLiftPanel && !step.manual);
+  // A LOGGING STEP KEEPS ITS DIAL ON SCREEN (round-6 app QA: a five-line RDL
+  // cue pushed the weight row under the transport): the cue clamps to two
+  // lines on any step that logs a weight; one tap on it shows the whole text.
+  const rp = document.getElementById('rehab-player');
+  rp.classList.toggle(
+    'rp-logging',
+    !!(step.manual && step.kind === 'work' && step.logWeight !== false),
+  );
+  document.getElementById('rp-cue').classList.remove('expanded');
   rhPendingReps = null; // arriving at any step resets the two-stage logger
+  // a heavy-lift set starts at its target; he taps down only for a miss
+  const arRow = document.getElementById('rp-anchor-reps');
+  // the anchor AND its pair log the reps he actually did
+  const showAR =
+    (step.anchor || step.pair || (step.build && step.emom)) &&
+    step.kind === 'work' &&
+    step.phase !== 'RAMP' &&
+    !step.logReps;
+  rhAnchorReps = !showAR
+    ? null
+    : rhArSaved?.idx === rhIdx
+      ? rhArSaved.reps
+      : repTargetTop(step.reps) || 0;
+  if (arRow) {
+    arRow.style.display = showAR ? '' : 'none';
+    document.getElementById('rp-ar-val').textContent = rhAnchorReps ?? '';
+  }
   const skipBtn = document.getElementById('rp-skip');
   const isManualWork = !!(step.manual && step.kind === 'work');
   skipBtn.innerHTML = isManualWork
@@ -3835,7 +4369,12 @@ function rhRenderStep() {
     if (ctxEl) {
       let ctx = '';
       if (showWeight) {
-        const lastLogs = getLastSession(ex?.name);
+        // superset sets read the last session of their own week type
+        const [lastLogs0, prevLogs] =
+          step.build || step.anchor
+            ? getSessionsLike(ex?.name, step.heavy, 2)
+            : [getLastSession(ex?.name)];
+        const lastLogs = lastLogs0 || null;
         if (lastLogs?.length) {
           const top = lastLogs.reduce((b, l) =>
             (parseFloat(l.weight) || 0) > (parseFloat(b.weight) || 0) ? l : b,
@@ -3855,14 +4394,118 @@ function rhRenderStep() {
             // a ramp week and a week away are the same problem: the last
             // weight was set by a fitter, fresher version of today
             const easing = !!rhSession?.ramp || rhEaseLoad;
-            const sugg = !step.anchor
-              ? null
-              : easing
-                ? rampWeight(lastLogs)
-                : suggestNextWeight(lastLogs, step.reps);
+            // THE LOAD GATE (2026-10-10, physio QA; split in round 3): a
+            // spine-loaded lift goes up only on a Good morning whose last
+            // session's next morning was fine too (SPINE_LIFTS); anything
+            // else unless today is amber or red. On the anchor, the last
+            // heavy set must also have left ≥2 reps. Otherwise: HOLD.
+            // an anchor needs his explicit "≥2 left" — a skipped answer is
+            // not a yes; the RDL needs its own ≥2 and never rises twice running
+            const anchorOK =
+              !step.anchor ||
+              (lastAnchorRIR(rhSession?.id, step.exId) ?? -1) >= 2;
+            const rdlOK =
+              step.exId !== 'rdl' ||
+              ((lastRDLRIR() ?? -1) >= 2 && !rdlRoseLastTime());
+            const level = backLevel();
+            // A short night (or a skipped check) may still move the SPLIT
+            // SQUATS — his main leg-growth lifts, unilateral and light on the
+            // disc — when the back answered their last session well. The
+            // heavy axial lifts (the front squat anchor, the RDL) wait for a
+            // Good morning (round-3 physio QA: the old rule had it backwards).
+            // …and the front squat on a short night when the BACK said Good:
+            // sleep doesn't change disc tolerance (round-4 physio + coach)
+            // round 6 (physio): a short night or a skipped check holds EVERY
+            // spine-loaded lift — nothing is lost by waiting a week, and the
+            // reps-first split squats still get their extra rep under a HOLD
+            const spineOK = SPINE_LIFTS.has(step.exId)
+              ? level === 'green' && morningAfterOK(lastLogs.date, step.exId)
+              : level !== 'amber' && level !== 'red';
+            const hold = !spineOK || !anchorOK || !rdlOK;
+            // superset sets earn one too (2026-10-09) — their reps are
+            // confirmed at log time, so "every set hit the number" is real
+            const repsFirst =
+              (step.build || step.anchor) && REPS_FIRST.has(step.exId);
+            // THE STALL RULE (round-3 coach QA): two sessions running short of
+            // the reps at the same weight → reset ~10% and build back, rather
+            // than a HOLD forever
+            const topOf = (logs) =>
+              Math.max(0, ...logs.map((l) => parseFloat(l.weight) || 0));
+            const missed = (logs) =>
+              logs.some(
+                (l) =>
+                  l.reps &&
+                  parseInt(l.reps, 10) < (repTargetTop(step.reps) ?? 0),
+              );
+            // only load-first lifts, only full-dose days, never an anchor
+            // that still had ≥2 reps left (missed reps there were pacing)
+            const stalled =
+              !step.logReps &&
+              prevLogs &&
+              lastLogs.full &&
+              prevLogs.full &&
+              topOf(lastLogs) > 0 &&
+              topOf(lastLogs) === topOf(prevLogs) &&
+              missed(lastLogs) &&
+              missed(prevLogs) &&
+              !(step.anchor && anchorOK);
+            const raw =
+              !step.anchor && !step.build
+                ? null
+                : easing
+                  ? { weight: rampWeight(lastLogs), reps: null }
+                  : repsFirst
+                    ? suggestRepsFirst(lastLogs, step.reps)
+                    : {
+                        weight: suggestNextWeight(lastLogs, step.reps),
+                        reps: null,
+                      };
+            const topW = parseFloat(top.weight) || 0;
+            // a HOLD never raises the load — it may still ask for a rep
+            const sugg =
+              stalled && !easing
+                ? {
+                    // ~10% down, but always at least one loadable step
+                    weight: Math.max(
+                      0,
+                      Math.min(
+                        topOf(lastLogs) - 2.5,
+                        Math.floor((topOf(lastLogs) * 0.9) / 2.5) * 2.5,
+                      ),
+                    ),
+                    reps: null,
+                    reset: true,
+                  }
+                : raw && hold && !easing && raw.weight > topW
+                  ? { weight: topW, reps: null, held: true }
+                  : // a HOLD still earns a rep when reps-first offered one
+                    raw && hold && !easing && raw.reps
+                    ? { ...raw, held: true }
+                    : raw;
             ctx = `LAST ${toDisplayWeight(top.weight)}×${top.reps || '—'}`;
-            if (sugg) {
-              ctx += ` · ${easing ? 'EASE' : 'TARGET'} ${toDisplayWeight(sugg)}${weightUnit()}`;
+            if (sugg?.weight) {
+              const label = easing
+                ? 'EASE'
+                : sugg.reset
+                  ? 'RESET'
+                  : sugg.held
+                    ? 'HOLD'
+                    : 'TARGET';
+              ctx += ` · ${label} ${toDisplayWeight(sugg.weight)}${weightUnit()}${sugg.reps ? ` × ${sugg.reps}` : ''}`;
+              // THE DIAL STARTS AT THE SUGGESTION (round-6 app QA): one
+              // sweaty tap logs what the gate asked for — on a HOLD, an EASE
+              // or a RESET day that is the safe number, not last week's
+              rhWeightKg = sugg.weight;
+              rhRenderWeight();
+              // …and the reps row at the rep the target asks for
+              if (
+                sugg.reps &&
+                rhAnchorReps != null &&
+                rhArSaved?.idx !== rhIdx
+              ) {
+                rhAnchorReps = sugg.reps;
+                document.getElementById('rp-ar-val').textContent = rhAnchorReps;
+              }
             }
           }
         }
@@ -4045,11 +4688,21 @@ function rhLogEmomStep(step, kg, idx = rhIdx) {
   rhLoggedEmom.add(idx);
   const ex = GUIDED_EXERCISES[step.exId];
   const weight = kg ?? guidedWeightFor(step.exId);
+  // THE REPS HE DID (2026-10-10, coach QA): a heavy-lift set used to log its
+  // target whether or not it happened, so the load gate saw only successes
+  const done =
+    (step.anchor || step.pair || (step.build && step.emom)) &&
+    !step.logReps &&
+    rhAnchorReps != null
+      ? rhAnchorReps
+      : repTargetTop(step.reps) || 0;
   rhLiftSets.push({
     exId: step.exId,
     name: ex?.name || step.exId,
     weight: step.logReps ? 0 : weight,
-    reps: step.logReps ? weight : repTargetTop(step.reps) || 0,
+    reps: step.logReps ? weight : done,
+    ...(rhEaseLoad ? { eased: true } : {}),
+    ...(step.heavy ? { heavy: true } : {}),
   });
   saveGuidedWeight(step.exId, weight);
   if (
@@ -4164,9 +4817,11 @@ function openRehabPlayer(session, saved = null, variantOverride = null) {
   // a fresh run is handed the session already dosed (the preview's choice);
   // a restored one carries the dose it was built with
   rhDose = saved?.dose ?? session.dose ?? null;
+  rhNoFolds = saved?.noFolds ?? !!session.noFolds;
   // read once per run: finishing the session would otherwise reset the gap
   // to zero mid-workout and quietly raise the target on the next anchor set
-  rhEaseLoad = comebackNow().easeLoad;
+  rhEaseLoad =
+    comebackNow().easeLoad || hasDose(rhDose, 'amber') || deloadActive();
   rhFirstWorkAt = saved?.firstWorkAt ?? null;
   // the app was shut between savedAt and now — that gap was not training
   rhAwayMs =
@@ -4174,7 +4829,7 @@ function openRehabPlayer(session, saved = null, variantOverride = null) {
     (saved?.savedAt ? Math.max(0, Date.now() - saved.savedAt) : 0);
   rhVariant = saved?.variant ?? variantOverride ?? rehabVariantIdx(session.id);
   rhQueue = buildStepQueue(
-    dosed(applyPhase(session, rhPhase), rhDose),
+    dosed(applyPhase(session, rhPhase), rhDose, rhNoFolds),
     getSwaps(),
     rhVariant,
   );
@@ -4187,6 +4842,7 @@ function openRehabPlayer(session, saved = null, variantOverride = null) {
   rhLiftSets = saved?.liftSets || [];
   rhStartedAt = saved?.startedAt || Date.now();
   rhWeightKg = saved?.weightKg ?? get(REHAB_RDL_KEY) ?? 40;
+  rhArSaved = saved?.arSaved ?? null;
   // the for-time clock continues across a refresh instead of lying at 0:00
   rhPieceStarts = saved?.pieceStarts ?? {};
   rhPieceName = null;
@@ -4323,7 +4979,13 @@ function rhFinish({ early = false } = {}) {
     const byEx = new Map();
     for (const l of liftSets) {
       if (!byEx.has(l.exId)) byEx.set(l.exId, []);
-      byEx.get(l.exId).push({ weight: l.weight, reps: l.reps, done: true });
+      byEx.get(l.exId).push({
+        weight: l.weight,
+        reps: l.reps,
+        done: true,
+        ...(l.heavy ? { heavy: true } : {}),
+        ...(l.eased ? { eased: true } : {}),
+      });
     }
     // Timed work (carries) and ramp-only movements never log a weight — count
     // their completed sets from the step queue so the entry tells the truth.
@@ -4369,7 +5031,13 @@ function rhFinish({ early = false } = {}) {
       // a short day is marked, never renamed: the id is what the calendar
       // tick, the streak and the rotation read, and all three should count
       // this as the day it is (2026-09-23)
-      ...(rhDose === 'short' ? { short: true } : {}),
+      ...(hasDose(rhDose, 'short') || hasDose(rhDose, 'amber')
+        ? { short: true }
+        : {}),
+      ...(hasDose(rhDose, 'amber') ? { amber: true } : {}),
+      // a lighter-than-normal day — never the yardstick for a stall
+      ...(hasDose(rhDose, 'tired') ? { tired: true } : {}),
+      ...(session?.ramp ? { ramp: true } : {}),
       // ended on purpose before the queue ran out (2026-09-27) — the logged
       // sets are real, the history line just says it stopped short
       ...(early ? { endedEarly: true } : {}),
@@ -4428,7 +5096,13 @@ function rhFinish({ early = false } = {}) {
     entry = {
       name: completed.name,
       type: 'rehab',
-      ...(rhDose === 'short' ? { short: true } : {}),
+      ...(hasDose(rhDose, 'short') || hasDose(rhDose, 'amber')
+        ? { short: true }
+        : {}),
+      ...(hasDose(rhDose, 'amber') ? { amber: true } : {}),
+      // a lighter-than-normal day — never the yardstick for a stall
+      ...(hasDose(rhDose, 'tired') ? { tired: true } : {}),
+      ...(session?.ramp ? { ramp: true } : {}),
       // ended on purpose before the queue ran out (2026-09-27) — the logged
       // sets are real, the history line just says it stopped short
       ...(early ? { endedEarly: true } : {}),
@@ -4445,7 +5119,10 @@ function rhFinish({ early = false } = {}) {
   // "beat last Sunday" — a promise the app must keep, not just print. The
   // for-time clock is observable; rounds and worst-round live in his head,
   // so those get the score sheet after the summary.
-  const finBlock = sessionBlocks(session, rhVariant).find(
+  // The LAST scored block is the day's finisher (2026-10-09): a lift day can
+  // now run a superset FOR TIME mid-session and still close on its own
+  // finisher — the closer is the score he'll look for next week.
+  const finBlock = sessionBlocks(session, rhVariant).findLast(
     (b) =>
       ['fortime', 'amrap', 'tabata'].includes(b.mode) ||
       // scored EMOMs too (2026-08-15): death-by ladders and the carry
@@ -4502,7 +5179,7 @@ function rhFinish({ early = false } = {}) {
             });
       setTimeout(
         () =>
-          openFinisherScorePrompt(promptCfg, last?.score, (score) => {
+          queueScorePrompt(promptCfg, last?.score, (score) => {
             // find the pushed record fresh — `get` re-parses storage, so
             // mutating the in-memory entry object would silently vanish
             const h = get('workoutHistory') || [];
@@ -4528,6 +5205,131 @@ function rhFinish({ early = false } = {}) {
         600,
       );
     }
+  }
+  // THE ANCHOR'S REPS IN RESERVE (2026-10-10, physio QA): the one number
+  // the app can't see and the load gate needs — a grinding last set must not
+  // earn +2.5 kg next week. Asked once, after the day, only if the anchor ran.
+  // Keyed by the LIFT that ran (round-3 physio QA): an amber Wednesday's
+  // split squat at 3–4 left must never become the front squat's ≥2.
+  const anchorStep = [...rhCounted]
+    .map((i) => rhQueue[i])
+    .find((st) => st?.anchor && st.phase !== 'RAMP');
+  if (isProgramSession(session) && anchorStep) {
+    const capturedRun = entry;
+    setTimeout(
+      () =>
+        queueScorePrompt(
+          {
+            title: 'THE HEAVY LIFT — REPS LEFT',
+            sub: 'On your last heavy set, how many more clean reps were in the tank? Under 2 holds the weight next time.',
+            unit: 'reps',
+            def: null,
+            start: 2,
+            min: 0,
+            max: 5,
+          },
+          null,
+          (rir) => {
+            const h = get('workoutHistory') || [];
+            const rec = h.find(
+              (x) => x.date === capturedRun.date && x.name === capturedRun.name,
+            );
+            if (!rec) return;
+            rec.anchorRIR = rir;
+            rec.anchorEx = anchorStep.exId;
+            set('workoutHistory', h);
+            pushData();
+          },
+        ),
+      700,
+    );
+  }
+  // the RDL's own reps-left (it gates its own load) and the best broad jump
+  // (athleticism, finally measured) — asked only if they ran today
+  const ran = (exId) =>
+    [...rhCounted].some(
+      (i) => rhQueue[i]?.exId === exId && rhQueue[i]?.phase !== 'RAMP',
+    );
+  const saveOnEntry = (key) => (val) => {
+    const h = get('workoutHistory') || [];
+    const rec = h.find((x) => x.date === entry.date && x.name === entry.name);
+    if (!rec) return;
+    rec[key] = val;
+    set('workoutHistory', h);
+    pushData();
+  };
+  // THE PULL-UP PACK (round-3 coach QA): from week 9 the pack is EARNED
+  // (every 8 owned in week 8) and its kilos are logged, so the chart reads
+  // body + pack instead of guessing. Asked only on a pull-up Monday, wk 9+.
+  if (
+    session.id === 'd40-a1' &&
+    ran('pull-up-bw') &&
+    (blockNow().weekInBlock ?? 0) >= 9 &&
+    pullupPackEarned()
+  ) {
+    setTimeout(
+      () =>
+        queueScorePrompt(
+          {
+            title: 'PULL-UPS — PACK WEIGHT',
+            sub: 'How many kilos were in the pack today? 0 if you went bodyweight.',
+            unit: 'kg',
+            def: null,
+            start: 2.5,
+            step: 2.5,
+            min: 0,
+            max: 20,
+          },
+          null,
+          saveOnEntry('pullupPackKg'),
+        ),
+      720,
+    );
+  }
+  if (isProgramSession(session) && ran('rdl')) {
+    setTimeout(
+      () =>
+        queueScorePrompt(
+          {
+            title: 'THE RDL — REPS LEFT',
+            sub: 'On your last RDL set, how many more clean reps were in the tank? The RDL only goes up with 2 or more.',
+            unit: 'reps',
+            def: null,
+            start: 2,
+            min: 0,
+            max: 5,
+          },
+          null,
+          saveOnEntry('rdlRIR'),
+        ),
+      750,
+    );
+  }
+  if (
+    isProgramSession(session) &&
+    ran('broad-jump') &&
+    session.id === 'd40-b1'
+  ) {
+    const lastJump = (get('workoutHistory') || [])
+      .map((h) => h.broadJump)
+      .filter((v) => v != null)
+      .at(-1);
+    setTimeout(
+      () =>
+        queueScorePrompt(
+          {
+            title: 'BEST BROAD JUMP',
+            sub: 'Toe line to the back of your heels, best of today’s jumps.',
+            unit: 'cm',
+            def: lastJump ?? 200,
+            min: 50,
+            max: 350,
+          },
+          lastJump ?? null,
+          saveOnEntry('broadJump'),
+        ),
+      800,
+    );
   }
   rhPieceStarts = {};
   rhPieceFinal = null;
@@ -4647,11 +5449,9 @@ function renderBlockCalendar() {
       isDeloadCheckpoint(w)
         ? '<span class="cal-flag">DELOAD CHECKPOINT</span>'
         : '',
-      w === 5
-        ? '<span class="cal-flag cal-flag-dim">PHASE 2 — Friday pull-ups step to 4 reps</span>'
-        : '',
+      // the only phase step left in the data (2026-10-10): the pack, earned
       w === 9
-        ? '<span class="cal-flag cal-flag-dim">PHASE 3 — Friday pull-ups step to 5 reps</span>'
+        ? '<span class="cal-flag cal-flag-dim">PHASE 3 — Monday pull-ups earn the pack</span>'
         : '',
       ramp
         ? `<span class="cal-flag cal-flag-dim">RAMP — ${ramp === 1 ? 'two' : 'three'} rounds a piece, rest minute back, no finishers</span>`
@@ -4930,10 +5730,11 @@ function renderWeekPlan() {
           openRehabPlayer(restorable.session, restorable.saved);
           return;
         }
-        try {
-          localStorage.removeItem(REHAB_STATE_KEY);
-        } catch {}
-        openRehabPlayer(getGuidedSession(id));
+        // a fresh start goes through the preview like every other start
+        // (round-3 QA): the morning back check and its dose always apply —
+        // a chip must never be a way around a red or amber morning
+        const fresh = getGuidedSession(id);
+        if (fresh) openSessionPreview(fresh, null, chip);
       } else {
         const marks2 = get(WEEK_MARKS_KEY) || {};
         const k = chip.dataset.date;
@@ -4963,13 +5764,18 @@ function renderCheckin() {
   const el = document.getElementById('checkin-card');
   if (!el) return;
   const list = get(CHECKINS_KEY) || [];
-  const { state, latest, ref } = checkinStatus(list);
+  const { state, latest, ref, waistUp, weightDown, waistDown } =
+    checkinStatus(list);
+  // BUILDING (2026-10-10, coach QA): a rising waist (≥1 cm) is the alarm, and
+  // so is LOSING weight — a build that loses weight isn't building.
+  const alarm = !!ref && (!!waistUp || (!!weightDown && !waistDown));
+  const alarmKey = waistUp ? 'waistUp' : 'losing';
   const todayK = dateKey(new Date());
   const isSunday = new Date().getDay() === 0;
   const due = isSunday && latest?.date !== todayK;
 
   // Off-Sunday with a healthy trend: one quiet line, not a block (f16).
-  if (!ciEditing && !ciExpanded && !due && state !== 'stalled' && latest) {
+  if (!ciEditing && !ciExpanded && !due && !alarm && latest) {
     el.innerHTML = `
       <button class="ci-row" id="ci-expand">
         <span class="ci-row-vals">${latest.weightKg.toFixed(1)} kg · ${latest.waistCm.toFixed(1)} cm</span>
@@ -5034,9 +5840,14 @@ function renderCheckin() {
   const STATUS = {
     first: 'Two numbers, once a week — the trend does the coaching.',
     building: 'Logged. Two weeks of entries builds your first trend.',
-    trending: 'Trending down — keep the kitchen exactly as is.',
+    // building, not cutting (2026-10-10): steady or slowly up is the goal
+    trending: 'Waist trending down while you build — keep the kitchen as is.',
     stalled:
-      'Flat for 2 weeks → add 1–2k steps/day. Still flat next Sunday → trim ~150 kcal.',
+      'Steady or gaining slowly while the waist holds — that’s the build working.',
+    waistUp:
+      'Waist up over 1 cm in two weeks → add 1–2k steps a day. Still rising next Sunday → trim ~150 kcal.',
+    losing:
+      'Losing weight while you build → add about 200 kcal a day (a snack with protein). Muscle needs the surplus.',
   };
   el.innerHTML = `
     <div class="ci-card">
@@ -5058,7 +5869,7 @@ function renderCheckin() {
           <span class="ci-num">${latest ? latest.waistCm.toFixed(1) : '—'}<small> cm</small></span>
           ${latest && ref ? delta(latest.waistCm, ref.waistCm, 'cm') : ''}</div>
       </div>
-      <div class="ci-status${state === 'stalled' ? ' stalled' : ''}">${due ? 'Due today · ' : ''}${STATUS[state]}</div>
+      <div class="ci-status${alarm ? ' stalled' : ''}">${due ? 'Due today · ' : ''}${STATUS[alarm ? alarmKey : state]}</div>
       <button class="ci-btn ci-log${due ? ' due' : ''}" id="ci-log">${latest?.date === todayK ? 'EDIT TODAY' : 'LOG CHECK-IN'}</button>
     </div>`;
   document.getElementById('ci-log').addEventListener('click', () => {
@@ -5080,6 +5891,7 @@ let _spVariant = null;
 let _spOrigin = null;
 let _spHeader = 'TODAY';
 let _spShort = false;
+let _spLead = false; // today's card — the only preview that asks about the back
 let _spComeback = null;
 function openSessionPreview(
   session,
@@ -5108,12 +5920,58 @@ function openSessionPreview(
   // him work out what to do — it leads with SHORT and says why, one tap from
   // the full day if he disagrees.
   _spComeback = comebackNow();
-  _spShort = lead && _spComeback.dose === 'short';
+  _spLead = lead;
+  // a deload week leads every session with the short day
+  _spShort = lead && (_spComeback.dose === 'short' || deloadActive());
   spRender(originEl);
 }
 
+// Today's back level shapes the day: amber serves the lighter version, tired
+// the impact-free one, red nothing but the Daily Reset. EVERY start asks
+// (2026-10-10, physio QA — "only today's card" was a way around it): Start
+// always runs now, so the morning's answer always applies.
+const isBenchmarkSession = (s) => !!s && String(s.id).startsWith('bm-');
+const isTrainingSession = (s) =>
+  !!s &&
+  (isProgramSession(s) ||
+    isBenchmarkSession(s) ||
+    ['daily', 'sunday', 'wod'].includes(s.id));
+// a test measures the morning as much as the athlete — it runs on Good only
+const spTestWaits = () =>
+  isBenchmarkSession(_spFull) && spBack() !== 'green' && spBack() !== 'red';
+const spBack = () => (isTrainingSession(_spFull) ? backLevel() : null);
+// The Bonus WOD is scored and raced — it waits for a Good morning. Amber or
+// tired, the Sunday card runs the Rest Day instead (round-3 physio QA).
+const spWodWaits = () =>
+  _spFull?.id === 'wod' && ['amber', 'tired', null].includes(spBack());
 function spRender(animateFrom = null) {
-  const session = _spShort ? applyShort(_spFull) : _spFull;
+  const back = spBack();
+  // the WOD-waits Sunday is the PHASED rest day (round-6 app QA: the raw one
+  // served the phase-1 primer in week 5 and never matched its restore)
+  const full = spWodWaits()
+    ? getGuidedSession('sunday')
+    : back === 'red'
+      ? // a red morning previews what Start will run: the Daily Reset
+        getRehabSession('reset')
+      : _spFull;
+  const base = _spShort ? applyShort(full) : full;
+  const doseOf = (s) =>
+    back === 'amber'
+      ? applyAmber(s)
+      : back === 'tired'
+        ? applyTired(base)
+        : back == null && isTrainingSession(_spFull)
+          ? applyUnchecked(base)
+          : base;
+  const dosedSession =
+    isBenchmarkSession(full) || back === 'red'
+      ? full // a test never doses — it waits; the reset is the dose
+      : doseOf(full);
+  // the morning rule: up less than an hour → the held folds sit out
+  const session =
+    isTrainingSession(_spFull) && todayBackCheck()?.early
+      ? { ...applyNoFolds(dosedSession), noFolds: true }
+      : dosedSession;
   _spSession = session;
   const originEl = animateFrom;
   const headerLabel = _spHeader;
@@ -5195,11 +6053,11 @@ function spRender(animateFrom = null) {
       <div class="sp-row-kicker">${kicker}</div>${lines}
     </div>`;
       }
-      // the rehab day's first act is seven bare hold rows — name the section
-      // so the two-part structure the blurb promises is visible in the list
+      // the rehab day opens with the openers (reps and holds, not only holds)
+      // — name the section so the structure the blurb promises is visible
       const holdsKicker =
-        session.id === 'daily' && r === rows[0]
-          ? '<div class="sp-row-kicker">THE HOLDS — ONE SET EACH</div>'
+        (session.id === 'daily' || session.id === 'sunday') && r === rows[0]
+          ? '<div class="sp-row-kicker">OPEN UP, THEN BRACE</div>'
           : '';
       return `
     <div class="sp-row">${holdsKicker}${line(r.title, fmtVal(r.detail))}
@@ -5210,6 +6068,7 @@ function spRender(animateFrom = null) {
   afterEl.textContent = after ? `THEN — ${after.toUpperCase()}` : '';
   afterEl.style.display = after ? '' : 'none';
   spRenderDose(spVariant);
+  spRenderBack();
   // Hero expansion when launched from the action line (else a flat slide).
   heroExpandPage(document.getElementById('session-preview'), originEl);
   fitLineFont(document.querySelector('.sp-title'), isLaptop() ? 92 : 62, 28);
@@ -5224,7 +6083,8 @@ function spRenderDose(spVariant) {
   const full = estimateSessionMins(_spFull, spVariant);
   const short = estimateSessionMins(applyShort(_spFull), spVariant);
   const worth = full - short >= 5;
-  box.hidden = !worth;
+  // an amber or red back decides the dose itself — no switch to second-guess
+  box.hidden = !worth || ['amber', 'red'].includes(spBack());
   if (!worth) {
     if (_spShort) {
       _spShort = false;
@@ -5254,6 +6114,118 @@ function spRenderDose(spVariant) {
         ? 'Bad night? Half the work, same movements. It still counts as today.'
         : '';
 }
+
+// The back check's own row: what it says, and what today becomes.
+// Two levels of urgency (round-3 physio QA): the possible cauda equina signs
+// are an emergency TODAY, not "promptly"; the rest is a clinician this week.
+// And one rule for a leg: movement that sends symptoms further down the leg
+// stops; movement that pulls them back toward the spine is fine.
+const RED_FLAGS =
+  'Rest today — the Daily Reset and an easy walk only. Stop anything that sends symptoms further down the leg; movement that pulls them back toward the back is fine. EMERGENCY DEPARTMENT NOW for numbness in the groin or saddle area, new bladder or bowel trouble, or leg weakness getting quickly worse. See a clinician this week for constant or night pain, fever or unexplained weight loss, or mid-back pain that isn’t clearly from movement.';
+function spRenderBack() {
+  const box = document.getElementById('sp-backcheck');
+  if (!box) return;
+  box.hidden = !isTrainingSession(_spFull);
+  if (box.hidden) return;
+  const c = todayBackCheck();
+  for (const b of box.querySelectorAll('.sp-back-btn')) {
+    const on = c?.back === b.dataset.back;
+    b.setAttribute('aria-pressed', String(on));
+    b.classList.toggle('on', on);
+  }
+  const sleep = document.getElementById('sp-back-sleep');
+  sleep.setAttribute('aria-pressed', String(!!c?.shortSleep));
+  sleep.classList.toggle('on', !!c?.shortSleep);
+  // the morning rule matters on a day with the folds or a loaded hinge
+  const early = document.getElementById('sp-back-early');
+  early.hidden = !hasMorningWork(_spFull);
+  early.setAttribute('aria-pressed', String(!!c?.early));
+  early.classList.toggle('on', !!c?.early);
+  const level = backLevel(c);
+  const note = document.getElementById('sp-back-note');
+  note.classList.toggle('red', level === 'red');
+  const carried = !c?.back && level === 'amber';
+  const esc = backEscalation();
+  // THE NOTE SAYS WHAT CHANGES TODAY, nothing else (round-6 app QA: the amber
+  // note listed an RDL and a front squat on Tuesday's rehab day)
+  const todays = sessionBlocks(_spFull, _spVariant);
+  const ids = new Set(
+    todays.flatMap((b) => (b.members ? b.members.map((m) => m.ex) : [b.ex])),
+  );
+  const hasFolds = todays.some((b) => b.fold);
+  const hasJumps = todays.some(
+    (b) => b.ballistic || b.members?.some((m) => m.ballistic),
+  );
+  const amberChanges = [
+    hasJumps && 'no jumps or sprints',
+    ids.has('rdl') && 'the RDL becomes a glute bridge',
+    ids.has('front-squat') && 'the front squat a DB split squat',
+    ids.has('rfe-split-squat') && 'the rear-foot split squat a regular one',
+    ids.has('back-extension') && 'back extensions become holds',
+    hasFolds && 'the folds sit out',
+  ].filter(Boolean);
+  note.textContent = [
+    level === 'red'
+      ? RED_FLAGS
+      : level === 'amber'
+        ? `${carried ? 'Yesterday was rough, so today starts lighter — tap Good if you feel fine. ' : ''}A shorter, lighter day${amberChanges.length ? `: ${amberChanges.join(', ')}` : ''}.`
+        : level === 'tired'
+          ? 'A short night: one round lighter, a rep further from failure, no jumps or max sets. The heavy back lifts hold their weight.'
+          : level === 'green'
+            ? ''
+            : `One tap first${hasJumps ? ' — until you answer, the jumps, sprints and finisher sit out' : ' — it sets today’s dose'}.`,
+    spWodWaits()
+      ? 'The Bonus WOD waits for a Good morning — today runs the Rest Day.'
+      : '',
+    spTestWaits()
+      ? 'A test needs a Good morning — on any other it measures the morning, not you.'
+      : '',
+    // amber already drops the folds and the hinge — say it once
+    c?.early && !early.hidden && level !== 'amber' && level !== 'red'
+      ? hasFolds
+        ? 'Up under an hour: the forward folds sit out today.'
+        : 'Up under an hour: the RDL becomes a glute bridge — or train later and untick this.'
+      : '',
+    esc,
+    deloadActive()
+      ? 'Deload week: every session leads with its short version.'
+      : !esc && backWantsDeload()
+        ? 'A run of stiff mornings or short nights — a lighter week would help.'
+        : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  document.getElementById('sp-back-deload').hidden =
+    !!esc || !backWantsDeload();
+  const start = document.querySelector('#sp-start .sp-start-text');
+  if (start) {
+    start.textContent =
+      level === 'red' ? 'DAILY RESET' : spTestWaits() ? 'TEST WAITS' : 'START';
+  }
+  // a waiting test LOOKS waiting, and a tap points at the check above
+  document
+    .getElementById('sp-start')
+    ?.classList.toggle('is-waiting', spTestWaits());
+}
+for (const b of document.querySelectorAll('#sp-backcheck .sp-back-btn')) {
+  b.addEventListener('click', () => {
+    setTodayBackCheck({ back: b.dataset.back });
+    spRender();
+  });
+}
+document.getElementById('sp-back-sleep')?.addEventListener('click', () => {
+  setTodayBackCheck({ shortSleep: !todayBackCheck()?.shortSleep });
+  spRender();
+});
+document.getElementById('sp-back-deload')?.addEventListener('click', () => {
+  startDeload();
+  _spShort = true;
+  spRender();
+});
+document.getElementById('sp-back-early')?.addEventListener('click', () => {
+  setTodayBackCheck({ early: !todayBackCheck()?.early });
+  spRender();
+});
 
 for (const [id, short] of [
   ['sp-dose-full', false],
@@ -5297,10 +6269,22 @@ document.getElementById('sp-back').addEventListener('click', () => {
 });
 document.getElementById('sp-start').addEventListener('click', () => {
   if (!_spSession) return;
+  // a test waits for a Good morning: Start points at the check instead
+  if (spTestWaits()) {
+    document
+      .getElementById('sp-backcheck')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
   closePage('session-preview');
   try {
     localStorage.removeItem(REHAB_STATE_KEY);
   } catch {}
+  // a red back runs the Daily Reset instead of the day (physio QA)
+  if (spBack() === 'red') {
+    openRehabPlayer(getRehabSession('reset'));
+    return;
+  }
   // run the variant the preview SHOWED — starting Saturday's card must
   // never silently serve Friday's session
   openRehabPlayer(_spSession, null, _spVariant);
@@ -5364,6 +6348,7 @@ function renderRehabPage() {
       dosed(
         applyPhase(savedSession, saved.phase ?? blockNow().phase),
         saved.dose,
+        saved.noFolds,
       ),
       getSwaps(),
       saved.variant ?? rehabVariantIdx(savedSession.id),
@@ -5487,10 +6472,10 @@ function renderRehabPage() {
     .querySelectorAll('#benchmark-list [data-benchmark]')
     .forEach((card) => {
       card.addEventListener('click', () => {
-        try {
-          localStorage.removeItem(REHAB_STATE_KEY);
-        } catch {}
-        openRehabPlayer(getBenchmark(card.dataset.benchmark));
+        // through the preview (round-4 physio QA): a max-effort test asks the
+        // morning check like every other start — and waits for a Good one
+        const bm = getBenchmark(card.dataset.benchmark);
+        if (bm) openSessionPreview(bm, null, card, null, 'TEST');
       });
     });
 
@@ -5603,10 +6588,13 @@ function rhLogSetDone() {
   rhStopGuide(true);
   // Stage 1 for range prescriptions: confirm what ACTUALLY happened before
   // it enters history — "5–8" is a plan, not a result.
+  // …and on every SUPERSET set (2026-10-09): its load target is only honest
+  // if the log holds the reps actually done — and a last-set-max week is
+  // nothing BUT the reps done. Pre-filled with the target: one more tap.
   if (
     step.logWeight !== false &&
     !step.logReps &&
-    repsIsRange(step.reps) &&
+    (repsIsRange(step.reps) || step.build) &&
     rhPendingReps === null
   ) {
     rhPendingReps = repTargetTop(step.reps) ?? 8;
@@ -5627,6 +6615,8 @@ function rhLogSetDone() {
       name: ex?.name || step.exId,
       weight: step.logReps ? 0 : rhWeightKg,
       reps: repsDone,
+      ...(step.heavy ? { heavy: true } : {}),
+      ...(rhEaseLoad ? { eased: true } : {}),
     });
     rhPendingReps = null;
     saveGuidedWeight(step.exId, rhWeightKg);
@@ -5653,6 +6643,21 @@ function rhLogSetDone() {
   if (!wasLast && !rhStep()?.manual) rhPlay();
 }
 document.getElementById('rp-set-done').addEventListener('click', rhLogSetDone);
+document.getElementById('rp-cue')?.addEventListener('click', (e) => {
+  e.currentTarget.classList.toggle('expanded');
+});
+for (const [id, d] of [
+  ['rp-ar-minus', -1],
+  ['rp-ar-plus', 1],
+]) {
+  document.getElementById(id)?.addEventListener('click', () => {
+    if (rhAnchorReps == null) return;
+    rhAnchorReps = Math.max(0, Math.min(30, rhAnchorReps + d));
+    document.getElementById('rp-ar-val').textContent = rhAnchorReps;
+    rhArSaved = { idx: rhIdx, reps: rhAnchorReps };
+    rhPersist();
+  });
+}
 function rhAdjust(dir) {
   if (rhPendingReps !== null) {
     rhPendingReps = Math.max(0, rhPendingReps + dir);
@@ -8477,9 +9482,21 @@ function showWorkoutSummary(workout, duration, entry) {
   // so this reflects the extended chain.
   const streak = currentStreak(get('workoutHistory') || []);
   const eyebrowEl = document.getElementById('wsum-eyebrow');
+  const flared = rhFlaredRecently();
   if (eyebrowEl) {
-    eyebrowEl.textContent =
-      streak >= 2 ? `${streak} DAY STREAK` : 'SESSION COMPLETE';
+    eyebrowEl.textContent = flared
+      ? 'STOPPED — BACK FLARED'
+      : streak >= 2
+        ? `${streak} DAY STREAK`
+        : 'SESSION COMPLETE';
+  }
+  // after a flare the summary's first job is the warning signs
+  const flareEl = document.getElementById('wsum-flare');
+  if (flareEl) {
+    flareEl.hidden = !flared;
+    flareEl.textContent = flared
+      ? `Your sets are saved, and tomorrow starts lighter. ${RED_FLAGS}`
+      : '';
   }
 
   // PR badge

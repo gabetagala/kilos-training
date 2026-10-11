@@ -42,6 +42,31 @@ export function suggestNextWeight(lastLogs, targetRepsStr) {
 // finding the groove again. A PR attempt comes later. The 2–4 RIR cap still
 // governs every set; this only keeps the screen from asking for more than he
 // had. Null when there's nothing to base it on, like suggestNextWeight.
+/**
+ * REPS FIRST, THEN LOAD (2026-10-10, coach QA). On an 8 kg lateral raise a
+ * +2.5 kg jump is +31% — the target fails, then oscillates. Small lifts earn
+ * reps at the same weight first: one more than last time's weakest set, up to
+ * three over the prescription; then the load goes up and the reps reset.
+ * Returns { weight, reps } or null with no history. `reps` null = as written.
+ */
+export function suggestRepsFirst(lastLogs, targetRepsStr) {
+  if (!lastLogs?.length) return null;
+  const weights = lastLogs
+    .map((l) => parseFloat(l.weight))
+    .filter((w) => w > 0);
+  if (!weights.length) return null;
+  const topW = Math.max(...weights);
+  const target = repTargetTop(targetRepsStr) ?? 10;
+  const done = lastLogs.map((l) => parseInt(l.reps, 10)).filter((n) => n > 0);
+  if (!done.length) return { weight: topW, reps: null };
+  const weakest = Math.min(...done);
+  if (weakest >= target + 3) {
+    return { weight: Math.round((topW + 2.5) * 2) / 2, reps: null };
+  }
+  if (weakest >= target) return { weight: topW, reps: weakest + 1 };
+  return { weight: topW, reps: null };
+}
+
 export function rampWeight(lastLogs) {
   const weights = (lastLogs || [])
     .map((l) => parseFloat(l.weight))
@@ -119,3 +144,26 @@ export function estimateKcal(entry, bodyKg = 80) {
   if (!mins || !(bodyKg > 0)) return null;
   return Math.round(met * bodyKg * (mins / 60));
 }
+
+// The small lifts that progress reps-first — a 2.5 kg step is too big a
+// fraction of their working weight to be the first lever.
+export const REPS_FIRST = new Set([
+  'db-lateral-raise',
+  'cable-lateral-raise',
+  'supinated-curl',
+  'hammer-curl',
+  'reverse-curl',
+  'lying-db-extension',
+  'incline-y-raise',
+  'db-calf-raise',
+  'rope-pushdown',
+  // the press anchor too (2026-10-10, coach QA): +2.5 kg per DB on a 22.5 kg
+  // dumbbell is +11% — earn 8 → 11 first, then load
+  'incline-db-press',
+  'db-bench-press',
+  // the split squats too (round-3 coach QA): 8 → 11 a leg before the DBs
+  // go up, so a held morning still has a lever
+  'db-split-squat',
+  'rfe-split-squat',
+  'cable-leg-curl',
+]);

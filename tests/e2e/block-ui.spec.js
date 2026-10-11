@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
-import { dismissOnboarding } from './helpers.js';
+import { dismissOnboarding, startBenchmark } from './helpers.js';
 
 // The BLOCK-01 UI at phone width. These exist because a code review found two
 // bugs that only show up in a real browser: the benchmark score sheet borrowed
@@ -83,7 +83,7 @@ test('a for-time piece shows a running clock', async ({ page }) => {
   await setup(page, 0);
   await page.locator('.nav-btn[data-screen="train"]').click();
   await page.locator('#btn-rehab-open').click();
-  await page.locator('[data-benchmark="bm-descent"]').click();
+  await startBenchmark(page, 'bm-descent');
   await page.locator('#rp-skip').click(); // into the piece
   await expect(page.locator('#rp-clock')).toBeVisible();
   await expect(page.locator('#rp-phase')).toHaveText('ELAPSED');

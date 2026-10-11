@@ -17,7 +17,7 @@ import {
   getProgramSession,
 } from '../../src/workout/program.js';
 import { rampWeight } from '../../src/workout/progression.js';
-import { buildStepQueue, getRehabSession } from '../../src/workout/rehab.js';
+import { buildStepQueue, getRehabSession, sessionBlocks } from '../../src/workout/rehab.js';
 
 // Restart on Monday 21 Sep 2026 → ramp weeks 21 Sep + 28 Sep, week 1 on 5 Oct
 const RESTART_MON = new Date('2026-09-21T08:00:00');
@@ -82,17 +82,25 @@ describe('ramp weeks', () => {
 });
 
 describe('applyRamp', () => {
-  it('cuts piece rounds, gives back the rest minute, runs plain EMOM', () => {
+  // Pieces lose rounds off the TOP (ramp 1: two short, ramp 2: one short),
+  // never below one; EMOM pieces get the rest minute back and run plain;
+  // supersets keep their own timed rests. No piece keeps a format, a
+  // rep-out note or a descending ladder — nothing scored, nothing self-paced.
+  it('cuts piece rounds, gives back the rest, drops every format', () => {
     for (const r of [1, 2]) {
       for (const base of DENSITY40_SESSIONS) {
         const s = applyRamp(base, r);
         expect(s.ramp).toBe(r);
-        const pieces = blocksOf(s).filter((b) => !b.anchor);
+        const pieces = blocksOf(s).filter((b) => b?.isPiece);
         expect(pieces.length).toBeGreaterThan(0);
         for (const p of pieces) {
-          expect(p.mode).toBe('emom');
-          expect(p.rounds).toBe(RAMP[r].pieceRounds);
-          expect(p.roundRestSecs).toBe(RAMP_REST_SECS);
+          const full = blocksOf(base).find((b) => b?.name === p.name);
+          expect(p.rounds).toBe(
+            Math.max(1, Math.min(RAMP[r].pieceRounds, full.rounds - (3 - r))),
+          );
+          expect(p.rounds).toBeLessThan(full.rounds);
+          if (p.mode === 'emom') expect(p.roundRestSecs).toBe(RAMP_REST_SECS);
+          else expect(p.mode).toBe('circuit');
           expect(p.formats).toBeUndefined();
           for (const m of p.members) {
             expect(m.lastRoundNote).toBeUndefined();
@@ -122,16 +130,69 @@ describe('applyRamp', () => {
     }
   });
 
-  it('the daily loses its scored finisher and keeps the holds and core cap', () => {
+  // No scores in the ramp: a score set while detrained becomes the last he
+  // races for a month — so Saturday's scored finisher and the carry go. The
+  // PUMPS STAY (round 4: a ramp Back & Hips day had less arm work than a
+  // short day), shaped down like any piece: rounds off the top, relative.
+  it('the daily loses its scored finisher and carry, keeps the pumps shaped down', () => {
     const daily = getRehabSession('daily');
     const ramped = applyRamp(daily, 1);
-    expect(ramped.blocks.length).toBe(daily.blocks.length - 1);
-    expect(ramped.blocks.some((b) => b.finisher)).toBe(false);
-    for (let v = 0; v < 16; v++) {
-      const q = buildStepQueue(ramped, {}, v);
-      // only the finisher carries a piece name on a rehab day
-      expect(q.some((st) => st.piece)).toBe(false);
-      expect(q.length).toBeGreaterThan(0);
+    const finishers = daily.blocks.filter((b) => b.finisher);
+    // pump A, farmer carry, suitcase carry (round 6), curl & lateral, the
+    // scored finisher, calves
+    expect(finishers).toHaveLength(6);
+    const pumps = finishers.filter((b) => b.pump);
+    expect(pumps).toHaveLength(3);
+    expect(ramped.blocks.length).toBe(daily.blocks.length - (finishers.length - pumps.length));
+    expect(ramped.blocks.filter((b) => b.finisher).every((b) => b.pump)).toBe(true);
+    // Tue Arms 4 · Calves 3; Thu Row & Raise 3 · Curl & Lateral 5 · Calves 3
+    // (45-min round); ramp 1 is two rounds short (capped at 2), ramp 2 one
+    // short (capped at 3)
+    const ROUNDS = {
+      1: { 0: { Arms: 2, Calves: 1 }, 1: { 'Row & Raise': 1, 'Curl & Lateral': 2, Calves: 1 } },
+      2: { 0: { Arms: 3, Calves: 2 }, 1: { 'Row & Raise': 2, 'Curl & Lateral': 3, Calves: 2 } },
+    };
+    for (const ramp of [1, 2]) {
+      for (const k of [0, 1]) {
+        const blocks = sessionBlocks(applyRamp(daily, ramp), k).filter((b) => b.mode === 'circuit');
+        const got = Object.fromEntries(blocks.map((b) => [b.name, b.rounds]));
+        expect(got, `ramp ${ramp} k${k}`).toEqual(ROUNDS[ramp][k]);
+        // a ramp pump never runs a format or a max set
+        for (const b of blocks) {
+          expect(b.formats, b.name).toBeUndefined();
+          for (const m of b.members) expect(m.lastRoundNote, m.ex).toBeUndefined();
+        }
+      }
+    }
+    for (let w = 0; w < 4; w++) {
+      for (const k of [0, 1, 2]) {
+        const v = w * 4 + k;
+        const q = buildStepQueue(ramped, {}, v);
+        // nothing scored, no carry — only the pumps carry a block label
+        expect(q.some((st) => st.piece), `v${v}`).toBe(false);
+        expect(q.some((st) => st.exId === 'farmer-carry'), `v${v}`).toBe(false);
+        expect(q.some((st) => st.exId === 'suitcase-carry'), `v${v}`).toBe(false);
+        const labels = [...new Set(q.map((st) => st.blockLabel).filter(Boolean))];
+        expect(labels, `v${v}`).toEqual(
+          [['Arms', 'Calves'], ['Row & Raise', 'Curl & Lateral', 'Calves'], []][k],
+        );
+        const ids = new Set(q.map((st) => st.exId));
+        for (const ex of [
+          't-spine-reach',
+          'couch-stretch',
+          'hip-internal-rotation',
+          'mcgill-curlup',
+          'side-plank',
+          'bird-dog',
+          'elephant-walk',
+          'seated-good-morning',
+        ]) {
+          expect(ids.has(ex), `v${v} ${ex}`).toBe(true);
+        }
+        // the back extension stays on its Thu/Sat days — a ramp is lighter,
+        // never a different day
+        expect(ids.has('back-extension'), `v${v}`).toBe(k !== 0);
+      }
     }
   });
 

@@ -1,4 +1,4 @@
-// Sunday check-in — the fat-loss feedback loop from TRAINING.md.
+// Sunday check-in — the body-composition feedback loop from TRAINING.md.
 // Two numbers once a week (scale weight + waist at navel), a two-week trend,
 // and the program's escalation rule when the trend flatlines. Measurement
 // only — no food tracking, by design.
@@ -15,6 +15,7 @@ const daysBetween = (a, b) => Math.round((new Date(b) - new Date(a)) / DAY);
 
 // A measure counts as "down" only past scale/tape noise.
 const EPS = 0.3;
+const WAIST_ALARM_CM = 1.0;
 
 // Trend reference = newest entry at least 11 days older than the latest —
 // "two weeks ago" with tolerance for weekly-ish logging.
@@ -30,8 +31,17 @@ export function checkinStatus(list) {
   // one-decimal rounding first — float noise must not decide a trend
   const weightDown = +(ref.weightKg - latest.weightKg).toFixed(1) >= EPS;
   const waistDown = +(ref.waistCm - latest.waistCm).toFixed(1) >= EPS;
+  // BUILDING, NOT CUTTING (2026-10-10, coach QA): the goal grew to bigger
+  // triangle + bigger legs, so "flat" is no longer a failure. The only alarm
+  // is the WAIST rising — that is fat, not muscle.
+  // the WAIST alarm needs a real move: 1 cm, not the 0.3 that tape-measure
+  // noise reaches on its own (coach QA)
+  const waistUp = +(latest.waistCm - ref.waistCm).toFixed(1) >= WAIST_ALARM_CM;
   return {
     state: weightDown || waistDown ? 'trending' : 'stalled',
+    waistUp,
+    weightDown,
+    waistDown,
     latest,
     prev,
     ref,

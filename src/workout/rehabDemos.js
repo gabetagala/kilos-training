@@ -1397,7 +1397,18 @@ PROGRAM_DEMOS['pull-up-bw'] = PROGRAM_DEMOS['pull-up'];
 PROGRAM_DEMOS['db-split-squat'] = PROGRAM_DEMOS['rfe-split-squat'];
 PROGRAM_DEMOS['db-floor-press'] = PROGRAM_DEMOS['floor-press'];
 PROGRAM_DEMOS['incline-db-press'] = PROGRAM_DEMOS['floor-press'];
+PROGRAM_DEMOS['db-bench-press'] = PROGRAM_DEMOS['floor-press'];
+PROGRAM_DEMOS.sprint = PROGRAM_DEMOS['high-knees'];
 PROGRAM_DEMOS['chest-supported-row'] = PROGRAM_DEMOS['cable-row-1arm'];
+// rings (2026-10-09) — rig fallbacks until their art is generated
+PROGRAM_DEMOS['ring-dip'] = PROGRAM_DEMOS['diamond-pushup'];
+PROGRAM_DEMOS['ring-row'] = PROGRAM_DEMOS['cable-row-1arm'];
+// 2026-10-10 rework — rig fallbacks behind the generated art
+PROGRAM_DEMOS['db-calf-raise'] = PROGRAM_DEMOS['farmer-carry'];
+PROGRAM_DEMOS['slider-leg-curl'] =
+  REHAB_DEMOS['glute-bridge'] || PROGRAM_DEMOS['push-up'];
+PROGRAM_DEMOS['lying-db-extension'] = PROGRAM_DEMOS['floor-press'];
+PROGRAM_DEMOS['incline-y-raise'] = PROGRAM_DEMOS['chest-supported-row'];
 PROGRAM_DEMOS['cable-lateral-raise'] = PROGRAM_DEMOS['db-lateral-raise'];
 PROGRAM_DEMOS['reverse-curl'] = PROGRAM_DEMOS['hammer-curl'];
 PROGRAM_DEMOS['cable-fly-low'] = PROGRAM_DEMOS['band-fly'];
@@ -1407,3 +1418,6 @@ PROGRAM_DEMOS['band-pull-apart'] = PROGRAM_DEMOS['face-pull'];
 // the elephant walk shows the same PATTERN — a long-spine fold at the hips —
 // which is the entire teaching point of the seated version.
 REHAB_DEMOS['seated-good-morning'] = REHAB_DEMOS['elephant-walk'];
+// after band-pull-apart exists (round-7 test QA: aliased too early, it was undefined)
+PROGRAM_DEMOS['pallof-press'] = PROGRAM_DEMOS['band-pull-apart'];
+PROGRAM_DEMOS['cable-leg-curl'] = PROGRAM_DEMOS['slider-leg-curl'];

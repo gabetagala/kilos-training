@@ -15,7 +15,7 @@ export const FORM_CUES = {
     { slug: 'cue-t-spine-reach-1', text: 'Reach through and exhale' },
   ],
   'mcgill-curlup': [
-    { slug: 'cue-mcgill-curlup-1', text: 'Lower back stays on the floor' },
+    { slug: 'cue-mcgill-curlup-1', text: 'Keep the small arch on your hands' },
     { slug: 'cue-mcgill-curlup-2', text: 'Small lift — neck long' },
   ],
   'side-plank': [
@@ -103,7 +103,10 @@ export const FORM_CUES = {
   'back-extension': [
     { slug: 'cue-back-extension-1', text: 'Lift to straight — never past' },
     { slug: 'cue-back-extension-2', text: 'Long spine, slow down' },
-    { slug: 'cue-back-extension-3', text: 'Stop at pain, not at burn' },
+    {
+      slug: 'cue-back-extension-3',
+      text: 'Sharp pain or form slips — set ends',
+    },
   ],
   'wall-groin-stretch': [
     { slug: 'cue-wall-groin-stretch-1', text: 'Let gravity do it' },

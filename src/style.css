@@ -6640,16 +6640,36 @@ body {
 .rp-session {
   font-family: "Space Mono", monospace;
   font-size: 10px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.1em;
+  line-height: 1.5;
   text-transform: uppercase;
   color: var(--text);
   flex: 1;
+  /* never more than two lines — a long piece name wrapped to four and
+     pushed the chrome row into the art (2026-10-09) */
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 .rp-count {
   font-family: "Space Mono", monospace;
-  font-size: 10px;
+  /* 12px (round-6 app QA): time left is data, and data has a floor */
+  font-size: 12px;
   letter-spacing: 0.1em;
   color: var(--grey);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.3;
+  flex-shrink: 0;
+}
+.rp-count-k {
+  font-size: 8px; /* DESIGN.md A2 hard floor */
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 .rp-voice {
   width: 44px;
@@ -7473,9 +7493,10 @@ body {
 }
 .rpo-item {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--s-3);
+  gap: 0 var(--s-3);
   padding: 11px 0;
   border-bottom: 1px solid var(--line);
 }
@@ -7693,6 +7714,9 @@ body {
   cursor: pointer;
 }
 .rpo-item-note {
+  /* moves and the note each take a full line under the title — side by
+     side they crushed into a one-word column (2026-10-09) */
+  flex-basis: 100%;
   font-size: 12px;
   line-height: 1.5;
   color: var(--text2);
@@ -7860,6 +7884,13 @@ body {
   padding: 14px 16px;
   min-height: 48px;
   cursor: pointer;
+}
+/* the flare stop sits under Finish: same shape, quieter, never the default */
+.rpo-flare {
+  margin-top: 8px;
+  background: transparent;
+  color: inherit;
+  border: 1px solid currentColor;
 }
 
 /* The ✓ control — the next-arrow doubles as the set logger on manual steps */
@@ -8464,6 +8495,66 @@ body {
 .sp-dose-note:empty {
   display: none;
 }
+/* the morning back check — same pills as the dose switch, one row of three
+   plus the short-night toggle; the note says what today becomes */
+.sp-backcheck {
+  padding-top: 16px;
+}
+.sp-back-k {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: rgba(0, 0, 0, 0.58);
+  padding-bottom: 8px;
+}
+.sp-back-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.sp-back-hint {
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: rgba(0, 0, 0, 0.5);
+  padding-top: 8px;
+}
+.sp-back-sleep {
+  display: block;
+  width: 100%;
+}
+/* `display: block` above would beat the hidden attribute */
+.sp-back-sleep[hidden] {
+  display: none;
+}
+/* the two one-tap toggles share a row: sleep + the morning rule */
+.sp-back-toggles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+.sp-back-toggles:has(> [hidden]) {
+  grid-template-columns: 1fr;
+}
+.wsum-flare {
+  margin: 12px 0 4px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #9b2c1a;
+}
+.wsum-flare[hidden] {
+  display: none;
+}
+.sp-start.is-waiting {
+  opacity: 0.45;
+}
+.sp-back-deload {
+  margin-top: 8px;
+}
+.sp-back-note.red {
+  color: #9b2c1a;
+}
 .sp-start {
   display: block;
   width: 100%;
@@ -9032,6 +9123,7 @@ button.blk-flag {
 /* Movement list inside a metcon's overview row — a piece is one row, but a
    name alone can't tell you what you're about to do. */
 .rpo-item-moves {
+  flex-basis: 100%;
   display: flex;
   flex-wrap: wrap;
   gap: 4px 12px;
@@ -9362,12 +9454,20 @@ label {
   #rehab-player.rp-dense .rp-demo {
     min-height: 0;
     max-height: 72px;
+    /* the 72px strip sits under the floating chrome row — the art showed
+       as a stray thumbnail behind the icons. Keep the space, drop the art. */
+    visibility: hidden;
   }
   /* one-line cue — the full text lives on the prep step and the library */
   #rehab-player.rp-dense .rp-cue {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  /* one tap on the line shows the whole cue (round-6 app QA: safety cues
+     were cut to "Collars on, brace… Down on…") */
+  #rehab-player.rp-dense .rp-cue.expanded {
+    white-space: normal;
   }
   #rehab-player.rp-dense .rp-time {
     font-size: clamp(44px, 15vw, 62px);
@@ -9395,6 +9495,31 @@ label {
   #rehab-player.rp-dense .rp-next .rp-next-rx {
     font-size: 18px;
     vertical-align: -2px;
+  }
+  /* a logging step: the cue clamps to two lines; tap to read it all */
+  #rehab-player.rp-logging .rp-cue:not(.expanded) {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  /* the cream art panel is gone on a dense step, so the chrome sits on the
+     dark player — it goes back to light ink (round-6 app QA: dark-on-dark at
+     ~1.1:1 hid close, block name, time left and the overview button) */
+  #rehab-player.rp-dense .rp-session {
+    color: var(--text);
+  }
+  #rehab-player.rp-dense .rp-count,
+  #rehab-player.rp-dense .rp-voice-lvl {
+    color: rgba(255, 255, 255, 0.6);
+  }
+  #rehab-player.rp-dense .rp-top button,
+  #rehab-player.rp-dense .rp-close,
+  #rehab-player.rp-dense .rp-voice {
+    color: rgba(255, 255, 255, 0.85);
+  }
+  #rehab-player.rp-dense .rp-voice[aria-pressed="true"] {
+    color: var(--text);
   }
 }
 
@@ -10094,4 +10219,37 @@ label {
   #app {
     overflow: clip;
   }
+}
+
+/* Heavy-lift reps done (2026-10-10): a quiet row under the weight, big enough
+   to hit with a sweaty thumb, defaulting to the target */
+.rp-anchor-reps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+.rp-ar-k {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--grey);
+}
+.rp-ar-btn {
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  background: none;
+  color: var(--text);
+  font-size: 20px;
+  cursor: pointer;
+}
+.rp-ar-val {
+  font-family: "Teko", sans-serif;
+  font-size: 30px;
+  min-width: 28px;
+  text-align: center;
+  color: var(--text);
 }
