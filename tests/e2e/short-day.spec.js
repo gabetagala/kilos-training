@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { dismissOnboarding } from './helpers.js';
+import { dismissOnboarding, checkInGood } from './helpers.js';
+
+// QA round: an unanswered back check serves the lighter 'unchecked' dose —
+// these specs exercise the full session, so today's check is GOOD
+test.beforeEach(async ({ page }) => {
+  await checkInGood(page);
+});
 
 // THE SHORT DAY (2026-09-23): the ~15-minute version of any day, for the
 // nights the baby won. What matters in a real browser: the preview REDRAWS
@@ -53,10 +59,13 @@ test('the preview redraws to the short day, and Start runs what is shown', async
   await expect(page.locator('#rehab-player')).toHaveClass(/open/);
   // the anchor is two sets in a short day, not four
   const metas = [];
-  for (let i = 0; i < 12; i++) {
+  // the warm-up runs first (one round, it stays on a short day), so walk on
+  // until a ONE-trip piece shows up AFTER the two-set anchor
+  for (let i = 0; i < 30; i++) {
     const m = (await page.locator('#rp-meta').textContent()) || '';
     metas.push(m);
-    if (/ROUND 1 OF 1/.test(m)) break;
+    if (/ROUND 1 OF 1/.test(m) && metas.some((x) => /ROUND 1 OF 2/.test(x)))
+      break;
     await page.locator('#rp-skip').click();
     await page.waitForTimeout(60);
   }
@@ -79,7 +88,7 @@ test('the preview redraws to the short day, and Start runs what is shown', async
   expect(dose).toBe('short');
 });
 
-test('a short rehab day keeps the holds and drops the finisher', async ({
+test('a short rehab day keeps the holds and drops the pumps and finisher', async ({
   page,
 }) => {
   await openProgram(page);
@@ -91,8 +100,11 @@ test('a short rehab day keeps the holds and drops the finisher', async ({
   await page.locator('#sp-start').click();
   await page.locator('#rp-overview-btn').click();
   await expect(page.locator('#rpo-list')).toContainText('T-Spine Reach');
+  // no calves, no carry, no sprints, no scored finisher — only the one
+  // `shortKeep` pump round may stay (Arms on a Tuesday, Row & Raise on a
+  // Thursday; which one depends on the weekday the test runs)
   await expect(page.locator('#rpo-list')).not.toContainText(
-    /(The (Pump|Arm Farm|Redline|Classic|Downhill|Popeye|Porter|Sprint|Chase|Complex|Test|Climb|Century)|Death by|Crawl & Haul)/,
+    /\b(Curl & Lateral|Calves|Farmer Carry|Suitcase Carry)\b|Sprints|The (Redline|Climb)|Death by/,
   );
 });
 

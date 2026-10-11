@@ -208,6 +208,14 @@ export const ART_MANIFEST = {
       'the hips are exactly in line — not sagging toward the floor and not piked up toward the ceiling',
     stack: true,
   },
+  'pallof-press': {
+    scene:
+      'standing side-on to a resistance band anchored at chest height to a power rack on his left, feet hip-width, knees soft, both hands holding the band handle at the middle of his chest',
+    a: 'hands held together against the sternum, elbows bent, torso square to the front',
+    b: 'both arms pressed straight out in front of the chest, the band pulling sideways, the torso still square to the front and NOT rotated toward the anchor',
+    important:
+      'the shoulders and hips stay square to the viewer in both poses — the body never twists toward the band',
+  },
   'back-extension': {
     scene:
       'set up in a 45-degree Roman chair back extension bench, hips resting on the angled pad and both ankles hooked under the ankle rollers, arms hanging relaxed toward the floor',
@@ -296,6 +304,62 @@ export const ART_MANIFEST = {
       'the knees hover barely off the floor and the back stays flat as a table — the hips must not swing side to side or pike up',
     stack: true,
   },
+  'db-calf-raise': {
+    scene:
+      'standing with the balls of both feet on the edge of a sturdy wooden plyo box, heels hanging off, one dumbbell in his right hand at his side, left hand lightly on a rack upright for balance',
+    a: 'heels dropped low below the box edge in a deep calf stretch, body tall and straight',
+    b: 'up high on the balls of the feet, heels lifted well above the box edge, calves squeezed, body tall and straight',
+    important:
+      'only the ankles move — the body stays perfectly tall and straight in both poses, heels hanging off the box edge',
+  },
+  'cable-leg-curl': {
+    scene:
+      'standing facing a cable machine, an ankle strap on his right ankle attached to the LOW pulley by a cable, both hands resting on the machine frame for balance, torso upright, knees side by side',
+    a: 'the strapped leg straight, foot just off the floor behind the standing foot, cable taut',
+    b: 'the strapped leg bent at the knee, heel curled up toward the glute, thigh still vertical beside the standing leg',
+    important:
+      'the hips do NOT swing forward and the thigh of the working leg stays vertical — only the knee bends',
+  },
+  'slider-leg-curl': {
+    scene:
+      'lying on his back on a gym floor, head on the LEFT, feet on the RIGHT, arms flat at his sides, heels resting on two small round furniture sliders',
+    a: 'LEGS STRAIGHT: knees fully extended, heels slid far out to the right on the sliders, hips held up a few inches off the floor so the body is one long straight line from shoulders to heels',
+    b: 'KNEES BENT to 90 degrees: heels pulled in close to the glutes on the sliders, hips pushed up high into a bridge',
+    important:
+      'pose A has STRAIGHT legs and pose B has sharply BENT knees — they must look clearly different; both face the same direction (head left); hips never rest on the floor',
+  },
+  'lying-db-extension': {
+    scene:
+      'lying face up on a flat weight bench, feet flat on the floor, a dumbbell in each hand',
+    a: 'arms straight up above the shoulders, dumbbells together over the chest',
+    b: 'elbows bent and still pointing at the ceiling, dumbbells lowered beside the head near the ears',
+    important:
+      'the upper arms stay still and vertical in both poses — only the elbows bend; the back stays flat on the bench',
+  },
+  'incline-y-raise': {
+    scene:
+      'lying face down with his chest on an incline weight bench set at about 30 degrees, feet on the floor, a light dumbbell in each hand',
+    a: 'arms hanging straight down toward the floor holding the dumbbells, thumbs pointing forward',
+    b: 'arms raised overhead and out into a wide Y shape in line with the body, thumbs up, shoulder blades squeezed',
+    important:
+      'the chest stays on the bench pad in both poses; the arms stay straight and form a clear Y at the top',
+  },
+  'ring-dip': {
+    scene:
+      'supporting himself on a pair of gymnastic rings hanging from straps, feet off the floor with knees bent behind him',
+    a: 'top of a ring dip — arms locked straight, rings pressed tight against his sides and turned slightly out, chest proud, shoulders down',
+    b: 'bottom of the ring dip — elbows bent past 90 degrees pointing straight back, shoulders just below the elbows, rings still tight to the ribs, torso slightly forward',
+    important:
+      'the rings stay close to the body in both poses and the shoulders never roll forward; it is a strict, controlled dip with no kicking',
+  },
+  'ring-row': {
+    scene:
+      'an INVERTED ROW under gymnastic rings: two straps hang from above, the rings are at waist height, and he hangs UNDERNEATH them, chest and face turned UP toward the rings, back toward the floor, like a reverse plank pulling up',
+    a: 'lying back under the rings at a steep angle, arms straight and pointing UP to the rings directly above his chest, heels on the floor, chest and face pointing up at the rings, back toward the floor',
+    b: 'chest pulled up to the rings, elbows bent and driven down past his ribs, body still a straight line from heels to head, chest and face still facing up toward the rings',
+    important:
+      'the CHEST FACES UP toward the rings and the BACK FACES the floor — he hangs below the rings like a reverse plank. He must NOT be leaning forward, face-down, or in front of the straps',
+  },
   'diamond-pushup': {
     scene: 'push-up position on a flat floor, no equipment',
     a: 'top of a push-up — arms locked out, body one straight line, both hands together directly under the chest with thumbs and index fingers touching in a diamond shape',
@@ -346,12 +410,21 @@ export const ART_MANIFEST = {
     important:
       'the torso stays vertical — he must not lean back as the knee comes up',
   },
-  'skater-bound': {
-    scene: 'bounding sideways on a flat floor with no equipment',
-    a: 'loaded on one leg with the knee bent, ready to push off sideways, the other foot off the floor',
-    b: 'landing on the opposite single leg with that knee softly bent and the trail leg swept BEHIND him, chest tall, arms counterbalancing',
+  sprint: {
+    scene:
+      'sprinting outdoors on a flat open road or field, running shoes, side view, no equipment',
+    a: 'driving phase: body leaning slightly forward in one straight line from heel to head, one knee driven up in front, opposite arm forward and bent, rear leg pushing off the ground behind him',
+    b: 'mid-stride at speed: tall upright torso, the front foot landing under the hips, the other heel coming up behind, arms pumping bent at 90 degrees',
     important:
-      'he lands on ONE leg with the knee tracking over the toes — the feet never cross in front of each other',
+      'a SINGLE runner, athletic and controlled, torso tall — he must not lean back or reach out in front with the foot',
+  },
+  'skater-bound': {
+    scene:
+      'a lateral skater bound on a flat gym floor, seen from the FRONT (facing the viewer), the movement goes side to side across the image',
+    a: 'landed on the RIGHT leg only, knee bent in a quarter squat, the LEFT leg swept far BEHIND and across the right ankle with its foot off the floor, torso leaning slightly forward, arms swinging across the body like a speed skater',
+    b: 'mid-air sideways leap to the LEFT, both feet off the floor, body stretched wide, arms swinging out to the left',
+    important:
+      'it must clearly look like a speed skater pushing SIDEWAYS — pose A is a one-legged landing with the other leg crossed behind, never a walking or running stride',
   },
 
   // ── Density 40 ─────────────────────────────────────────────────────────────
@@ -582,6 +655,14 @@ export const ART_MANIFEST = {
     b: 'arms fully extended straight up, dumbbells locked out directly over his shoulders, lower back flat against the floor',
     important:
       'his whole body including the head is fully in frame in both poses; the upper arms touch the floor at the bottom, the lower back stays flat',
+  },
+  'db-bench-press': {
+    scene:
+      'a FLAT weight bench, he lies on his back along it with his head, upper back and hips on the pad, feet flat on the floor either side, a dumbbell in each hand',
+    a: 'dumbbells lowered to the sides of his mid-chest, elbows bent about 45 degrees from his torso and slightly below the bench line, a deep chest stretch',
+    b: 'arms fully extended, dumbbells pressed straight up above his chest and slightly together, ribs down',
+    important:
+      'the bench is completely FLAT and horizontal in both poses — his torso lies level; this is NOT an incline bench',
   },
   'incline-db-press': {
     scene:

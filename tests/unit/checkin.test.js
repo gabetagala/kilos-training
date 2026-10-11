@@ -76,6 +76,73 @@ describe('checkinStatus', () => {
         .state,
     ).toBe('stalled');
   });
+
+  // BUILDING, NOT CUTTING (2026-10-10, coach QA): the goal grew to a bigger
+  // triangle AND bigger legs, so flat weight is no longer the alarm. The one
+  // alarm is the WAIST rising by a REAL move — 1.0 cm, not the 0.3 that
+  // tape-measure noise reaches on its own (round 2).
+  it('flags waistUp only when the waist rose a real 1.0 cm', () => {
+    // scale up 1.5 kg, waist up 1 cm → the alarm
+    const up = checkinStatus([e('2026-07-05', 80, 88), e('2026-07-19', 81.5, 89)]);
+    expect(up.waistUp).toBe(true);
+    expect(up.state).toBe('stalled'); // nothing dropped — and that's fine now
+    // scale up, waist flat → building, no alarm
+    expect(
+      checkinStatus([e('2026-07-05', 80, 88), e('2026-07-19', 81.5, 88)]).waistUp,
+    ).toBe(false);
+    // exactly 1.0 cm counts; just under it doesn't (float-noise safe)
+    expect(
+      checkinStatus([e('2026-07-05', 80, 88.1), e('2026-07-19', 80, 89.1)]).waistUp,
+    ).toBe(true);
+    expect(
+      checkinStatus([e('2026-07-05', 80, 88.2), e('2026-07-19', 80, 89.1)]).waistUp,
+    ).toBe(false);
+    // the old 0.3 noise floor is no longer an alarm
+    expect(
+      checkinStatus([e('2026-07-05', 80, 88.1), e('2026-07-19', 80, 88.4)]).waistUp,
+    ).toBe(false);
+    expect(
+      checkinStatus([e('2026-07-05', 80, 88), e('2026-07-19', 80, 88.9)]).waistUp,
+    ).toBe(false);
+    // a waist going DOWN is never an alarm
+    const down = checkinStatus([e('2026-07-05', 80, 89), e('2026-07-19', 80, 88)]);
+    expect(down.waistUp).toBe(false);
+    expect(down.state).toBe('trending');
+  });
+
+  // The building statuses read the two directions separately: weight down
+  // WITHOUT the waist down is the 'losing' alarm in the UI (muscle, not fat).
+  it('reports weightDown and waistDown separately, past the 0.3 noise floor', () => {
+    const losing = checkinStatus([e('2026-07-05', 82, 90), e('2026-07-19', 81.5, 90)]);
+    expect(losing.weightDown).toBe(true);
+    expect(losing.waistDown).toBe(false);
+    expect(losing.state).toBe('trending');
+    const cutting = checkinStatus([e('2026-07-05', 82, 90), e('2026-07-19', 81.5, 89.5)]);
+    expect(cutting.weightDown).toBe(true);
+    expect(cutting.waistDown).toBe(true);
+    // exactly 0.3 counts on both; 0.2 doesn't
+    const edge = checkinStatus([e('2026-07-05', 82.3, 90.3), e('2026-07-19', 82, 90)]);
+    expect(edge.weightDown).toBe(true);
+    expect(edge.waistDown).toBe(true);
+    const flat = checkinStatus([e('2026-07-05', 82.2, 90.2), e('2026-07-19', 82, 90)]);
+    expect(flat.weightDown).toBe(false);
+    expect(flat.waistDown).toBe(false);
+    // gaining never reads as down
+    const gain = checkinStatus([e('2026-07-05', 80, 88), e('2026-07-19', 81, 88.5)]);
+    expect(gain.weightDown).toBe(false);
+    expect(gain.waistDown).toBe(false);
+    // no reference yet → no direction at all
+    expect(
+      checkinStatus([e('2026-07-12', 80, 88), e('2026-07-19', 79, 87)]).weightDown,
+    ).toBeUndefined();
+  });
+
+  it('carries no waistUp until there is a two-week reference', () => {
+    expect(checkinStatus([]).waistUp).toBeUndefined();
+    expect(
+      checkinStatus([e('2026-07-12', 80, 88), e('2026-07-19', 81, 90)]).waistUp,
+    ).toBeUndefined();
+  });
 });
 
 // ── bodyKgAsOf (2026-08-12): kcal uses the weight he had WHEN he trained ────

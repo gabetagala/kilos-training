@@ -1,5 +1,24 @@
 # BLOCK 01 — 12 weeks · "Armored V-Taper"
 
+> ⚠️ **2026-10-10 — reworked after independent coach + physio QA.** Fixed
+> anchors (pull-up / front squat / incline DB press) that progress weekly;
+> isolation moved to Tue/Thu pump blocks; morning back check (Good / Stiffer /
+> Sore + short sleep) sets an amber or red day and gates every load increase;
+> back extensions Tue + Sat only (3×12); Back & Hips runs open → McGill Big 3 →
+> contract → folds; calves, slider leg curls, lying DB extensions, incline
+> Y-raises added; honest time (changeovers) and honest set credits in the
+> verifier (33 checks). See the rework plan's v2 for the full list.
+
+> ⚠️ **2026-10-09 — the lift days left EMOM40.** Each lift day is now a
+> day-specific warm-up, the anchor, and short named supersets / giant sets on
+> timed rest (Wed keeps one power EMOM; Mon closes on a scored finisher), and
+> no two days share a shape. Exercises stay fixed; each block rotates its
+> DELIVERY by week — SETS / HEAVY / FOR TIME (only where every movement is
+> pace-safe) or LAST SET MAX. The RDL runs Mon + Fri. Friday's pull-up step
+> is now 4 → 5 → 6. Source of truth is still
+> [src/workout/program.js](src/workout/program.js); `scripts/verify-program.mjs`
+> passes all 31 checks on it.
+
 > ⚠️ **2026-08-11 — PARTIALLY HISTORICAL.** The sessions were rebuilt
 > 2026-08-10/11 (full-body EMOM days, one-pulley rule, single-number reps) —
 > [src/workout/program.js](src/workout/program.js) is the source of truth,

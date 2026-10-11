@@ -43,6 +43,10 @@ const SYNC_KEYS = [
   // phone left the laptop in week 7 and each device built a different queue
   // for the same day. Merged last-writer-wins by setAt (newerBlock).
   'kilos-block',
+  // the morning back checks (2026-10-10) — one per date, union-merged
+  'kilos-back-checks',
+  // the deload week { monday, setAt } — last writer wins
+  'kilos-deload',
 ];
 
 // ─── ACTIVE-SESSION HANDOFF (2026-08-15) ─────────────────────────────────────
@@ -271,6 +275,22 @@ function mergeRecords(remote) {
     ...remoteCI.filter((e) => !localDates.has(e.date)),
   ].sort((a, b) => (a.date < b.date ? -1 : 1));
   _set('kilos-checkins', mergedCI);
+
+  // Back checks — union by date, local wins on a same-date conflict
+  const localBC = _get('kilos-back-checks') || [];
+  const remoteBC = remote['kilos-back-checks'] || [];
+  const bcDates = new Set(localBC.map((e) => e.date));
+  _set(
+    'kilos-back-checks',
+    [...localBC, ...remoteBC.filter((e) => !bcDates.has(e.date))]
+      .sort((a, b) => (a.date < b.date ? -1 : 1))
+      .slice(-120),
+  );
+  // Deload week — the newest decision wins
+  const dl = [_get('kilos-deload'), remote['kilos-deload']]
+    .filter(Boolean)
+    .sort((a, b) => (a.setAt < b.setAt ? 1 : -1))[0];
+  if (dl) _set('kilos-deload', dl);
 
   // Block restart — the newest restart wins on every device
   const blk = newerBlock(_get('kilos-block'), remote['kilos-block']);

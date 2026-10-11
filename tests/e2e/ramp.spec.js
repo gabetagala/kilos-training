@@ -21,8 +21,11 @@ async function setup(page, weeksAgo) {
   await page.locator('#btn-rehab-open').click();
 }
 
+// the deload button shares the restart button's styling class (2026-10-10)
+const restartBtn = (page) => page.locator('.blk-restart-open:not(.blk-deload-on)');
+
 async function restart(page) {
-  await page.locator('.blk-restart-open').click();
+  await restartBtn(page).click();
   await expect(page.locator('.blk-restart')).toContainText(
     'Your history, PRs and weights stay',
   );
@@ -41,7 +44,7 @@ test('restart from week 7: two ramp weeks, then a fresh week 1', async ({
   await expect(page.locator('.blk-name')).toHaveText('BLOCK 01 · WK 7/12');
 
   // cancelling changes nothing
-  await page.locator('.blk-restart-open').click();
+  await restartBtn(page).click();
   await page.locator('.blk-restart-no').click();
   await expect(page.locator('.blk-name')).toHaveText('BLOCK 01 · WK 7/12');
 
@@ -92,19 +95,30 @@ test('a ramp lift day: anchor one set down, piece at two rounds, and a refresh r
   await expect(page.locator('#rehab-player')).toHaveClass(/open/);
   // skip through the anchor into the piece — and stop there: the ramp day
   // is short enough that skipping blindly runs off the end of it
+  // Round 3 order: warm-up → pull-up anchor (5 sets, a lateral-raise pair in
+  // each rest → THREE in ramp 1) → RDL ramp → Hinge & Calf (3 rounds → ONE
+  // in ramp 1) → Wings (4 rounds → TWO in ramp 1: ramp 1 is two rounds short)
   const metas = [];
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 60; i++) {
+    const head = (await page.locator('#rp-session-name').textContent()) || '';
     const m = (await page.locator('#rp-meta').textContent()) || '';
     metas.push(m);
-    if (/ROUND 1 OF 2/.test(m)) break;
+    if (/WINGS/.test(head) && /ROUND 1 OF/.test(m)) break;
     await page.locator('#rp-skip').click();
     await page.waitForTimeout(60);
   }
+  await expect(page.locator('#rp-session-name')).toContainText('WINGS');
   const all = metas.join(' | ');
-  console.log('RAMP METAS:', all.slice(0, 400));
-  expect(all).toContain('ROUND 1 OF 3'); // the pull-up anchor: 3 sets, not 4
-  expect(all).toContain('ROUND 1 OF 2'); // the piece: two rounds
-  expect(all).not.toContain('ROUND 1 OF 4');
+  console.log('RAMP METAS:', all.slice(0, 600));
+  expect(all).toContain('SET 1 OF 3'); // pull-ups: 3 sets, not 5
+  expect(all).toContain('PAIR · ROUND 3 OF 3'); // the pair rides every one
+  expect(all).not.toContain('OF 5');
+  // Hinge & Calf ramps from three rounds to one — and the RDL keeps its own
+  // effort target on the way
+  expect(all).toContain('2–3 LEFT · ROUND 1 OF 1');
+  // Wings: two rounds, not four (45-min round: Wings is four rounds; ramp 1
+  // is two rounds short)
+  expect(metas.at(-1)).toContain('1–2 LEFT · ROUND 1 OF 2');
 
   expect(errors).toEqual([]);
 
@@ -121,7 +135,10 @@ test('a ramp lift day: anchor one set down, piece at two rounds, and a refresh r
   expect(hist).toBe(0); // nothing got salvaged as "interrupted"
 });
 
-test('a ramp rehab day is the holds and the core cap — no scored finisher', async ({
+// A ramp Back & Hips day is the openers, the McGill primer, the back
+// extension and the folds — and since round 4 the PUMPS too, shaped down like
+// any piece. The carry and Saturday's scored finisher still wait for week 1.
+test('a ramp rehab day keeps the pumps shaped down — no carry, no scored finisher', async ({
   page,
 }) => {
   await setup(page, 6);
@@ -129,8 +146,15 @@ test('a ramp rehab day is the holds and the core cap — no scored finisher', as
   await page.locator('#rehab-session-list [data-rehab="daily"]').click();
   await page.locator('#sp-start').click();
   await page.locator('#rp-overview-btn').click();
-  await expect(page.locator('#rpo-list')).toContainText('Elephant Walk');
-  await expect(page.locator('#rpo-list')).not.toContainText(
-    /(The (Pump|Arm Farm|Redline|Classic|Downhill|Popeye|Porter|Sprint|Chase|Complex|Test|Climb|Century)|Death by|Crawl & Haul)/,
+  const ov = page.locator('#rpo-list');
+  await expect(ov).toContainText('Elephant Walk');
+  await expect(ov).toContainText('McGill Curl-Up');
+  await expect(ov).not.toContainText(
+    /Farmer Carry|Suitcase Carry|Sprints:|The (Redline|Sprint|Climb)|Death by/,
   );
+  // whichever pump day the card serves, it runs fewer rounds than written
+  const txt = (await ov.textContent())?.replace(/\s+/g, ' ') || '';
+  const pumps = [...txt.matchAll(/(Arms|Calves|Row & Raise|Curl & Lateral) SETS · (\d) rounds/g)];
+  const FULL = { Arms: 4, Calves: 3, 'Row & Raise': 3, 'Curl & Lateral': 4 };
+  for (const [, name, n] of pumps) expect(Number(n), name).toBeLessThan(FULL[name]);
 });

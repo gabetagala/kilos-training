@@ -57,6 +57,9 @@
  * Build an engine bound to one exercise dictionary.
  * @param exercises map of exercise id → { name, repTempo?, logReps?, … }
  */
+// "1 round", never "1 rounds" — a short day serves single rounds everywhere
+const roundsWord = (n) => `${n} round${n === 1 ? '' : 's'}`;
+
 export function createStepEngine(exercises = {}) {
   const exDef = (exId) => exercises[exId];
   // ── Rotation: which flavor of a session runs this time ──────────────────────
@@ -69,8 +72,18 @@ export function createStepEngine(exercises = {}) {
 
   // The session's concrete blocks for a given variant. A null spec in a
   // rotation pool means the block sits out that variant entirely.
+  // A slot flagged `conditioning` (the scored finishers) passes the flag to
+  // whatever it serves, so the steps can say they are engine work, not
+  // hypertrophy sets (round-3 coach QA: honest leg volume).
   const sessionBlocks = (session, variant = 0) =>
-    session.blocks.map((b) => rotateSpec(b, variant)).filter(Boolean);
+    session.blocks
+      .map((b) => {
+        const r = rotateSpec(b, variant);
+        return r && b.rotate && b.conditioning
+          ? { ...r, conditioning: true }
+          : r;
+      })
+      .filter(Boolean);
 
   // How many day-flavors the session cycles through (1 = fixed session).
   const sessionVariantCount = (session) =>
@@ -122,6 +135,14 @@ export function createStepEngine(exercises = {}) {
   function pushSetWork(steps, block, setIdx, totalSets, side) {
     const sideSuffix = side ? ` · ${side}` : '';
     const setMeta = `SET ${setIdx + 1} OF ${totalSets}${sideSuffix}`;
+    // a block can speak for itself: its note rides under the cue, and a block
+    // that serves a movement differently (the back extension as a HOLD) brings
+    // its own cue and how-line instead of the movement's rep-based ones
+    const own = {
+      ...(block.note ? { cueNote: block.note } : {}),
+      ...(block.cue ? { cue: block.cue } : {}),
+      ...(block.how ? { how: block.how } : {}),
+    };
 
     if (block.mode === 'reps') {
       const reps = blockScheme(block)[setIdx];
@@ -135,6 +156,7 @@ export function createStepEngine(exercises = {}) {
           side,
           rep,
           countsAsSet: rep === reps,
+          ...own,
         });
         if (rep < reps && block.resetSecs) {
           steps.push(restStep(block.ex, block.resetSecs, 'BREATHE', setMeta));
@@ -154,6 +176,7 @@ export function createStepEngine(exercises = {}) {
         side,
         tempo: { reps: block.reps, secsPerRep, pattern: block.tempo },
         countsAsSet: true,
+        ...own,
       });
       return;
     }
@@ -170,6 +193,7 @@ export function createStepEngine(exercises = {}) {
       meta: setMeta,
       side,
       countsAsSet: true,
+      ...own,
     });
   }
 
@@ -238,7 +262,14 @@ export function createStepEngine(exercises = {}) {
     for (const [blockIdx, block] of sessionBlocks(session, variant).entries()) {
       const blockStart = steps.length;
       const tagBlock = () => {
-        for (let i = blockStart; i < steps.length; i++) steps[i].bi = blockIdx;
+        for (let i = blockStart; i < steps.length; i++) {
+          steps[i].bi = blockIdx;
+          if (block.conditioning) steps[i].conditioning = true;
+        }
+        // the walk / re-plate / re-pin into this block, for honest estimates
+        if (block.changeoverSecs && steps[blockStart]) {
+          steps[blockStart].changeover = block.changeoverSecs;
+        }
       };
       // Ramp: unlogged self-paced warm-up sets before a heavy lift.
       if (block.mode === 'ramp') {
@@ -271,7 +302,21 @@ export function createStepEngine(exercises = {}) {
             // r is the resolved member — authoritative for data; m only names
             // the slot for the swap chooser
             const r = rm[mi];
-            const meta = `ROUND ${round} OF ${block.rounds}${r.reps ? ` · ${r.reps} REPS` : ''}`;
+            // THE EFFORT TARGET rides under the movement name (2026-10-10,
+            // coach QA — a sleep-deprived lifter drifts to 4–5 in reserve):
+            // a working set says "1–2 LEFT", a heavy week says so, and the
+            // last round of a rep-out says MAX SET. Warm-ups say nothing.
+            const working = block.isPiece && !block.warmup;
+            const maxSet =
+              round === block.rounds && /LAST SET/.test(r.lastRoundNote || '');
+            const fmt = !working
+              ? ''
+              : maxSet
+                ? 'MAX SET · '
+                : // HEAVY only on a member the week actually made heavier —
+                  // never the RDL or a bodyweight curl (round-3 QA, both)
+                  `${r.heavy ? 'HEAVY · ' : ''}${r.effort || '1–2 LEFT'} · `;
+            const meta = `${fmt}ROUND ${round} OF ${block.rounds}${r.reps ? ` · ${r.reps} REPS` : ''}`;
             if (r.secs) {
               steps.push({
                 kind: 'work',
@@ -296,6 +341,13 @@ export function createStepEngine(exercises = {}) {
                 cueNote:
                   round === block.rounds ? r.lastRoundNote || r.note : r.note,
                 countsAsSet: r.countsAsSet !== false,
+                ...(maxSet ? { maxSet: true } : {}),
+                // a superset's working set (2026-10-09): it logs the reps
+                // ACTUALLY done and earns a load target, read against the
+                // last session of the same week type (`heavy`)
+                ...(block.isPiece && !block.warmup
+                  ? { build: true, ...(r.heavy ? { heavy: true } : {}) }
+                  : {}),
                 // circuit members get the same tempo guide + live rep counter
                 // as main lifts — supersets are where counting is hardest
                 ...guideFor(r.ex, r.reps),
@@ -305,6 +357,13 @@ export function createStepEngine(exercises = {}) {
             }
             const isLast =
               round === block.rounds && mi === block.members.length - 1;
+            // the header names the block (2026-10-09) — "WINGS · HEAVY", not
+            // the session name for twelve minutes of supersets
+            const label = block.warmup ? 'Warm-Up' : block.name || null;
+            if (label) {
+              steps[steps.length - 1].blockLabel = label;
+              if (block.warmup) steps[steps.length - 1].warmup = true;
+            }
             if (!isLast) {
               const secs =
                 mi === block.members.length - 1
@@ -315,8 +374,14 @@ export function createStepEngine(exercises = {}) {
                   ? `ROUND ${round + 1} NEXT`
                   : `ROUND ${round} OF ${block.rounds}`;
               steps.push(restStep(rm[mi].ex, secs, 'REST', nextMeta));
+              if (label) steps[steps.length - 1].blockLabel = label;
             }
           });
+        }
+        // the get-set in front of the block names it too
+        const opener = steps[blockStart];
+        if (opener?.kind === 'prep' && steps[blockStart + 1]?.blockLabel) {
+          opener.blockLabel = steps[blockStart + 1].blockLabel;
         }
         tagBlock();
         continue;
@@ -333,8 +398,16 @@ export function createStepEngine(exercises = {}) {
         // The label is WALL CLOCK: work minutes plus the rest rounds between
         // trips. "EMOM 32" on a clock that runs 35 minutes was a lie the
         // athlete would catch by minute 33.
+        // a member may bring its own clock (the EMOM day's per-leg minute)
+        const roundSecs = rm.reduce(
+          (n, r) => n + (r.intervalSecs ?? interval),
+          0,
+        );
+        // warm-up rounds may run their own clock (the sprints' 90 s build)
+        const warmN = block.warmupIntervalSecs ? block.warmupRounds || 0 : 0;
         const wallMins = Math.round(
-          (total * interval +
+          ((block.rounds - warmN) * roundSecs +
+            warmN * rm.length * (block.warmupIntervalSecs || 0) +
             (block.roundRestSecs
               ? (block.rounds - 1) * block.roundRestSecs
               : 0)) /
@@ -370,8 +443,18 @@ export function createStepEngine(exercises = {}) {
             steps.push({
               kind: 'work',
               exId: r.ex,
-              secs: interval,
+              secs:
+                warm && block.warmupIntervalSecs
+                  ? block.warmupIntervalSecs
+                  : (r.intervalSecs ?? interval),
               emom: true,
+              // an EMOM-day set is a real superset set (round-6 coach QA:
+              // logged as "eased", its heavy weeks never progressed): it
+              // confirms its reps on the REPS DONE row, carries its heavy
+              // flag, and earns a target like any other
+              ...(block.emomDay && !warm
+                ? { build: true, ...(r.heavy ? { heavy: true } : {}) }
+                : {}),
               // the heavy slot — the one place load progression is suggested
               anchor: !!block.anchor,
               ladder: !!r.ladderFrom,
@@ -390,13 +473,18 @@ export function createStepEngine(exercises = {}) {
                 ? `WARM-UP ${round} OF ${block.warmupRounds} · BUILD`
                 : r.ladderFrom
                   ? `MIN ${minute} · ${ladderReps} REPS`
-                  : `MIN ${minute} OF ${total} · ROUND ${round} OF ${block.rounds}`,
+                  : block.anchor
+                    ? // the heavy lift counts its WORKING sets (round-6 app
+                      // QA: "ROUND 2 OF 5" after one build round read wrong)
+                      `SET ${round - (block.warmupRounds || 0)} OF ${block.rounds - (block.warmupRounds || 0)}`
+                    : `MIN ${minute} OF ${total} · ROUND ${round} OF ${block.rounds}`,
               reps: warm ? r.warmupReps || 'build' : (ladderReps ?? r.reps),
               // timed members (carries) work part of the interval, not all of it
               workSecs: r.secs,
               side: r.side,
+              // a per-round warm-up script (the sprint drills, then strides)
               cueNote: warm
-                ? r.warmupNote || r.note
+                ? r.warmupNotes?.[round - 1] || r.warmupNote || r.note
                 : round === block.rounds
                   ? r.lastRoundNote || r.note
                   : r.note,
@@ -406,6 +494,37 @@ export function createStepEngine(exercises = {}) {
               ...(warm ? {} : repLogged(r.ex)),
             });
           });
+          // THE ANCHOR'S PAIR (2026-10-10, round-3 coach + plan QA): a
+          // spine-quiet move rides each WORKING interval of the heavy lift —
+          // the set, then the pair, then the rest — so the triangle gets real
+          // sets at zero minutes. Same clock: the anchor's step shrinks to
+          // `pair.at` seconds and the pair takes the rest of the interval.
+          // Never on a build round, never an anchor itself (no RIR, no gate).
+          const warmRound = round <= (block.warmupRounds || 0);
+          if (block.pair && !warmRound) {
+            const pr = block.pair;
+            const lead = steps[steps.length - 1];
+            const at = Math.min(pr.at ?? 45, interval - 30);
+            lead.secs = at;
+            steps.push({
+              kind: 'work',
+              exId: pr.ex,
+              secs: interval - at,
+              emom: true,
+              pair: true,
+              build: true,
+              piece: block.name,
+              pieceFormat: lead.pieceFormat,
+              phase: 'PAIR',
+              meta: `PAIR · ROUND ${round} OF ${block.rounds}`,
+              reps: pr.reps,
+              cueNote: pr.note,
+              logWeight: pr.logWeight !== false,
+              countsAsSet: true,
+              ...guideFor(pr.ex, pr.reps),
+              ...repLogged(pr.ex),
+            });
+          }
           // A rest ROUND, not a rest between sets: `roundRestSecs` buys back
           // that much air before the next trip through the stations (a full
           // minute pre-EMOM40; 20 seconds where the 40-cap left headroom).
@@ -437,10 +556,10 @@ export function createStepEngine(exercises = {}) {
         const scheme = block.repScheme || null;
         const rounds = scheme
           ? scheme.length
-          : (block.members.reduce(
+          : block.members.reduce(
               (max, m) => Math.max(max, m.repScheme?.length ?? 0),
               0,
-            ) || block.rounds);
+            ) || block.rounds;
         for (let round = 1; round <= rounds; round++) {
           const schemeReps = scheme ? String(scheme[round - 1]) : null;
           block.members.forEach((m, mi) => {
@@ -635,34 +754,47 @@ export function createStepEngine(exercises = {}) {
           block.members.find((m) => m.repScheme)?.repScheme.length ??
           block.rounds;
         // wall clock, rest rounds included — must match the step label
+        const warmN = block.warmupIntervalSecs ? block.warmupRounds || 0 : 0;
         const mins = Math.round(
-          (rounds * block.members.length * interval +
+          ((rounds - warmN) *
+            rm.reduce((n, r) => n + (r.intervalSecs ?? interval), 0) +
+            // warm-up rounds on their own clock (the sprints' 90 s build) —
+            // same sum as the step label, so preview and player agree
+            warmN * rm.length * (block.warmupIntervalSecs || 0) +
             (block.roundRestSecs ? (rounds - 1) * block.roundRestSecs : 0)) /
             60,
         );
         const warmup = block.warmupRounds
           ? ` (${block.warmupRounds} to build)`
           : '';
+        const pairRow = block.pair
+          ? [
+              {
+                name: `+ ${name(block.pair.ex)}`,
+                detail: `${block.pair.reps} in the rest`,
+              },
+            ]
+          : [];
         return {
           title: block.name || 'The Piece',
           detail:
             block.mode === 'emom'
-              ? `${block.formatLabel || 'EMOM'} ${mins} · ${rounds} rounds${warmup}`
+              ? `${block.formatLabel || 'EMOM'} ${mins} · ${roundsWord(rounds)}${warmup}`
               : block.repScheme
                 ? `${block.repScheme.join('-')} for time`
-                : `${rounds} rounds for time`,
+                : `${roundsWord(rounds)} for time`,
           piece: true,
           format: block.mode.toUpperCase(),
           rounds,
           note: block.note,
-          members: rm.map((r) => ({
-            name: name(r.ex),
-            // a per-side member would otherwise render as two identical rows;
-            // details read the RESOLVED member so a swap shows its own numbers.
-            // A ladder reads as a ladder: repScheme joins as 40-30-20-10, and
-            // a rising repsPerRound as 4→22 — never its first rung alone.
-            detail:
-              `${
+          members: rm
+            .map((r) => ({
+              name: name(r.ex),
+              // a per-side member would otherwise render as two identical rows;
+              // details read the RESOLVED member so a swap shows its own numbers.
+              // A ladder reads as a ladder: repScheme joins as 40-30-20-10, and
+              // a rising repsPerRound as 4→22 — never its first rung alone.
+              detail: `${
                 r.repScheme
                   ? r.repScheme.join('-')
                   : r.repsPerRound
@@ -671,7 +803,8 @@ export function createStepEngine(exercises = {}) {
                       ? `${r.secs}s`
                       : (r.reps ?? block.repScheme?.join('-') ?? '')
               }${r.side ? ` ${r.side.toLowerCase()}` : ''}`.trim(),
-          })),
+            }))
+            .concat(pairRow),
         };
       }
       if (block.mode === 'tabata') {
@@ -713,9 +846,32 @@ export function createStepEngine(exercises = {}) {
             block.members[i]?.secs ? `${block.members[i].secs}s` : r.reps,
           )
           .join(' · ');
+        // A NAMED circuit (2026-10-09: the lift days' warm-ups, supersets and
+        // giant sets) reads as a piece — its name, its week's format, its
+        // movement list — exactly like an EMOM or a for-time row.
+        if (block.name) {
+          return {
+            title: block.name,
+            detail: block.warmup
+              ? `${Math.round(
+                  block.members.reduce((t, m) => t + (m.secs || 35), 0) / 60,
+                )} min · easy`
+              : `${block.formatLabel || 'SETS'} · ${roundsWord(block.rounds)}`,
+            piece: true,
+            format: 'SETS',
+            rounds: block.rounds,
+            note: block.note,
+            members: rm.map((r, i) => ({
+              name: name(r.ex),
+              detail: block.members[i]?.secs
+                ? `${block.members[i].secs}s`
+                : r.reps,
+            })),
+          };
+        }
         return {
           title: members.join(' + '),
-          detail: `${block.rounds} rounds · ${bits}`,
+          detail: `${roundsWord(block.rounds)} · ${bits}`,
           rounds: block.rounds,
           members: rm.map((r, i) => ({
             name: name(r.ex),
@@ -806,9 +962,30 @@ export function createStepEngine(exercises = {}) {
       .length;
   }
 
+  // A self-paced set takes as long as its reps at its own tempo, plus the
+  // unrack / log / re-grip around it (2026-10-09). A flat 35s undercounted
+  // every slow-eccentric superset — a "39-minute" day that runs 46 is the
+  // one that gets skipped. 35s stays the floor for anything unpaced.
+  const SET_OVERHEAD_SECS = 10;
+  // A MAX SET runs past the prescription — budget ~5 more reps (round-3
+  // coach QA: the rep-out week was the one the estimate never paid for).
+  const MAX_SET_EXTRA_REPS = 5;
+  function estStepSecs(s) {
+    if (s.secs != null) return s.secs;
+    if (s.repTempo && s.repTarget) {
+      const sides = /\/(side|leg|arm)/.test(String(s.reps ?? '')) ? 2 : 1;
+      const reps = s.repTarget + (s.maxSet ? MAX_SET_EXTRA_REPS : 0);
+      return Math.max(
+        MANUAL_SET_EST_SECS,
+        reps * sides * tempoSecsPerRep(s.repTempo) + SET_OVERHEAD_SECS,
+      );
+    }
+    return MANUAL_SET_EST_SECS + (s.maxSet ? 15 : 0);
+  }
+
   function estimateSessionSecs(session, variant = 0) {
     return buildStepQueue(session, {}, variant).reduce(
-      (sum, s) => sum + (s.secs ?? MANUAL_SET_EST_SECS),
+      (sum, s) => sum + estStepSecs(s) + (s.changeover || 0),
       0,
     );
   }

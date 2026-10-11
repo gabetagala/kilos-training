@@ -1,10 +1,13 @@
 import { expect, test } from '@playwright/test';
 import { announceCue } from '../../src/workout/announce.js';
 import {
+  applyAmber,
   applyFormats,
   applyPhase,
   applyRamp,
   applyShort,
+  applyTired,
+  applyUnchecked,
   blockState,
   phaseSwaps,
 } from '../../src/workout/block.js';
@@ -15,7 +18,13 @@ import {
   getRehabSession,
   nextWorkLabel,
 } from '../../src/workout/rehab.js';
-import { dismissOnboarding } from './helpers.js';
+import { dismissOnboarding, checkInGood } from './helpers.js';
+
+// QA round: an unanswered back check serves the lighter 'unchecked' dose —
+// these specs exercise the full session, so today's check is GOOD
+test.beforeEach(async ({ page }) => {
+  await checkInGood(page);
+});
 
 // THE COACH'S AUDIO, AS A TIMELINE (2026-09-16, his report: overlapped or
 // mixed audio, cues missing, cues too early). Ears can't run in CI, so this
@@ -278,6 +287,16 @@ for (const sc of SCENARIOS) {
       applyRamp(applyPhase(base, st.phase), 2),
       applyShort(applyPhase(base, st.phase)),
     ];
+    // …and whatever dose the run carries, its parts re-applied in the
+    // player's order (QA round: doses compose — 'short+tired', 'unchecked')
+    const APPLY = { short: applyShort, amber: applyAmber, tired: applyTired, unchecked: applyUnchecked };
+    const parts = String(st.dose || '').split('+').filter(Boolean);
+    const dosed = (s) =>
+      ['short', 'amber', 'tired', 'unchecked'].reduce(
+        (d, p) => (parts.includes(p) ? APPLY[p](d) : d),
+        s,
+      );
+    shaped.push(...shaped.map(dosed));
     const queue = shaped
       .map((s) => buildStepQueue(s, swaps, st.variant))
       .find((q) => queueSig(q) === st.queueSig);

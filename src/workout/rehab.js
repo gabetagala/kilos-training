@@ -27,13 +27,11 @@ import { createStepEngine } from './stepEngine.js';
 // knowingly for a session he'll do forever. The long-set mechanism is
 // untouched: durations were never trimmed, movements were.
 //
-// The method, from the PDF, and it governs everything below:
-//   - Every exercise except the stretches chases a 10/10 BURN and 0/10 PAIN.
-//     Never work through pain — find today's pain-free level instead.
-//   - Breaking mid-set at a true 10/10 burn is expected. Rest, then continue.
-//   - The progression trigger is ENDURANCE, not load: hold the full duration
-//     unbroken, then take the next step on that movement's ladder and start
-//     over. Ladders live on each exercise as `scale`.
+// The method (2026-10-10, physio QA — one philosophy, not two): work hard
+// enough to feel the muscle, never into pain, and stop a set the moment form
+// slips — McGill's "never grind the spine to fatigue" wins over the source
+// PDF's 10/10 burn. Progress on ENDURANCE, not load: all the reps clean, then
+// take the next step on that movement's ladder (`scale`).
 // Back Extension wants a Roman chair; floor-lying isometrics are the stated
 // regression until one exists.
 //
@@ -112,8 +110,8 @@ export const REHAB_EXERCISES = {
     name: 'T-Spine Reach',
     feel: 'The mid-back opening as the chest turns',
     avoid: 'Twisting from the low back — hips stay square',
-    cue: 'On all fours. Sweep one arm up to the ceiling, eyes following the hand. Slow — turn from the mid-back.',
-    why: 'Restores the mid-back rotation the baby-carry posture steals — stiff there, and the low back and shoulders pay.',
+    cue: 'On all fours. Sweep one arm up to the ceiling, eyes following the hand, and finish each reach with the chest open. Slow — turn from the mid-back.',
+    why: 'The mid-back the baby-carry posture stiffens. Carrying: a carrier with a hip belt, baby close, switch sides often.',
     yt: 'quadruped thoracic rotation',
   },
   'mcgill-curlup': {
@@ -162,9 +160,10 @@ export const REHAB_EXERCISES = {
       ['DOWN', 3],
       ['UP', 1],
     ],
-    // Standing + loaded is the one place the leg-length difference matters —
-    // train with the same correction you walk with.
-    cue: 'Shoe lift on. Soft knees, hips straight back, bar close — three seconds down, flat back.',
+    // No shoe lift (2026-10-10): imaging puts the true leg-length difference
+    // at 0.4 cm, and he was cleared to wean off the 1.5 cm insole — under a
+    // loaded bar it over-corrected the pelvis the other way.
+    cue: 'Unrack at the pins, never off the floor. Soft knees, hips straight back, bar close — down only until the hamstrings stop the hips, three seconds, flat back.',
     why: 'Retrains the hip hinge so the hips lift, not the spine.',
     yt: 'romanian deadlift form',
   },
@@ -196,7 +195,7 @@ export const REHAB_EXERCISES = {
     name: 'Broad Jump',
     feel: 'Hips launching, landing soft and stuck',
     avoid: 'Loud landings, knees caving, rushed reps',
-    cue: 'Swing the arms, jump FAR, land in a quiet half-squat and stick it. Full reset between jumps.',
+    cue: 'Swing the arms, jump FAR, land in a quiet half-squat, chest up, and stick it. Full reset between jumps.',
     why: 'Hip power with a controlled landing — catch-a-toddler strength.',
     yt: 'standing broad jump technique',
   },
@@ -240,7 +239,7 @@ export const REHAB_EXERCISES = {
     cue: 'Sit tall, knees bent, feet wide. Drop one knee inward, then lift that foot off the floor — small lifts, the hip does all of it.',
     why: 'The rotation a hip loses first. Without it the spine turns instead.',
     scale: 'Easier: body weight · Harder: ankle weight',
-    how: 'Follow the count: lift, squeeze two, lower. 10/10 burn = pause, then pick the count back up.',
+    how: 'Follow the count: lift, squeeze two, lower. Form slips = pause, then pick the count back up.',
     yt: 'seated hip internal rotation lift off',
   },
   'hip-airplane': {
@@ -261,7 +260,7 @@ export const REHAB_EXERCISES = {
     cue: 'Lie on your side, body in one line. Lift the top leg up and slightly back, toes level. No rolling.',
     why: 'Glute-med endurance — the muscle that keeps the pelvis level every step you take.',
     scale: 'Easier: body weight · Harder: ankle weight',
-    how: 'Follow the count: two up, two down. Break at a true 10/10 burn, then back on.',
+    how: 'Follow the count: two up, two down. Form slips = break, then back on.',
     yt: 'side lying hip abduction form',
   },
   'side-hip-adduction': {
@@ -276,11 +275,11 @@ export const REHAB_EXERCISES = {
   },
   'hip-flexor-lift': {
     name: 'Hip Flexor Lift',
-    feel: 'The front of the hip close to cramping — that is the point',
+    feel: 'The front of the hip working hard — the muscle, never pain',
     avoid: 'Leaning back to buy height',
     cue: 'Sit on the floor, legs long, sit tall. Lift one straight leg as high as it will go and hold it there — hands off it.',
     why: 'Trains the hip flexor short and strong so it stops yanking the pelvis into a tilt.',
-    scale: 'Easier: body weight · Harder: ankle weight, or swap in an L-sit',
+    scale: 'Easier: body weight · Harder: ankle weight',
     how: 'Lift and hold it there. When the leg drops: shake out, lift again. The clock keeps score.',
     yt: 'seated straight leg hip flexor lift',
   },
@@ -288,7 +287,7 @@ export const REHAB_EXERCISES = {
     name: 'QL Plank',
     feel: 'The side of the low back and the top of the hip',
     avoid: 'Hips sagging, or the bottom shoulder collapsing',
-    cue: 'On your side, elbow under the shoulder, legs stacked. Drive the hips high and hold — the burn belongs in the side of your low back.',
+    cue: 'On your side, elbow under the shoulder, legs stacked. Drive the hips high and hold — the work belongs in the side of your waist.',
     why: 'The QL hikes the hip. Even and strong on both sides, the pelvis stops sitting crooked.',
     scale: 'Easier: body weight · Harder: weighted vest',
     how: 'One hold, hips high. Break when you must, get straight back up — total hold time is the set.',
@@ -299,20 +298,33 @@ export const REHAB_EXERCISES = {
     feel: 'The whole front holding one straight line',
     avoid: 'Hips sagging, or piking up to rest',
     cue: 'Elbows under shoulders, ribs down, glutes on. One line from ear to ankle. Break when you must, then get straight back on.',
-    why: 'Four minutes of front-core endurance — the thing that stops the spine borrowing range under load.',
+    why: 'Front-core endurance — the thing that stops the spine borrowing range under load.',
     scale: 'Easier: body weight · Harder: weighted vest',
     how: 'One hold. Break when you must, get straight back on — total time under tension is the set.',
     yt: 'plank form',
+  },
+  // ANTI-ROTATION (2026-10-10, his "something core focused" + coach/physio
+  // QA: every core move was an endurance hold, nothing resisted rotation)
+  'pallof-press': {
+    name: 'Pallof Press',
+    feel: 'The whole trunk refusing to turn toward the band',
+    avoid: 'Twisting, leaning away, or shrugging',
+    cue: 'Band or cable at chest height, side-on, feet hip-width, knees soft. Press straight out, hold three seconds without turning, bring it back.',
+    why: 'Anti-rotation — the core holding the spine still while the arms work, which is what lifting a baby out of a cot asks of it.',
+    scale:
+      'Easier: stand closer to the anchor · Harder: step further away, or half-kneeling',
+    how: 'Eight a side. The band is the load knob — step out until the hold is hard but you never turn.',
+    yt: 'pallof press form',
   },
   'back-extension': {
     name: 'Back Extension',
     feel: 'Low back and glutes working together, all the way through',
     avoid: 'Hyperextending past straight at the top',
-    cue: 'Hips at the pad, spine long. Lower under control, lift to straight — never past it. No chair? Hips on the bench end, ankles hooked under the low-racked bar. Simplest: lie face down and hold.',
+    cue: 'Hinge at the hips with a long spine, lift to straight — never past it. The set ends at the first rep your low back rounds.',
     why: 'The single biggest lever on a back that hurts: extensors with real endurance.',
     scale:
       'Easier: isometric hold · Harder: reps → + vest → single-leg hold → single-leg reps',
-    how: 'Follow the count: lift, squeeze at straight, lower. At a 10/10 burn: breathe, then back on.',
+    how: 'Every set stops a couple of reps short. No chair? Hips on the bench end, ankles under the bar on the safety pins.',
     yt: 'roman chair back extension form',
   },
   'wall-groin-stretch': {
@@ -333,7 +345,7 @@ export const REHAB_EXERCISES = {
     cue: 'Sit in 90/90, both shins square. Push the floor away and come up tall over the front hip, then sit back down. Slow both ways.',
     why: 'Strength at end-range rotation — the hip position everyone stretches and nobody trains.',
     scale: 'Easier: two hands down · Harder: one hand, then none',
-    how: 'Follow the count: three up, three down. 10/10 burn = breathe, resume.',
+    how: 'Follow the count: three up, three down. Form slips = breathe, resume.',
     yt: '90 90 hip lift off push up',
   },
   'couch-stretch': {
@@ -344,7 +356,7 @@ export const REHAB_EXERCISES = {
     why: 'Unwinds the hip flexor a day of sitting shortens — the one the pelvis pays for.',
     scale:
       'Easier: hold a counter · Harder: hands off, glute squeezed, lunge forward with a neutral pelvis',
-    how: 'No reps — sink in, squeeze the back glute, breathe slow. Effort 0/10.',
+    how: 'No reps — sink in, squeeze the back glute, breathe slow. Easy effort, never a strain.',
     yt: 'couch stretch form',
   },
   'elephant-walk': {
@@ -352,10 +364,10 @@ export const REHAB_EXERCISES = {
     feel: 'Hamstrings taking turns, one long pull at a time',
     avoid:
       'Rounding the low back to reach the floor — raise your hands instead',
-    cue: 'Hinge over, hands on the floor or a box, legs near-straight. Bend one knee and straighten the other, then swap. Keep walking.',
-    why: 'Hamstring length earned through movement, without one second of spinal flexion.',
+    cue: 'Hinge over, hands on the box (the floor only if it’s easy), legs near-straight. Bend one knee and straighten the other, then swap. Within an hour of waking? Skip it today.',
+    why: 'Hamstring length earned through movement — the hips do the folding, the spine stays long.',
     scale:
-      'Easier: hands on a higher surface · Harder: hands lower, then floor',
+      'Easier: hands on a higher surface · Harder: hands a little lower — only while the back stays long',
     how: 'One rep = one leg bends, then the other. Follow the count — no burn to chase.',
     yt: 'elephant walk hamstring exercise',
   },
@@ -367,10 +379,10 @@ export const REHAB_EXERCISES = {
     name: 'Seated Good Morning',
     feel: 'Hamstrings and glutes lengthening while the back stays long',
     avoid: 'Rounding forward to get lower — depth comes from the hips only',
-    cue: 'Sit on the bench, feet planted wide, arms crossed on your chest. Hinge forward from the hips with a LONG spine to where the stretch bites, and breathe there. Stop the moment the back wants to round.',
-    why: 'The hip hinge, learned unloaded — the pattern every lift in this program depends on, stretched into the hamstrings from a dead-safe seat.',
+    cue: 'Sit on the bench, feet planted wide, arms crossed on your chest. Hinge forward from the hips with a LONG spine to where the stretch bites, and breathe there. Stop the moment the back wants to round. Within an hour of waking? Skip it today.',
+    why: 'The hip hinge, learned unloaded — the pattern every lift in this program depends on, stretched into the hamstrings from a supported seat.',
     scale:
-      'Easier: hands on thighs, smaller fold · Harder: deeper fold, arms crossed',
+      'Easier: hands on thighs, smaller fold · Harder: a longer, slower breath in the same fold — never deeper',
     how: 'Fold to where the stretch bites and breathe there. No reps, no pushing.',
     yt: 'seated good morning stretch',
   },
@@ -402,9 +414,9 @@ const MINS = (n) => n * 60;
 // so each lands near its old duration: the dose stayed, the guesswork left.
 // What stays on a clock is what doesn't move: the stretches (BREATHE) and
 // the true isometrics (plank, QL plank, hip-flexor lift, adduction hold).
-// The method is unchanged — 10/10 burn, 0/10 pain, pause mid-set when you
-// must — and the progression trigger reads the same: all the reps unbroken,
-// then take the next step on that movement's ladder.
+// The method: feel the muscle, never the pain, pause mid-set when form slips —
+// and the progression trigger reads the same: all the reps clean, then take
+// the next step on that movement's ladder.
 const LIFT_SQUEEZE_LOWER = (lift, squeeze, lower) => [
   ['LIFT', lift],
   ['SQUEEZE', squeeze],
@@ -423,28 +435,6 @@ const repped = (
   tempo,
   ...(perSide ? { perSide: true, switchSecs } : {}),
 });
-// 5s a rep × 40 = 3:20 (was 4:00 of "slow reps, no target")
-const BACK_EXTENSION = repped(
-  'back-extension',
-  40,
-  LIFT_SQUEEZE_LOWER(2, 1, 2),
-);
-// 4s a rep × 25/side = 1:40 a side (was 2:00)
-const HIP_IR = repped(
-  'hip-internal-rotation',
-  25,
-  LIFT_SQUEEZE_LOWER(1, 2, 1),
-  {
-    perSide: true,
-  },
-);
-// a rep is BOTH legs — 4s × 40 = 2:40 (was 4:00 of walking; it was never the
-// burn movement, and forty honest swaps is more than the clock was getting)
-const ELEPHANT_WALK = repped('elephant-walk', 40, [
-  ['LEFT', 2],
-  ['RIGHT', 2],
-]);
-
 // Per-side blocks: 2 minutes each side, a real changeover between them (some
 // of these need you to get up and reset the whole position, not just roll over).
 const perSide = (ex, phase, switchSecs = 15) => ({
@@ -457,22 +447,14 @@ const perSide = (ex, phase, switchSecs = 15) => ({
   phase,
 });
 
-const straight = (ex, phase) => ({
-  ex,
-  mode: 'hold',
-  sets: 1,
-  holdSecs: MINS(4),
-  phase,
-});
-
 // ── THE FINISHERS ───────────────────────────────────────────────────────────
 // 2026-08-14: the strict topper EMOMs (a fourth lift day in disguise) became
 // four metcon-shaped finishers. 2026-08-15: the pool grew to SIXTEEN — see
 // the block below, which is the live spec. AXIALLY QUIET by rule
 // (verifier-enforced, all modes): bands, light DBs, bodyweight — the barbell
 // and the pulley stay untouched, because these days sit between the heavy
-// ones on purpose. Core rides the McGill core cap that CLOSES every rehab
-// day, at protocol dose — never a plank minute squeezed into an EMOM.
+// ones on purpose. Core rides the McGill primer mid-session (2026-10-10),
+// at protocol dose — never a plank minute squeezed into an EMOM.
 // SIXTEEN, striding the four weekday slots (2026-08-15, his ask: "fresh and
 // fun all the time" + "CrossFit level fun" + his old competitors-camp
 // formats). index % 4 keeps each weekday's LEANING — Tue pump/carries,
@@ -597,31 +579,15 @@ const TOPPERS = [
       },
     ],
   },
-  {
-    mode: 'fortime',
-    name: 'Crawl & Haul',
-    rounds: 6,
-    note: 'Crawl a length, carry back. At each wall: stop, plant, TURN — never twist through it. Score = time.',
-    members: [
-      { ex: 'bear-crawl', reps: '1 length', logWeight: false },
-      { ex: 'farmer-carry', reps: '1 length' },
-    ],
-  },
   // ── week C ────────────────────────────────────────────────────────────
   {
     mode: 'emom',
     name: 'The Porter',
     formatLabel: 'EMOM',
     rounds: 2,
-    note: 'Forty seconds loaded, twenty to breathe. DBs come off the BENCH. Score = total garage lengths.',
-    scorePrompt: {
-      title: 'THE PORTER — GARAGE LENGTHS',
-      sub: 'Total lengths carried across all eight minutes.',
-      unit: 'lengths',
-      def: 16,
-      min: 0,
-      max: 60,
-    },
+    // UNSCORED (round-3 physio QA): a raced carry is a raced pickup — the
+    // program's own open-pace rule. Steady walking, no number to chase.
+    note: 'Forty seconds loaded at a steady walk, twenty to breathe. DBs come off the BENCH. No score — tall and steady wins.',
     // one hand per suitcase minute — the right (smaller) side leads, same
     // asymmetry rule as the lift days; no impossible mid-minute switch cue
     members: [
@@ -708,21 +674,6 @@ const TOPPERS = [
   // ── week D (2026-08-15) — lifted from his OWN old competitors-camp sheet:
   // the formats he already loved, re-armed with legal movements ──────────
   {
-    mode: 'emom',
-    name: 'The Complex',
-    formatLabel: 'EMOM',
-    rounds: 4,
-    // Alternating minutes since the 2026-08-16 QA: eight straight minutes of
-    // a ballistic flow was the grindiest EMOM in the pool, and its week ran
-    // rear delts at 7 — the band minute keeps every complex minute crisp AND
-    // feeds the 3-D shoulder. Same eight-minute clock: 4 rounds × 2 members.
-    note: 'Odd minutes one flow, never set down: hang clean, ride, press — the load is the score. Even minutes, pull the band apart and breathe.',
-    members: [
-      { ex: 'db-hang-clean-press', reps: '6' },
-      { ex: 'band-pull-apart', reps: '14', logWeight: false },
-    ],
-  },
-  {
     mode: 'amrap',
     name: 'The Test',
     capSecs: 5 * 60,
@@ -770,199 +721,508 @@ const TOPPERS = [
   },
 ];
 
-// ── THE CORE CAP ────────────────────────────────────────────────────────────
-// Every rehab day ends here: the McGill work at its own protocol (straight
-// sets of 10s holds, 3s re-brace — same dosing as the Daily Reset), one
-// movement per day, calendar-pinned. This replaces the core minute the old
-// topper EMOMs carried, with better quality per rep.
+// ── THE McGILL PRIMER ───────────────────────────────────────────────────────
+// 2026-10-10 (physio QA): the Big 3 moved from the END of the session — where
+// bracing was practised tired, after the finisher — to the MIDDLE, right
+// before the back extension: one set of each at its own protocol (10 s holds,
+// 3 s re-brace), every Back & Hips day and Sunday. It primes; it doesn't cap.
 const CORE_CAP = (ex, extra = {}) => ({
   ex,
   mode: 'reps',
-  repScheme: [4, 4],
+  repScheme: [4],
   holdSecs: 10,
   resetSecs: 3,
-  restSecs: 20,
+  restSecs: 15,
   ...extra,
 });
-
-const CAP_CURL = () => CORE_CAP('mcgill-curlup');
-const CAP_SIDE = () =>
-  CORE_CAP('side-plank', { repScheme: [3, 3], perSide: true, switchSecs: 8 });
-const CAP_BIRD = () =>
-  CORE_CAP('bird-dog', { repScheme: [3, 3], perSide: true, switchSecs: 8 });
-const CAP_PLANK = () => CORE_CAP('plank');
-// A 16-slot Latin square, aligned with the finisher pool's stride: every
-// weekday cycles through ALL FOUR McGill moves across the month instead of
-// serving the same one forever ("pogo hops and bird dog" — his 2026-08-15
-// review of a Saturday that never changed its cap).
-// Since the Sunday split (2026-08-16) the 'daily' session only ever serves
-// the k∈{0,1,2} columns of this square — the k=3 column moved to the
-// 'sunday' session below, extracted so the month's coverage is unchanged.
-const CORE_CAPS = [
-  CAP_CURL(),
-  CAP_SIDE(),
-  CAP_BIRD(),
-  CAP_PLANK(),
-  CAP_SIDE(),
-  CAP_BIRD(),
-  CAP_PLANK(),
-  CAP_CURL(),
-  CAP_BIRD(),
-  CAP_PLANK(),
-  CAP_CURL(),
-  CAP_SIDE(),
-  CAP_PLANK(),
-  CAP_CURL(),
-  CAP_SIDE(),
-  CAP_BIRD(),
+// The primer PROGRESSES (round-4 physio QA: 4/3/3 for twelve weeks is a
+// third of McGill's usual dose) — one more 10-second hold from phase 2,
+// never longer holds: 4/3/3 → 5/4/4 → 6/5/5 (the 45-minute cap, 2026-10-11).
+const BIG3 = [
+  CORE_CAP('mcgill-curlup', { phaseRepScheme: { 2: [5], 3: [6] } }),
+  CORE_CAP('side-plank', {
+    repScheme: [3],
+    phaseRepScheme: { 2: [4], 3: [5] },
+    perSide: true,
+    switchSecs: 8,
+  }),
+  CORE_CAP('bird-dog', {
+    repScheme: [3],
+    phaseRepScheme: { 2: [4], 3: [5] },
+    perSide: true,
+    switchSecs: 8,
+  }),
 ];
 
-// ── THE SUNDAY SPLIT (2026-08-16, his ask: "rest days on Sundays") ──────────
-// Sunday used to be the FOURTH full rehab day — and the finisher stride made
-// it the hardest one: its column of the pool was all mini-WODs. His QA ask
-// was explicit, so the day split in two:
-//   'sunday' — the same holds, NOTHING else. Medicine, not training: no
-//              finisher, no clock to race, no score. The back program keeps
-//              its four weekly exposures (the dose that wins the argument);
-//              the training week is genuinely six days.
-//   'wod'    — Sunday's old mini-WOD column, now OPT-IN (audited as optional,
-//              same as Open Up and The Long Way). Feeling fresh is the only
-//              reason to open it.
-// The stride math is untouched for Tue/Thu/Sat: 'daily' keeps its 16-deep
-// pool and (w−1)·4+k indexing with k∈{0,1,2}, which never lands on the
-// k≡3 (mod 4) entries — those four live in SUNDAY_WODS.
-const SUNDAY_WODS = [3, 7, 11, 15].map((i) => TOPPERS[i]);
-
-// Sunday's columns of the two 'daily' rotations, extracted verbatim so the
-// calendar-pinned month serves exactly what it served before the split:
-// supporting cast (w−1)·4+3 mod 8 only ever hit indices 3 and 7, and the
-// core-cap column is the Latin square's k=3 stripe.
-const SUNDAY_CAST = [
-  perSide('hip-flexor-lift', 'WORK'),
-  perSide('side-hip-adduction', 'WORK', 12),
+// THE CORE DAYS (2026-10-10, his ask: "we do need something core focused";
+// round-5 physio QA: one set was a third of McGill's dose). Tue, Sat and Sun
+// run the primer TWICE, McGill's descending way — a full set, then a shorter
+// one — with the same 10-second holds, never longer ones. Thursday keeps one
+// set: its back-extension hold is that day's core work, and its minutes are
+// spoken for.
+const BIG3_X2 = [
+  CORE_CAP('mcgill-curlup', {
+    repScheme: [4, 3],
+    phaseRepScheme: { 2: [5, 3], 3: [6, 3] },
+  }),
+  CORE_CAP('side-plank', {
+    repScheme: [3, 2],
+    phaseRepScheme: { 2: [4, 2], 3: [5, 2] },
+    perSide: true,
+    switchSecs: 8,
+  }),
+  CORE_CAP('bird-dog', {
+    repScheme: [3, 2],
+    phaseRepScheme: { 2: [4, 2], 3: [5, 2] },
+    perSide: true,
+    switchSecs: 8,
+  }),
 ];
-const SUNDAY_CAPS = [CAP_PLANK(), CAP_CURL(), CAP_SIDE(), CAP_BIRD()];
 
-// The distillate holds, shared by 'daily' and 'sunday' — six fixed blocks,
-// defined once so the dose can never drift between the two sessions.
-const DISTILLATE_BLOCKS = [
-  // his thoracic ask — 12 slow reaches a side is a real two minutes
+// SATURDAY'S SPRINTS (2026-10-10, his ask: "conditioning — weekly sprints";
+// shaped by the sprint QA). Every Saturday after the openers and the primer:
+// a REAL sprint warm-up (drills, then strides at 70% and 80%), then short
+// sprints on a clock long enough to walk back. Four formats rotate weekly
+// (constantly varied, like the rest of his week); Flying — the highest
+// hamstring demand — waits for phase 2. Progression is INTENSITY first
+// (~80% → ~90% → ~95%, never all-out) plus one rep from phase 2. `ballistic`
+// + `finisher`: a stiff, short-night, short or ramp morning skips it.
+// No room to run → high knees in place, same seconds.
+const SPRINT_FORMATS = [
+  // name, sprints, seconds, clock, note
+  ['Starts', 5, 4, 60, 'Split stance, four quick seconds (~20 m).'],
+  ['Speed', 4, 6, 70, 'Build two seconds, then run tall.'],
+  ['Repeats', 5, 5, 60, 'The last rep as fast as the first.'],
+  ['Flying', 3, 8, 90, 'Jog in, build four seconds, four fast.'],
+];
+const SPRINT_EFFORT = ['~80%', '~90%', '~95%, never all-out'];
+const SPRINTS = (w) => {
+  const phase = w < 4 ? 1 : w < 8 ? 2 : 3;
+  // phase 1 swaps Flying for a second Speed week
+  const k = w % 4 === 3 && phase === 1 ? 1 : w % 4;
+  const [name, base, secs, clock, how] = SPRINT_FORMATS[k];
+  const n = base + (phase >= 2 ? 1 : 0);
+  // Flying — the highest hamstring demand — never above ~90%
+  const effort = name === 'Flying' ? '~90%' : SPRINT_EFFORT[phase - 1];
+  return {
+    mode: 'emom',
+    name: `Sprints: ${name}`,
+    formatLabel: 'SPRINTS',
+    intervalSecs: clock,
+    // three warm-up rounds on a 90 s clock: jog + drills, strides, one at
+    // today's effort (round-6 QA: two thin rounds didn't prep 95%)
+    warmupRounds: 3,
+    warmupIntervalSecs: 90,
+    rounds: 3 + n,
+    changeoverSecs: 30, // shoes on, out the door
+    members: [
+      {
+        ex: 'sprint',
+        secs,
+        phase: 'SPRINT',
+        logWeight: false,
+        warmupNotes: [
+          'Jog easy, then leg swings and A-skips — ten each leg.',
+          'Strides: one at 70%, walk back, one at 80%.',
+          `One stride at ${effort}. Friday’s hamstrings sore? Keep today at ~80%.`,
+        ],
+        note: `${how} Effort ${effort}. Walk back.`,
+        alts: [{ ex: 'high-knees', secs, logWeight: false }],
+      },
+    ],
+  };
+};
+
+// ANTI-ROTATION (his "something core focused"): Sunday 2 × 8 a side with a
+// three-second hold (ten a side in phase 3); Tuesday one set of 8 — its
+// minutes already hold two McGill sets.
+const PALLOF = {
+  // a short / amber day keeps the McGill primer and lets this sit out
+  cast: true,
+  ex: 'pallof-press',
+  mode: 'tempo',
+  sets: 2,
+  reps: 8,
+  phaseBlockReps: { 3: 10 },
+  perSide: true,
+  switchSecs: 8,
+  restSecs: 20,
+  tempo: [
+    ['PRESS', 1],
+    ['HOLD', 3],
+    ['BACK', 1],
+  ],
+};
+
+// ── THE BACK & HIPS SHAPE (2026-10-10, his ask + physio QA) ─────────────────
+// OPEN → BRACE → CONTRACT → FOLD. The hip and thoracic openers first (his
+// "openings before contraction"), the McGill primer, the back extension —
+// then the two forward folds LAST: held end-range flexion right before a
+// loaded extension set leaves the spine temporarily less protected (ligament
+// creep), so the folds come after the work, never before it.
+// MORNING RULE: within an hour of waking the discs are fully hydrated and
+// bending stress peaks — on those mornings, skip the two folds.
+// Saturday's couch stretch moves to the END (round-6 physio QA): a minute of
+// static hip-flexor stretch is the wrong thing right before sprints
+const COUCH = { ...perSide('couch-stretch', 'BREATHE', 20), holdSecs: 60 };
+const OPENERS = [
+  // his thoracic ask — 10 slow reaches a side, finishing each one with the
+  // chest open: the mid-back that hurts carrying the baby
   {
     ex: 't-spine-reach',
     mode: 'tempo',
     sets: 1,
-    reps: 12,
+    reps: 10,
     perSide: true,
     tempo: TSPINE_TEMPO,
   },
-  BACK_EXTENSION,
-  HIP_IR,
-  perSide('couch-stretch', 'BREATHE', 20),
-  ELEPHANT_WALK,
+  // 60 s a side (round 4): the standard dose, and the minute it frees pays
+  // for the McGill primer's progression
+  COUCH,
+  repped('hip-internal-rotation', 10, LIFT_SQUEEZE_LOWER(1, 2, 1), {
+    perSide: true,
+  }),
+];
+// `fold: true` — what an amber morning and the morning rule ("up less than
+// an hour") drop. They close EVERY session, after the carry and the finisher
+// too (round-3 physio QA): nothing loaded or scored after held flexion.
+const CLOSERS = [
+  {
+    ...repped('elephant-walk', 24, [
+      ['LEFT', 2],
+      ['RIGHT', 2],
+    ]),
+    fold: true,
+  },
   {
     ex: 'seated-good-morning',
     mode: 'hold',
     sets: 1,
-    holdSecs: MINS(2),
+    // 90 s (round-3 physio QA): the last thing before he picks up the baby
+    // should not be two minutes of end-range seated flexion
+    holdSecs: 90,
     phase: 'BREATHE',
+    fold: true,
+    // the last word of every session (round-5 physio QA): after held flexion
+    // the ligaments need a few minutes before anything gets lifted
+    note: 'Then stand, walk a minute and do a few gentle standing back-bends before you lift anything — the baby included.',
   },
 ];
 
+// BACK EXTENSIONS 2×/WEEK (physio QA, major): 40 reps to a burn four days a
+// week — rest day included — never let the extensors recover. Now Thu + Sat:
+// never the morning after the RDL (Thursday is 72 h after Monday's hinge).
+// THURSDAY HOLDS, SATURDAY REPS (2026-10-10, round-3 physio QA): Thursday is
+// 24 h after Wednesday's front squat, so it gets the isometric — extensor
+// endurance without another round of loaded flexion-extension. Saturday, 72 h
+// after the squat and a day after Friday's split squats (no hinge, no axial
+// bar), gets the reps at ~RPE 7. Both progress by phase. An amber morning
+// holds on either day, shorter.
+const EXT_HOLD = {
+  cue: 'Hips on the bench end, ankles pinned, lift to straight and STAY there — glutes tight, ribs down, breathe. Never past straight.',
+  how: 'No reps — hold level with the floor for the clock. Shaking is fine; the low back rounding ends the set.',
+};
+const BACK_EXTENSION_HOLD = (holdSecs, sets = 3) => ({
+  ex: 'back-extension',
+  mode: 'hold',
+  sets,
+  holdSecs,
+  restSecs: 30,
+  phase: 'HOLD',
+  ...EXT_HOLD,
+});
+const BACK_EXTENSION = {
+  ex: 'back-extension',
+  mode: 'tempo',
+  sets: 3,
+  reps: 12,
+  // it progresses (round-3 physio QA): 12 → 14 → 15 by phase
+  phaseBlockReps: { 2: 14, 3: 15 },
+  tempo: LIFT_SQUEEZE_LOWER(2, 1, 2),
+  restSecs: 45,
+  amberBlock: BACK_EXTENSION_HOLD(20),
+  changeoverSecs: 30, // Saturday: back inside from the sprints
+  // the morning rule holds instead of repping (round-5 physio QA: 3 × 12–15
+  // from a hinged bottom is the bend the rule exists to avoid)
+  morning: true,
+};
+const BACK_EXTENSION_THU = {
+  ...BACK_EXTENSION_HOLD(30),
+  // the hold grows by phase: 30 → 35 → 40 s
+  phaseHoldSecs: { 2: 35, 3: 40 },
+  amberBlock: BACK_EXTENSION_HOLD(20),
+};
+
+// A slot that serves different things on different rehab days. The calendar
+// index is (w−1)·4 + k (Tue k=0, Thu 1, Sat 2), so position i of a 48-deep
+// pool is day i%4 of week ⌊i/4⌋+1. `days` maps k → a block, or a function of
+// the week index for things that rotate; a missing day sits the slot out.
+// 48 deep = the whole 12-week block (round-4 coach QA: at 16 deep the pool
+// wrapped every four weeks, so a per-PHASE rotation always read week 0–3)
+const byDay = (days) =>
+  Array.from({ length: 48 }, (_, i) => {
+    const v = days[i % 4];
+    return typeof v === 'function' ? v(i >> 2) : (v ?? null);
+  });
+
+// THE PUMPS (coach QA): the lift days' isolation work moved here — curls,
+// triceps, rows, delts, calves — real sets, spine-quiet, chest-supported or
+// lying wherever a back could get involved. No rep-out here: every round
+// stops one or two reps short.
+// No forced max-out every week (coach QA): pumps run the same "1–2 left"
+// effort as the lift days' supersets; the lift days carry the rep-out weeks.
+const PUMP = (name, members, opts = {}) => ({
+  mode: 'circuit',
+  name,
+  isPiece: true,
+  rounds: 3,
+  betweenSecs: 10,
+  restSecs: 40,
+  formatLabel: 'SETS',
+  ...opts,
+  members,
+});
+const CALVES = PUMP(
+  'Calves',
+  [
+    {
+      ex: 'db-calf-raise',
+      reps: '10/leg',
+      note: 'One leg at a time, the DB in the same-side hand.',
+    },
+  ],
+  { restSecs: 20 },
+);
+
+// Saturday's supporting move — the Movementgems cast, four of them, one a
+// week. Long burn-holds are broken into short sets (physio QA: a 2-minute QL
+// plank degrades into the low back sagging).
+// ONE PER PHASE, four weeks each (round-4 QA: three phases serve three
+// moves — the 90-90 push-up left the pool rather than never being served).
+// Phase 1 stays the side-lying abduction; the QL plank — the one aimed at the
+// pelvis and the curves — gets phase 2; the hip airplane phase 3.
+const SAT_CAST = [
+  repped(
+    'side-hip-abduction',
+    25,
+    [
+      ['LIFT', 2],
+      ['LOWER', 2],
+    ],
+    { perSide: true, switchSecs: 12 },
+  ),
+  {
+    ex: 'ql-plank',
+    mode: 'hold',
+    sets: 3,
+    holdSecs: 20,
+    perSide: true,
+    switchSecs: 8,
+    restSecs: 10,
+    phase: 'HOLD',
+  },
+  repped(
+    'hip-airplane',
+    15,
+    [
+      ['OPEN', 3],
+      ['CLOSE', 3],
+    ],
+    { perSide: true, switchSecs: 20 },
+  ),
+];
+const topper = (name) => TOPPERS.find((t) => t.name === name);
+// Sunday's optional WOD — the bear-crawl / raced-carry piece
+// is out (his "regular movements" ask + physio QA); The Porter replaces it
+const SUNDAY_WODS = [
+  'The Classic',
+  'The Porter',
+  'The Chase',
+  'The Century',
+  // Saturday's old scored finishers live here now (2026-10-10): the sprints
+  // took Saturday, and these are too good to lose. Opt-in, Good mornings only.
+  'The Redline',
+  'Death by Step-Ups',
+  'The Climb',
+].map(topper);
+// short sets, not 2 minutes "close to cramping" in a long-sit (physio QA)
+const SUNDAY_CAST = ['hip-flexor-lift', 'side-hip-adduction'].map((ex) => ({
+  ex,
+  mode: 'hold',
+  sets: 3,
+  holdSecs: 20,
+  perSide: true,
+  switchSecs: 8,
+  restSecs: 10,
+  phase: 'WORK',
+}));
+
 export const REHAB_SESSIONS = [
   {
-    // REBUILT 2026-08-11 (his call): the 48-minute twelve-movement program
-    // became a ~25-minute DISTILLATE of the pieces he loves and the levers
-    // that matter most, plus the topper. What stays daily (4×/wk): thoracic
-    // rotation, back-extension endurance, hip internal rotation, the couch
-    // stretch, the elephant walk, and the seated good morning. The other
-    // SEVEN source movements share one rotating slot — each comes up about
-    // once every two weeks instead of four times a week. Stated plainly:
-    // that is a real dose cut to the supporting cast, traded for a session
-    // he'll actually do forever. The long-hold mechanism is untouched — one
-    // unbroken set per movement, burn to 10/10, pain at 0/10.
+    // REWORKED 2026-10-10 (physio + coach QA). Tue/Thu/Sat share the openers,
+    // the McGill primer and the folds; the back extension runs Thu + Sat; the
+    // day-specific work closes it: Tue core + arms + calves, Thu rows / delts
+    // / calves, Sat sprints + supporting move + carries.
+    // 2026-10-10 (his ask): Saturday's scored finisher became the sprints.
     id: 'daily',
     name: 'Back & Hips',
     freq: 'Tue · Thu · Sat',
     blurb:
-      'The holds that matter, ~25 minutes — then a finisher from a sixteen-deep rotation: for time, death-by, Tabata, AMRAP — and the core cap to close. On the holds: 10/10 burn, 0/10 pain; unbroken means take the next progression.',
+      'Open up, brace, then work: hip and thoracic openers, the McGill Big 3 (twice on Tuesday, with the Pallof press), Saturday’s sprints, back extensions (Thu and Sat), then Tuesday’s arm pump, Thursday’s rows and delts, or Saturday’s carries — and the two forward folds last of all. Up less than an hour? The morning check skips the folds.',
     blocks: [
-      ...DISTILLATE_BLOCKS,
-      // the supporting cast, one per day, rotating — nothing dies, everything
-      // thins: ~1 exposure per two weeks each. Sunday's two columns (indices
-      // 3 and 7) still live here so paused pre-split sessions restore, but
-      // the Tue/Thu/Sat stride never reaches them — SUNDAY_CAST serves them.
-      // `cast` marks the supporting-cast slot: the first thing a SHORT day
-      // (block.js) spends its minutes on — the six fixed favorites are the
-      // dose that must survive a bad night, this slot is the extra
+      // the openers, the couch stretch on Tue/Thu only (Saturday's waits
+      // until after the sprints)
+      OPENERS[0],
+      { rotate: byDay({ 0: COUCH, 1: COUCH }) },
+      OPENERS[2],
+      // two McGill sets on Tuesday (+ the Pallof press); one on Thursday and
+      // Saturday — Saturday's minutes go to a proper sprint warm-up
+      ...BIG3.map((one, i) => ({
+        rotate: byDay({ 0: BIG3_X2[i], 1: one, 2: one }),
+      })),
+      // Saturday's sprints: fresh, warm, before anything loads the back
+      {
+        finisher: true,
+        conditioning: true,
+        ballistic: true,
+        rotate: byDay({ 2: (w) => SPRINTS(w) }),
+      },
+      {
+        // the dose filters read the SLOT's flags, not the rotated spec's —
+        // so `cast` lives here too, or a short Tuesday still served it
+        cast: true,
+        rotate: byDay({
+          // two sets, ten a side in phase 3 (the 45-minute cap, 2026-10-11)
+          0: PALLOF,
+        }),
+      },
+      { rotate: byDay({ 1: BACK_EXTENSION_THU, 2: BACK_EXTENSION }) },
+      // `cast` and `finisher` are what a SHORT / AMBER / RAMP day drops
+      // first. `pump` marks the Tue/Thu volume a TIRED day keeps; the carry
+      // and the sprints are not pumps, so a tired Saturday loses them.
+      // one supporting move per PHASE, four weeks each (round-3 physio QA: a
+      // weekly rotation met each move three times — too few to learn it)
       {
         cast: true,
-        rotate: [
-          perSide('ql-plank', 'HOLD', 12),
-          // 4s × 25/side = 1:40 a side
-          repped(
-            'side-hip-abduction',
-            25,
-            [
-              ['LIFT', 2],
-              ['LOWER', 2],
-            ],
-            {
-              perSide: true,
-              switchSecs: 12,
-            },
-          ),
-          // 6s × 15/side = 1:30 a side
-          repped(
-            '90-90-pushup',
-            15,
-            [
-              ['UP', 3],
-              ['DOWN', 3],
-            ],
-            {
-              perSide: true,
-              switchSecs: 20,
-            },
-          ),
-          perSide('hip-flexor-lift', 'WORK'),
-          // 6s × 15/side = 1:30 a side
-          repped(
-            'hip-airplane',
-            15,
-            [
-              ['OPEN', 3],
-              ['CLOSE', 3],
-            ],
-            {
-              perSide: true,
-              switchSecs: 20,
-            },
-          ),
-          straight('plank', 'HOLD'),
-          straight('wall-groin-stretch', 'BREATHE'),
-          perSide('side-hip-adduction', 'WORK', 12),
-        ],
+        rotate: byDay({ 2: (w) => SAT_CAST[Math.floor(w / 4) % 3] }),
       },
-      // `finisher` marks the scored metcon so a RAMP week (block.js) can
-      // leave it out — no score gets set while he's finding his feet again
-      { rotate: TOPPERS, finisher: true },
-      { rotate: CORE_CAPS },
+      // `shortKeep`: a short or amber day keeps ONE round of this slot — every
+      // move is supported or lying, so a stiff back tolerates it, and the
+      // triangle stays alive through the newborn weeks (round-3 plan QA)
+      {
+        finisher: true,
+        pump: true,
+        shortKeep: true,
+        rotate: byDay({
+          // press BEFORE the extensions — tired triceps would cap the chest;
+          // 15 s between: lay the next pair of DBs out before the first round
+          0: PUMP(
+            'Arms',
+            [
+              { ex: 'db-bench-press', reps: '10' },
+              // reverse curl (round-6 coach QA): honest forearm work now the
+              // wrist curl left — biceps still sit well over their floor
+              { ex: 'reverse-curl', reps: '10' },
+              { ex: 'lying-db-extension', reps: '10' },
+              // the wrist curl left (2026-10-10): its four minutes pay for
+              // Tuesday's second McGill set — forearms keep 10 from the
+              // carries and hammer curls
+            ],
+            { rounds: 4, betweenSecs: 15 },
+          ),
+          // the row pairs with the raise, not the curl — a row already
+          // works the biceps, so the curl gets fresh arms in the next pair
+          1: PUMP(
+            'Row & Raise',
+            [
+              {
+                ex: 'chest-supported-row',
+                reps: '10',
+                alts: [{ ex: 'ring-row', reps: '10' }],
+              },
+              { ex: 'incline-y-raise', reps: '12' },
+            ],
+            { betweenSecs: 15 },
+          ),
+        }),
+      },
+      {
+        finisher: true,
+        rotate: byDay({
+          2: {
+            ex: 'farmer-carry',
+            mode: 'hold',
+            // two two-hand sets, then one suitcase set a side (round 5)
+            sets: 2,
+            holdSecs: 40,
+            restSecs: 40,
+            phase: 'CARRY',
+            note: 'Short quick steps. Tall for all 40 s? Heavier DBs next time.',
+          },
+        }),
+      },
+      // ONE HAND, EACH SIDE (round-5 physio QA): with a double curve the
+      // suitcase carry is the trunk's anti-lean training — McGill's own tool
+      {
+        finisher: true,
+        rotate: byDay({
+          2: {
+            ex: 'suitcase-carry',
+            mode: 'hold',
+            sets: 1,
+            holdSecs: 40,
+            perSide: true,
+            switchSecs: 30,
+            restSecs: 40,
+            phase: 'CARRY',
+            note: 'Short quick steps; switch hands when the app says.',
+          },
+        }),
+      },
+      {
+        finisher: true,
+        pump: true,
+        rotate: byDay({
+          // four rounds: Thursday carries the side delts the triangle needs
+          1: PUMP(
+            'Curl & Lateral',
+            [
+              { ex: 'hammer-curl', reps: '10' },
+              { ex: 'db-lateral-raise', reps: '12' },
+            ],
+            // five rounds (2026-10-11, the 45-minute cap): side delts off
+            // their floor
+            { rounds: 5, betweenSecs: 10 },
+          ),
+        }),
+      },
+      // Thursday's calves are two sets — the back extension moved there
+      {
+        finisher: true,
+        pump: true,
+        // three rounds both days again (2026-10-11, the 45-minute cap)
+        rotate: byDay({ 0: CALVES, 1: CALVES }),
+      },
+      { rotate: byDay({ 2: COUCH }) },
+      // the folds close the day — after every loaded and scored block
+      ...CLOSERS,
     ],
   },
   {
-    // THE REST DAY (2026-08-16, his ask). The same medicine 'daily' opens
-    // with — and then it ends. No finisher, no clock to race, no score to
-    // beat: the one day of the week that asks nothing of him but breathing.
-    // The back program keeps its 4×/week dose; the TRAINING week is six days.
+    // THE REST DAY (2026-08-16, his ask; 2026-10-10 physio QA): genuinely
+    // low-load now — the openers, the McGill primer, the folds and one
+    // supporting move. No back extension, no clock, no score.
     id: 'sunday',
     name: 'Rest Day',
     freq: 'Sun',
     blurb:
-      'The holds and nothing else — no finisher, no clock, no score. Medicine, not training. Feeling fresh? The Bonus WOD is one tap away, and skipping it costs nothing.',
+      'Openers, the McGill Big 3 twice, the Pallof press, one easy extra and the forward folds — no back extensions, no clock, no score. Feeling fresh? The Bonus WOD is one tap away, and skipping it costs nothing.',
     blocks: [
-      ...DISTILLATE_BLOCKS,
+      ...OPENERS,
+      ...BIG3_X2,
+      PALLOF,
       { rotate: SUNDAY_CAST, cast: true },
-      { rotate: SUNDAY_CAPS },
+      ...CLOSERS,
     ],
   },
   {
@@ -973,7 +1233,7 @@ export const REHAB_SESSIONS = [
     name: 'The Bonus WOD',
     freq: 'Sun · optional',
     blurb:
-      'The Classic, Crawl & Haul, The Chase, The Century — one per week, only if you want it. Beat last month’s score or just move.',
+      'Seven pieces in rotation — The Classic, The Porter, The Chase, The Century, The Redline, Death by Step-Ups, The Climb — one per week, only if you want it. Good mornings only.',
     blocks: [{ rotate: SUNDAY_WODS }],
   },
   {

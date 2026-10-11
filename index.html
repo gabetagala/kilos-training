@@ -587,6 +587,7 @@
         <div class="wsum-name" id="wsum-name"></div>
         <div class="wsum-pr-badge" id="wsum-pr-badge" style="display:none"></div>
       </div>
+      <div class="wsum-flare" id="wsum-flare" hidden></div>
       <div class="wsum-stats" id="wsum-stats"></div>
       <div class="wsum-work" id="wsum-work"></div>
       <div class="wsum-top-lift" id="wsum-top-lift" style="display:none"></div>
@@ -721,6 +722,24 @@
         </div>
         <div class="sp-list" id="sp-list"></div>
         <div class="sp-after" id="sp-after"></div>
+        <!-- The morning back check (2026-10-10): sets today's dose and gates
+             every load increase. Shown on today's card only. -->
+        <div class="sp-backcheck" id="sp-backcheck" hidden>
+          <div class="sp-back-k">BACK THIS MORNING</div>
+          <div class="sp-back-grid" role="group" aria-label="How is your back this morning">
+            <button class="sp-dose-btn sp-back-btn" type="button" data-back="good" aria-pressed="false">GOOD</button>
+            <button class="sp-dose-btn sp-back-btn" type="button" data-back="stiff" aria-pressed="false">STIFFER</button>
+            <button class="sp-dose-btn sp-back-btn" type="button" data-back="worse" aria-pressed="false">PAIN WORSE</button>
+            <button class="sp-dose-btn sp-back-btn" type="button" data-back="leg" aria-pressed="false">INTO A LEG</button>
+          </div>
+          <div class="sp-back-hint">Stiffer = tight or achy, not just sore muscles. Pain worse = clearly worse than usual. Into a leg = pain, tingling or numbness down a leg. During the session: up to 3/10 that settles by the next morning is fine — sharp pain, or anything spreading down a leg, ends it.</div>
+          <div class="sp-back-toggles">
+            <button class="sp-dose-btn sp-back-sleep" id="sp-back-sleep" type="button" aria-pressed="false">SLEPT UNDER 5 H</button>
+            <button class="sp-dose-btn sp-back-sleep" id="sp-back-early" type="button" aria-pressed="false">UP UNDER 1 HR</button>
+          </div>
+          <div class="sp-dose-note sp-back-note" id="sp-back-note"></div>
+          <button class="sp-dose-btn sp-back-sleep sp-back-deload" id="sp-back-deload" type="button" hidden>DELOAD THIS WEEK</button>
+        </div>
         <div class="sp-dose" id="sp-dose" hidden>
           <div class="sp-dose-row" role="group" aria-label="How much of today">
             <button class="sp-dose-btn" id="sp-dose-full" type="button" aria-pressed="true">FULL <span id="sp-dose-full-min"></span></button>
@@ -743,7 +762,7 @@
         <div class="page-title">GABE'S PROGRAM</div>
       </div>
       <div class="page-content">
-        <p class="rh-intro">Built around a bad back: the daily rehab block is the warm-up — skip it if yours is fine. Every session runs itself — demos, timers, and the voice included.</p>
+        <p class="rh-intro">Built around a bad back: three lift days, three Back &amp; Hips days, Sunday off. Check in with your back each morning — it sets the day. Every session runs itself — demos, timers, and the voice included.</p>
         <div id="block-banner"></div>
         <div id="rehab-resume-slot"></div>
         <div id="rh-today-slot"></div>
@@ -751,7 +770,7 @@
         <div id="block-calendar"></div>
         <div class="section-label rh-ex-label">Back &amp; Hips + finisher — the four light days</div>
         <div id="rehab-session-list"></div>
-        <div class="section-label rh-ex-label">EMOM40 — three lift days, forty minutes flat</div>
+        <div class="section-label rh-ex-label">Three lift days, three back days — about forty-five minutes each</div>
         <div id="d40-session-list"></div>
         <div class="section-label rh-ex-label">Is it working? — the block so far</div>
         <div id="block-progress"></div>
@@ -813,6 +832,14 @@
           <div class="rp-weight"><span id="rp-w-val">40</span><span class="rp-w-unit">kg</span></div>
           <button class="rp-wbtn" id="rp-w-plus" aria-label="More weight">+</button>
         </div>
+        <!-- Heavy-lift sets: the reps actually done (2026-10-10) — defaults to the
+             target, one tap down for a missed rep. That number gates the load. -->
+        <div class="rp-anchor-reps" id="rp-anchor-reps" style="display:none">
+          <span class="rp-ar-k">REPS DONE</span>
+          <button class="rp-ar-btn" id="rp-ar-minus" type="button" aria-label="One fewer rep">−</button>
+          <span class="rp-ar-val" id="rp-ar-val">5</span>
+          <button class="rp-ar-btn" id="rp-ar-plus" type="button" aria-label="One more rep">+</button>
+        </div>
         <button class="rp-done" id="rp-set-done">Set done →</button>
       </div>
       <button class="rp-bail" id="rp-bail" style="display:none">CLOCK BEAT ME →</button>
@@ -828,6 +855,7 @@
           </div>
           <div class="rpo-list" id="rpo-list"></div>
           <button class="rpo-finish" id="rpo-finish">Finish session now</button>
+          <button class="rpo-finish rpo-flare" id="rpo-flare">Back flared — stop here</button>
         </div>
       </div>
       <!-- Swap sheet — pick a sanctioned alternate for this slot -->

@@ -23,6 +23,11 @@ import {
   RAMP_WEEKS,
   applyFormats,
   applyPhase,
+  applyAmber,
+  applyTired,
+  applyNoFolds,
+  applyUnchecked,
+  hasDose,
   applyRamp,
   applyShort,
   rotationWeek,
@@ -49,9 +54,12 @@ import {
   REHAB_SESSIONS,
   buildStepQueue,
   estimateSessionMins,
+  estimateSessionSecs,
+  tempoSecsPerRep,
   getRehabSession,
   sessionVariantCount,
 } from '../src/workout/rehab.js';
+import { REPS_FIRST } from '../src/workout/progression.js';
 
 const results = [];
 const check = (area, name, pass, detail = '') =>
@@ -69,6 +77,18 @@ const check = (area, name, pass, detail = '') =>
 // Sunday left the map 2026-08-16: it serves the 'sunday' rest session (and
 // the optional 'wod'), both of which ride the generic w−1 variant path.
 const REHAB_DAY_SLOT = { 2: 0, 4: 1, 6: 2 }; // getDay() → k
+// THE CAP HOLDS WHILE HE PROGRESSES (round-4 coach QA): reps-first lifts climb
+// to +3 before the load moves, so every day is timed with them at +2.
+const estMinsExact = (s, v) => {
+  let extra = 0;
+  for (const st of buildStepQueue(s, {}, v)) {
+    if (st.kind !== 'work' || st.secs != null || !st.repTempo) continue;
+    if (!REPS_FIRST.has(st.exId)) continue;
+    const sides = /\/(side|leg|arm)/.test(String(st.reps ?? '')) ? 2 : 1;
+    extra += 2 * sides * tempoSecsPerRep(st.repTempo);
+  }
+  return (estimateSessionSecs(s, v) + extra) / 60;
+};
 function* allQueues() {
   for (let w = 1; w <= BLOCK_WEEKS; w++) {
     const ph = phaseOf(w);
@@ -81,7 +101,8 @@ function* allQueues() {
           s = applyFormats(applyPhase(getProgramSession(item.session), ph), w);
           v = sessionVariantCount(s) > 1 ? w - 1 : 0;
         } else if (item.type === 'rehab') {
-          s = getRehabSession(item.session || 'daily');
+          // rehab steps by phase too (round 3: the back extension progresses)
+          s = applyPhase(getRehabSession(item.session || 'daily'), ph);
           if (s && sessionVariantCount(s) > 1) {
             v =
               s.id === 'daily'
@@ -96,6 +117,42 @@ function* allQueues() {
   }
   yield* rampQueues();
   yield* shortQueues();
+  yield* amberQueues();
+  yield* amberQueues(applyTired, 'TIRED');
+}
+
+// THE AMBER DAY (2026-10-10): the session served when the morning back check
+// says "stiffer than usual" or he slept under five hours. Audited by every
+// RESTRICTION like the ramp and the short day; a string `w` keeps it out of
+// the weekly volume GOALS (an amber day is a deliberate dip).
+function* amberQueues(dose = applyAmber, tag = 'AMBER') {
+  for (let week = 1; week <= BLOCK_WEEKS; week++) {
+    const ph = phaseOf(week);
+    const sw = phaseSwaps(ph);
+    for (let d = 0; d < 7; d++) {
+      for (const item of WEEK_PLAN[d]) {
+        let s = null;
+        let v = 0;
+        if (item.type === 'lift') {
+          s = dose(
+            applyFormats(applyPhase(getProgramSession(item.session), ph), week),
+          );
+          v = sessionVariantCount(s) > 1 ? week - 1 : 0;
+        } else if (item.type === 'rehab') {
+          const base = applyPhase(getRehabSession(item.session || 'daily'), ph);
+          s = base && dose(base);
+          if (s && sessionVariantCount(s) > 1) {
+            v =
+              s.id === 'daily'
+                ? (week - 1) * 4 + (REHAB_DAY_SLOT[d] ?? 0)
+                : week - 1;
+          }
+        }
+        if (!s) continue;
+        yield { w: `${tag}·wk${week}`, d, s, v, q: buildStepQueue(s, sw, v) };
+      }
+    }
+  }
 }
 
 // THE SHORT DAY (2026-09-23): the ~15-minute version of any day, chosen on
@@ -117,7 +174,7 @@ function* shortQueues() {
           );
           v = sessionVariantCount(s) > 1 ? week - 1 : 0;
         } else if (item.type === 'rehab') {
-          const base = getRehabSession(item.session || 'daily');
+          const base = applyPhase(getRehabSession(item.session || 'daily'), ph);
           s = base && applyShort(base);
           if (s && sessionVariantCount(s) > 1) {
             v =
@@ -211,7 +268,12 @@ const NEVER_ALLOW = new Set(['db-hang-snatch', 'seated-good-morning']);
 const SPINE_LOADED = [
   'rdl', 'front-squat', 'rfe-split-squat', 'floor-press', 'pull-up',
   'db-split-squat', 'incline-db-press', 'db-floor-press',
+  // 2026-10-10 (physio QA): load held in front of the spine is spine load
+  'db-front-rack-lunge',
 ];
+// The loaded ballistics — explosive DB lifts. Never on a Back & Hips day, at
+// most one loaded-ballistic-or-heavy-hinge family per lift day (physio QA).
+const EXPLOSIVE = ['db-push-press', 'db-hang-snatch', 'db-hang-clean-press'];
 // REFINED 2026-08-10, when the whole session became one clock. The old rule
 // was "spine-loaded work is never on a clock", and it was a proxy for the
 // thing actually being protected: HURRY. What converts a neutral spine into a
@@ -273,10 +335,14 @@ const MANUAL_EST = 35;
   for (let w = 1; w <= BLOCK_WEEKS; w++) {
     for (const s of DENSITY40_SESSIONS) {
       const shaped = applyFormats(applyPhase(s, phaseOf(w)), w);
-      for (const b of shaped.blocks) {
-        if (b.mode !== 'fortime') continue;
-        for (const m of b.members || []) {
-          if (OPEN_PACE_BANNED.includes(m.ex)) bad.push(`wk${w} ${s.id} ${m.ex}`);
+      // THROUGH THE POOLS, AND EVERY OPEN MODE (2026-10-09): lift days now
+      // carry a scored finisher pool and supersets that go for time, so a
+      // top-level-only, fortime-only walk would pass vacuously.
+      for (const b of shaped.blocks.flatMap((x) => x.rotate || [x])) {
+        if (!['fortime', 'amrap'].includes(b?.mode)) continue;
+        for (const m of (b.members || []).flatMap((x) => [x, ...(x.alts || [])])) {
+          if (OPEN_PACE_BANNED.includes(m.ex) || SPINE_LOADED.includes(m.ex))
+            bad.push(`wk${w} ${s.id} ${b.name} ${m.ex}`);
         }
       }
     }
@@ -299,7 +365,12 @@ const anchorSpecs = () =>
       (b.rotate || [b]).filter((x) => x?.anchor).map((x) => ({ s, b: x })),
     ),
   );
-const ANCHOR_IDS = new Set(anchorSpecs().map(({ b }) => b.members[0].ex));
+// …plus each anchor's amber-day swap (front squat → DB split squat)
+const ANCHOR_IDS = new Set(
+  anchorSpecs().flatMap(({ b }) =>
+    [b.members[0].ex, b.members[0].amberEx].filter(Boolean),
+  ),
+);
 
 // One spine-relevant heavy lift per session, FIRST, on its own, long rests.
 {
@@ -321,9 +392,14 @@ const ANCHOR_IDS = new Set(anchorSpecs().map(({ b }) => b.members[0].ex));
     // The rule's intent is that the anchor meets a fresh body — the primer is
     // 2×15s of hops and 3 jumps, deliberately stopped while still springy, and
     // it belongs in front of the heavy lift, not behind it.
+    // …and, since 2026-10-10, the one loaded ballistic: power runs BEFORE
+    // the heavy lift on purpose (both reviews — fresh legs, crisp reps)
     const before = q
       .slice(0, firstAnchor)
-      .filter((st) => st.countsAsSet && st.logWeight === true);
+      .filter(
+        (st) =>
+          st.countsAsSet && st.logWeight === true && !EXPLOSIVE.includes(st.exId),
+      );
     if (before.length)
       bad.push(`wk${w} ${s.id}: ${before.length} loaded sets before the anchor`);
   }
@@ -351,7 +427,9 @@ const ANCHOR_IDS = new Set(anchorSpecs().map(({ b }) => b.members[0].ex));
     // lift at 120s forever after one tap.
     const m0 = b.members?.[0] || {};
     for (const cand of [m0, ...(m0.alts || [])]) {
-      const floor = SPINE_LOADED.includes(cand.ex) ? 180 : 120;
+      // 2:30 for spine-loaded lifts (2026-10-10, coach QA — 3:00 cost minutes
+      // the day didn't have): a set of ≤30 s still leaves IRON RULE 2's 2:00
+      const floor = SPINE_LOADED.includes(cand.ex) ? 150 : 120;
       if ((b.intervalSecs ?? 0) < floor) {
         bad.push(`${s.id} ${cand.ex} ${b.intervalSecs}s (needs ${floor}s)`);
       }
@@ -494,6 +572,7 @@ const CABLE_SETUP = {
   'cable-row-1arm': 'low handle',
   'cable-lateral-raise': 'low handle',
   'cable-fly-low': 'low handle',
+  'cable-leg-curl': 'low ankle strap',
 };
 {
   const bad = [];
@@ -542,6 +621,70 @@ const CABLE_SETUP = {
   check('RESTRICTIONS', 'each piece touches the pulley at most once, rig set before the clock', bad.length === 0, bad.slice(0, 3).join(', '));
 }
 
+// ONE BIG SPINE EVENT PER LIFT DAY (2026-10-10, physio QA): at most one family
+// of {heavy hinge, loaded ballistic} per lift day — Monday hinges, Wednesday
+// jumps and presses, Friday hinges light. Unloaded jumps are not a family.
+{
+  const bad = [];
+  for (const { w, s, q } of allQueues()) {
+    if (!s.id.startsWith('d40')) continue;
+    const fams = new Set();
+    for (const st of q) {
+      if (st.kind !== 'work' || st.phase === 'RAMP') continue;
+      if (st.exId === 'rdl') fams.add('hinge');
+      if (EXPLOSIVE.includes(st.exId)) fams.add('ballistic');
+    }
+    if (fams.size > 1) bad.push(`${w} ${s.id}: ${[...fams].join(' + ')}`);
+    // and one front-rack exercise at most — the rack loads a sore mid-back
+    const racks = new Set(
+      q
+        .filter((st) => st.kind === 'work' && st.countsAsSet && st.phase !== 'RAMP')
+        .map((st) => st.exId)
+        .filter((id) => ['front-squat', 'db-front-rack-lunge'].includes(id)),
+    );
+    if (racks.size > 1) bad.push(`${w} ${s.id}: two front-rack exercises`);
+  }
+  check('RESTRICTIONS', 'at most one heavy-hinge OR loaded-ballistic family per lift day', bad.length === 0, bad.slice(0, 3).join(', '));
+}
+
+// THE AMBER DAY IS ACTUALLY LIGHTER: no ballistic, no finisher or pump, no
+// format that pushes effort, and it is shorter than the full day.
+{
+  const bad = [];
+  const JUMPS = ['broad-jump', 'pogo-hop', 'power-pushup', 'skater-bound'];
+  // amber also never serves the movements a stiff back won't like (round 2)
+  // round 4 (physio): the floor-level DB split squat is light on the disc and
+  // stays on an amber day (at most once — the anchor swap OR Friday's legs);
+  // the axial, front-rack and rear-foot-elevated work never does
+  const AMBER_NEVER = ['rdl', 'db-front-rack-lunge', 'front-squat', 'rfe-split-squat'];
+  for (const [gen, strict] of [
+    [amberQueues(), true],
+    [amberQueues(applyTired, 'TIRED'), false],
+  ]) {
+    for (const { w, s, q } of gen) {
+      if (OPTIONAL.has(s.id)) continue; // never opens the bonus WOD
+      const splitBlocks = new Set(
+        q.filter((st) => st.kind === 'work' && st.exId === 'db-split-squat').map((st) => st.bi),
+      );
+      if (strict && splitBlocks.size > 1) bad.push(`${w} ${s.id} two split-squat blocks`);
+      for (const st of q) {
+        if (st.kind !== 'work') continue;
+        if (EXPLOSIVE.includes(st.exId) || JUMPS.includes(st.exId) || st.amrap || st.bail || String(st.pieceFormat || '').startsWith('TABATA'))
+          bad.push(`${w} ${s.id} ${st.exId}`);
+        if (st.heavy || /MAX SET|HEAVY/.test(String(st.meta || '')) || /LAST SET|Heavy week/.test(String(st.cueNote || '')))
+          bad.push(`${w} ${s.id} ${st.exId} effort format`);
+        if (!strict) continue;
+        // the anchor's own amber swap is the split squat — that one is allowed
+        if (AMBER_NEVER.includes(st.exId) && !st.anchor && st.phase !== 'RAMP')
+          bad.push(`${w} ${s.id} ${st.exId} on a stiff-back day`);
+        if (st.exId === 'back-extension' && st.tempo)
+          bad.push(`${w} ${s.id} repped back extension on a stiff-back day`);
+      }
+    }
+  }
+  check('RESTRICTIONS', 'amber and tired days serve nothing ballistic, scored or maxed — amber nothing spine-heavy', bad.length === 0, bad.slice(0, 3).join(', '));
+}
+
 // REHAB DAYS ARE AXIALLY QUIET (2026-08-11; widened 2026-08-14). The
 // finishers exist to make the light days fun, not to sneak load onto the
 // spine between the heavy days: no SPINE_LOADED movement, no pulley exercise
@@ -562,7 +705,8 @@ const CABLE_SETUP = {
           ...(v.ex ? [{ ex: v.ex, alts: v.alts }] : []),
         ].flatMap((x) => [x, ...(x.alts || [])]);
         for (const m of pool) {
-          if (SPINE_LOADED.includes(m.ex)) bad.push(`${s.id} ${v.name} ${m.ex} spine-loaded`);
+          if (SPINE_LOADED.includes(m.ex) || EXPLOSIVE.includes(m.ex))
+            bad.push(`${s.id} ${v.name} ${m.ex} spine-loaded or explosive`);
           if (CABLE_SETUP[m.ex]) bad.push(`${s.id} ${v.name} ${m.ex} touches the pulley`);
         }
       }
@@ -642,12 +786,12 @@ const CABLE_SETUP = {
             applyPhase(getProgramSession(item.session), phaseOf(w)),
             w,
           );
-          mins += estimateSessionMins(s, sessionVariantCount(s) > 1 ? w - 1 : 0);
+          mins += estMinsExact(s, sessionVariantCount(s) > 1 ? w - 1 : 0);
         } else if (item.type === 'rehab' && !item.session) {
           hasRehab = true;
           // the day's REAL variant — toppers differ slightly in length
-          mins += estimateSessionMins(
-            getRehabSession('daily'),
+          mins += estMinsExact(
+            applyPhase(getRehabSession('daily'), phaseOf(w)),
             (w - 1) * 4 + (REHAB_DAY_SLOT[d] ?? 0),
           );
         } else if (
@@ -661,7 +805,7 @@ const CABLE_SETUP = {
           hasRehab = true;
           const s = getRehabSession(item.session);
           if (s) {
-            mins += estimateSessionMins(
+            mins += estMinsExact(
               s,
               sessionVariantCount(s) > 1 ? w - 1 : 0,
             );
@@ -679,13 +823,15 @@ const CABLE_SETUP = {
       if (d !== 0) shortest = Math.min(shortest, mins);
     });
   }
-  // EMOM40 (2026-08-11): the promise is 40:00 of CLOCK work; the ceiling is
-  // 41 to absorb the two 10-second get-set steps the wall clock also spends.
+  // THE CAP, UNROUNDED — 45 minutes since 2026-10-11 (his call: "until 45
+  // instead of sacrificing load"). Round-3 coach QA: the old ceiling was a
+  // rounded 41, and Friday passed at 40.3. The estimate now counts the
+  // changeovers, the get-set steps and the rep-out sets — so 40.0 means 40.0.
   check(
     'RESTRICTIONS',
-    'every day fits the EMOM40 promise (40:00 clock, ceiling 41 with preps)',
-    longest <= 41,
-    `longest ${longest} min (${where})`,
+    'every day fits 45:00 — unrounded, changeovers, max sets and reps-first at +2',
+    longest <= 45,
+    `longest ${longest.toFixed(1)} min (${where})`,
   );
   // The floor, not a band. A for-time week is legitimately shorter than an
   // EMOM week — same sets, no forced rest, you just move faster — so pinning
@@ -695,13 +841,253 @@ const CABLE_SETUP = {
     'RESTRICTIONS',
     'no required training day shrinks below 30 minutes (Sunday rests)',
     shortest >= 30,
-    `${shortest}–${longest} min`,
+    `${shortest.toFixed(1)}–${longest.toFixed(1)} min`,
   );
   check(
     'RESTRICTIONS',
     'the rehab day never stacks on a lift day',
     stacked.length === 0,
     stacked.slice(0, 3).join(', '),
+  );
+}
+
+// ── ROUND 3 (2026-10-10, independent coach + physio QA) ────────────────────
+// A bad night or a deload week is no day for impact or maxing: the SHORT dose
+// (which the deload and the comeback lead with) serves nothing ballistic, no
+// heavy-week sets and no max set.
+{
+  const JUMPY = new Set(['broad-jump', 'skater-bound', 'pogo-hop', ...EXPLOSIVE]);
+  const bad = [];
+  for (const { w, s, q } of shortQueues()) {
+    for (const st of q) {
+      if (st.kind !== 'work') continue;
+      if (JUMPY.has(st.exId) || st.heavy || /MAX SET|LAST SET/.test(`${st.meta} ${st.cueNote || ''}`)) {
+        bad.push(`${w} ${s.id} ${st.exId}`);
+      }
+    }
+  }
+  check(
+    'RESTRICTIONS',
+    'short / deload days serve nothing ballistic, heavy or maxed',
+    bad.length === 0,
+    bad.slice(0, 4).join(' · ') || 'clean',
+  );
+}
+// THE FOLDS CLOSE THE DAY: nothing loaded or scored after held flexion —
+// once a fold has run, only folds follow (every dose, every day).
+{
+  const FOLDS = new Set(['elephant-walk', 'seated-good-morning']);
+  const bad = [];
+  for (const { w, s, q } of allQueues()) {
+    let folded = false;
+    for (const st of q) {
+      if (st.kind !== 'work') continue;
+      if (FOLDS.has(st.exId)) folded = true;
+      else if (folded) {
+        bad.push(`${w} ${s.id} ${st.exId}`);
+        break;
+      }
+    }
+  }
+  check(
+    'RESTRICTIONS',
+    'the forward folds close every session — nothing after them',
+    bad.length === 0,
+    bad.slice(0, 4).join(' · ') || 'clean',
+  );
+}
+// THE ANCHOR'S PAIR: only on a lift that doesn't load the spine, only a
+// spine-quiet move, and real rest left before the next heavy set.
+{
+  const AXIAL = new Set([
+    'rdl',
+    'front-squat',
+    'rfe-split-squat',
+    'db-split-squat',
+    'db-front-rack-lunge',
+  ]);
+  const bad = [];
+  for (const sess of DENSITY40_SESSIONS) {
+    for (const b of sess.blocks) {
+      for (const v of b.rotate || [b]) {
+        if (!v?.pair) continue;
+        const lift = v.members[0].ex;
+        const iv = v.intervalSecs ?? 60;
+        const rest = iv - (v.pair.at ?? 45) - (parseInt(v.pair.reps, 10) || 0) * 3;
+        // axial or hinge load — the press stays eligible: its pair leaves
+        // real rest (checked below), and nothing in a lateral rushes it
+        if (AXIAL.has(lift)) bad.push(`${sess.id} pair on ${lift}`);
+        if (SPINE_LOADED.includes(v.pair.ex) || EXPLOSIVE.includes(v.pair.ex))
+          bad.push(`${sess.id} ${v.pair.ex} loads the spine`);
+        if (rest < 40) bad.push(`${sess.id} ${v.pair.ex} leaves ${rest}s`);
+      }
+    }
+  }
+  check(
+    'RESTRICTIONS',
+    'anchor pairs: spine-quiet lift, spine-quiet pair, real rest left',
+    bad.length === 0,
+    bad.join(' · ') || 'clean',
+  );
+}
+
+// THE WARM-UPS ROTATE (round 3, his ask): every lift day meets four different
+// warm-ups across a month, each under four minutes.
+{
+  const bad = [];
+  for (const sess of DENSITY40_SESSIONS) {
+    const seen = new Set();
+    for (let w = 1; w <= 4; w++) {
+      const q = buildStepQueue(applyFormats(sess, w), {}, w - 1);
+      const warm = q.filter((st) => st.warmup);
+      const secs = warm.reduce((n, st) => n + (st.secs || 0), 0);
+      if (!warm.length || secs > 240) bad.push(`${sess.id} wk${w} ${secs}s`);
+      seen.add(warm.filter((st) => st.kind === 'work').map((st) => st.exId).join(','));
+    }
+    if (seen.size < 4) bad.push(`${sess.id} only ${seen.size} different`);
+  }
+  check(
+    'VARIETY',
+    'four different warm-ups per lift day, each under four minutes',
+    bad.length === 0,
+    bad.join(' · ') || 'clean',
+  );
+}
+
+// THE TIRED DAY IS REAL, THE RAMP KEEPS THE PUMPS (round-3 QA): a short
+// night takes at least 10% off every lift and Tue/Thu day; a ramp week's
+// Back & Hips still serves its pumps.
+{
+  const bad = [];
+  for (const sess of DENSITY40_SESSIONS) {
+    for (let w = 1; w <= BLOCK_WEEKS; w++) {
+      const s = applyFormats(applyPhase(sess, phaseOf(w)), w);
+      const full = estimateSessionSecs(s, w - 1);
+      const tired = estimateSessionSecs(applyTired(s), w - 1);
+      if (tired > full * 0.9) bad.push(`${sess.id} wk${w} ${Math.round((tired / full) * 100)}%`);
+    }
+  }
+  const daily = getRehabSession('daily');
+  for (const k of [0, 1]) {
+    const full = estimateSessionSecs(daily, k);
+    const tired = estimateSessionSecs(applyTired(daily), k);
+    if (tired > full * 0.9) bad.push(`daily k${k} ${Math.round((tired / full) * 100)}%`);
+    for (const r of [1, 2]) {
+      const q = buildStepQueue(applyRamp(daily, r), {}, k);
+      if (!q.some((st) => st.blockLabel && st.kind === 'work')) bad.push(`ramp${r} k${k} has no pump`);
+    }
+  }
+  check(
+    'RESTRICTIONS',
+    'a tired day is ≥10% lighter; a ramp week keeps the pumps',
+    bad.length === 0,
+    bad.slice(0, 4).join(' · ') || 'clean',
+  );
+}
+
+// EVERY POOL MEMBER IS SERVED (round-4 QA: a per-phase index into a 16-deep
+// pool always read weeks 0–3, and three Saturday moves were dead data).
+{
+  const served = new Map();
+  for (const { w, s, q } of allQueues()) {
+    if (typeof w !== 'number') continue;
+    const set = served.get(s.id) || new Set();
+    for (const st of q) {
+      for (const k of [st.piece, st.blockLabel, st.exId]) if (k) set.add(k);
+    }
+    served.set(s.id, set);
+  }
+  const dead = [];
+  for (const [id, set] of served) {
+    const sess = getRehabSession(id) || getProgramSession(id);
+    for (const b of sess?.blocks || []) {
+      for (const v of b.rotate || []) {
+        if (!v) continue;
+        const key = v.name || v.ex;
+        if (key && !set.has(key)) dead.push(`${id}: ${key}`);
+      }
+    }
+  }
+  check(
+    'VARIETY',
+    'every rotation member is served at least once in 12 weeks',
+    dead.length === 0,
+    [...new Set(dead)].slice(0, 5).join(' · ') || 'clean',
+  );
+}
+
+// EVERY DOSE COMBINATION RESTORES (round-6 app QA: a short night on a short
+// day saved dose 'tired', lost the 'short', and a refresh retired the run).
+// The player rebuilds a run from its SAVED dose string on top of the phased
+// session — that rebuild must equal the live queue, step for step, for every
+// combination the preview can serve.
+{
+  const STEPS = { short: applyShort, amber: applyAmber, tired: applyTired, unchecked: applyUnchecked };
+  const redose = (s, dose, noFolds) => {
+    const d = ['short', 'amber', 'tired', 'unchecked']
+      .filter((p) => hasDose(dose, p))
+      .reduce((acc, p) => STEPS[p](acc), s);
+    return noFolds ? applyNoFolds(d) : d;
+  };
+  const LIVE = [
+    ['short', (s) => applyShort(s)],
+    ['amber', (s) => applyAmber(s)],
+    ['tired', (s) => applyTired(s)],
+    ['short+tired', (s) => applyTired(applyShort(s))],
+    ['unchecked', (s) => applyUnchecked(s)],
+    ['short+unchecked', (s) => applyUnchecked(applyShort(s))],
+  ];
+  const sig = (q) => q.map((st) => `${st.exId}|${st.secs}|${st.reps}|${st.kind}`).join(',');
+  const bad = [];
+  for (const w of [1, 5, 9]) {
+    const ph = phaseOf(w);
+    const sessions = [
+      ...DENSITY40_SESSIONS.map((x) => [applyFormats(applyPhase(x, ph), w), w - 1]),
+      ...['daily', 'sunday'].map((id) => [applyPhase(getRehabSession(id), ph), id === 'daily' ? (w - 1) * 4 + 2 : w - 1]),
+    ];
+    for (const [base, v] of sessions) {
+      for (const [name, fn] of LIVE) {
+        for (const noFolds of [false, true]) {
+          const live = noFolds ? applyNoFolds(fn(base)) : fn(base);
+          // the player re-applies the phase (a no-op once dosed) and the dose
+          const again = redose(applyPhase(live, ph), live.dose, noFolds);
+          const restored = redose(base, live.dose, noFolds);
+          if (sig(buildStepQueue(again, {}, v)) !== sig(buildStepQueue(live, {}, v)) ||
+              sig(buildStepQueue(restored, {}, v)) !== sig(buildStepQueue(live, {}, v)))
+            bad.push(`wk${w} ${base.id} ${name}${noFolds ? '+early' : ''}`);
+        }
+      }
+    }
+  }
+  check(
+    'RESTRICTIONS',
+    'every dose combination restores to the exact live queue',
+    bad.length === 0,
+    bad.slice(0, 4).join(' · ') || 'clean',
+  );
+}
+
+// ONE ENGINE MOVEMENT ONCE A WEEK: the scored finishers never repeat a
+// movement inside the same week (Wednesday's Tabata vs Saturday's finisher).
+{
+  const dup = [];
+  for (let w = 1; w <= BLOCK_WEEKS; w++) {
+    const seen = new Map();
+    for (const { w: ww, d, q } of allQueues()) {
+      if (ww !== w) continue;
+      for (const st of q) {
+        if (!st.conditioning || st.kind !== 'work') continue;
+        const prev = seen.get(st.exId);
+        if (prev != null && prev !== d) dup.push(`wk${w} ${st.exId}`);
+        seen.set(st.exId, d);
+      }
+    }
+  }
+  check(
+    'VARIETY',
+    'no finisher movement repeats inside a week',
+    dup.length === 0,
+    [...new Set(dup)].slice(0, 4).join(' · ') || 'clean',
   );
 }
 
@@ -774,15 +1160,35 @@ const distillateSkip = (s, st) => s.id === 'daily' && !!REHAB_EXERCISES[st.exId]
   );
 }
 
+// HONEST SET CREDIT (2026-10-10, coach QA): a 20-second Tabata round is not
+// a hard set — eight of them count as four; a death-by ladder's minutes count
+// as sets only up to five (past that it is conditioning, not hypertrophy).
+const setCredit = (q) => {
+  const ladderSeen = new Map();
+  return (st) => {
+    // a scored finisher is the engine, not a growth set (round-3 coach QA):
+    // Saturday's step-ups and the Tabata squats used to fill the quad target
+    if (st.conditioning) return 0;
+    if (String(st.pieceFormat || '').startsWith('TABATA')) return 0.5;
+    if (st.bail) {
+      const n = (ladderSeen.get(st.piece) || 0) + 1;
+      ladderSeen.set(st.piece, n);
+      return n <= 5 ? 1 : 0;
+    }
+    return 1;
+  };
+};
 const weekVol = [];
 for (let w = 1; w <= BLOCK_WEEKS; w++) {
   const t = {};
   for (const { w: ww, s, q } of allQueues()) {
     if (ww !== w || HYPERTROPHY_EXEMPT.has(s.id) || OPTIONAL.has(s.id)) continue;
+    const credit = setCredit(q);
     for (const st of q) {
       if (distillateSkip(s, st)) continue;
       if (st.kind !== 'work' || !st.countsAsSet || st.phase === 'RAMP') continue;
-      for (const [m, f] of Object.entries(MAP[st.exId] || {})) t[m] = (t[m] || 0) + f;
+      const c = credit(st);
+      for (const [m, f] of Object.entries(MAP[st.exId] || {})) t[m] = (t[m] || 0) + f * c;
     }
   }
   weekVol.push(t);
@@ -867,10 +1273,11 @@ const muscles = [...new Set(weekVol.flatMap(Object.keys))];
     for (const { w: ww, q } of allQueues()) {
       if (ww !== w) continue;
       const BALLISTIC = ['broad-jump', 'power-pushup', 'pogo-hop'];
+      // working jump sets only — warm-up hops are not a power session
       if (
         q.some(
           (st) =>
-            BALLISTIC.includes(st.exId) ||
+            (BALLISTIC.includes(st.exId) && st.countsAsSet) ||
             (st.amrapMembers || []).some((m) => BALLISTIC.includes(m.ex)),
         )
       )
@@ -907,12 +1314,25 @@ const muscles = [...new Set(weekVol.flatMap(Object.keys))];
   check('VARIETY', 'three distinct lift days — no two repeat in a week', names.size === 3, [...names].join(' · '));
 }
 {
+  // the back medicine is constant BY DESIGN (openers, the McGill primer —
+  // doubled on core days since 2026-10-10 — and the folds): variety is
+  // measured on the training around it, not on the medicine
+  const MEDICINE = new Set([
+    't-spine-reach',
+    'couch-stretch',
+    'hip-internal-rotation',
+    'mcgill-curlup',
+    'side-plank',
+    'bird-dog',
+    'elephant-walk',
+    'seated-good-morning',
+  ]);
   const sig = (w) => {
     const out = [];
     for (const { w: ww, q } of allQueues()) {
       if (ww !== w) continue;
       for (const st of q) {
-        if (st.kind !== 'work') continue;
+        if (st.kind !== 'work' || MEDICINE.has(st.exId)) continue;
         out.push(`${st.exId}|${st.reps ?? st.secs}|${st.piece ?? ''}|${st.pieceFormat ?? ''}|${st.manual ? 'p' : 'c'}`);
       }
     }
@@ -942,7 +1362,11 @@ const muscles = [...new Set(weekVol.flatMap(Object.keys))];
   // days: twelve names, none repeated.
   // 12 lift pieces + 16 finishers (2026-08-15) — the floor tracks reality
   // so a silent pool shrink fails the build instead of passing at 12
-  check('VARIETY', 'the named-piece pool covers a month on every day', fins.size >= 24 && fmts.size >= 3, `${fins.size} named pieces · ${fmts.size} formats`);
+  // The floor dropped 24 → 12 on 2026-10-10, deliberately: two of the three
+  // weekly Back & Hips finishers became PUMPS of real sets (coach QA — "five
+  // scored max efforts a week" for a sleep-deprived new dad), so the scored
+  // pool is Wed's Tabata (4) + Sat's finisher (4) + Sunday's optional WOD (4).
+  check('VARIETY', 'the named-piece pool covers a month on every day', fins.size >= 12 && fmts.size >= 3, `${fins.size} named pieces · ${fmts.size} formats`);
 }
 
 // ── THE RAMP (2026-09-21) ───────────────────────────────────────────────────
@@ -1011,9 +1435,10 @@ const muscles = [...new Set(weekVol.flatMap(Object.keys))];
 // tick and the streak are honest. And it never touches the McGill core cap,
 // whose 10-second holds at a 3-second re-brace ARE the protocol.
 {
+  // back-extension left the list 2026-10-10: it runs Tue + Sat only now
+  // (physio QA), so it can't be a must-survive of every short day
   const FAVOURITES = [
     't-spine-reach',
-    'back-extension',
     'hip-internal-rotation',
     'couch-stretch',
     'elephant-walk',
@@ -1029,7 +1454,9 @@ const muscles = [...new Set(weekVol.flatMap(Object.keys))];
     const mins = estimateSessionMins(s, v);
     lo = Math.min(lo, mins);
     hi = Math.max(hi, mins);
-    if (mins < 10 || mins > 20) bad.push(`${w} ${s.id} ${mins} min`);
+    // ≤22 since the 45-minute cap (2026-10-11): phase 3's 6/5/5 McGill
+    // primer is never scaled, and it alone pushes a short Tuesday past 20
+    if (mins < 10 || mins > 22) bad.push(`${w} ${s.id} ${mins} min`);
     const ids = new Set(q.map((st) => st.exId));
     if (s.id.startsWith('d40')) {
       if (!q.some((st) => st.piece === 'The Anchor')) thin.push(`${w} ${s.id} no anchor`);
@@ -1040,14 +1467,14 @@ const muscles = [...new Set(weekVol.flatMap(Object.keys))];
     }
     // the core cap: 10s holds, never halved
     for (const b of s.blocks.flatMap((x) => x.rotate || [x])) {
-      if (b.mode === 'reps' && b.holdSecs !== 10) {
+      if (b?.mode === 'reps' && b.holdSecs !== 10) {
         capped.push(`${w} ${s.id} ${b.ex} ${b.holdSecs}s`);
       }
     }
   }
   check(
     'SHORT DAY',
-    'every short day is 10–20 minutes — short enough to do, long enough to count',
+    'every short day is 10–22 minutes — short enough to do, long enough to count',
     bad.length === 0,
     bad.slice(0, 3).join(', ') || `${lo}–${hi} min`,
   );

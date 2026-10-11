@@ -47,3 +47,21 @@ describe('pickFormCue', () => {
     expect(pickFormCue('rdl', -1)).toBeTruthy();
   });
 });
+
+describe('McGill curl-up cue (round 6)', () => {
+  it('opens on keeping the small arch', () => {
+    expect(FORM_CUES['mcgill-curlup'][0]).toEqual({
+      slug: 'cue-mcgill-curlup-1',
+      text: 'Keep the small arch on your hands',
+    });
+  });
+});
+
+describe('back-extension cues (round 3)', () => {
+  // the third line is the stop rule, and it covers BOTH ways a set ends —
+  // the hold (Thursday) and the reps (Saturday) share it
+  it('ends the set on sharp pain or slipping form', () => {
+    const third = FORM_CUES['back-extension'].find((c) => c.slug === 'cue-back-extension-3');
+    expect(third.text).toBe('Sharp pain or form slips — set ends');
+  });
+});

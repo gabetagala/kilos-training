@@ -95,50 +95,57 @@ const PHASE_SWAPS = { 1: {}, 2: {}, 3: {} };
 export const phaseSwaps = (phase) => ({ ...(PHASE_SWAPS[phase] || {}) });
 
 // ── Phase volume steps ──────────────────────────────────────────────────────
-// MOSTLY RETIRED (2026-08-11, EMOM40). The old steps added a fifth anchor
-// round at weeks 5/9 — minutes the 40-cap doesn't have. Set progression was
-// always the least-evidenced part of the plan (Enes 2024: stepped increases
-// neutral for hypertrophy, better for strength), so what survives is the one
-// step that costs zero seconds: Friday's strict-pull-up reps, 3 → 4 → 5 —
-// the lat step, delivered in reps. The quads gap is ACCEPTED at maintenance:
-// his stated goal ("legs are already good; minimal") — a check demanding quad
-// growth contradicted the goal it claimed to guard.
+// What a phase changes now (2026-10-10): only members that declare
+// `phaseReps` — no session uses it today; the bodyweight ladders (Monday's
+// pull-up anchor, Friday's pull-ups and ring dips) step by WEEK instead
+// (`weekReps`, applied in applyFormats). Legs grow since 2026-10-10 — the old
+// "quads at maintenance" note no longer holds.
 /**
- * Apply a phase's volume step to a session. Returns the session unchanged
- * when the phase doesn't touch it, so callers can apply it unconditionally.
- *
- * THE ANCHOR ROUND STEPS ARE RETIRED (2026-08-11, EMOM40): a fifth anchor
- * round costs 2-3 minutes and the 40-minute cap has none to give. Anchor
- * progression is load (+2.5 per exposure) and, on the pull day, reps —
- * neither needs a longer clock. The ONE surviving phase step costs zero
- * seconds: Friday's strict-pull-up station steps 3 → 4 → 5 reps, because the
- * Monday anchor drives his pull-up strength up all block and a fixed 3 would
- * decay into warm-up grade while the audit kept crediting full lat sets.
+ * Apply a phase's step to a session. Returns the session unchanged when no
+ * member declares `phaseReps`, so callers can apply it unconditionally.
  * IDEMPOTENT: the target is absolute.
  */
 export function applyPhase(session, phase) {
-  if (!session || phase < 2) return session;
-
-  if (session.id === 'd40-c1') {
-    const reps = phase >= 3 ? '5' : '4';
-    const step = (v) =>
-      v?.members && v.members.length > 1
-        ? {
-            ...v,
-            members: v.members.map((m) =>
-              m.ex === 'pull-up-bw' ? { ...m, reps } : m,
-            ),
-          }
-        : v;
+  // PHASE FIRST, DOSE SECOND, and never the other way round (round-4 physio
+  // QA): the player re-applies the phase to a session the preview already
+  // dosed, and a short day's halved back extension came back at 14 reps
+  if (!session?.blocks || phase < 2 || session.dose) return session;
+  let touched = false;
+  const step = (v) => {
+    // a single-exercise block (the back extension) steps by phase too
+    // (round-3 physio QA: Back & Hips was identical in weeks 1 and 12)
+    if (
+      v &&
+      !v.members &&
+      (v.phaseHoldSecs?.[phase] ||
+        v.phaseBlockReps?.[phase] ||
+        v.phaseRepScheme?.[phase])
+    ) {
+      touched = true;
+      return {
+        ...v,
+        ...(v.phaseHoldSecs?.[phase]
+          ? { holdSecs: v.phaseHoldSecs[phase] }
+          : {}),
+        ...(v.phaseBlockReps?.[phase] ? { reps: v.phaseBlockReps[phase] } : {}),
+        ...(v.phaseRepScheme?.[phase]
+          ? { repScheme: v.phaseRepScheme[phase] }
+          : {}),
+      };
+    }
+    if (!v?.members?.some((m) => m.phaseReps?.[phase])) return v;
+    touched = true;
     return {
-      ...session,
-      blocks: session.blocks.map((b) =>
-        b.rotate ? { ...b, rotate: b.rotate.map(step) } : step(b),
+      ...v,
+      members: v.members.map((m) =>
+        m.phaseReps?.[phase] ? { ...m, reps: m.phaseReps[phase] } : m,
       ),
     };
-  }
-
-  return session;
+  };
+  const blocks = session.blocks.map((b) =>
+    b.rotate ? { ...b, rotate: b.rotate.map(step) } : step(b),
+  );
+  return touched ? { ...session, blocks } : session;
 }
 
 // ── Format rotation ─────────────────────────────────────────────────────────
@@ -171,7 +178,24 @@ export const PIECE_FORMATS = {
   // Self-paced rounds against a running clock. NO forced rest, so this is
   // gated by the per-piece allowlist below.
   fortime: { id: 'fortime', label: 'FOR TIME', pace: 'open' },
+  // ── SET formats (2026-10-09, his ask: "bored of EMOM… something where I
+  // can put more effort or control"). Supersets and giant sets with REAL,
+  // timed rest — the format where a set can actually be taken close to
+  // failure, which an EMOM's 20-second gaps never allow. Same exercises,
+  // same set count every week; the week only changes how the sets feel.
+  // Control: the reps as written, 3 seconds down, rest on the timer.
+  sets: { id: 'sets', label: 'SETS', pace: 'forced' },
+  // Load: ~70% of the reps under more weight, three seconds down.
+  'sets-heavy': { id: 'sets-heavy', label: 'HEAVY', pace: 'forced' },
+  // Effort: the last round keeps going until one rep before form breaks.
+  'sets-repout': { id: 'sets-repout', label: 'LAST SET MAX', pace: 'forced' },
 };
+
+const REPOUT_NOTE =
+  'LAST SET — keep going past the number until one rep before your form breaks. Log what you got.';
+// bands and bodyweight log nothing, so there is nothing to "log what you got"
+const REPOUT_NOTE_UNLOGGED =
+  'LAST SET — keep going past the number until one rep before your form breaks.';
 
 // A piece may only rotate through formats it declares. Anything self-paced
 // requires every movement in the piece to fail somewhere that ISN'T the spine
@@ -181,12 +205,19 @@ export const OPEN_PACE_BANNED = [
   'cable-row-1arm', // hinged and loaded — degrades under an unpaced clock
   'chest-supported-row',
   'suitcase-carry', // one-hand carry is the MORE spine-expensive carry
+  // 2026-10-10 (physio QA): a raced two-hand carry is still a raced pickup —
+  // "the pickup is the hazard" — so carries run on a clock that rests them
+  'farmer-carry',
   'overhead-triceps', // fatigue drives the lumbar arch the cue warns about
   'rdl',
   'front-squat',
   'rfe-split-squat',
+  // every spine-loaded lift is off the open clock and off the rep-out
+  // (round-3 physio QA: the RFE was banned, its DB cousin wasn't)
+  'db-split-squat',
   'floor-press',
   'pull-up',
+  'ring-dip', // fails at the shoulder — every dip stays strict (2026-10-09)
   // Added 2026-08-10 with the CrossFit movements. All three are loaded and
   // overhead or unilateral; EMOM's forced rest is exactly what keeps them
   // honest, and an open clock is exactly what would not.
@@ -198,6 +229,8 @@ export const OPEN_PACE_BANNED = [
   // score-incentivized open clock is the exact opposite of that rule.
   'power-pushup',
   'broad-jump',
+  // sprints (2026-10-10): top speed only on a clock that forces the walk back
+  'sprint',
   'pogo-hop',
   // The hang clean & press rides the SAME carve-out terms as the hang
   // snatch (2026-08-15): above the knee, light DBs, and only where the
@@ -218,8 +251,16 @@ export function formatsFor(block) {
   // the slot could legally be serving, not just the one it serves by default.
   const pool = members.flatMap((m) => [m, ...(m.alts || [])]);
   const openOk = !pool.some((m) => OPEN_PACE_BANNED.includes(m.ex));
+  // a rep-out week nobody in the piece may take is a label, not a format
+  // (round-3 coach QA: Friday's Legs & Back said LAST SET MAX and did nothing)
+  const repoutOk = members.some(
+    (m) => !m.secs && !m.fixedReps && !OPEN_PACE_BANNED.includes(m.ex),
+  );
   return declared.filter(
-    (f) => PIECE_FORMATS[f] && (PIECE_FORMATS[f].pace === 'forced' || openOk),
+    (f) =>
+      PIECE_FORMATS[f] &&
+      (PIECE_FORMATS[f].pace === 'forced' || openOk) &&
+      (f !== 'sets-repout' || repoutOk),
   );
 }
 
@@ -278,10 +319,18 @@ export function heavyReps(reps) {
 // The explosive DB lifts stay as written too: a push press is driven, not
 // lowered for three seconds, and "heavier overhead" is not a lever this back
 // program pulls.
+// The strict pull-up too (2026-10-09): `logReps` lives on the exercise, not
+// the slot, so a pulldown swapped to pull-ups looked loadable — and "fewer
+// reps, more load" on a bar he can't yet load is just less work.
 const HEAVY_EXCLUDED = [
   'db-push-press',
   'db-hang-clean-press',
   'db-hang-snatch',
+  'pull-up-bw',
+  // bodyweight, reps-logged — "fewer reps, more load" has no load to add
+  'slider-leg-curl',
+  // …and the ring row an athlete can swap in for a DB row (round-6 test QA)
+  'ring-row',
 ];
 export const heavyEligible = (m) =>
   !m.secs &&
@@ -295,7 +344,12 @@ export const heavyEligible = (m) =>
  * only how the sets are delivered.
  */
 export function applyPieceFormat(block, formatId) {
-  if (!block.members || formatId === 'emom' || !PIECE_FORMATS[formatId]) {
+  if (
+    !block.members ||
+    formatId === 'emom' ||
+    formatId === 'sets' ||
+    !PIECE_FORMATS[formatId]
+  ) {
     return block;
   }
   if (formatId === 'emom-desc') {
@@ -309,44 +363,95 @@ export function applyPieceFormat(block, formatId) {
       }),
     };
   }
-  if (formatId === 'emom-heavy') {
+  if (formatId === 'emom-heavy' || formatId === 'sets-heavy') {
     return {
       ...block,
-      formatLabel: 'EMOM · HEAVY',
+      formatLabel: PIECE_FORMATS[formatId].label,
       members: block.members.map((m) => {
         const reps = heavyEligible(m) ? heavyReps(m.reps) : null;
         return reps
           ? {
               ...m,
+              // what the heavy week replaced — an amber or tired day puts it back
+              baseReps: m.reps,
+              ...(m.note ? { baseNote: m.note } : {}),
               reps,
               // an alt swapped in serves the heavy week too — same rule
               ...(m.alts
                 ? {
                     alts: m.alts.map((a) => {
                       const r = heavyEligible(a) ? heavyReps(a.reps) : null;
-                      return r ? { ...a, reps: r } : a;
+                      // a bodyweight alt never inherits the slot's heavy flag
+                      return r ? { ...a, reps: r } : { ...a, heavy: false };
                     }),
                   }
                 : {}),
               heavy: true,
-              note: 'Heavy week — more load than last time, three seconds down every rep.',
+              // the load gate decides the weight (round-3 QA: the old "more
+              // load than last time" contradicted a HOLD on a tired morning)
+              note: 'Heavy week — fewer reps; go heavier when the app says TARGET. Slow on the way down.',
             }
           : m;
       }),
     };
   }
+  if (formatId === 'sets-repout') {
+    // Only members whose failure is SAFE take the rep-out: never a pinned
+    // count (the hinge, the ballistics), never timed work. Same rule that
+    // keeps them off an open clock — the last set of a giant set is the
+    // closest thing to one this program serves.
+    return {
+      ...block,
+      formatLabel: PIECE_FORMATS[formatId].label,
+      members: block.members.map((m) =>
+        m.secs || m.fixedReps || OPEN_PACE_BANNED.includes(m.ex)
+          ? m
+          : {
+              ...m,
+              lastRoundNote:
+                m.logWeight === false ? REPOUT_NOTE_UNLOGGED : REPOUT_NOTE,
+            },
+      ),
+    };
+  }
   if (formatId === 'fortime') {
     // same rounds, same members — the clock just stops prescribing the rest
-    return { ...block, mode: 'fortime' };
+    return { ...block, mode: 'fortime', formatLabel: 'FOR TIME' };
   }
   return block;
 }
 
-/** Which format a piece runs in on a given block week. */
+/**
+ * THE WEEKLY REP STEP (2026-10-10, coach QA: "the pull-up anchor never
+ * progresses"). A member may carry `weekReps` (one prescription per block
+ * week, wrapping) and `weekNotes` ({ week: note }). Single numbers, as he
+ * asked — the app steps them, he never reads a range.
+ */
+function stepWeek(block, week) {
+  if (!block?.members?.some((m) => m.weekReps)) return block;
+  return {
+    ...block,
+    members: block.members.map((m) => {
+      if (!m.weekReps) return m;
+      const reps = m.weekReps[(week - 1) % m.weekReps.length];
+      const note = m.weekNotes?.[week];
+      return { ...m, reps, ...(note ? { note } : {}) };
+    }),
+  };
+}
+
+/**
+ * Which format a piece runs in on a given block week. `formatOffset` staggers
+ * two pieces on the same day so they don't change in lockstep — Monday's two
+ * supersets never both go heavy the same week.
+ */
 export function pieceFormatFor(block, week) {
   const opts = formatsFor(block);
   if (opts.length < 2 || week == null) return opts[0] || 'emom';
-  return opts[(week - 1) % opts.length];
+  // WEEK 1 IS PLAIN (2026-10-10, physio QA): nothing is met for the first
+  // time in a HEAVY or LAST-SET-MAX week — first exposure is technique load
+  if (week === 1) return opts[0];
+  return opts[(week - 1 + (block.formatOffset || 0)) % opts.length];
 }
 
 /**
@@ -360,10 +465,49 @@ export function pieceFormatFor(block, week) {
  * when no piece is ever self-paced. Caught by an e2e that read the week-3
  * overview and found EMOM where FOR TIME should have been.
  */
+// THE EMOM DAY (2026-10-10, his ask: "a day in a week where it's still a
+// full EMOM like before … constantly varied, as long as we hit everything").
+// From week 2, one lift day a week runs every superset as an EMOM — same
+// exercises, same sets, so every weekly target still holds; only the
+// delivery changes. The day rotates Mon → Wed → Fri, so no two weeks share it.
+// A minute that can't fit the work (a per-leg superset) runs on 90 s.
+const EMOM_DAY_ORDER = ['d40-a1', 'd40-b1', 'd40-c1'];
+export const isEmomDay = (sessionId, week) =>
+  week != null && week >= 2 && EMOM_DAY_ORDER[(week - 2) % 3] === sessionId;
+function emomShape(b) {
+  if (!b?.isPiece || b.mode !== 'circuit' || b.warmup || !b.members) return b;
+  const { formats, formatOffset, betweenSecs, restSecs, ...rest } = b;
+  return {
+    ...rest,
+    mode: 'emom',
+    formatLabel: 'EMOM',
+    intervalSecs: 60,
+    emomDay: true,
+    members: b.members.map(({ lastRoundNote, ...m }) =>
+      /\/(leg|side|arm)/.test(String(m.reps)) ? { ...m, intervalSecs: 90 } : m,
+    ),
+  };
+}
+
 export function applyFormats(session, week) {
   if (!session?.blocks || week == null) return session;
+  const emom = isEmomDay(session.id, week);
+  // the EMOM day keeps the piece's HEAVY week ("EMOM · HEAVY") — otherwise
+  // the day's rotation landed on Wings' and the split squats' heavy weeks
+  // every time and they never went heavy (round-7 test QA). A rep-out week
+  // has no EMOM form (a max set doesn't fit a minute), so that one is plain.
+  const emomPiece = (b) => {
+    const heavy = pieceFormatFor(b, week) === 'sets-heavy';
+    const shaped = emomShape(heavy ? applyPieceFormat(b, 'sets-heavy') : b);
+    return heavy ? { ...shaped, formatLabel: 'EMOM · HEAVY' } : shaped;
+  };
   const shape = (b) =>
-    b?.formats?.length ? applyPieceFormat(b, pieceFormatFor(b, week)) : b;
+    emom && b?.isPiece && b.mode === 'circuit' && !b.warmup
+      ? stepWeek(emomPiece(b), week)
+      : stepWeek(
+          b?.formats?.length ? applyPieceFormat(b, pieceFormatFor(b, week)) : b,
+          week,
+        );
   return {
     ...session,
     blocks: session.blocks.map((b) =>
@@ -466,7 +610,8 @@ export const rotationWeek = (w) =>
  * `formats` — only lift-day pieces do) lose rounds, gain the rest minute and
  * run as plain EMOM: no descending opener, no for-time week, nothing that
  * removes forced rest. The anchor drops a set in ramp 1. The daily's scored
- * finisher (`finisher: true`) leaves the session entirely.
+ * finisher and carry leave the session entirely; its pumps (`pump`) stay,
+ * shaped down like any piece.
  */
 export function applyRamp(session, ramp) {
   const r = RAMP[ramp];
@@ -477,16 +622,29 @@ export function applyRamp(session, ramp) {
       return { ...b, rounds: (b.warmupRounds || 0) + r.anchorSets };
     }
     if (b.isPiece) {
-      const { formats, formatLabel, ...rest } = b;
+      const { formats, formatLabel, formatOffset, ...rest } = b;
+      // Rounds come off the TOP, relative to the piece's own length: ramp 1
+      // is two rounds short, ramp 2 one short (a 4-round EMOM lands on the
+      // original 2 / 3). A 3-round giant set ramping to a fixed 3 would not
+      // be a ramp at all.
+      const rounds = Math.max(
+        1,
+        Math.min(r.pieceRounds, b.rounds - (RAMP_WEEKS + 1 - ramp)),
+      );
+      const members = b.members.map(
+        ({ lastRoundNote, repsPerRound, ...m }) => ({
+          ...m,
+          note: m.note || RAMP_CUE,
+        }),
+      );
+      // a superset keeps its own timed rests — it already has real air
+      if (b.mode === 'circuit') return { ...rest, rounds, members };
       return {
         ...rest,
         mode: 'emom',
-        rounds: r.pieceRounds,
+        rounds,
         roundRestSecs: RAMP_REST_SECS,
-        members: b.members.map(({ lastRoundNote, repsPerRound, ...m }) => ({
-          ...m,
-          note: m.note || RAMP_CUE,
-        })),
+        members,
       };
     }
     return b;
@@ -495,7 +653,9 @@ export function applyRamp(session, ramp) {
     ...session,
     ramp,
     blocks: session.blocks
-      .filter((b) => !b.finisher)
+      // the pumps stay, shaped down like every piece (round-3 coach QA: a
+      // ramp Back & Hips day had less arm work than a short day)
+      .filter((b) => !b.finisher || b.pump)
       .map((b) =>
         b.rotate ? { ...b, rotate: b.rotate.map(shape) } : shape(b),
       ),
@@ -523,6 +683,43 @@ export function applyRamp(session, ramp) {
 // the protocol, and half of a McGill hold is not a McGill hold. The halving
 // is scoped to the LONG positional holds (60s+), which is where the minutes
 // actually are — and where "break when you must" is already the rule.
+// ── DOSES COMPOSE (2026-10-10, round-6 app QA: a short night on a short day
+// saved dose 'tired', lost the 'short', and a refresh retired the run). A
+// session's `dose` is now every dose applied, '+'-joined in the order they
+// were applied ('short+tired'); every apply* checks its OWN part, so
+// re-dosing a dosed session — the player and every restore path do — is a
+// no-op, and the restored queue always matches the live one.
+export const doseParts = (sessionOrDose) =>
+  String(
+    (typeof sessionOrDose === 'string' ? sessionOrDose : sessionOrDose?.dose) ||
+      '',
+  )
+    .split('+')
+    .filter(Boolean);
+export const hasDose = (sessionOrDose, part) =>
+  doseParts(sessionOrDose).includes(part);
+const withDose = (session, part) =>
+  [...doseParts(session).filter((p) => p !== part), part].join('+');
+
+// ── THE UNCHECKED MORNING (round-6 physio QA) ───────────────────────────────
+// Start without answering the back check and the riskiest work — the jumps,
+// the sprints, the scored finishers — sits out until he taps. The volume
+// stays: the lifts, the pumps, the medicine. Pure and idempotent.
+export function applyUnchecked(session) {
+  if (!session?.blocks || hasDose(session, 'unchecked')) return session;
+  const shape = (b) =>
+    b?.members ? { ...b, members: b.members.filter((m) => !m.ballistic) } : b;
+  return {
+    ...session,
+    dose: withDose(session, 'unchecked'),
+    blocks: session.blocks
+      .filter((b) => !b.ballistic && !b.conditioning && !b.prime)
+      .map((b) =>
+        b.rotate ? { ...b, rotate: b.rotate.map(shape) } : shape(b),
+      ),
+  };
+}
+
 export const SHORT = { pieceRounds: 1, anchorSets: 2, holdFloorSecs: 60 };
 
 /**
@@ -533,20 +730,35 @@ export const SHORT = { pieceRounds: 1, anchorSets: 2, holdFloorSecs: 60 };
  * already gone, and the holds it halves are ones the ramp never touched.
  */
 export function applyShort(session) {
-  if (!session?.blocks || session.dose === 'short') return session;
+  if (
+    !session?.blocks ||
+    hasDose(session, 'short') ||
+    hasDose(session, 'amber')
+  )
+    return session;
   const shape = (b) => {
     if (!b) return b;
     if (b.anchor) {
       return { ...b, rounds: (b.warmupRounds || 0) + SHORT.anchorSets };
     }
     if (b.isPiece) {
-      const { formats, formatLabel, roundRestSecs, ...rest } = b;
+      const { formats, formatLabel, formatOffset, roundRestSecs, ...rest } = b;
       return {
         ...rest,
-        mode: 'emom',
+        mode: b.mode === 'circuit' ? 'circuit' : 'emom',
         rounds: SHORT.pieceRounds,
-        members: b.members.map(({ lastRoundNote, repsPerRound, ...m }) => m),
+        // a bad night (or a deload) is no day for a heavy week or a max set
+        members: b.members
+          .filter((m) => !m.ballistic)
+          .map((m) => {
+            const { lastRoundNote, repsPerRound, ...rest } = unHeavy(m);
+            return rest;
+          }),
       };
+    }
+    // the warm-up keeps its shape, minus anything ballistic (the pogo)
+    if (b.members) {
+      return { ...b, members: b.members.filter((m) => !m.ballistic) };
     }
     // the long positional holds — half the clock, never below a minute
     if (b.mode === 'hold' && b.holdSecs >= SHORT.holdFloorSecs) {
@@ -566,14 +778,195 @@ export function applyShort(session) {
   };
   return {
     ...session,
-    dose: 'short',
+    dose: withDose(session, 'short'),
     blocks: session.blocks
-      // the supporting cast and the scored finisher are what a short day
-      // spends its minutes on first — both are flagged at the source
-      .filter((b) => !b.finisher && !b.cast)
+      // the supporting cast, the scored finisher and the lift day's power
+      // work (primer or EMOM — nothing ballistic after a bad night or in a
+      // deload) are what a short day spends its minutes on first — all
+      // flagged at the source. The warm-up STAYS: a short day after a
+      // bad night is exactly the day not to start cold.
+      .filter(
+        (b) =>
+          (!b.finisher || b.shortKeep) && !b.cast && !b.prime && !b.ballistic,
+      )
       .map((b) =>
         b.rotate ? { ...b, rotate: b.rotate.map(shape) } : shape(b),
       ),
+  };
+}
+
+// Undo a heavy week on one member: the reps and note it replaced come back.
+function unHeavy(m) {
+  if (!m?.heavy) return m;
+  const { heavy, baseReps, baseNote, note, ...rest } = m;
+  return {
+    ...rest,
+    reps: baseReps ?? rest.reps,
+    ...(baseNote ? { note: baseNote } : {}),
+  };
+}
+
+// Strip everything that pushes effort or impact, keep the shape. Shared by
+// the amber and tired days.
+function calmBlocks(blocks, swap) {
+  const member = (m) => {
+    const plain = unHeavy(m);
+    const { lastRoundNote, ...rest } = plain;
+    return swap ? swap(rest) : rest;
+  };
+  const shape = (b) => {
+    if (!b) return b;
+    if (swap && b.amberBlock) return b.amberBlock;
+    if (!b.members) return swap ? swap(b) : b;
+    const { formats, formatOffset, ...rest } = b;
+    return {
+      ...rest,
+      // an EMOM-day piece stays an EMOM on a calm day — the label follows
+      // the clock it actually runs on (round-6 QA)
+      ...(b.isPiece
+        ? { formatLabel: b.mode === 'emom' ? 'EMOM' : 'SETS' }
+        : {}),
+      members: b.members.filter((m) => !m.ballistic).map(member),
+    };
+  };
+  return (
+    blocks
+      .filter((b) => !b.ballistic && !b.prime)
+      // a tired day keeps the Tue/Thu pumps — they ARE that day's volume; only
+      // the scored finishers and the carry go. (Amber arrives already short,
+      // so its pumps are gone before this runs.)
+      .filter((b) => !b.finisher || b.pump)
+      .filter((b) => !(swap && b.amberDrop))
+      .map((b) => (b.rotate ? { ...b, rotate: b.rotate.map(shape) } : shape(b)))
+  );
+}
+
+// ── THE AMBER DAY — the back is talking (2026-10-10, physio + coach QA) ─────
+// The morning check says "stiffer than usual". Not a rest day — a lighter
+// one: the short dose; nothing ballistic or scored; no heavy week, no rep-out;
+// and every movement that loads the spine in a way a stiff back won't like
+// swaps (`amberEx`): the RDL and the split squats become glute bridges, the
+// front squat a DB split squat, the empty-bar warm-up a box squat, the back
+// extension a short hold (`amberBlock`), the RDL ramp goes (`amberDrop`),
+// and the held forward folds go (`fold`).
+// Loads ease in the player, from the last NON-eased session (main.js).
+// Pure and IDEMPOTENT via `dose`, like applyShort.
+export function applyAmber(session) {
+  if (!session?.blocks || hasDose(session, 'amber')) return session;
+  const base = hasDose(session, 'short') ? session : applyShort(session);
+  const swap = (m) => {
+    const { amberEx, amberReps, amberNote, amberBlock, amberDrop, ...rest } = m;
+    if (!amberEx) return rest;
+    // the old move's cue goes with it ("elbows high" on a box squat is a lie)
+    const { alts, fixedReps, effort, note, warmupNote, ...plain } = rest;
+    return {
+      ...plain,
+      ex: amberEx,
+      reps: amberReps ?? plain.reps,
+      ...(amberNote ? { note: amberNote } : {}),
+    };
+  };
+  return {
+    ...base,
+    // amber implies the short day — it REPLACES 'short' in the label
+    dose: withDose(
+      {
+        dose: doseParts(base)
+          .filter((p) => p !== 'short')
+          .join('+'),
+      },
+      'amber',
+    ),
+    // a stiff back skips the held forward folds outright (round-3 physio QA)
+    blocks: calmBlocks(base.blocks, swap).filter((b) => !b.fold),
+  };
+}
+
+// ── THE MORNING RULE (2026-10-10, round-3 physio QA) ─────────────────────────
+// Within an hour of waking the discs are fully hydrated and bending stress
+// peaks. The morning check's "UP < 1 HR" drops the held forward folds
+// (`fold`) and, on a lift day, swaps the loaded hinge for its amber bridge
+// and drops its ramp (`morning`). Pure and idempotent.
+export const hasMorningWork = (session) =>
+  !!session?.blocks?.some(
+    (b) =>
+      b.fold ||
+      b.morning ||
+      (b.rotate || [b]).some((v) => v?.members?.some((m) => m.morning)),
+  );
+export function applyNoFolds(session) {
+  if (!hasMorningWork(session)) return session;
+  const swap = (m) => {
+    if (!m?.morning || !m.amberEx) return m;
+    const {
+      amberEx,
+      amberReps,
+      amberNote,
+      morning,
+      alts,
+      fixedReps,
+      effort,
+      note,
+      warmupNote,
+      ...rest
+    } = m;
+    return {
+      ...rest,
+      ex: amberEx,
+      reps: amberReps ?? rest.reps,
+      ...(amberNote ? { note: amberNote } : {}),
+    };
+  };
+  // a `morning` block with a hold version serves the hold (Saturday's back
+  // extension); one without (the RDL ramp) just sits out
+  const shape = (b) =>
+    b?.morning && b.amberBlock
+      ? b.amberBlock
+      : b?.members
+        ? { ...b, members: b.members.map(swap) }
+        : b;
+  return {
+    ...session,
+    blocks: session.blocks
+      .filter((b) => !b.fold && !(b.morning && !b.amberBlock))
+      .map((b) =>
+        b.rotate ? { ...b, rotate: b.rotate.map(shape) } : shape(b),
+      ),
+  };
+}
+
+// ── THE TIRED DAY — a short night, a fine back (2026-10-10, physio QA) ───────
+// Under five hours of sleep hurts repeated efforts and raises pain
+// sensitivity, but nothing is wrong with the back. So the SHAPE stays — every
+// block, the pumps included, one round lighter and a rep further from failure;
+// what goes is impact and maxing: no jumps or push press, no scored finisher
+// or carry, no heavy week, no rep-out. Loads hold (the load gate needs a Good morning).
+export function applyTired(session) {
+  if (!session?.blocks || hasDose(session, 'tired')) return session;
+  // AND LIGHTER (round-3 QA, coach + physio: "slept under 5 h changed nothing
+  // on Tue/Thu"): one round off every piece and pump (never below one), one
+  // more rep in the tank on every working set, one set off the anchor.
+  const easier = (e) => (/2–3/.test(e || '') ? '3–4 LEFT' : '2–3 LEFT');
+  const shape = (b) => {
+    // the anchor drops one working set too (round-4 coach QA: a short night
+    // kept every axial set and cut the accessories — the wrong way round)
+    if (b?.anchor) {
+      const warm = b.warmupRounds || 0;
+      return { ...b, rounds: Math.max(warm + 2, b.rounds - 1) };
+    }
+    if (!b?.isPiece || b.warmup) return b;
+    return {
+      ...b,
+      rounds: Math.max(1, (b.rounds || 1) - 1),
+      members: b.members.map((m) => ({ ...m, effort: easier(m.effort) })),
+    };
+  };
+  return {
+    ...session,
+    dose: withDose(session, 'tired'),
+    blocks: calmBlocks(session.blocks).map((b) =>
+      b.rotate ? { ...b, rotate: b.rotate.map(shape) } : shape(b),
+    ),
   };
 }
 

@@ -57,7 +57,8 @@ export function daysSince(lastISO, now = new Date()) {
  *   level: 'none' | 'carry-on' | 'ease' | 'ease-load' | 'restart'
  */
 export function comebackAdvice(days) {
-  if (days == null || days < 2) return { level: 'none', dose: null, easeLoad: false };
+  if (days == null || days < 2)
+    return { level: 'none', dose: null, easeLoad: false };
   const off = `${days} days off`;
   if (days >= GAP_RESTART) {
     return {
