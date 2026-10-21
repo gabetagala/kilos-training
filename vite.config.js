@@ -9,7 +9,7 @@ const page = (p) => fileURLToPath(new URL(p, import.meta.url))
 // fallback serves the Kilos shell instead — silently, with a 200 — so the
 // dev server sends the bare path to the slashed one. Prod does this in
 // vercel.json rewrites.
-const SUB_APPS = ['hotmum', 'tayo', 'coach-cilyn', 'tools']
+const SUB_APPS = ['hotmum', 'tayo', 'coach-cilyn', 'tools', 'tomato']
 const subAppTrailingSlash = () => ({
   name: 'subapp-trailing-slash',
   configureServer(server) {
@@ -62,7 +62,8 @@ export default defineConfig({
   build: {
     rollupOptions: {
       // Multi-page: Kilos SPA + Tayô, the desk-break coach, + HOTMUM.
-      // (The Tomato apps moved to their own repo: github.com/gabetagala/tomatito)
+      // Tomato Cam came back from the tomatito repo (2026-10-21): one camera
+      // phone, one viewer phone, signalling over Kilos' own Supabase project.
       input: {
         main: page('index.html'),
         tayo: page('tayo/index.html'),
@@ -73,6 +74,9 @@ export default defineConfig({
         studio: page('tools/index.html'),
         carousel: page('tools/carousel-maker.html'),
         loop: page('tools/gif-maker.html'),
+        tomato: page('tomato/index.html'),
+        'tomato-cam': page('tomato/cam.html'),
+        'tomato-view': page('tomato/view.html'),
       },
     },
   },
@@ -99,6 +103,7 @@ export default defineConfig({
           /^\/tayo/,
           /^\/hotmum/,
           /^\/tools/,
+          /^\/tomato/,
         ],
 
         // Nuke old caches when a new SW activates
