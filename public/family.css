@@ -161,7 +161,6 @@
 }
 .famhead .tomatomark { align-self: center; }
 .famhead .set { color: var(--ink-2); font-weight: 600; letter-spacing: -.01em; }
-.famhead .set::after { content: '·'; margin-left: .45em; color: var(--line-strong); }
 .famhead .app { font-weight: 700; letter-spacing: -.015em; }
 .famhead:active { opacity: .6; }
 
@@ -170,30 +169,6 @@
 .rowlbl {
   font-size: 12.5px; font-weight: 700;
   color: var(--ink-2); margin-bottom: 8px;
-}
-
-/* ── The build footer ─────────────────────────────────────────────────────
-   Bottom of every app: which version this is, when it was built, tap to get
-   the new one. Quiet until there is actually something to get, at which point
-   it takes tomato — the family's colour for "look at this".
-
-     <button class="fambuild" data-update>…</button>
-
-   See src/build.js; the JS supplies the words. */
-.fambuild {
-  display: block; width: 100%;
-  font: inherit; font-size: 10.5px; font-weight: 500; letter-spacing: .04em;
-  background: none; border: 0; cursor: pointer;
-  color: var(--ink-3); text-align: center;
-  padding: 14px 0; min-height: 44px;
-}
-.fambuild:active { color: var(--green-2); }
-.fambuild.ready { color: var(--tomato); font-weight: 700; }
-.fambuild[disabled] { opacity: .55; }
-.fambuild-note {
-  display: block; text-align: center;
-  font-size: 11px; color: var(--ink-3); line-height: 1.5;
-  margin-top: -8px; padding-bottom: 4px;
 }
 
 /* ── Focus, and motion ────────────────────────────────────────────────────
