@@ -25,6 +25,22 @@ const subAppTrailingSlash = () => ({
   },
 })
 
+// Tomato Cam is a live monitor, not an offline app: nothing to cache, and the
+// baby phone has no business downloading all of Kilos (~12 MB of art and
+// voice) just to open its camera. Strip the service worker's register script
+// from those pages. Runs after vite-plugin-pwa injects it (both 'post').
+const noServiceWorkerOnTomato = () => ({
+  name: 'tomato-no-sw',
+  enforce: 'post',
+  transformIndexHtml: {
+    order: 'post',
+    handler(html, ctx) {
+      if (!/[\\/]tomato[\\/]/.test(ctx.filename)) return html
+      return html.replace(/<script[^>]*registerSW\.js[^>]*><\/script>\s*/g, '')
+    },
+  },
+})
+
 const commit =
   process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ||
   (() => {
@@ -94,6 +110,8 @@ export default defineConfig({
       workbox: {
         // Precache everything Vite builds (content-hashed JS/CSS + HTML)
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2,m4a,mp3}'],
+        // Tomato Cam pages always come from the network (see tomato-no-sw).
+        globIgnores: ['tomato/**', 'family.css'],
 
         // SPA fallback — all navigation goes to index.html
         // Exclude standalone pages (coach previews, Bantay) from SW interception
@@ -125,5 +143,6 @@ export default defineConfig({
         ],
       },
     }),
+    noServiceWorkerOnTomato(),
   ],
 })
