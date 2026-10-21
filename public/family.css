@@ -1,0 +1,233 @@
+/* ─── Tomato family — shared design tokens ────────────────────────────────
+   One definition, used by every app in the set: the hub (/), Tomato Plate
+   (/plate) and Tomato Cam (/cam). Change a colour here and the whole family
+   moves. Nothing below this file may invent a colour of its own.
+
+   The rule the palette encodes: green is the UI and means safe/done, amber
+   means attention, and tomato is the brand mark plus anything that needs
+   looking at. Cream is the ground.
+   ───────────────────────────────────────────────────────────────────────── */
+:root {
+  /* ground */
+  --bg: #faf8f2;
+  --surface: #fff;
+  --surface-2: #f3f0e7;
+  --line: rgba(26, 43, 34, .09);
+  --line-strong: rgba(26, 43, 34, .16);
+
+  /* ink — --ink-3 is the AA floor for small text on --bg (4.60:1) */
+  --ink: #1a2b22;
+  --ink-2: #5c6b62;
+  --ink-3: #697468;
+
+  /* deep green — the UI */
+  --green: #0f4a35;
+  --green-2: #16694a;
+  --green-soft: #e4eee7;
+  --green-tint: #f0f6f1;
+
+  /* tomato — brand + alert only. --tomato-lift is the lit side of the fruit
+     in the brand mark's gradient; --tomato-deep is the alarm at full volume. */
+  --tomato: #c0442a;
+  --tomato-soft: #fae5df;
+  --tomato-lift: #f0603f;
+  --tomato-deep: #a93a26;
+  --amber: #b3701a;
+  --amber-soft: #f9eeda;
+
+  /* type */
+  --font-display: ui-serif, 'New York', 'Iowan Old Style', Georgia, serif;
+  --font-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+
+  /* Channels, for the many places that need a token at partial alpha —
+     borders, scrims, drop shadows. Written as `rgb(var(--ink-rgb) / .10)` so
+     the colour still moves when the wardrobe changes; a baked rgba() cannot.
+     --on-accent is type sitting on a filled green or tomato control. */
+  --ink-rgb: 26 43 34;
+  --green-rgb: 15 74 53;
+  --tomato-rgb: 192 68 42;
+  --surface-rgb: 255 255 255;
+  --tomato-ink: #8f3320;
+  --on-accent: #fff;
+
+  /* geometry */
+  --r-xs: 10px; --r-sm: 14px; --r-md: 20px; --r-lg: 28px; --r-pill: 999px;
+  --pad: 22px;
+
+  /* elevation — lived in two apps at two different strengths before this */
+  --shadow: 0 1px 2px rgba(26, 43, 34, .04), 0 8px 24px rgba(26, 43, 34, .05);
+  --shadow-lg: 0 2px 6px rgba(26, 43, 34, .05), 0 18px 44px rgba(26, 43, 34, .10);
+}
+
+/* ── Glass over video ─────────────────────────────────────────────────────
+   Chrome that sits on top of a camera feed cannot follow the page theme: the
+   thing behind it is whatever the nursery looks like tonight. So it is always
+   a dark scrim with light type, in both wardrobes, and it is the one place in
+   the set where a fixed colour is correct. */
+:root, .night {
+  --scrim: rgba(18, 19, 15, .55);
+  --scrim-strong: rgba(18, 19, 15, .72);
+  --scrim-line: rgba(255, 255, 255, .16);
+  --on-scrim: #fff;
+}
+
+/* The camera phone lives in a dark nursery all night — same family, night
+   clothes. Scope it with class="night" on <html>. */
+.night {
+  --bg: #12130f;
+  --surface: #1b1d18;
+  --surface-2: #232620;
+  --line: rgba(228, 238, 231, .10);
+  --line-strong: rgba(228, 238, 231, .18);
+  --ink: #e6e9e0;
+  --ink-2: #9aa398;
+  --ink-3: #7d867b;
+  --green: #4e9060;
+  --green-2: #6fa97f;
+  --green-soft: rgba(78, 144, 96, .18);
+  --green-tint: rgba(78, 144, 96, .10);
+  --tomato: #d2593d;
+  --tomato-soft: rgba(210, 89, 61, .18);
+  --tomato-lift: #ef7a5e;
+  --tomato-deep: #7c2415;
+
+  /* amber had no night clothes at all — anything amber in the dark was
+     wearing the daylight value and going muddy. */
+  --amber: #d9a441;
+  --amber-soft: rgba(217, 164, 65, .18);
+
+  --ink-rgb: 230 233 224;
+  --green-rgb: 78 144 96;
+  --tomato-rgb: 210 89 61;
+  --surface-rgb: 27 29 24;
+  --tomato-ink: #f0a892;
+  --on-accent: #12130f;
+
+  /* a dark ground swallows a soft shadow; these carry the same shapes. */
+  --shadow: 0 1px 2px rgba(0, 0, 0, .30), 0 8px 24px rgba(0, 0, 0, .38);
+  --shadow-lg: 0 2px 6px rgba(0, 0, 0, .34), 0 18px 44px rgba(0, 0, 0, .46);
+}
+
+/* ── 3am ──────────────────────────────────────────────────────────────────
+   Night-stand mode is not a theme, it is a light budget: true black for OLED,
+   and dim amber because amber is the wavelength that leaves night vision
+   intact. Deliberately dimmer than --amber. Any app in the set that someone
+   might look at half-asleep can wear these. */
+:root, .night {
+  --ns-bg: #000;
+  --ns-ink: #a8874e;
+  --ns-ink-2: #8a6e3f;
+  --ns-dim: #4a3d26;
+  --ns-track: #14100a;
+}
+
+/* ── The masthead ─────────────────────────────────────────────────────────
+   Five apps on one origin only feel like one shelf if they agree on two
+   things: how they say their own name, and how you get back out. This is
+   both. The set name sits quiet, the app name carries, and the whole lockup
+   is the way home — so "back" is the same gesture in every app rather than
+   something each one invents.
+
+     <a class="famhead" href="/"><i class="tomatomark"></i>
+       <span class="set">Tomatito</span><span class="app">Plate</span></a>
+
+   The chevron matters as much as the words. Without it the lockup sits where
+   a title sits and reads as one, so nobody thinks to press it — which is the
+   same as having no way home at all. Size it by setting --mark on the anchor;
+   everything scales off that. */
+.tomatomark {
+  width: var(--mark, 20px); height: var(--mark, 20px);
+  border-radius: 50%; position: relative; flex-shrink: 0;
+  background: radial-gradient(circle at 35% 32%, var(--tomato-lift), var(--tomato) 72%);
+}
+.tomatomark::before {
+  content: ''; position: absolute;
+  top: calc(var(--mark, 20px) * -.26); left: 55%;
+  width: calc(var(--mark, 20px) * .5); height: calc(var(--mark, 20px) * .4);
+  background: var(--green-2); border-radius: 0 9px 0 9px; transform: rotate(-24deg);
+}
+.famhead {
+  display: flex; align-items: baseline; gap: .45em;
+  font-family: var(--font-display);
+  font-size: calc(var(--mark, 20px) * .95);
+  color: var(--ink); text-decoration: none;
+  /* the tap target is the whole lockup, not just the word */
+  padding: 6px 4px; margin: -6px -4px; min-height: 44px;
+}
+.famhead::before {
+  content: '‹';
+  align-self: center; margin-right: -.1em;
+  font-size: 1.5em; line-height: 1; color: var(--ink-3);
+}
+.famhead .tomatomark { align-self: center; }
+.famhead .set { color: var(--ink-2); font-weight: 600; letter-spacing: -.01em; }
+.famhead .set::after { content: '·'; margin-left: .45em; color: var(--line-strong); }
+.famhead .app { font-weight: 700; letter-spacing: -.015em; }
+.famhead:active { opacity: .6; }
+
+/* A small caps-ish label above a control. Was defined separately in two cam
+   pages and deleted from one of them by accident; it belongs here. */
+.rowlbl {
+  font-size: 12.5px; font-weight: 700;
+  color: var(--ink-2); margin-bottom: 8px;
+}
+
+/* ── The build footer ─────────────────────────────────────────────────────
+   Bottom of every app: which version this is, when it was built, tap to get
+   the new one. Quiet until there is actually something to get, at which point
+   it takes tomato — the family's colour for "look at this".
+
+     <button class="fambuild" data-update>…</button>
+
+   See src/build.js; the JS supplies the words. */
+.fambuild {
+  display: block; width: 100%;
+  font: inherit; font-size: 10.5px; font-weight: 500; letter-spacing: .04em;
+  background: none; border: 0; cursor: pointer;
+  color: var(--ink-3); text-align: center;
+  padding: 14px 0; min-height: 44px;
+}
+.fambuild:active { color: var(--green-2); }
+.fambuild.ready { color: var(--tomato); font-weight: 700; }
+.fambuild[disabled] { opacity: .55; }
+.fambuild-note {
+  display: block; text-align: center;
+  font-size: 11px; color: var(--ink-3); line-height: 1.5;
+  margin-top: -8px; padding-bottom: 4px;
+}
+
+/* ── Focus, and motion ────────────────────────────────────────────────────
+   Nothing in the set had a visible keyboard focus ring, and one stylesheet
+   removed the browser's default without replacing it. These apps are used on
+   a phone, but the hub opens on a laptop too, and a control you cannot see
+   yourself land on is a control you cannot use without a touchscreen.
+
+   :focus-visible rather than :focus, so a thumb tap never leaves a ring
+   behind — the reason the outline was dropped in the first place. */
+:focus-visible {
+  outline: 2px solid var(--green-2);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
+}
+.night :focus-visible, .night:focus-visible { outline-color: var(--green-2); }
+
+/* Vestibular safety, and a courtesy on old hardware. Scoped to whole-element
+   motion — a colour fade is not what makes anyone ill. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Paper grain — the family's one texture. Add class="grain" to a positioned
+   element, or to <body>. */
+.grain { position: relative; }
+.grain::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  opacity: .85; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.075'/%3E%3C/svg%3E");
+}
+.night .grain::after { mix-blend-mode: screen; opacity: .5; }

@@ -34,7 +34,15 @@
       "destination": "/tools/index.html"
     },
     {
-      "source": "/((?!coach-cilyn|hotmum|tayo|tools).*)",
+      "source": "/tomato",
+      "destination": "/tomato/index.html"
+    },
+    {
+      "source": "/tomato/",
+      "destination": "/tomato/index.html"
+    },
+    {
+      "source": "/((?!coach-cilyn|hotmum|tayo|tools|tomato).*)",
       "destination": "/index.html"
     }
   ]
