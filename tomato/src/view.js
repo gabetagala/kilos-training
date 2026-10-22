@@ -9,6 +9,7 @@
 // five minutes. The baby phone itself never makes a sound.
 import { formatCode, normalizeCode } from './crypto.js';
 import { isConfigured, openSignal } from './signal.js';
+import { wireUpdate } from './update.js';
 import { keepAwake } from './wake.js';
 
 const $ = (id) => document.getElementById(id);
@@ -40,11 +41,15 @@ let downSince = 0;
 let chimes = 0;
 let graceUntil = 0;
 let actx = null;
+let lastCallAt = 0;
+let lastOfferAt = 0;
+let noPeerSince = 0;
 const health = { peer: false, media: false, beacon: false };
 
 boot();
 
 function boot() {
+  wireUpdate($('update'));
   if (!isConfigured) {
     $('cfg').hidden = false;
     return;
@@ -87,6 +92,7 @@ function wireGate() {
 async function start(c) {
   code = c;
   startedAt = Date.now();
+  noPeerSince = startedAt;
   $('app').hidden = false;
   $('pairedas').textContent = formatCode(c);
 
@@ -125,12 +131,17 @@ async function start(c) {
   setInterval(renderUptime, 1000);
   setInterval(renderClock, 1000);
   setInterval(checkChime, 1000);
-  // Self-healing: keep dialing while there's no live peer. A cam that was
-  // closed answers with 'bye', so this stays quiet; one that comes back with
-  // its 'hello' lost still gets found within 8s.
+  // Self-healing: keep dialing while there's no live peer. Every 3s for the
+  // first minute of an outage (a lost first 'call' used to cost 8s of
+  // "Connecting"), then every 8s; 8s straight away when the cam was closed on
+  // purpose. Never while an offer is mid-negotiation: a new call would tear
+  // it down and start over.
   setInterval(() => {
-    if (live && !health.peer && sigReady) call();
-  }, 8000);
+    if (!live || health.peer || !sigReady) return;
+    if (Date.now() - lastOfferAt < 4000) return;
+    const gap = !camEnded && Date.now() - noPeerSince < 60000 ? 3000 : 8000;
+    if (Date.now() - lastCallAt >= gap) call();
+  }, 1000);
   renderClock();
   headline();
 }
@@ -265,6 +276,7 @@ function checkChime() {
 
 // ── Signalling + peer ─────────────────────────────────────────────────────
 function call() {
+  lastCallAt = Date.now();
   signal?.send('call', {});
 }
 
@@ -272,6 +284,7 @@ async function onSignal(event, payload) {
   if (!live) return;
   try {
     if (event === 'offer') {
+      lastOfferAt = Date.now();
       camEnded = false;
       await answer(payload.sdp);
     } else if (event === 'ice' && payload.candidate) {
@@ -282,6 +295,7 @@ async function onSignal(event, payload) {
     } else if (event === 'hello') {
       camEnded = false;
       camAsleep = false;
+      noPeerSince = Date.now(); // the cam is back: dial fast again
       call();
     } else if (event === 'sleep') {
       camAsleep = true;
@@ -320,7 +334,9 @@ async function answer(sdp) {
   };
   pc.onconnectionstatechange = () => {
     if (peer !== pc) return;
+    const was = health.peer;
     health.peer = pc.connectionState === 'connected';
+    if (was && !health.peer) noPeerSince = Date.now();
     if (health.peer) {
       everConnected = true;
       camEnded = false;
@@ -490,33 +506,83 @@ function wireFit() {
   v.addEventListener('loadedmetadata', fit);
 }
 
-// Picture-in-Picture: the FaceTime-style floating video while you use other
-// apps. Best-effort: if iOS reclaims the backgrounded tab, PiP dies with it.
+// Float: the FaceTime-style floating video while you use other apps.
+//
+// iPhone is unreliable about floating a LIVE video (WebRTC), and the old
+// Apple-only call failed silently, so Float looked like a dead button. Now:
+//   1st tap  the standard Picture-in-Picture call, which at least says why
+//            when iPhone refuses, and that reason is shown on screen;
+//   2nd tap  (after a refusal) iPhone's own full-screen player, whose float
+//            button, or a swipe home while it plays, does the floating.
+// Sound comes on with it: a floating window with no sound defeats the point.
+// Best-effort either way: if iOS later reclaims the backgrounded tab, the
+// float dies with it.
 function wirePip() {
   const v = $('remote');
   const btn = $('pipbtn');
-  const webkitPiP = typeof v.webkitSetPresentationMode === 'function';
-  if (!webkitPiP && !document.pictureInPictureEnabled) return; // stays hidden
+  const std = document.pictureInPictureEnabled === true && typeof v.requestPictureInPicture === 'function';
+  const webkit = typeof v.webkitSetPresentationMode === 'function';
+  const native = typeof v.webkitEnterFullscreen === 'function';
+  if (!std && !webkit && !native) return; // stays hidden
   btn.hidden = false;
   try {
-    v.autoPictureInPicture = true; // float automatically on app switch
+    v.autoPictureInPicture = true; // float automatically on app switch, where supported
   } catch {
     /* hint only */
   }
-  btn.onclick = async () => {
-    try {
-      if (webkitPiP) {
-        const inPiP = v.webkitPresentationMode === 'picture-in-picture';
-        v.webkitSetPresentationMode(inPiP ? 'inline' : 'picture-in-picture');
-      } else if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture();
-      } else {
-        await v.requestPictureInPicture();
-      }
-    } catch {
-      /* not available until video is playing */
+  const floating = () => document.pictureInPictureElement === v || v.webkitPresentationMode === 'picture-in-picture';
+  let refused = false;
+
+  btn.onclick = () => {
+    if (!v.srcObject || !v.videoWidth) return toast('Float works once the picture is showing.');
+    if (floating()) {
+      if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {});
+      else v.webkitSetPresentationMode('inline');
+      return;
     }
+    if (!unmuted) unmute();
+
+    if (refused && native) {
+      try {
+        v.webkitEnterFullscreen();
+        toast('Tap the float button in the corner, or swipe home while it plays.');
+      } catch (err) {
+        toast(`Full screen did not open either (${err?.name || 'refused'}).`);
+      }
+      return;
+    }
+
+    // Both calls happen inside this tap; iPhone refuses either one later.
+    let tried;
+    try {
+      tried = std ? v.requestPictureInPicture() : (v.webkitSetPresentationMode('picture-in-picture'), Promise.resolve());
+    } catch (err) {
+      tried = Promise.reject(err);
+    }
+    const refuse = (why) => {
+      if (floating() || refused) return;
+      refused = true;
+      toast(
+        native
+          ? `iPhone would not float it (${why}). Tap Float again to open full screen, then swipe home.`
+          : `This browser would not float it (${why}).`,
+      );
+    };
+    tried.catch((err) => refuse(err?.name || 'refused'));
+    setTimeout(() => refuse('no window appeared'), 1200);
   };
+}
+
+let toastTimer = null;
+function toast(text) {
+  const el = $('toast');
+  el.textContent = text;
+  el.hidden = false;
+  showChrome();
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    el.hidden = true;
+  }, 7000);
 }
 
 // Chrome fades off the picture after a calm 6s; any tap brings it back.

@@ -171,6 +171,19 @@
   color: var(--ink-2); margin-bottom: 8px;
 }
 
+/* ── The update line ──────────────────────────────────────────────────────
+   Bottom of every Tomato Cam page: which build, and a tap to load the newest.
+   Quiet until there is a newer one, then it takes tomato, the family's colour
+   for "look at this". Words come from tomato/src/update.js. */
+.updbtn {
+  display: block; width: 100%;
+  font: inherit; font-size: 12px; font-weight: 500;
+  background: none; border: 0; color: var(--ink-3); text-align: center;
+  padding: 12px 0; min-height: 44px;
+}
+.updbtn.ready { color: var(--tomato-lift); font-weight: 800; font-size: 14px; }
+.updbtn[disabled] { opacity: .55; }
+
 /* ── Focus, and motion ────────────────────────────────────────────────────
    Nothing in the set had a visible keyboard focus ring, and one stylesheet
    removed the browser's default without replacing it. These apps are used on
