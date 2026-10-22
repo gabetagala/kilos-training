@@ -92,6 +92,12 @@
     /* idle: chrome fades off the picture; tap to bring it back */
     #stage.zen .chip, #stage.zen #bottom { opacity: 0; pointer-events: none; }
 
+    #toast {
+      max-width: 100%; text-align: center; font-size: 14px; font-weight: 600; line-height: 1.4;
+      background: var(--scrim-strong); color: var(--on-scrim); padding: 10px 14px; border-radius: 14px;
+      -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+    }
+    #toast[hidden] { display: none; }
     .meta { text-align: center; color: var(--ink-2); font-size: 13px; }
     .linkbtn { font: inherit; font-size: 13px; color: var(--ink); background: none; border: 0; text-decoration: underline; padding: 12px 8px; }
     #cfg { color: var(--bad); font-size: 13px; text-align: center; }
@@ -187,6 +193,7 @@
       <div class="chip tl"><span>Sound</span><span id="chipbar"><i id="chipfill"></i></span></div>
       <div class="chip tr" id="livechip" hidden><span class="livedot"></span><span>LIVE</span><span id="livetime"></span></div>
       <div id="bottom">
+        <p id="toast" role="status" hidden></p>
         <div id="headchip" role="status">
           <span id="dot" class="dot idle"></span>
           <div><strong id="headline">Connecting</strong><small id="subline">Finding the baby phone.</small></div>
@@ -211,6 +218,7 @@
 
     <p class="meta">Paired with <span id="pairedas"></span>. <button id="changecode" class="linkbtn" type="button">Change code</button></p>
   </main>
+  <button id="update" class="updbtn" type="button"></button>
 
   <div id="listen" role="dialog" aria-label="Audio only">
     <div id="lsclock">--:--</div>

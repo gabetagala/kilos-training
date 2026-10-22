@@ -11,6 +11,7 @@
 import { buildAudio } from './audio.js';
 import { genCode } from './crypto.js';
 import { isConfigured, openSignal } from './signal.js';
+import { wireUpdate } from './update.js';
 import { keepAwake } from './wake.js';
 
 // 16:9 so the picture fills both phone screens; 540p@15 keeps the encode
@@ -51,6 +52,7 @@ let stopped = false; // deliberate end (tab closed) — no auto-restart, no reco
 let gen = 0; // peer generation — guards awaits against a superseding 'call'
 let camBlocked = false;
 let viewerOn = false;
+let asleep = false; // hidden: iOS is about to freeze this page
 let dimTimer = null;
 // NOTE: this page must NEVER emit sound — Gabe's rule: nothing may wake
 // the baby. No Audio(), no oscillators, no alert tones. Ever.
@@ -96,8 +98,11 @@ async function init() {
   // freezes the page and the camera dies with it. Tell the viewer while we
   // still can, so it can say "went to sleep" instead of guessing. Best-effort:
   // the data channel is on the LAN and usually gets out before the freeze.
+  // The heartbeat stops at the same moment, or a last beat squeezed out
+  // before the freeze would tell the viewer "awake" right after "asleep".
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState !== 'hidden' || stopped) return;
+    asleep = document.visibilityState === 'hidden';
+    if (!asleep || stopped) return;
     try {
       if (dc?.readyState === 'open') dc.send(JSON.stringify({ sleep: true }));
     } catch {
@@ -105,6 +110,8 @@ async function init() {
     }
     signal?.send('sleep', {});
   });
+
+  wireUpdate($('update'));
 
   keepAwake((held, why) => {
     wakeHeld = held;
@@ -434,7 +441,7 @@ function capBitrate() {
 function startBeacon() {
   stopBeacon();
   beaconTimer = setInterval(() => {
-    if (dc?.readyState !== 'open') return;
+    if (asleep || dc?.readyState !== 'open') return;
     dc.send(JSON.stringify({ ts: Date.now(), level: audioChain?.level ?? 0 }));
   }, 1000);
 }
