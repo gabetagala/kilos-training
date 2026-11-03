@@ -1421,3 +1421,8 @@ REHAB_DEMOS['seated-good-morning'] = REHAB_DEMOS['elephant-walk'];
 // after band-pull-apart exists (round-7 test QA: aliased too early, it was undefined)
 PROGRAM_DEMOS['pallof-press'] = PROGRAM_DEMOS['band-pull-apart'];
 PROGRAM_DEMOS['cable-leg-curl'] = PROGRAM_DEMOS['slider-leg-curl'];
+// 2026-10-20 core: drawn fallbacks for when the generated art isn't there
+// (public/rehab/<id>-a/b.webp shows first when it is)
+REHAB_DEMOS['hollow-hold'] = REHAB_DEMOS['mcgill-curlup'];
+REHAB_DEMOS['lying-leg-raise'] = REHAB_DEMOS['mcgill-curlup'];
+PROGRAM_DEMOS['db-hang-clean'] = PROGRAM_DEMOS['db-hang-clean-press'];

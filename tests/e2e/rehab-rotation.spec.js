@@ -65,12 +65,13 @@ test('the rotation is calendar-pinned — completed runs do not flip it', async 
   const card = page.locator('#rehab-session-list [data-rehab="daily"]');
   // a completed run in history changes NOTHING — today's variant comes from
   // the calendar (block week × rehab-day slot), so the sheet can never drift.
-  // Back & Hips serves 11 blocks on Tue (openers, primer, Pallof, Arms, Calves,
-  // folds), 12 on Thu (+ the back extension and two more pumps) and 13 on Sat
-  // (+ the cast, two carries — round 6 — and the scored finisher); the card
-  // names today's slot (an off day shows the next rehab day's)
-  // (45-min round: Tuesday adds the Pallof press — 11)
-  const moves = { 0: 11, 1: 11, 2: 11, 3: 12, 4: 12, 5: 13, 6: 13 }[new Date().getDay()];
+  // Back & Hips serves 11 blocks on Tue (openers, core holds, Pallof, Arms,
+  // leg raises, folds — the calves left Tuesday on 2026-10-20), 12 on Thu
+  // (+ the back extension and three pumps, no Pallof or leg raises) and 14
+  // on Sat (+ the sprints, the cast, two carries — round 6 — and the leg
+  // raises); the card names today's slot (an off day shows the next rehab
+  // day's)
+  const moves = { 0: 11, 1: 11, 2: 11, 3: 12, 4: 12, 5: 14, 6: 14 }[new Date().getDay()];
   await expect(card.locator('.rhs-meta')).toContainText(`${moves} MOVES`);
   await card.click();
   await page.locator('#sp-start').click();

@@ -73,6 +73,22 @@ export const ART_MANIFEST = {
     // flag is for — every other lying exercise here already uses it.
     stack: true,
   },
+  'hollow-hold': {
+    scene:
+      'lying FACE UP on his back on a flat floor, side view, no equipment of any kind',
+    a: 'lying flat and relaxed on his back, knees bent with the feet flat on the floor, arms by his sides on the floor',
+    b: 'the hollow hold: the low back still flat on the floor, only the head and the tops of the shoulders lifted a few inches, arms straight by his sides hovering above the floor, knees bent at 90 degrees with the shins parallel to the floor and the feet in the air',
+    important:
+      'in both poses he LIES on the floor; in the hold the torso stays almost flat, NOT a sit-up, NOT a V-sit; no barbell and no weights',
+  },
+  'lying-leg-raise': {
+    scene:
+      'lying on his back on the floor, hands flat under his hips, head resting on the floor',
+    a: 'knees bent at 90 degrees, thighs pointing up at about 45 degrees, feet hovering just above the floor, low back pressed flat',
+    b: 'knees still bent at 90 degrees, thighs raised to vertical so the knees are above the hips, low back still flat on the floor',
+    important:
+      'the knees stay BENT in both poses, the head and upper back stay on the floor and the low back stays flat; only the legs move',
+  },
   'side-plank': {
     scene: 'lying on his side propped on his forearm',
     a: 'elbow directly under his shoulder, body in one perfectly straight line from head to stacked feet, hips lifted off the floor, top hand resting on his hip',
@@ -150,11 +166,11 @@ export const ART_MANIFEST = {
   // — side by side, the model reliably invents a standing second figure.
   'hip-internal-rotation': {
     scene:
-      'sitting on the floor, torso tall and upright, both knees bent with the feet planted wider than the knees, hands resting on the floor behind his hips for support',
-    a: 'both feet flat on the floor, both knees pointing up',
-    b: 'one knee dropped inward toward the floor and that same foot LIFTED clear of the floor, the other foot still planted',
+      'FRONT view, facing the camera: sitting on his butt on a flat floor, torso upright, both hands on the floor behind his hips, both knees bent with the feet flat on the floor set wide apart, wider than the hips',
+    a: 'both feet flat on the floor, both knees pointing straight up',
+    b: 'his right knee falls INWARD and down toward the floor between his feet, and his right foot lifts up off the floor OUT TO THE SIDE, away from his body, the shin tilted with the foot higher than the knee; the left foot stays planted',
     important:
-      'the lifted foot is off the floor while that knee stays dropped inward — the torso stays tall, it must not lean back',
+      'the knee drops inward while the foot lifts outward to the side: this is a hip rotation, NOT a kick forward and NOT a straight-leg raise; he stays seated and upright',
     stack: true,
   },
   'hip-airplane': {
@@ -278,6 +294,14 @@ export const ART_MANIFEST = {
     b: 'both dumbbells punched straight overhead with the arms locked out, legs straight, biceps beside his ears',
     important:
       'the dip is entirely in the KNEES — the torso stays vertical and the low back never arches, even at lockout',
+  },
+  'db-hang-clean': {
+    scene:
+      'holding a dumbbell in each hand, arms hanging straight down in front of his thighs, feet hip width',
+    a: 'hinged forward at the hips with both dumbbells just ABOVE his knees, back flat, shoulders over the weights',
+    b: 'the catch: both dumbbells resting on the front of his shoulders, elbows pointing forward, knees slightly bent in a quarter squat, torso upright',
+    important:
+      'the start is a shallow hinge with the dumbbells ABOVE the knee, never at the floor; in the catch the dumbbells are at the shoulders, NOT pressed overhead',
   },
   'db-hang-snatch': {
     scene:

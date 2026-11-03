@@ -570,6 +570,16 @@ export const PROGRAM_EXERCISES = {
     why: 'The hang clean carve-out, same terms as the hang snatch: above the knee, light DBs, forced-rest clocks only — never a barbell, never from the floor, never open pace.',
     yt: 'dumbbell hang clean and press',
   },
+  // Wednesday's power lift since 2026-10-20 (review: the clean & press capped
+  // the clean at what he can press, too light to train power)
+  'db-hang-clean': {
+    name: 'DB Hang Power Clean',
+    feel: 'Hips snapping the bells up, a soft catch at the shoulders',
+    avoid: 'Bending past the knees, curling the bells up with the arms',
+    cue: 'Bells at the hips, hinge only to the knee. Snap the hips, pull high, catch at the shoulders in a quarter squat.',
+    why: 'Hip power with a load heavier than he can press, from the hang only: the same carve-out terms as the snatch, never from the floor, never open pace.',
+    yt: 'dumbbell hang power clean',
+  },
   'db-kickback': {
     name: 'DB Kickback',
     feel: 'The back of the arm locking out hard',
@@ -796,13 +806,15 @@ const HINGE_RAMP = {
 // physio). The shape:
 //
 //   Mon  warm-up → pull-up anchor → (RDL ramp) Hinge & Calf → Wings
-//   Wed  warm-up → Power (broad jump + push press) → front squat anchor →
-//        Split Squat & Curl → Tabata
-//   Fri  warm-up → Jumps → incline press anchor → Dip, Pull, Curl →
-//        Legs & Back
+//   Wed  warm-up → Power (DB hang power clean + push press) → front squat
+//        anchor → Split Squat & Curl → metcon
+//   Fri  warm-up → Jumps (broad jump + skater bound) → incline press anchor →
+//        Dip, Pull, Curl → Legs & Back
 // (round 2, after the final independent QA: one RDL a week — Monday, fresh,
 // on its own load rule; Friday's hinge became hamstring curls; no second
-// front-rack exercise on squat day; real jumps on Friday.)
+// front-rack exercise on squat day. 2026-10-20: Wednesday's jumps became a
+// DB power clean. 2026-11-03, his call: Friday keeps its jumps — "actually
+// pretty fun".)
 //
 // THE ANCHORS ARE FIXED (coach QA, critical): a lift that comes round once a
 // month can't progress — the front squat got three sessions a block. Each day
@@ -830,6 +842,24 @@ const WARM = (ex, secs, note, phase = 'GO') => ({
   logWeight: false,
   countsAsSet: false,
 });
+// A warm-up move done by COUNT (2026-11-03, his ask): "five easy reps" on a
+// 40-second clock never made sense, so it is the number, then Done. Unlogged
+// and never a set, like the timed ones; `estSecs` keeps the day's estimate at
+// what the old timer gave it.
+const WARM_REPS = (ex, reps, note, estSecs) => ({
+  ex,
+  reps,
+  note,
+  estSecs,
+  logWeight: false,
+  countsAsSet: false,
+});
+// A per-side warm-up hold: a timer a side, a switch between (one 30-second
+// clock for "fifteen seconds a side" never said when to switch)
+const WARM_SIDES = (ex, secs, note, phase = 'HOLD') => [
+  { ...WARM(ex, secs, note, phase), side: 'LEFT' },
+  { ...WARM(ex, secs, note, phase), side: 'RIGHT' },
+];
 const WARMUP = (name, members) => ({
   mode: 'circuit',
   name,
@@ -844,47 +874,72 @@ const CAT_CAMEL = WARM(
   'Six slow cycles — round, then arch, in an easy range; never push either end. Breathe with it.',
   'BREATHE',
 );
-const BIRD_DOG_WARM = WARM(
+const BIRD_DOG_WARM = WARM_REPS(
   'bird-dog',
+  '4/side',
+  'Alternate sides, a five-second hold each, hips level — switch the brace on before anything loads.',
   40,
-  'Alternate sides, five-second holds, hips level — switch the brace on before anything loads.',
-  'HOLD',
 );
 
 // ── THE WARM-UPS ROTATE (2026-10-10, round 3 — his "constantly varied" ask) ──
 // Four per lift day, one per week (variant = week − 1), the same job each
 // time: a pulse raiser, the cat-camel (the back's daily primer stays), a
 // day-specific prep, and the last move grooves the day's first pattern —
-// the hang and the hinge Monday, the squat and the springs Wednesday, the
+// the hang and the hinge Monday, the squat and a light clean Wednesday, the
 // springs and the shoulders Friday. Regular movements, plain names, every
-// one already in the app. Pogo hops are `ballistic` (amber/short/tired drop
-// them); the empty-bar squat swaps to a box squat on an amber morning.
+// one already in the app. The light clean and the pogo hops are `ballistic`
+// (amber/short/tired drop them); the empty-bar squat swaps to a box squat on
+// an amber morning.
 const PULSE = {
   jacks: WARM('jumping-jack', 40, 'Easy pace — warm, not winded.'),
   knees: WARM('high-knees', 40, 'Easy pace — warm, not winded.'),
 };
+// the springs, then two easy broad jumps as their own count (2026-11-03:
+// they used to share the pogo's 20 seconds)
 const POGO = {
   ...WARM(
     'pogo-hop',
     20,
-    'Easy bounces, then two easy broad jumps — warm the springs before the max ones.',
+    'Easy bounces — warm the springs before the jumps.',
     'BOUNCE',
   ),
   ballistic: true,
 };
+const BROAD_JUMP_WARM = {
+  ...WARM_REPS(
+    'broad-jump',
+    '2',
+    'Two easy broad jumps, about half effort — the max ones come next.',
+    15,
+  ),
+  ballistic: true,
+};
+// Wednesday's warm-ups end on a light rehearsal of the power clean
+// (2026-10-20: its jumps left, so its pogo hops did too)
+const CLEAN_REHEARSAL = {
+  ...WARM_REPS(
+    'db-hang-clean',
+    '5',
+    'Light DBs, five easy reps: groove the hang, the snap and the catch.',
+    30,
+  ),
+  ballistic: true,
+};
 const BAR_SQUAT = {
-  ...WARM(
+  ...WARM_REPS(
     'front-squat',
-    40,
+    '5',
     'Empty bar, five easy reps — elbows high, groove the pattern.',
+    40,
   ),
   amberEx: 'box-squat',
   amberNote: 'Bodyweight to the box, five slow reps — groove it.',
 };
-const GLUTE_BRIDGE_WARM = WARM(
+const GLUTE_BRIDGE_WARM = WARM_REPS(
   'glute-bridge',
-  40,
+  '10',
   'Ten slow bridges, a squeeze at the top — glutes on before anything hinges.',
+  40,
 );
 const DEAD_HANG_WARM = WARM(
   'dead-hang',
@@ -918,42 +973,62 @@ const MON_WARMUPS = [
   WARMUP('Warm-Up', [PULSE.knees, CAT_CAMEL, BIRD_DOG_WARM, DEAD_HANG_WARM]),
 ];
 const WED_WARMUPS = [
-  WARMUP('Warm-Up', [PULSE.knees, CAT_CAMEL, BIRD_DOG_WARM, BAR_SQUAT, POGO]),
+  WARMUP('Warm-Up', [
+    PULSE.knees,
+    CAT_CAMEL,
+    BIRD_DOG_WARM,
+    BAR_SQUAT,
+    CLEAN_REHEARSAL,
+  ]),
   WARMUP('Warm-Up', [
     PULSE.jacks,
     CAT_CAMEL,
     GLUTE_BRIDGE_WARM,
     BAR_SQUAT,
-    POGO,
+    CLEAN_REHEARSAL,
   ]),
   WARMUP('Warm-Up', [
     PULSE.knees,
     CAT_CAMEL,
-    WARM(
+    WARM_REPS(
       'hip-internal-rotation',
+      '5/side',
+      'Five slow lifts a side — hips loose before they squat.',
       40,
-      'Five slow reps a side — hips loose before they squat.',
     ),
     BAR_SQUAT,
-    POGO,
+    CLEAN_REHEARSAL,
   ]),
   WARMUP('Warm-Up', [
     PULSE.jacks,
     CAT_CAMEL,
-    WARM('side-plank', 30, 'Fifteen seconds a side, hips high.', 'HOLD'),
+    ...WARM_SIDES('side-plank', 15, 'Fifteen seconds, hips high.'),
     BAR_SQUAT,
-    POGO,
+    CLEAN_REHEARSAL,
   ]),
 ];
-// Friday ends every warm-up on the springs (the jumps come next) and preps the
-// shoulders the press and the dips are about to load
+// Friday ends every warm-up on the springs and two easy broad jumps (the max
+// ones come next) and preps the shoulders the press and the dips are about to
+// load
 const FRI_WARMUPS = [
-  WARMUP('Warm-Up', [PULSE.jacks, CAT_CAMEL, PULL_APART_WARM, POGO]),
+  WARMUP('Warm-Up', [
+    PULSE.jacks,
+    CAT_CAMEL,
+    PULL_APART_WARM,
+    POGO,
+    BROAD_JUMP_WARM,
+  ]),
   WARMUP('Warm-Up', [
     PULSE.knees,
     CAT_CAMEL,
-    WARM('push-up', 30, 'Eight easy push-ups — shoulders warm for the press.'),
+    WARM_REPS(
+      'push-up',
+      '8',
+      'Eight easy push-ups — shoulders warm for the press.',
+      30,
+    ),
     POGO,
+    BROAD_JUMP_WARM,
   ]),
   WARMUP('Warm-Up', [
     PULSE.jacks,
@@ -964,8 +1039,15 @@ const FRI_WARMUPS = [
       'Light band, easy reps — wake the delts up.',
     ),
     POGO,
+    BROAD_JUMP_WARM,
   ]),
-  WARMUP('Warm-Up', [PULSE.knees, CAT_CAMEL, DEAD_HANG_WARM, POGO]),
+  WARMUP('Warm-Up', [
+    PULSE.knees,
+    CAT_CAMEL,
+    DEAD_HANG_WARM,
+    POGO,
+    BROAD_JUMP_WARM,
+  ]),
 ];
 
 // A superset / giant set: members back to back, then the rest on the timer.
@@ -986,6 +1068,8 @@ const SET = (name, rounds, members, opts = {}) => ({
 });
 
 // Wednesday's metcon pool (see the session): one per week, rotating.
+// no push-ups (2026-10-20): Mon and Tue already press chest, Fri again —
+// ring rows keep the metcon full-body without a third chest day running
 const WED_METCONS = [
   {
     mode: 'amrap',
@@ -994,7 +1078,7 @@ const WED_METCONS = [
     note: 'As many rounds as you can in seven minutes — smooth beats fast. Score = rounds.',
     members: [
       { ex: 'band-pull-apart', reps: '10', logWeight: false },
-      { ex: 'push-up', reps: '8', logWeight: false },
+      { ex: 'ring-row', reps: '8', logWeight: false },
       { ex: 'box-step-up', reps: '12', logWeight: false },
     ],
   },
@@ -1003,10 +1087,10 @@ const WED_METCONS = [
     name: 'Every Minute',
     formatLabel: 'EMOM',
     rounds: 4,
-    note: 'Odd minutes step-ups, even minutes push-ups — rest what’s left of each minute.',
+    note: 'Odd minutes step-ups, even minutes ring rows — rest what’s left of each minute.',
     members: [
       { ex: 'box-step-up', reps: '14', logWeight: false },
-      { ex: 'push-up', reps: '10', logWeight: false },
+      { ex: 'ring-row', reps: '10', logWeight: false },
     ],
   },
   {
@@ -1016,7 +1100,7 @@ const WED_METCONS = [
     members: [
       { ex: 'jumping-jack', repScheme: [30, 20, 10], logWeight: false },
       { ex: 'box-step-up', repScheme: [16, 12, 8], logWeight: false },
-      { ex: 'push-up', repScheme: [12, 8, 4], logWeight: false },
+      { ex: 'ring-row', repScheme: [12, 8, 4], logWeight: false },
     ],
   },
   {
@@ -1146,13 +1230,13 @@ export const DENSITY40_SESSIONS = [
     name: 'Full Body II',
     freq: 'Wed · squat anchor',
     blurb:
-      'Leg and power day. Max broad jumps and push presses while you’re fresh, the front squat, split squats with cable leg curls — then a short metcon that changes every week.',
+      'Leg and power day. DB hang power cleans and push presses while you’re fresh, the front squat, split squats with cable leg curls, then a short metcon that changes every week.',
     blocks: [
       // a different warm-up each week, same job (round 3, his ask)
       { rotate: WED_WARMUPS },
-      // POWER BEFORE THE SQUAT (both reviews): fresh legs, low reps, real rest —
-      // the one loaded ballistic all block, the same lift every week so it can
-      // become a skill. Best jump is logged after the session and charted.
+      // POWER BEFORE THE SQUAT (both reviews): fresh legs, low reps, real rest,
+      // the same lifts every week so they become a skill. The DB weights log
+      // on the dial like any EMOM minute — that is the power record now.
       {
         mode: 'emom',
         name: 'Power',
@@ -1161,16 +1245,20 @@ export const DENSITY40_SESSIONS = [
         rounds: 3,
         changeoverSecs: 30,
         members: [
+          // the DB clean for the broad jump (2026-10-20, his call); Friday
+          // kept its jumps (2026-11-03). Triples, then heavier doubles in
+          // phase 3.
           {
-            ex: 'broad-jump',
+            ex: 'db-hang-clean',
             reps: '3',
-            logWeight: false,
+            phaseReps: { 3: '2' },
             fixedReps: true,
-            note: 'Near-max, stick every landing. Remember your best — the app asks after. Weeks 1–2 at about 80%.',
+            note: 'From the hang, above the knee. Heavier than your press, every rep snappy.',
           },
           {
             ex: 'db-push-press',
-            reps: '4',
+            reps: '3',
+            phaseReps: { 3: '2' },
             fixedReps: true,
             note: 'Ribs down, short dip from the knees, punch it up. No lay-back.',
           },
@@ -1233,13 +1321,14 @@ export const DENSITY40_SESSIONS = [
     name: 'Full Body III',
     freq: 'Fri · press anchor',
     blurb:
-      'Press day. Jumps and bounds, the incline press with laterals in its rest, ring dips, pull-ups and cable leg curls while fresh, then split squats and pulldowns. No hinge today — Monday has it.',
+      'Press day. Jumps and bounds, the incline press with laterals in its rest, ring dips, pull-ups and cable leg curls while fresh, then split squats and pulldowns. No hinge today: Monday has it.',
     blocks: [
       // a different warm-up each week, same job (round 3, his ask)
       { rotate: FRI_WARMUPS },
       // JUMPS (coach QA: "athleticism is one block a week"): max-intent broad
       // jumps and the program's only side-to-side power — unloaded, forced
-      // rest, stopped while still springy.
+      // rest, stopped while still springy. Kept 2026-11-03 when Wednesday's
+      // went to the DB clean (his call: "actually pretty fun").
       {
         mode: 'emom',
         name: 'Jumps',
@@ -1259,7 +1348,7 @@ export const DENSITY40_SESSIONS = [
             phaseReps: { 3: '4' },
             logWeight: false,
             fixedReps: true,
-            note: 'Near-max, stick every landing. Weeks 1–2 at about 80% — learn the landing first.',
+            note: 'Near-max, stick every landing. Remember your best: the app asks after. Weeks 1–2 at about 80%, learn the landing first.',
           },
           {
             ex: 'skater-bound',

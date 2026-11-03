@@ -273,7 +273,7 @@ const SPINE_LOADED = [
 ];
 // The loaded ballistics — explosive DB lifts. Never on a Back & Hips day, at
 // most one loaded-ballistic-or-heavy-hinge family per lift day (physio QA).
-const EXPLOSIVE = ['db-push-press', 'db-hang-snatch', 'db-hang-clean-press'];
+const EXPLOSIVE = ['db-push-press', 'db-hang-snatch', 'db-hang-clean-press', 'db-hang-clean'];
 // REFINED 2026-08-10, when the whole session became one clock. The old rule
 // was "spine-loaded work is never on a clock", and it was a proxy for the
 // thing actually being protected: HURRY. What converts a neutral spine into a
@@ -692,7 +692,8 @@ const CABLE_SETUP = {
 // EVERY mode (emom, fortime, tabata, amrap, circuit), members or alts, and
 // tabata's single `ex` counts too. The old version keyed on mode === 'emom'
 // only, which would have silently guarded nothing once the toppers became
-// finishers.
+// finishers. (2026-10-21 to 2026-11-03 Tuesday's rope pushdown was the one
+// exception; the lying DB extension came back, so none is left.)
 {
   const bad = [];
   const METCON_MODES = new Set(['emom', 'fortime', 'tabata', 'amrap', 'circuit']);
@@ -1272,7 +1273,9 @@ const muscles = [...new Set(weekVol.flatMap(Object.keys))];
     let n = 0;
     for (const { w: ww, q } of allQueues()) {
       if (ww !== w) continue;
-      const BALLISTIC = ['broad-jump', 'power-pushup', 'pogo-hop'];
+      // the power work: Friday's jumps, and Wednesday's DB hang lifts since
+      // 2026-10-20 (its jumps before that)
+      const BALLISTIC = ['broad-jump', 'power-pushup', 'pogo-hop', 'db-hang-snatch', 'db-hang-clean-press', 'db-hang-clean', 'db-push-press'];
       // working jump sets only — warm-up hops are not a power session
       if (
         q.some(

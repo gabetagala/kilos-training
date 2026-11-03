@@ -2084,7 +2084,8 @@ function renderBlockProgress() {
   }
 
   // BROAD JUMP (2026-10-10, coach QA — "athleticism is untracked"): the best
-  // jump he reports after each Wednesday, by block week
+  // jump he reports, by block week — after Wednesdays until 2026-10-20, after
+  // Fridays since (Wednesday's jumps became the DB clean)
   {
     const byWeek = new Map();
     for (const h of get('workoutHistory') || []) {
@@ -2097,7 +2098,7 @@ function renderBlockProgress() {
     const series = [...byWeek.entries()].sort((a, b) => a[0] - b[0]);
     if (!series.length) {
       rows.push(
-        `<div class="bp-row bp-empty"><div class="bp-k">Broad Jump</div><div class="bp-v">—</div><div class="bp-d">logged after Wednesdays</div></div>`,
+        `<div class="bp-row bp-empty"><div class="bp-k">Broad Jump</div><div class="bp-v">—</div><div class="bp-d">logged after Fridays</div></div>`,
       );
     } else {
       const first = series[0][1];
@@ -2456,7 +2457,7 @@ const DOSE_TITLES = {
   short: 'short version',
   amber: 'lighter day',
   tired: 'short-night version',
-  unchecked: 'no jumps until checked in',
+  unchecked: 'not checked in yet',
 };
 const doseTitle = (dose) =>
   ['short', 'amber', 'tired', 'unchecked']
@@ -5305,10 +5306,11 @@ function rhFinish({ early = false } = {}) {
       750,
     );
   }
+  // Friday's jumps (Wednesday's until 2026-10-20)
   if (
     isProgramSession(session) &&
     ran('broad-jump') &&
-    session.id === 'd40-b1'
+    session.id === 'd40-c1'
   ) {
     const lastJump = (get('workoutHistory') || [])
       .map((h) => h.broadJump)
@@ -6153,11 +6155,21 @@ function spRenderBack() {
     todays.flatMap((b) => (b.members ? b.members.map((m) => m.ex) : [b.ex])),
   );
   const hasFolds = todays.some((b) => b.fold);
-  const hasJumps = todays.some(
+  // Wednesday's DB power lifts, Friday's jumps — the only ballistic work a
+  // lift day has
+  const hasPower = todays.some(
     (b) => b.ballistic || b.members?.some((m) => m.ballistic),
   );
+  const powerName = ids.has('broad-jump') ? 'jumps' : 'power lifts';
+  const hasMetcon = todays.some((b) => b.conditioning);
+  // what a short night takes off THIS day: the power work, or Saturday's sprints
+  const explosive = hasPower
+    ? powerName
+    : ids.has('sprint')
+      ? 'sprints'
+      : '';
   const amberChanges = [
-    hasJumps && 'no jumps or sprints',
+    hasPower && `no ${powerName}`,
     ids.has('rdl') && 'the RDL becomes a glute bridge',
     ids.has('front-squat') && 'the front squat a DB split squat',
     ids.has('rfe-split-squat') && 'the rear-foot split squat a regular one',
@@ -6170,10 +6182,10 @@ function spRenderBack() {
       : level === 'amber'
         ? `${carried ? 'Yesterday was rough, so today starts lighter — tap Good if you feel fine. ' : ''}A shorter, lighter day${amberChanges.length ? `: ${amberChanges.join(', ')}` : ''}.`
         : level === 'tired'
-          ? 'A short night: one round lighter, a rep further from failure, no jumps or max sets. The heavy back lifts hold their weight.'
+          ? `A short night: one round lighter, a rep further from failure, no ${explosive ? `${explosive} or ` : ''}max sets. The heavy back lifts hold their weight.`
           : level === 'green'
             ? ''
-            : `One tap first${hasJumps ? ' — until you answer, the jumps, sprints and finisher sit out' : ' — it sets today’s dose'}.`,
+            : `One tap first${hasPower ? ` — until you answer, the ${powerName}${hasMetcon ? ' and the metcon' : ''} sit out` : ' — it sets today’s dose'}.`,
     spWodWaits()
       ? 'The Bonus WOD waits for a Good morning — today runs the Rest Day.'
       : '',

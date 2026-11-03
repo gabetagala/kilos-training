@@ -119,11 +119,17 @@ export function applyPhase(session, phase) {
       !v.members &&
       (v.phaseHoldSecs?.[phase] ||
         v.phaseBlockReps?.[phase] ||
-        v.phaseRepScheme?.[phase])
+        v.phaseRepScheme?.[phase] ||
+        v.phaseNote?.[phase] ||
+        v.phaseTempo?.[phase])
     ) {
       touched = true;
       return {
         ...v,
+        // harder by POSITION or by HOLD (2026-10-20 core review): the note
+        // names the next variation, the tempo lengthens the hold
+        ...(v.phaseNote?.[phase] ? { note: v.phaseNote[phase] } : {}),
+        ...(v.phaseTempo?.[phase] ? { tempo: v.phaseTempo[phase] } : {}),
         ...(v.phaseHoldSecs?.[phase]
           ? { holdSecs: v.phaseHoldSecs[phase] }
           : {}),
@@ -236,6 +242,7 @@ export const OPEN_PACE_BANNED = [
   // snatch (2026-08-15): above the knee, light DBs, and only where the
   // clock forces rest.
   'db-hang-clean-press',
+  'db-hang-clean',
   // Added 2026-08-15 (finisher research, McGill lens): lateral landings add
   // a shear/rotation component that degrades with fatigue — skater bounds
   // are 20-second-burst work, tabata/EMOM only, never an open grind.
@@ -325,6 +332,7 @@ export function heavyReps(reps) {
 const HEAVY_EXCLUDED = [
   'db-push-press',
   'db-hang-clean-press',
+  'db-hang-clean',
   'db-hang-snatch',
   'pull-up-bw',
   // bodyweight, reps-logged — "fewer reps, more load" has no load to add
@@ -702,8 +710,8 @@ const withDose = (session, part) =>
   [...doseParts(session).filter((p) => p !== part), part].join('+');
 
 // ── THE UNCHECKED MORNING (round-6 physio QA) ───────────────────────────────
-// Start without answering the back check and the riskiest work — the jumps,
-// the sprints, the scored finishers — sits out until he taps. The volume
+// Start without answering the back check and the riskiest work — the jumps
+// and power lifts, the sprints, the scored finishers — sits out until he taps. The volume
 // stays: the lifts, the pumps, the medicine. Pure and idempotent.
 export function applyUnchecked(session) {
   if (!session?.blocks || hasDose(session, 'unchecked')) return session;
@@ -939,7 +947,7 @@ export function applyNoFolds(session) {
 // Under five hours of sleep hurts repeated efforts and raises pain
 // sensitivity, but nothing is wrong with the back. So the SHAPE stays — every
 // block, the pumps included, one round lighter and a rep further from failure;
-// what goes is impact and maxing: no jumps or push press, no scored finisher
+// what goes is impact and maxing: no jumps or power lifts, no scored finisher
 // or carry, no heavy week, no rep-out. Loads hold (the load gate needs a Good morning).
 export function applyTired(session) {
   if (!session?.blocks || hasDose(session, 'tired')) return session;
@@ -964,9 +972,13 @@ export function applyTired(session) {
   return {
     ...session,
     dose: withDose(session, 'tired'),
-    blocks: calmBlocks(session.blocks).map((b) =>
-      b.rotate ? { ...b, rotate: b.rotate.map(shape) } : shape(b),
-    ),
+    // the extras (Pallof, leg raises, the supporting move) sit out too
+    // (2026-10-20: a tired Tuesday was only 9% lighter once the calves left)
+    blocks: calmBlocks(session.blocks)
+      .filter((b) => !b.cast)
+      .map((b) =>
+        b.rotate ? { ...b, rotate: b.rotate.map(shape) } : shape(b),
+      ),
   };
 }
 
