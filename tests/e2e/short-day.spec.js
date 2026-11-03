@@ -100,11 +100,15 @@ test('a short rehab day keeps the holds and drops the pumps and finisher', async
   await page.locator('#sp-start').click();
   await page.locator('#rp-overview-btn').click();
   await expect(page.locator('#rpo-list')).toContainText('T-Spine Reach');
-  // no calves, no carry, no sprints, no scored finisher — only the one
-  // `shortKeep` pump round may stay (Arms on a Tuesday, Row & Raise on a
-  // Thursday; which one depends on the weekday the test runs)
+  // the core holds stay, as written (never scaled)
+  await expect(page.locator('#rpo-list')).toContainText('Hollow Hold');
+  await expect(page.locator('#rpo-list')).toContainText('Side Plank');
+  // no calves, no carry, no sprints, no scored finisher, no extras (Pallof,
+  // leg raises) — only the one `shortKeep` pump round may stay (Arms on a
+  // Tuesday, Row & Raise on a Thursday; which one depends on the weekday the
+  // test runs)
   await expect(page.locator('#rpo-list')).not.toContainText(
-    /\b(Curl & Lateral|Calves|Farmer Carry|Suitcase Carry)\b|Sprints|The (Redline|Climb)|Death by/,
+    /\b(Curl & Lateral|Calves|Farmer Carry|Suitcase Carry|Pallof Press|Lying Leg Raise)\b|Sprints|The (Redline|Climb)|Death by/,
   );
 });
 

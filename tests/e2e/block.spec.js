@@ -135,7 +135,8 @@ test('the progress view shows anchor trends and gates them on the noise floor', 
   expect(txt).toMatch(/Front Squat.*\+[\d.]+(kg|lbs) since wk 1/);
   expect(txt).toMatch(/Strict Pull-Up\s*[\d.]+\s*(kg|lbs)\s*e1RM\s*\+[\d.]+(kg|lbs) since wk 1/);
   expect(txt).not.toContain('reps since wk');
-  // the Broad Jump row: the best jump he reports after each Wednesday
+  // the Broad Jump row: the best jump he reports (after Fridays since
+  // 2026-10-20, Wednesdays before)
   await expect(bp).toContainText('Broad Jump');
   expect(txt).toMatch(/Broad Jump\s*215\s*cm/);
   expect(txt).toContain('+15 cm since wk 1');
@@ -178,11 +179,13 @@ test('Sunday now has a real engine session, not a checkbox', async ({ page }) =>
 // staggered cycles: Legs & Back SETS → HEAVY → LAST SET MAX, Dips &
 // Pull-Ups SETS ↔ LAST SET MAX. Nothing on Friday goes for time: the split
 // squat, the row and the dip all need the rest floor. Week 1 is plain SETS
-// everywhere (2026-10-10, physio QA). Round 2: Friday has its own Jumps
+// everywhere (2026-10-10, physio QA). Round 2: Friday has its own power
 // EMOM, the press runs 1 build + 3 working on a 2:30 clock, and there is no
 // RDL on Friday at all — Monday's is the week's only hinge. Round 3: three
 // rounds of jumps on a 45 s clock and laterals in the press's rest. Round 4:
 // the dips while fresh (with the cable leg curls), then Legs & Back.
+// 2026-11-03 (his call): Friday kept its jumps when Wednesday's went to the
+// DB clean.
 async function pressOverview(page, week) {
   await checkInGood(page); // the full Friday — an unchecked one drops the jumps
   await openProgram(page, { startWeeksAgo: week - 1 });
@@ -218,6 +221,8 @@ function expectPressSlots(t) {
   }
   // the cable lateral left Legs & Back for the press's rest (round 3)
   expect(t).not.toContain('Cable Lateral Raise');
+  // no DB power lift on Friday — that's Wednesday's
+  expect(t).not.toMatch(/Power Snatch|Power Clean/);
 }
 
 test('week 1: everything runs plain SETS — nothing heavy or maxed on first exposure', async ({ page }) => {
@@ -462,14 +467,15 @@ test('the back check sits on today\'s lift card, and STIFFER serves the lighter 
   await expect(page.locator('#sp-back-early')).toBeHidden();
   await expect(page.locator('#sp-back-deload')).toBeHidden();
   // not checked in yet (QA round ★2): it asks, Start is the normal Start,
-  // and until he answers the jumps, the Power EMOM and the finisher sit out
+  // and until he answers the power work (the Power EMOM and the warm-up's
+  // light hang clean, since 2026-10-20) and the metcon sit out
   await expect(page.locator('#sp-back-note')).toHaveText(
-    'One tap first — until you answer, the jumps, sprints and finisher sit out.',
+    'One tap first — until you answer, the power lifts and the metcon sit out.',
   );
   await expect(page.locator('#sp-start .sp-start-text')).toHaveText('START');
   const list = page.locator('#sp-list');
   await expect(list).not.toContainText('DB Push Press');
-  await expect(list).not.toContainText('Pogo Hop');
+  await expect(list).not.toContainText('DB Hang Power Clean');
   await expect(list).not.toContainText(/Seven|Tabata/i); // the week's metcon
   await expect(list).toContainText('Front Squat'); // the work stays
   const mins = async () =>
@@ -479,7 +485,11 @@ test('the back check sits on today\'s lift card, and STIFFER serves the lighter 
   await check.locator('[data-back="good"]').click();
   await expect(page.locator('#sp-back-note')).toHaveText('');
   await expect(list).toContainText('DB Push Press'); // the Power EMOM
-  await expect(list).toContainText('Pogo Hop'); // the warm-up's springs
+  // the Power EMOM opens on the hang power clean, three a minute, and the
+  // warm-up ends on five light ones — a count, not a clock (2026-11-03)
+  await expect(list).toContainText(/POWER — EMOM 6 · 3 ROUNDS\s*DB Hang Power Clean\s*×3\s*DB Push Press\s*×3/);
+  await expect(list).toContainText(/DB Hang Power Clean\s*×5/);
+  await expect(list).not.toContainText(/Broad Jump|Pogo Hop/);
   // week 1's metcon closes the day: the seven-minute AMRAP (45-min round)
   await expect(list).toContainText('SEVEN — AMRAP 7');
   const full = await mins();
@@ -489,14 +499,14 @@ test('the back check sits on today\'s lift card, and STIFFER serves the lighter 
   await expect(check.locator('[data-back="stiff"]')).toHaveAttribute('aria-pressed', 'true');
   // QA round: the note lists only what THIS day changes
   await expect(page.locator('#sp-back-note')).toHaveText(
-    'A shorter, lighter day: no jumps or sprints, the front squat a DB split squat.',
+    'A shorter, lighter day: no power lifts, the front squat a DB split squat.',
   );
-  // amber: no Power piece, no Tabata, no pogo — the squat swapped to split
-  // squats, the superset's split squats to glute bridges, the empty-bar
-  // warm-up to a box squat
+  // amber: no Power piece, no Tabata, no light hang clean in the warm-up —
+  // the squat swapped to split squats, the superset's split squats to glute
+  // bridges, the empty-bar warm-up to a box squat
   await expect(list).not.toContainText('DB Push Press');
   await expect(list).not.toContainText(/Seven|Tabata/i); // the week's metcon
-  await expect(list).not.toContainText('Pogo Hop');
+  await expect(list).not.toContainText('DB Hang Power Clean');
   await expect(list).not.toContainText('Front Squat');
   await expect(list).toContainText('Heavy DB Split Squat');
   await expect(list).toContainText('Glute Bridge');
@@ -550,7 +560,8 @@ for (const [back, label] of [
 
 // A good back after a short night is the TIRED day, not amber: the volume
 // stays, the impact and the maxing go. On Saturday every `finisher` block
-// goes — the carry sits in one, so it goes too; the supporting move stays.
+// goes — the carry sits in one, so it goes too — and since 2026-10-20 the
+// extras (`cast`: the supporting move and the leg raises) sit out as well.
 test('Back & Hips days carry the check too; a short night alone is the tired day', async ({ page }) => {
   await openToday(page, SAT);
   const check = page.locator('#sp-backcheck');
@@ -563,8 +574,9 @@ test('Back & Hips days carry the check too; a short night alone is the tired day
   await check.locator('[data-back="good"]').click();
   await expect(check.locator('[data-back="good"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(list).toContainText('Farmer Carry');
+  await expect(list).toContainText('Lying Leg Raise'); // Saturday's leg raises
   await expect(page.locator('#sp-back-note')).toHaveText('');
-  // the sprints sit right after the Big 3: three build rounds, five sprints
+  // the sprints sit right after the core primer: three build rounds, five sprints
   // (the minutes in the kicker are pinned in the unit suite — see the
   // reported overview/wall-clock mismatch)
   await expect(list).toContainText(
@@ -574,13 +586,19 @@ test('Back & Hips days carry the check too; a short night alone is the tired day
   await expect(page.locator('#sp-back-sleep')).toHaveAttribute('aria-pressed', 'true');
   // the tired day is real — it says so (QA round copy)
   await expect(page.locator('#sp-back-note')).toHaveText(
-    'A short night: one round lighter, a rep further from failure, no jumps or max sets. The heavy back lifts hold their weight.',
+    'A short night: one round lighter, a rep further from failure, no sprints or max sets. The heavy back lifts hold their weight.',
   );
   await expect(list).not.toContainText('Farmer Carry');
   await expect(list).not.toContainText('Suitcase Carry');
   // no sprints on a short night — ballistic work waits for a rested day
   await expect(list).not.toContainText(/Sprint/);
-  await expect(list).toContainText('McGill Curl-Up'); // the primer always stays
+  // the core primer always stays, as written (the hollow hold, not its
+  // McGill stand-in — the back is fine)
+  await expect(list).toContainText('Hollow Hold');
+  await expect(list).toContainText('Side Plank');
+  await expect(list).not.toContainText('McGill Curl-Up');
+  // the extras sit out: the leg raises (and the supporting move)
+  await expect(list).not.toContainText('Lying Leg Raise');
   // the back extension is served as written — reps, not the amber hold
   await expect(list).toContainText('Back Extension');
   await expect(page.locator('#sp-start .sp-start-text')).toHaveText('START');
@@ -595,7 +613,7 @@ test('a short night on the squat day keeps the squat, drops Power and Tabata', a
   const list = page.locator('#sp-list');
   await expect(list).not.toContainText('DB Push Press');
   await expect(list).not.toContainText(/Seven|Tabata/i); // the week's metcon
-  await expect(list).not.toContainText('Pogo Hop');
+  await expect(list).not.toContainText('DB Hang Power Clean');
   // the squat stays — not swapped, one working set lighter (round 5: build
   // + three) — and so does the superset
   await expect(list).toContainText(/THE ANCHOR — E2:30 10 · 4 ROUNDS \(1 TO BUILD\)\s*Front Squat/);
@@ -1045,13 +1063,15 @@ test('a heavy-lift set logs the reps done, not the target', async ({ page }) => 
 });
 
 // ── ROUND 3 ─────────────────────────────────────────────────────────────────
-const TUE = new Date(2026, 9, 13, 7, 30); // Back & Hips: Arms + Calves
+const TUE = new Date(2026, 9, 13, 7, 30); // Back & Hips: Arms + leg raises
 const FRI = new Date(2026, 9, 16, 7, 30); // the press day
 const SUN = new Date(2026, 9, 18, 7, 30); // the rest day + the Bonus WOD
 
 // THE MORNING RULE (round-3 physio QA): within an hour of waking the discs
 // are fully hydrated and bending stress peaks. UP UNDER 1 HR drops the two
-// held forward folds — and only on a day that has them.
+// held forward folds — and only on a day that has them. 2026-10-20: it also
+// eases the hollow hold to its McGill curl-up and sits the leg raises out
+// (the two flexed-pelvis core moves).
 test('UP UNDER 1 HR drops the forward folds from a Back & Hips day, and a refresh keeps it', async ({
   page,
 }) => {
@@ -1070,6 +1090,9 @@ test('UP UNDER 1 HR drops the forward folds from a Back & Hips day, and a refres
   await expect(list).toContainText('Elephant Walk');
   await expect(list).toContainText('Seated Good Morning');
   await expect(list).toContainText('DB Bench Press'); // Tuesday's arm pump leads with it
+  await expect(list).toContainText('Hollow Hold');
+  await expect(list).toContainText('Lying Leg Raise');
+  await expect(list).not.toContainText('McGill Curl-Up');
 
   await early.click();
   await expect(early).toHaveAttribute('aria-pressed', 'true');
@@ -1079,9 +1102,14 @@ test('UP UNDER 1 HR drops the forward folds from a Back & Hips day, and a refres
   );
   await expect(list).not.toContainText('Elephant Walk');
   await expect(list).not.toContainText('Seated Good Morning');
-  // nothing else changes: the openers, the primer and the pump all stay
-  await expect(list).toContainText('T-Spine Reach');
+  // the hollow hold eases to the McGill curl-up, the leg raises sit out
+  await expect(list).not.toContainText('Hollow Hold');
+  await expect(list).not.toContainText('Lying Leg Raise');
   await expect(list).toContainText('McGill Curl-Up');
+  // nothing else changes: the openers, the other core holds and the pump stay
+  await expect(list).toContainText('T-Spine Reach');
+  await expect(list).toContainText('Side Plank');
+  await expect(list).toContainText('Bird Dog');
   await expect(list).toContainText('DB Bench Press');
   const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('kilos-back-checks')));
   expect(stored).toEqual([{ date: localDay(TUE), early: true }]);
@@ -1091,6 +1119,8 @@ test('UP UNDER 1 HR drops the forward folds from a Back & Hips day, and a refres
   await expect(page.locator('#rehab-player')).toHaveClass(/open/);
   await page.locator('#rp-overview-btn').click();
   await expect(page.locator('#rpo-list')).toContainText('McGill Curl-Up');
+  await expect(page.locator('#rpo-list')).not.toContainText('Hollow Hold');
+  await expect(page.locator('#rpo-list')).not.toContainText('Lying Leg Raise');
   await expect(page.locator('#rpo-list')).not.toContainText('Elephant Walk');
   await expect(page.locator('#rpo-list')).not.toContainText('Seated Good Morning');
   expect(errors).toEqual([]);
@@ -1123,8 +1153,10 @@ test('after a refresh, the overview still matches the dosed run (no folds)', asy
   await page.reload();
   await expect(page.locator('#rehab-player')).toHaveClass(/open/);
   await page.locator('#rp-overview-btn').click();
+  // the morning rule's curl-up for the hollow hold, no folds, no leg raises
   await expect(page.locator('#rpo-list')).toContainText('McGill Curl-Up');
   await expect(page.locator('#rpo-list')).not.toContainText('Elephant Walk', { timeout: 2000 });
+  await expect(page.locator('#rpo-list')).not.toContainText('Lying Leg Raise', { timeout: 2000 });
 });
 
 test('UP UNDER 1 HR is hidden on a day with no folds', async ({ page }) => {
@@ -1145,9 +1177,13 @@ test('an amber Back & Hips day drops the folds and keeps one round of the pump',
   const list = page.locator('#sp-list');
   await expect(list).not.toContainText('Elephant Walk');
   await expect(list).not.toContainText('Seated Good Morning');
-  await expect(list).not.toContainText('Calves');
   await expect(list).toContainText(/ARMS — SETS · 1 ROUND\b/);
   await expect(list).toContainText('DB Bench Press');
+  // every core hold eases to its McGill 10-second version; the extras
+  // (Pallof, leg raises) sit out with the short dose
+  await expect(list).toContainText('McGill Curl-Up');
+  await expect(list).not.toContainText('Hollow Hold');
+  await expect(list).not.toContainText(/Pallof Press|Lying Leg Raise/);
 });
 
 // PERSISTENT STIFFNESS (round-3 physio QA): five stiff-or-worse mornings in
@@ -1410,9 +1446,10 @@ test('the calendar flags week 9 as the pack, and nothing at week 5', async ({ pa
   await expect(page.locator('#rehab-page')).not.toContainText('PHASE 2');
 });
 
-// ROUND 4: a GET SET in front of a block that brings its own cue says THAT
-// cue — Thursday's back extension is a hold, never the rep cue
-test('Thursday: the back-extension GET SET already reads the hold cue', async ({ page }) => {
+// 2026-10-21 (his call, "just tell me how many"): Thursday's back extension
+// is a number at your pace — the movement's own cue, no hold, no tempo, and
+// nothing to weigh (it was a hold since round 4)
+test('Thursday: the back extension is 3 × 10 at your pace', async ({ page }) => {
   const THU = new Date(2026, 9, 15, 7, 30);
   await openToday(page, THU);
   await expect(page.locator('#sp-list')).toContainText('Back Extension');
@@ -1426,10 +1463,12 @@ test('Thursday: the back-extension GET SET already reads the hold cue', async ({
   }
   await expect(page.locator('#rp-exname')).toHaveText('Back Extension');
   await expect(page.locator('#rp-phase')).toHaveText('GET SET');
-  await expect(page.locator('#rp-cue')).toContainText('STAY there');
+  await expect(page.locator('#rp-cue')).not.toContainText('STAY there');
   await page.locator('#rp-skip').click();
-  await expect(page.locator('#rp-phase')).toHaveText('HOLD');
-  await expect(page.locator('#rp-cue')).toContainText('STAY there');
+  await expect(page.locator('#rp-phase')).toHaveText('YOUR PACE');
+  await expect(page.locator('#rp-meta')).toContainText('×10 · SET 1 OF 3');
+  await expect(page.locator('#rp-cue')).toContainText('Lift to straight, never past it. Your pace.');
+  await expect(page.locator('#rp-lift .rp-weight-row')).toBeHidden();
 });
 
 // ROUND 4: the morning rule reaches Monday — a loaded hinge in the first
@@ -1547,7 +1586,7 @@ test('Wednesday\'s cable leg curl earns reps first', async ({ page }) => {
 // SPRINT ROUND: Saturday sprints — four shapes rotating weekly, one build
 // minute then fast reps on an every-minute clock, never scored. A stiff
 // morning drops them; no room to run swaps to high knees for the same secs.
-test('Saturday runs its sprints after the Big 3, and amber drops them', async ({ page }) => {
+test('Saturday runs its sprints after the core primer, and amber drops them', async ({ page }) => {
   await openToday(page, SAT);
   const list = page.locator('#sp-list');
   // unanswered: no sprints yet (QA round ★2)
@@ -1693,8 +1732,8 @@ const runState = (page) =>
   }));
 for (const [label, when, opts, dose, title] of [
   ['short + tired', WED, { answer: 'good', shortSleep: true }, 'short+tired', 'SHORT VERSION · SHORT-NIGHT VERSION'],
-  ['short + unchecked', WED, {}, 'short+unchecked', 'SHORT VERSION · NO JUMPS UNTIL CHECKED IN'],
-  ['short + unchecked + no folds', TUE, { early: true }, 'short+unchecked', 'SHORT VERSION · NO JUMPS UNTIL CHECKED IN'],
+  ['short + unchecked', WED, {}, 'short+unchecked', 'SHORT VERSION · NOT CHECKED IN YET'],
+  ['short + unchecked + no folds', TUE, { early: true }, 'short+unchecked', 'SHORT VERSION · NOT CHECKED IN YET'],
 ]) {
   test(`a ${label} run restores to the same queue after a reload`, async ({ page }) => {
     await startDosed(page, when, opts);

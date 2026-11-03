@@ -130,6 +130,7 @@ export const REHAB_EXERCISES = {
     avoid: 'Hips sagging toward the floor',
     cue: 'Elbow under shoulder, hips tall. One straight line from ear to ankle.',
     why: 'Side-core stiffness with near-zero disc load.',
+    how: 'One straight hold for the clock. Hips sag? Drop to the knees and keep going.',
     scale:
       'Easier: from the knees · Harder: feet stacked → top leg raised → weighted vest',
     yt: 'side plank mcgill big 3',
@@ -140,9 +141,37 @@ export const REHAB_EXERCISES = {
     avoid: 'Hips rotating as the leg reaches',
     cue: 'Opposite arm + leg out. Reach long, not high — hips stay square, spine stays still.',
     why: 'Back-side stiffness while the limbs move around a quiet spine.',
+    how: 'Hold the reach for the clock, long and square. Shaking is fine; hips turning is not.',
     scale:
       'Easier: leg only · Harder: slow square with hand + foot → wrist/ankle weights',
     yt: 'bird dog exercise mcgill',
+  },
+  // HIS CORE (2026-10-20, his ask): straight holds instead of chopped
+  // 10-second ones, the hollow hold in for the curl-up, and leg raises
+  'hollow-hold': {
+    name: 'Hollow Hold',
+    feel: 'Front abs on fire, low back glued to the floor',
+    avoid: 'Low back peeling off the floor',
+    cue: 'On your back, low back pressed flat, chin tucked. Shoulders and legs just off the floor, knees bent at first.',
+    why: 'Anti-extension strength with the spine held flat, the gymnast\u2019s core position.',
+    scale:
+      'Easier: knees bent, arms by your sides · Harder: legs straight, then arms overhead',
+    how: 'One straight hold for the clock. The moment the low back lifts, bend the knees and keep going.',
+    yt: 'hollow body hold beginner',
+  },
+  'lying-leg-raise': {
+    name: 'Lying Leg Raise',
+    feel: 'Lower abs pulling the legs up, low back glued down',
+    avoid: 'Low back lifting off the floor as the legs lower',
+    repTempo: [
+      ['UP', 1],
+      ['DOWN', 3],
+    ],
+    cue: 'On your back, hands under your hips, low back pressed flat, knees bent. Raise until the thighs are near vertical, stop before the tailbone lifts.',
+    why: 'The lower abs holding the pelvis still while the hips lift the legs: the strength that keeps the low back flat.',
+    scale: 'Easier: a smaller range · Harder: legs straighter, then straight',
+    how: 'Three seconds down. Stop the lowering where the low back would lift.',
+    yt: 'lying leg raise lower back flat',
   },
   'glute-bridge': {
     name: 'Glute Bridge',
@@ -236,10 +265,11 @@ export const REHAB_EXERCISES = {
     name: 'Hip Internal Rotation',
     feel: 'A deep burn on the outside and front of the working hip',
     avoid: 'Leaning back or letting the low back round to lift higher',
-    cue: 'Sit tall, knees bent, feet wide. Drop one knee inward, then lift that foot off the floor — small lifts, the hip does all of it.',
+    cue: 'Sit tall, knees bent, feet wide. Drop one knee in and lift the ankle off the floor. Hold. Then lift the knee too, the whole shin up, and hold.',
     why: 'The rotation a hip loses first. Without it the spine turns instead.',
-    scale: 'Easier: body weight · Harder: ankle weight',
-    how: 'Follow the count: lift, squeeze two, lower. Form slips = pause, then pick the count back up.',
+    scale:
+      'Easier: lower the knee and keep the ankle up · Harder: ankle weight',
+    how: 'Ankle up for the clock, then the knee up too, no rest between. Knee won\u2019t lift yet? Keep the ankle up.',
     yt: 'seated hip internal rotation lift off',
   },
   'hip-airplane': {
@@ -368,7 +398,7 @@ export const REHAB_EXERCISES = {
     why: 'Hamstring length earned through movement — the hips do the folding, the spine stays long.',
     scale:
       'Easier: hands on a higher surface · Harder: hands a little lower — only while the back stays long',
-    how: 'One rep = one leg bends, then the other. Follow the count — no burn to chase.',
+    how: 'One rep = one leg bends, then the other. Your pace, no count to follow.',
     yt: 'elephant walk hamstring exercise',
   },
   // Added 2026-08-11 at his ask — his favorite feel from the source coach's
@@ -417,11 +447,6 @@ const MINS = (n) => n * 60;
 // The method: feel the muscle, never the pain, pause mid-set when form slips —
 // and the progression trigger reads the same: all the reps clean, then take
 // the next step on that movement's ladder.
-const LIFT_SQUEEZE_LOWER = (lift, squeeze, lower) => [
-  ['LIFT', lift],
-  ['SQUEEZE', squeeze],
-  ['LOWER', lower],
-];
 const repped = (
   ex,
   reps,
@@ -735,49 +760,6 @@ const CORE_CAP = (ex, extra = {}) => ({
   restSecs: 15,
   ...extra,
 });
-// The primer PROGRESSES (round-4 physio QA: 4/3/3 for twelve weeks is a
-// third of McGill's usual dose) — one more 10-second hold from phase 2,
-// never longer holds: 4/3/3 → 5/4/4 → 6/5/5 (the 45-minute cap, 2026-10-11).
-const BIG3 = [
-  CORE_CAP('mcgill-curlup', { phaseRepScheme: { 2: [5], 3: [6] } }),
-  CORE_CAP('side-plank', {
-    repScheme: [3],
-    phaseRepScheme: { 2: [4], 3: [5] },
-    perSide: true,
-    switchSecs: 8,
-  }),
-  CORE_CAP('bird-dog', {
-    repScheme: [3],
-    phaseRepScheme: { 2: [4], 3: [5] },
-    perSide: true,
-    switchSecs: 8,
-  }),
-];
-
-// THE CORE DAYS (2026-10-10, his ask: "we do need something core focused";
-// round-5 physio QA: one set was a third of McGill's dose). Tue, Sat and Sun
-// run the primer TWICE, McGill's descending way — a full set, then a shorter
-// one — with the same 10-second holds, never longer ones. Thursday keeps one
-// set: its back-extension hold is that day's core work, and its minutes are
-// spoken for.
-const BIG3_X2 = [
-  CORE_CAP('mcgill-curlup', {
-    repScheme: [4, 3],
-    phaseRepScheme: { 2: [5, 3], 3: [6, 3] },
-  }),
-  CORE_CAP('side-plank', {
-    repScheme: [3, 2],
-    phaseRepScheme: { 2: [4, 2], 3: [5, 2] },
-    perSide: true,
-    switchSecs: 8,
-  }),
-  CORE_CAP('bird-dog', {
-    repScheme: [3, 2],
-    phaseRepScheme: { 2: [4, 2], 3: [5, 2] },
-    perSide: true,
-    switchSecs: 8,
-  }),
-];
 
 // SATURDAY'S SPRINTS (2026-10-10, his ask: "conditioning — weekly sprints";
 // shaped by the sprint QA). Every Saturday after the openers and the primer:
@@ -792,6 +774,8 @@ const SPRINT_FORMATS = [
   // name, sprints, seconds, clock, note
   ['Starts', 5, 4, 60, 'Split stance, four quick seconds (~20 m).'],
   ['Speed', 4, 6, 70, 'Build two seconds, then run tall.'],
+  // back from Side Starts (2026-11-03): Friday's skater bounds returned, and
+  // they give the side-to-side
   ['Repeats', 5, 5, 60, 'The last rep as fast as the first.'],
   ['Flying', 3, 8, 90, 'Jog in, build four seconds, four fast.'],
 ];
@@ -854,6 +838,120 @@ const PALLOF = {
   ],
 };
 
+// THE CORE HOLDS (2026-10-20, his ask: "longer holds instead of chopped",
+// the hollow hold in for the curl-up, "harder"). Straight holds, and they get
+// harder by POSITION, not by an ever-longer clock (review: hollow and bird dog
+// cap at 30 s, the side plank at 45 s): phase 2 straightens the hollow and
+// stacks the side plank, phase 3 goes straight-leg arms-overhead, raises the
+// top leg, adds squares to the bird dog.
+//   Tue      the full version (3 hollow, 2 side plank, 2 bird dog)
+//   Thu, Sun one set of each (Sunday is the rest day, a day after Saturday)
+//   Sat      a short PRIMER before the sprints: switch the trunk on, don't
+//            tire it — the carries and leg raises do Saturday's core work
+// A stiff morning eases every hold to its McGill 10-second version
+// (`amberBlock`); "up under 1 hr" does the same for the hollow hold
+// (`morning`), the one hold with the low back flattened.
+const HOLD = (ex, sets, holdSecs, phaseHoldSecs, extra = {}) => ({
+  ex,
+  mode: 'hold',
+  sets,
+  holdSecs,
+  ...(phaseHoldSecs ? { phaseHoldSecs } : {}),
+  restSecs: 20,
+  phase: 'HOLD',
+  ...extra,
+});
+const HOLLOW_NOTES = {
+  note: 'Knees bent, arms by your sides.',
+  phaseNote: {
+    2: 'Legs straighter now: as straight as the low back stays flat.',
+    3: 'Legs straight, arms overhead.',
+  },
+};
+const SIDE_NOTES = {
+  note: 'Feet staggered, hips tall.',
+  phaseNote: { 2: 'Feet stacked.', 3: 'Feet stacked, top leg raised.' },
+};
+const BIRD_NOTES = {
+  note: 'Reach long and hold still.',
+  phaseNote: {
+    2: 'Hold, then draw three small squares with the hand and the foot.',
+    3: 'Slower squares, with a light wrist or ankle weight if you have one.',
+  },
+};
+const SIDE_AMBER = CORE_CAP('side-plank', {
+  repScheme: [3],
+  perSide: true,
+  switchSecs: 8,
+});
+const BIRD_AMBER = CORE_CAP('bird-dog', {
+  repScheme: [3],
+  perSide: true,
+  switchSecs: 8,
+});
+const hollow = (sets, secs, phaseSecs, amber) =>
+  HOLD('hollow-hold', sets, secs, phaseSecs, {
+    ...HOLLOW_NOTES,
+    amberBlock: amber,
+    morning: true,
+  });
+const side = (sets, secs, phaseSecs) =>
+  HOLD('side-plank', sets, secs, phaseSecs, {
+    ...SIDE_NOTES,
+    perSide: true,
+    switchSecs: 8,
+    restSecs: 15,
+    amberBlock: SIDE_AMBER,
+  });
+const bird = (sets, secs, phaseSecs) =>
+  HOLD('bird-dog', sets, secs, phaseSecs, {
+    ...BIRD_NOTES,
+    perSide: true,
+    switchSecs: 5,
+    restSecs: 10,
+    amberBlock: BIRD_AMBER,
+  });
+const CORE_FULL = [
+  // 30 s from week 1 (2026-10-21, his ask: "longer duration, better hit") —
+  // already the cap, so these two get harder by position alone
+  hollow(3, 30, null, CORE_CAP('mcgill-curlup', { repScheme: [4, 3] })),
+  side(2, 30, { 2: 40, 3: 45 }),
+  bird(2, 30, null),
+];
+const CORE_LONG = [
+  hollow(1, 30, null, CORE_CAP('mcgill-curlup')),
+  side(1, 45, null),
+  bird(1, 30, null),
+];
+const PRIMER =
+  'A primer: switch the trunk on, don’t tire it. The sprints come next.';
+const CORE_PRIMER = [
+  {
+    ...hollow(1, 15, null, CORE_CAP('mcgill-curlup')),
+    note: PRIMER,
+    phaseNote: undefined,
+  },
+  { ...side(1, 20, null), note: PRIMER, phaseNote: undefined },
+  { ...bird(1, 15, null), note: PRIMER, phaseNote: undefined },
+];
+// leg raises, Tue and Sat (his ask; the cable crunch left out for the disc).
+// Knees bent to start, stopping before the tailbone lifts, three seconds
+// down; harder by straightening the legs, never past 12 reps.
+const LEG_RAISE = {
+  ex: 'lying-leg-raise',
+  mode: 'lift',
+  sets: 3,
+  reps: '10',
+  phaseBlockReps: { 2: '12', 3: '12' },
+  note: 'Knees bent, three seconds down.',
+  phaseNote: {
+    2: 'Legs straighter now, three seconds down.',
+    3: 'Legs straight, three seconds down, stopping before the tailbone lifts.',
+  },
+  logWeight: false,
+  restSecs: 30,
+};
+
 // ── THE BACK & HIPS SHAPE (2026-10-10, his ask + physio QA) ─────────────────
 // OPEN → BRACE → CONTRACT → FOLD. The hip and thoracic openers first (his
 // "openings before contraction"), the McGill primer, the back extension —
@@ -879,19 +977,38 @@ const OPENERS = [
   // 60 s a side (round 4): the standard dose, and the minute it frees pays
   // for the McGill primer's progression
   COUCH,
-  repped('hip-internal-rotation', 10, LIFT_SQUEEZE_LOWER(1, 2, 1), {
+  // HOLDS, NOT REPS (2026-10-21, his ask: "so it's a better hit"): 45 s with
+  // the ankle up, then 45 s with the knee up too, straight through on one
+  // side, then switch (`sideFirst`: one change of position, no rest between)
+  {
+    ex: 'hip-internal-rotation',
+    mode: 'hold',
+    sets: 2,
+    holdSecs: 45,
     perSide: true,
-  }),
+    sideFirst: true,
+    switchSecs: 15,
+    phase: 'HOLD',
+    setNotes: [
+      'Ankle up: lift the foot, the knee stays down.',
+      'Knee up too: lift the whole shin and hold.',
+    ],
+  },
 ];
 // `fold: true` — what an amber morning and the morning rule ("up less than
 // an hour") drop. They close EVERY session, after the carry and the finisher
 // too (round-3 physio QA): nothing loaded or scored after held flexion.
 const CLOSERS = [
+  // the number, no count (2026-10-20, his ask): your pace, then Done
   {
-    ...repped('elephant-walk', 24, [
-      ['LEFT', 2],
-      ['RIGHT', 2],
-    ]),
+    ex: 'elephant-walk',
+    mode: 'lift',
+    sets: 1,
+    reps: '24',
+    logWeight: false,
+    restSecs: 0,
+    note: 'Twenty-four: each one a bend on the left, then the right. Your pace.',
+    estSecs: 100,
     fold: true,
   },
   {
@@ -912,12 +1029,11 @@ const CLOSERS = [
 // BACK EXTENSIONS 2×/WEEK (physio QA, major): 40 reps to a burn four days a
 // week — rest day included — never let the extensors recover. Now Thu + Sat:
 // never the morning after the RDL (Thursday is 72 h after Monday's hinge).
-// THURSDAY HOLDS, SATURDAY REPS (2026-10-10, round-3 physio QA): Thursday is
-// 24 h after Wednesday's front squat, so it gets the isometric — extensor
-// endurance without another round of loaded flexion-extension. Saturday, 72 h
-// after the squat and a day after Friday's split squats (no hinge, no axial
-// bar), gets the reps at ~RPE 7. Both progress by phase. An amber morning
-// holds on either day, shorter.
+// THURSDAY HOLDS, SATURDAY REPS (2026-10-10, round-3 physio QA) — until
+// 2026-10-21, his call: "just tell me how many". Both days are now a number at
+// your pace, no count and no clock. Thursday is 24 h after Wednesday's front
+// squat, so it stays a couple of reps lighter than Saturday. An amber morning,
+// or the morning rule, still serves the hold on either day.
 const EXT_HOLD = {
   cue: 'Hips on the bench end, ankles pinned, lift to straight and STAY there — glutes tight, ribs down, breathe. Never past straight.',
   how: 'No reps — hold level with the floor for the clock. Shaking is fine; the low back rounding ends the set.',
@@ -933,12 +1049,14 @@ const BACK_EXTENSION_HOLD = (holdSecs, sets = 3) => ({
 });
 const BACK_EXTENSION = {
   ex: 'back-extension',
-  mode: 'tempo',
+  mode: 'lift',
   sets: 3,
-  reps: 12,
+  reps: '12',
   // it progresses (round-3 physio QA): 12 → 14 → 15 by phase
-  phaseBlockReps: { 2: 14, 3: 15 },
-  tempo: LIFT_SQUEEZE_LOWER(2, 1, 2),
+  phaseBlockReps: { 2: '14', 3: '15' },
+  logWeight: false,
+  note: 'Lift to straight, never past it. Your pace.',
+  estSecs: 45,
   restSecs: 45,
   amberBlock: BACK_EXTENSION_HOLD(20),
   changeoverSecs: 30, // Saturday: back inside from the sprints
@@ -947,10 +1065,11 @@ const BACK_EXTENSION = {
   morning: true,
 };
 const BACK_EXTENSION_THU = {
-  ...BACK_EXTENSION_HOLD(30),
-  // the hold grows by phase: 30 → 35 → 40 s
-  phaseHoldSecs: { 2: 35, 3: 40 },
-  amberBlock: BACK_EXTENSION_HOLD(20),
+  ...BACK_EXTENSION,
+  // a day after the squat: 10 → 12 → 12, two under Saturday
+  reps: '10',
+  phaseBlockReps: { 2: '12', 3: '12' },
+  changeoverSecs: undefined,
 };
 
 // A slot that serves different things on different rehab days. The calendar
@@ -1068,17 +1187,17 @@ export const REHAB_SESSIONS = [
     name: 'Back & Hips',
     freq: 'Tue · Thu · Sat',
     blurb:
-      'Open up, brace, then work: hip and thoracic openers, the McGill Big 3 (twice on Tuesday, with the Pallof press), Saturday’s sprints, back extensions (Thu and Sat), then Tuesday’s arm pump, Thursday’s rows and delts, or Saturday’s carries — and the two forward folds last of all. Up less than an hour? The morning check skips the folds.',
+      'Open up, brace, then work: hip and thoracic openers, the core holds (hollow hold, side plank, bird dog), Saturday’s sprints, back extensions (Thu and Sat), then Tuesday’s arms and leg raises, Thursday’s rows and delts, or Saturday’s carries and leg raises, and the two forward folds last of all. Up less than an hour? The morning check skips the folds.',
     blocks: [
       // the openers, the couch stretch on Tue/Thu only (Saturday's waits
       // until after the sprints)
       OPENERS[0],
       { rotate: byDay({ 0: COUCH, 1: COUCH }) },
       OPENERS[2],
-      // two McGill sets on Tuesday (+ the Pallof press); one on Thursday and
-      // Saturday — Saturday's minutes go to a proper sprint warm-up
-      ...BIG3.map((one, i) => ({
-        rotate: byDay({ 0: BIG3_X2[i], 1: one, 2: one }),
+      // the core holds: full on Tuesday, one set each Thursday, a short
+      // primer before Saturday's sprints
+      ...CORE_FULL.map((full, i) => ({
+        rotate: byDay({ 0: full, 1: CORE_LONG[i], 2: CORE_PRIMER[i] }),
       })),
       // Saturday's sprints: fresh, warm, before anything loads the back
       {
@@ -1123,6 +1242,8 @@ export const REHAB_SESSIONS = [
               // reverse curl (round-6 coach QA): honest forearm work now the
               // wrist curl left — biceps still sit well over their floor
               { ex: 'reverse-curl', reps: '10' },
+              // the lying DB extension, fully supported on the bench (back
+              // from the rope pushdown 2026-11-03, his call: he likes it)
               { ex: 'lying-db-extension', reps: '10' },
               // the wrist curl left (2026-10-10): its four minutes pay for
               // Tuesday's second McGill set — forearms keep 10 from the
@@ -1200,8 +1321,15 @@ export const REHAB_SESSIONS = [
       {
         finisher: true,
         pump: true,
-        // three rounds both days again (2026-10-11, the 45-minute cap)
-        rotate: byDay({ 0: CALVES, 1: CALVES }),
+        // Thursday only (2026-10-20, his ask: "do we really do it almost
+        // every day?") — Monday's Hinge & Calf carries the other half
+        rotate: byDay({ 1: CALVES }),
+      },
+      // `morning`: a flexed-pelvis move sits out in the first waking hour
+      {
+        cast: true,
+        morning: true,
+        rotate: byDay({ 0: LEG_RAISE, 2: LEG_RAISE }),
       },
       { rotate: byDay({ 2: COUCH }) },
       // the folds close the day — after every loaded and scored block
@@ -1216,10 +1344,10 @@ export const REHAB_SESSIONS = [
     name: 'Rest Day',
     freq: 'Sun',
     blurb:
-      'Openers, the McGill Big 3 twice, the Pallof press, one easy extra and the forward folds — no back extensions, no clock, no score. Feeling fresh? The Bonus WOD is one tap away, and skipping it costs nothing.',
+      'Openers, one set of each core hold, the Pallof press, one easy extra and the forward folds: no back extensions, no clock, no score. Feeling fresh? The Bonus WOD is one tap away, and skipping it costs nothing.',
     blocks: [
       ...OPENERS,
-      ...BIG3_X2,
+      ...CORE_LONG,
       PALLOF,
       { rotate: SUNDAY_CAST, cast: true },
       ...CLOSERS,

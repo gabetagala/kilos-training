@@ -63,6 +63,7 @@ export const MUSCLE_MAP = {
     hams: 0.5,
     glutes: 0.5,
   },
+  'db-hang-clean': { upperback: 0.5, hams: 0.5, glutes: 0.5 },
   'db-front-rack-lunge': { quads: 1, glutes: 1 },
   'bear-crawl': { obliques: 1, frontdelt: 0.5 },
   // The cardio stations are a CONDITIONING stimulus, not a hypertrophy one —
@@ -132,7 +133,8 @@ export const TARGETS = {
   // 2026-10-10 (coach QA): the last two leg gaps — knee-flexion hamstrings
   // (slider curls) and calves (they had none at all)
   hams: 8,
-  calves: 8,
+  // 6 since 2026-10-20: calves twice a week (Mon + Thu), not three times
+  calves: 6,
 };
 
 // Front delts are intentionally unserved — their MEV is ~0 because every

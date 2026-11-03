@@ -138,8 +138,10 @@ export function createStepEngine(exercises = {}) {
     // a block can speak for itself: its note rides under the cue, and a block
     // that serves a movement differently (the back extension as a HOLD) brings
     // its own cue and how-line instead of the movement's rep-based ones
+    // a block whose sets differ (hip IR: ankle up, then knee up) names each one
+    const setNote = block.setNotes?.[setIdx] ?? block.note;
     const own = {
-      ...(block.note ? { cueNote: block.note } : {}),
+      ...(setNote ? { cueNote: setNote } : {}),
       ...(block.cue ? { cue: block.cue } : {}),
       ...(block.how ? { how: block.how } : {}),
     };
@@ -342,6 +344,8 @@ export function createStepEngine(exercises = {}) {
                   round === block.rounds ? r.lastRoundNote || r.note : r.note,
                 countsAsSet: r.countsAsSet !== false,
                 ...(maxSet ? { maxSet: true } : {}),
+                // a counted warm-up move brings its own honest estimate
+                ...(r.estSecs ? { estSecs: r.estSecs } : {}),
                 // a superset's working set (2026-10-09): it logs the reps
                 // ACTUALLY done and earns a load target, read against the
                 // last session of the same week type (`heavy`)
@@ -369,11 +373,24 @@ export function createStepEngine(exercises = {}) {
                 mi === block.members.length - 1
                   ? (block.restSecs ?? between)
                   : between;
-              const nextMeta =
-                mi === block.members.length - 1
+              // the same move on its other side next (a warm-up's side
+              // plank): the gap is a switch, not a rest
+              const other = rm[mi + 1];
+              const switching =
+                r.side && other?.side && other.ex === r.ex;
+              const nextMeta = switching
+                ? `${other.side} NEXT`
+                : mi === block.members.length - 1
                   ? `ROUND ${round + 1} NEXT`
                   : `ROUND ${round} OF ${block.rounds}`;
-              steps.push(restStep(rm[mi].ex, secs, 'REST', nextMeta));
+              steps.push(
+                restStep(
+                  rm[mi].ex,
+                  secs,
+                  switching ? 'SWITCH SIDES' : 'REST',
+                  nextMeta,
+                ),
+              );
               if (label) steps[steps.length - 1].blockLabel = label;
             }
           });
@@ -675,12 +692,18 @@ export function createStepEngine(exercises = {}) {
             exId: rb.ex,
             secs: null,
             manual: true,
-            logWeight: true,
+            // a self-paced block with nothing to weigh (the elephant walk,
+            // leg raises) — the number to do and a Done, no dial
+            logWeight: block.logWeight !== false,
             phase: 'YOUR PACE',
             meta: `SET ${set} OF ${block.sets} · ${rb.reps} REPS`,
             reps: rb.reps,
             blockNote: block.note,
-            cueNote: set === block.sets ? block.lastSetNote : undefined,
+            cueNote:
+              set === block.sets ? block.lastSetNote || block.note : block.note,
+            // a self-paced move with no rep tempo (the elephant walk) brings
+            // its own honest estimate instead of the 35 s default
+            ...(block.estSecs ? { estSecs: block.estSecs } : {}),
             countsAsSet: true,
             ...guideFor(rb.ex, rb.reps),
             ...swapMeta(block),
@@ -697,6 +720,38 @@ export function createStepEngine(exercises = {}) {
       }
 
       const totalSets = blockScheme(block).length;
+      // SIDE FIRST (2026-10-21, hip IR): every set on the left, then switch
+      // once and do them all on the right — one change of position, and the
+      // hip never gets a rest between its two holds
+      if (block.perSide && block.sideFirst) {
+        SIDES.forEach((side, si) => {
+          for (let setIdx = 0; setIdx < totalSets; setIdx++) {
+            pushSetWork(steps, block, setIdx, totalSets, side);
+            if (setIdx < totalSets - 1 && block.restSecs) {
+              steps.push(
+                restStep(
+                  block.ex,
+                  block.restSecs,
+                  'REST',
+                  `SET ${setIdx + 2} NEXT`,
+                ),
+              );
+            }
+          }
+          if (si < SIDES.length - 1) {
+            steps.push(
+              restStep(
+                block.ex,
+                block.switchSecs || 10,
+                'SWITCH SIDES',
+                `${SIDES[si + 1]} NEXT`,
+              ),
+            );
+          }
+        });
+        tagBlock();
+        continue;
+      }
       const sides = block.perSide ? SIDES : [null];
       for (let setIdx = 0; setIdx < totalSets; setIdx++) {
         sides.forEach((side, si) => {
@@ -854,18 +909,22 @@ export function createStepEngine(exercises = {}) {
             title: block.name,
             detail: block.warmup
               ? `${Math.round(
-                  block.members.reduce((t, m) => t + (m.secs || 35), 0) / 60,
+                  block.members.reduce(
+                    (t, m) => t + (m.secs || m.estSecs || 35),
+                    0,
+                  ) / 60,
                 )} min · easy`
               : `${block.formatLabel || 'SETS'} · ${roundsWord(block.rounds)}`,
             piece: true,
             format: 'SETS',
             rounds: block.rounds,
             note: block.note,
+            // a per-side warm-up hold reads as two rows, so each names its side
             members: rm.map((r, i) => ({
               name: name(r.ex),
-              detail: block.members[i]?.secs
-                ? `${block.members[i].secs}s`
-                : r.reps,
+              detail: `${
+                block.members[i]?.secs ? `${block.members[i].secs}s` : r.reps
+              }${r.side ? ` ${r.side.toLowerCase()}` : ''}`,
             })),
           };
         }
@@ -972,6 +1031,7 @@ export function createStepEngine(exercises = {}) {
   const MAX_SET_EXTRA_REPS = 5;
   function estStepSecs(s) {
     if (s.secs != null) return s.secs;
+    if (s.estSecs) return s.estSecs;
     if (s.repTempo && s.repTarget) {
       const sides = /\/(side|leg|arm)/.test(String(s.reps ?? '')) ? 2 : 1;
       const reps = s.repTarget + (s.maxSet ? MAX_SET_EXTRA_REPS : 0);

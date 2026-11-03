@@ -145,12 +145,12 @@ describe('applyRamp', () => {
     expect(pumps).toHaveLength(3);
     expect(ramped.blocks.length).toBe(daily.blocks.length - (finishers.length - pumps.length));
     expect(ramped.blocks.filter((b) => b.finisher).every((b) => b.pump)).toBe(true);
-    // Tue Arms 4 · Calves 3; Thu Row & Raise 3 · Curl & Lateral 5 · Calves 3
-    // (45-min round); ramp 1 is two rounds short (capped at 2), ramp 2 one
-    // short (capped at 3)
+    // Tue Arms 4; Thu Row & Raise 3 · Curl & Lateral 5 · Calves 3 (45-min
+    // round; calves Thursday only since 2026-10-20); ramp 1 is two rounds
+    // short (capped at 2), ramp 2 one short (capped at 3)
     const ROUNDS = {
-      1: { 0: { Arms: 2, Calves: 1 }, 1: { 'Row & Raise': 1, 'Curl & Lateral': 2, Calves: 1 } },
-      2: { 0: { Arms: 3, Calves: 2 }, 1: { 'Row & Raise': 2, 'Curl & Lateral': 3, Calves: 2 } },
+      1: { 0: { Arms: 2 }, 1: { 'Row & Raise': 1, 'Curl & Lateral': 2, Calves: 1 } },
+      2: { 0: { Arms: 3 }, 1: { 'Row & Raise': 2, 'Curl & Lateral': 3, Calves: 2 } },
     };
     for (const ramp of [1, 2]) {
       for (const k of [0, 1]) {
@@ -174,14 +174,14 @@ describe('applyRamp', () => {
         expect(q.some((st) => st.exId === 'suitcase-carry'), `v${v}`).toBe(false);
         const labels = [...new Set(q.map((st) => st.blockLabel).filter(Boolean))];
         expect(labels, `v${v}`).toEqual(
-          [['Arms', 'Calves'], ['Row & Raise', 'Curl & Lateral', 'Calves'], []][k],
+          [['Arms'], ['Row & Raise', 'Curl & Lateral', 'Calves'], []][k],
         );
         const ids = new Set(q.map((st) => st.exId));
         for (const ex of [
           't-spine-reach',
           'couch-stretch',
           'hip-internal-rotation',
-          'mcgill-curlup',
+          'hollow-hold',
           'side-plank',
           'bird-dog',
           'elephant-walk',
@@ -190,8 +190,18 @@ describe('applyRamp', () => {
           expect(ids.has(ex), `v${v} ${ex}`).toBe(true);
         }
         // the back extension stays on its Thu/Sat days — a ramp is lighter,
-        // never a different day
+        // never a different day — and so do the leg raises (Tue + Sat, an
+        // extra, not a finisher: the ramp keeps them as written)
         expect(ids.has('back-extension'), `v${v}`).toBe(k !== 0);
+        expect(ids.has('lying-leg-raise'), `v${v}`).toBe(k !== 1);
+        // the core holds are never shaped by a ramp
+        for (const ex of ['hollow-hold', 'side-plank', 'bird-dog']) {
+          const secs = (s) =>
+            buildStepQueue(s, {}, v)
+              .filter((st) => st.exId === ex && st.kind === 'work')
+              .map((st) => st.secs);
+          expect(secs(ramped), `v${v} ${ex}`).toEqual(secs(daily));
+        }
       }
     }
   });

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildStepQueue,
   estimateSessionMins,
+  estimateSessionSecs,
   getRehabSession,
   nextWorkLabel,
   REHAB_EXERCISES,
@@ -59,7 +60,10 @@ describe('rehab program data', () => {
   // close EVERY session, after the carry and the finisher too — nothing loaded
   // or scored after held flexion. The calendar index is (w−1)·4 + k with
   // k = 0 Tue, 1 Thu, 2 Sat — so variant 0 is week 1 Tuesday.
-  it('is Back & Hips: openers → McGill primer → back extension → the day → folds', () => {
+  // 2026-10-20 (his ask): the brace is the CORE HOLDS now — the hollow hold,
+  // side plank and bird dog as straight holds — not the McGill Big 3's
+  // chopped 10 s holds; and leg raises join Tuesday and Saturday.
+  it('is Back & Hips: openers → core holds → back extension → the day → folds', () => {
     expect(REHAB_SESSIONS.map((s) => s.id)).toEqual([
       'daily',
       'sunday', // the rest day (2026-08-16): openers, primer, folds, one move
@@ -74,7 +78,7 @@ describe('rehab program data', () => {
       't-spine-reach',
       'couch-stretch',
       'hip-internal-rotation',
-      'mcgill-curlup',
+      'hollow-hold',
       'side-plank',
       'bird-dog',
     ];
@@ -82,16 +86,17 @@ describe('rehab program data', () => {
     const day = (v) => sessionBlocks(daily, v).map((b) => b.ex ?? b.name);
     // Tuesday: NO back extension (2×/week, Thu + Sat since round 2 — never
     // the morning after Monday's RDL) — the Pallof press right after the
-    // (two-set) Big 3, the arm pump and calves, then the folds
+    // core holds, the arm pump, then the leg raises (no calves since
+    // 2026-10-20: Monday and Thursday carry them), then the folds
     expect(day(0)).toEqual([
       ...SHARED_OPEN,
       'pallof-press',
       'Arms',
-      'Calves',
+      'lying-leg-raise',
       ...FOLDS,
     ]);
     // Thursday: back extension (72 h after the hinge), row & raise, curl &
-    // lateral, calves — then the folds
+    // lateral, calves — then the folds. No leg raises on Thursday.
     expect(day(1)).toEqual([
       ...SHARED_OPEN,
       'back-extension',
@@ -100,11 +105,13 @@ describe('rehab program data', () => {
       'Calves',
       ...FOLDS,
     ]);
-    // Saturday (sprint round): the sprints right after the Big 3 — fresh,
-    // before anything loads — then the back extension, the supporting move,
-    // the farmer carry and the suitcase carry; the old scored finisher is gone
-    // QA round: Saturday's couch stretch moves to just before the folds —
-    // the hip-flexor stretch belongs after the sprints, not before them
+    // Saturday (sprint round): the sprints right after the core holds (a
+    // short primer on Saturday) — fresh, before anything loads — then the
+    // back extension, the supporting
+    // move, the farmer carry and the suitcase carry, then the leg raises; the
+    // old scored finisher is gone. QA round: Saturday's couch stretch moves
+    // to just before the folds — the hip-flexor stretch belongs after the
+    // sprints, not before them
     expect(day(2)).toEqual([
       ...SHARED_OPEN.filter((x) => x !== 'couch-stretch'),
       'Sprints: Starts',
@@ -112,9 +119,18 @@ describe('rehab program data', () => {
       'side-hip-abduction',
       'farmer-carry',
       'suitcase-carry',
+      'lying-leg-raise',
       'couch-stretch',
       ...FOLDS,
     ]);
+    // the McGill Big 3 left Back & Hips (2026-10-20): no 10 s rep-holds on
+    // any day of the block — the red-day Daily Reset keeps them
+    for (let v = 0; v < 48; v++) {
+      expect(
+        sessionBlocks(daily, v).some((b) => b.mode === 'reps' || b.ex === 'mcgill-curlup'),
+        `v${v}`,
+      ).toBe(false);
+    }
     // the folds are flagged at the source — what an amber morning and the
     // morning rule ("up less than an hour") drop — and nothing else is
     expect(daily.blocks.slice(-2).map((b) => [b.ex, b.fold])).toEqual([
@@ -131,8 +147,8 @@ describe('rehab program data', () => {
   // The order IS the safety rule: held end-range flexion right before a
   // loaded extension set leaves the spine less protected (ligament creep),
   // so the folds always come AFTER the back extension — and since round 3
-  // after every loaded and scored block — and the McGill primer always comes
-  // before it.
+  // after every loaded and scored block — and the core holds (the brace,
+  // since 2026-10-20) always come before it.
   it('primes before it loads, and folds only after the work — every real day', () => {
     const daily = getRehabSession('daily');
     for (let w = 0; w < 4; w++) {
@@ -140,23 +156,32 @@ describe('rehab program data', () => {
         const v = w * 4 + k;
         const ids = sessionBlocks(daily, v).map((b) => b.ex ?? b.name);
         const at = (ex) => ids.indexOf(ex);
-        // openers before the Big 3 (Saturday's couch stretch waits for the
-        // end of the day, right before the folds — QA round)
+        // openers before the core holds (Saturday's couch stretch waits for
+        // the end of the day, right before the folds — QA round)
         const openers =
           k === 2
             ? ['t-spine-reach', 'hip-internal-rotation']
             : ['t-spine-reach', 'couch-stretch', 'hip-internal-rotation'];
         for (const o of openers) {
           expect(at(o), `v${v} ${o}`).toBeGreaterThanOrEqual(0);
-          expect(at(o), `v${v} ${o}`).toBeLessThan(at('mcgill-curlup'));
+          expect(at(o), `v${v} ${o}`).toBeLessThan(at('hollow-hold'));
         }
         if (k === 2) expect(at('couch-stretch'), `v${v}`).toBe(ids.length - 3);
         expect(ids.filter((x) => x === 'couch-stretch'), `v${v}`).toHaveLength(1);
-        // the Big 3, once each, in McGill's order
-        expect(at('mcgill-curlup')).toBeLessThan(at('side-plank'));
+        // the core holds, once each: front, side, back
+        expect(at('hollow-hold')).toBeLessThan(at('side-plank'));
         expect(at('side-plank')).toBeLessThan(at('bird-dog'));
-        for (const b of ['mcgill-curlup', 'side-plank', 'bird-dog']) {
+        for (const b of ['hollow-hold', 'side-plank', 'bird-dog']) {
           expect(ids.filter((x) => x === b), `v${v} ${b}`).toHaveLength(1);
+        }
+        // the leg raises (Tue + Sat) come after the day's loaded work —
+        // never before the back extension — and before the folds
+        if (k === 1) {
+          expect(at('lying-leg-raise'), `v${v}`).toBe(-1);
+        } else {
+          expect(at('lying-leg-raise'), `v${v}`).toBeGreaterThan(at('bird-dog'));
+          expect(at('lying-leg-raise'), `v${v}`).toBeGreaterThan(at('back-extension'));
+          expect(at('lying-leg-raise'), `v${v}`).toBeLessThan(at('elephant-walk'));
         }
         const hasExt = at('back-extension') >= 0;
         // the back extension runs Thu + Sat only — 2×/week lets the
@@ -234,12 +259,13 @@ describe('rehab program data', () => {
     // its phase (weeks 5–8) serves it as short crisp sets a side instead
     const ql = sessionBlocks(daily, 4 * 4 + 2).find((b) => b.ex === 'ql-plank');
     expect(ql).toMatchObject({ sets: 3, holdSecs: 20, perSide: true });
-    // the openers (round 5): t-spine reach 10 a side, hip IR 10 a side
+    // the openers (round 5): t-spine reach 10 a side; hip IR since
+    // 2026-10-21 two 45 s holds a side (ankle up, then knee up), no reps
     const open = sessionBlocks(daily, 0).slice(0, 3);
     expect(open.map((b) => [b.ex, b.reps ?? b.holdSecs])).toEqual([
       ['t-spine-reach', 10],
       ['couch-stretch', 60],
-      ['hip-internal-rotation', 10],
+      ['hip-internal-rotation', 45],
     ]);
     // Sunday's supporting moves too (round 2): short sets of 20 s a side,
     // not 2 minutes "close to cramping" in a long-sit
@@ -252,15 +278,20 @@ describe('rehab program data', () => {
   // here (coach QA) as spine-quiet pumps, and Saturday keeps the scored
   // engine finisher. Every block is flagged `finisher` so the short, amber
   // and ramp days drop it first — except the one `shortKeep` pump slot.
-  it('Tue pumps arms + calves, Thu row & raise / curl & lateral / calves, Sat sprints + carries', () => {
+  // 2026-10-20: calves are Thursday only (Monday's Hinge & Calf carries the
+  // other half), and the leg raises close Tuesday's and Saturday's work.
+  it('Tue pumps arms + leg raises, Thu row & raise / curl & lateral / calves, Sat sprints + carries + leg raises', () => {
     const daily = getRehabSession('daily');
     // the day's work, without the two folds that close it
     const work = (v) => sessionBlocks(daily, v).filter((b) => !b.fold);
     for (let w = 0; w < 4; w++) {
-      // Tuesday: round 3 — a loadable chest press leads the arm pump
+      // Tuesday: round 3 — a loadable chest press leads the arm pump; the
+      // leg raises close the day's work, and no calves
       const tue = work(w * 4).slice(-2);
-      expect(tue.map((b) => b.name)).toEqual(['Arms', 'Calves']);
-      // QA round: press, reverse curl (forearms + brachialis), extension
+      expect(tue.map((b) => b.name ?? b.ex)).toEqual(['Arms', 'lying-leg-raise']);
+      expect(work(w * 4).some((b) => b.name === 'Calves'), `w${w} tue`).toBe(false);
+      // QA round: press, reverse curl (forearms + brachialis), triceps — the
+      // lying DB extension (the rope pushdown 2026-10-21 to 2026-11-03)
       expect(tue[0].members.map((m) => m.ex)).toEqual([
         'db-bench-press',
         'reverse-curl',
@@ -275,8 +306,9 @@ describe('rehab program data', () => {
         ['db-lateral-raise', '12'],
       ]);
       // Saturday: two farmer carries, then a suitcase carry a side (left
-      // then right) close the day's work — then the couch stretch
-      const sat = work(w * 4 + 2).slice(-3, -1);
+      // then right), then the leg raises — then the couch stretch
+      const sat = work(w * 4 + 2).slice(-4, -2);
+      expect(work(w * 4 + 2).at(-2).ex).toBe('lying-leg-raise');
       expect(work(w * 4 + 2).at(-1).ex).toBe('couch-stretch');
       expect(sat[0]).toMatchObject({ ex: 'farmer-carry', mode: 'hold', sets: 2, holdSecs: 40 });
       expect(sat[1]).toMatchObject({
@@ -301,9 +333,10 @@ describe('rehab program data', () => {
     // And no forced max-out every week — pumps run the lift days' "1–2 left",
     // so no member carries a LAST SET rep-out note.
     // 45-min round: Thursday's Curl & Lateral runs FIVE rounds (10 s
-    // between), and the calves are three rounds on both days, 20 s rest
+    // between), and the calves three rounds, 20 s rest — Thursday only since
+    // 2026-10-20
     const ROUNDS = {
-      0: { Arms: 4, Calves: 3 },
+      0: { Arms: 4 },
       1: { 'Row & Raise': 3, 'Curl & Lateral': 5, Calves: 3 },
     };
     let pumps = 0;
@@ -320,7 +353,7 @@ describe('rehab program data', () => {
         }
       }
     }
-    expect(pumps).toBe(4 * 5);
+    expect(pumps).toBe(4 * 4);
     // 15 s between moves (round 5), 40 s between rounds — every move in
     // these pumps is a different pair of DBs, set out beforehand
     expect(sessionBlocks(daily, 0).find((b) => b.name === 'Arms')).toMatchObject({
@@ -335,9 +368,12 @@ describe('rehab program data', () => {
       betweenSecs: 10,
       restSecs: 40,
     });
-    for (const k of [0, 1]) {
-      expect(sessionBlocks(daily, k).find((b) => b.name === 'Calves').restSecs, `k${k}`).toBe(20);
-    }
+    expect(sessionBlocks(daily, 1).find((b) => b.name === 'Calves').restSecs).toBe(20);
+    // the calves slot serves Thursday and nothing else, all twelve weeks
+    const calvesSlot = daily.blocks.find((b) => b.rotate?.some((x) => x?.name === 'Calves'));
+    calvesSlot.rotate.forEach((x, i) => {
+      expect(x?.name ?? null, `slot ${i}`).toBe(i % 4 === 1 ? 'Calves' : null);
+    });
     // and the queue never says LAST SET on a pump
     for (const v of [0, 1]) {
       expect(
@@ -360,9 +396,24 @@ describe('rehab program data', () => {
       }
     }
     // and every day-specific block is droppable: flagged at the source.
-    // The day's work sits between the back extension slot and Saturday's
-    // couch-stretch slot (QA round), which stays on every dose — then the folds.
-    const dayWork = daily.blocks.slice(-9, -3);
+    // The day's work sits between the back extension slot and the leg-raise
+    // slot (2026-10-20), then Saturday's couch-stretch slot (QA round), which
+    // stays on every dose — then the folds.
+    const dayWork = daily.blocks.slice(-10, -4);
+    // the leg raises: Tue + Sat, an extra (`cast`) — never a finisher or a
+    // pump, so a short, amber or tired day lets them sit out
+    const legRaiseSlot = daily.blocks.at(-4);
+    expect(legRaiseSlot.rotate.map((x) => x?.ex ?? null).slice(0, 4)).toEqual([
+      'lying-leg-raise',
+      null,
+      'lying-leg-raise',
+      null,
+    ]);
+    expect(legRaiseSlot.cast).toBe(true);
+    // a flexed-pelvis move: the morning rule ("up under 1 hr") sits it out
+    expect(legRaiseSlot.morning).toBe(true);
+    expect(legRaiseSlot.amberBlock).toBeUndefined();
+    expect(legRaiseSlot.finisher || legRaiseSlot.pump).toBeFalsy();
     const couchSlot = daily.blocks.at(-3);
     expect(couchSlot.rotate.map((x) => x?.ex ?? null).slice(0, 4)).toEqual([
       null,
@@ -415,6 +466,7 @@ describe('rehab program data', () => {
       'db-push-press',
       'db-hang-snatch',
       'db-hang-clean-press',
+      'db-hang-clean',
       'db-front-rack-lunge',
       'broad-jump',
     ];
@@ -655,9 +707,10 @@ describe('buildStepQueue', () => {
     for (const s of daily.filter((s) => s.kind === 'work' && s.side)) {
       (bySide[s.exId] ??= []).push(s.side);
     }
-    // Tuesday: t-spine reach, couch stretch, hip IR, the two per-side
-    // McGill primer moves (side plank, bird dog — two sets on Tuesday since
-    // the sprint round, each set all-left then all-right) and the Pallof
+    // Tuesday: t-spine reach, couch stretch, hip IR, the two per-side core
+    // holds (side plank, bird dog — two sets on Tuesday, each set left then
+    // right) and the Pallof. The hollow hold and the leg raises are both
+    // sides at once.
     expect(Object.keys(bySide).sort()).toEqual(
       [
         't-spine-reach',
@@ -682,13 +735,25 @@ describe('buildStepQueue', () => {
   });
 
   it('counts logical sets per side', () => {
-    // Tuesday: tspine 2 + couch 2 + hipIR 2 + the TWO-set Big 3 (curl-up 2
-    // + side plank 2 × 2 + bird dog 2 × 2) + Pallof 2 × 2 + elephant 1 +
-    // seated-gm 1 = 22, NO back extension, then Arms 3 × 4 + Calves 1 × 3 = 37
-    expect(sessionSetTotal(getRehabSession('daily'))).toBe(37);
-    // Thursday: the 13 shared + back extension hold 3, then Row & Raise
-    // 2 × 3 + Curl & Lateral 2 × 5 + Calves 1 × 3 = 35
-    expect(sessionSetTotal(getRehabSession('daily'), 1)).toBe(35);
+    // Tuesday: tspine 2 + couch 2 + hipIR 4 (two holds a side since
+    // 2026-10-21) + the full core holds (hollow 3 + side plank 2 × 2 + bird
+    // dog 2 × 2) + Pallof 2 × 2 + elephant 1 + seated-gm 1 = 25, NO back
+    // extension, then Arms 3 × 4 + leg raises 3 (no calves) = 40
+    expect(sessionSetTotal(getRehabSession('daily'))).toBe(40);
+    // Thursday: tspine 2 + couch 2 + hipIR 4 + one set of each hold
+    // (hollow 1 + side plank 2 + bird dog 2) + elephant 1 + seated-gm 1 = 15,
+    // + back extension 3, then Row & Raise 2 × 3 + Curl & Lateral 2 × 5
+    // + Calves 1 × 3 = 37
+    expect(sessionSetTotal(getRehabSession('daily'), 1)).toBe(37);
+    // Saturday: tspine 2 + hipIR 4 + the primer holds 5 = 11, five working
+    // sprints (the three build rounds never count), back extension 3,
+    // side-hip abduction 2, farmer 2, suitcase 2, leg raises 3, couch 2,
+    // elephant 1, seated-gm 1 = 32
+    expect(sessionSetTotal(getRehabSession('daily'), 2)).toBe(32);
+    // Sunday: openers 8 + one set of each hold (hollow 1 + side plank 2 +
+    // bird dog 2, Thursday's version) + Pallof 2 × 2 + the supporting move
+    // 3 × 2 + elephant 1 + seated-gm 1 = 25
+    expect(sessionSetTotal(getRehabSession('sunday'))).toBe(25);
     // catcamel 1 + tspine 1×2 + curl 2 + (plank, bird) à 2×2 = 13
     expect(sessionSetTotal(getRehabSession('reset'))).toBe(13);
     // open-up: (bridge, ham, hip) à 2×2 = 12
@@ -740,12 +805,13 @@ describe('player helpers', () => {
   it('the daily protocol and the easy day land in believable bands', () => {
     // Back & Hips (2026-10-10): ~16 min of openers, primer, back extension
     // and folds, then the day's own work — every real day (Tue/Thu/Sat, all
-    // four weeks) lands 30–40 minutes, the same band as a lift day.
+    // four weeks) lands 30–45 minutes, the same band as a lift day (the
+    // 45:00 cap since 2026-10-09; the hip IR holds made Thursday 42).
     for (let w = 0; w < 4; w++) {
       for (const k of [0, 1, 2]) {
         const d = estimateSessionMins(getRehabSession('daily'), w * 4 + k);
         expect(d, `w${w + 1} k${k}`).toBeGreaterThanOrEqual(30);
-        expect(d, `w${w + 1} k${k}`).toBeLessThanOrEqual(40);
+        expect(d, `w${w + 1} k${k}`).toBeLessThanOrEqual(45);
       }
     }
     const r = estimateSessionMins(getRehabSession('reset'));
@@ -811,10 +877,11 @@ describe('rotation (the mechanism outlives the hinge)', () => {
       expect(variantLabel(s, 0), s.id).toBeNull();
     }
     // a week = Tue / Thu / Sat, each with its own day's work — and every
-    // day closes on the same two folds (round 3)
+    // day closes on the same two folds (round 3). Tuesday's work ends on the
+    // leg raises, Thursday's on the calves (2026-10-20)
     const dayWork = (v) => sessionBlocks(daily, v).filter((b) => !b.fold);
     const closers = [0, 1, 2].map((v) => dayWork(v).at(-1).name ?? dayWork(v).at(-1).ex);
-    expect(closers).toEqual(['Calves', 'Calves', 'couch-stretch']);
+    expect(closers).toEqual(['lying-leg-raise', 'Calves', 'couch-stretch']);
     for (let v = 0; v < 48; v++) {
       expect(sessionBlocks(daily, v).at(-1).ex, `v${v}`).toBe('seated-good-morning');
     }
@@ -886,22 +953,32 @@ describe('rotation (the mechanism outlives the hinge)', () => {
       ['Ladder Down', 'fortime'],
       ['Tabata: Jumping Jacks', 'tabata'],
     ]);
+    // 2026-10-20: ring rows, not push-ups — Mon, Tue and Fri already press,
+    // so the metcon stays full-body without a fourth pressing day
     expect(metcons[0]).toMatchObject({ capSecs: 420 });
     expect(metcons[0].members.map((m) => [m.ex, m.reps])).toEqual([
       ['band-pull-apart', '10'],
-      ['push-up', '8'],
+      ['ring-row', '8'],
       ['box-step-up', '12'],
     ]);
     expect(metcons[1]).toMatchObject({ rounds: 4 });
     expect(metcons[1].members.map((m) => [m.ex, m.reps])).toEqual([
       ['box-step-up', '14'],
-      ['push-up', '10'],
+      ['ring-row', '10'],
     ]);
+    expect(metcons[1].note).toMatch(/even minutes ring rows/);
     expect(metcons[2].members.map((m) => [m.ex, m.repScheme])).toEqual([
       ['jumping-jack', [30, 20, 10]],
       ['box-step-up', [16, 12, 8]],
-      ['push-up', [12, 8, 4]],
+      ['ring-row', [12, 8, 4]],
     ]);
+    // no push-up anywhere in the metcon pool, and its rows log no kilos
+    for (const t of metcons) {
+      for (const m of t.members || [{ ex: t.ex }]) {
+        expect(m.ex, t.name).not.toBe('push-up');
+        if (m.ex === 'ring-row') expect(m.logWeight, t.name).toBe(false);
+      }
+    }
     // nothing in it is spine-loaded or open-pace banned
     for (const t of metcons) {
       for (const m of t.members || [{ ex: t.ex }]) {
@@ -924,12 +1001,16 @@ describe('rotation (the mechanism outlives the hinge)', () => {
   // = week − 1), the same job each time — a pulse raiser, the cat-camel, a
   // day prep, and the day's first pattern last.
   it('each lift day serves four distinct warm-ups, one per week, same job', () => {
+    // Wednesday's warm-up ends on a light rehearsal of the power clean
+    // (2026-10-20: its jumps left, so its pogo hops did too); Friday's still
+    // ends on the springs (it kept its jumps, 2026-11-03)
     const WARM_LAST = {
-      // Wednesday: the empty-bar front squat, then the springs
-      'd40-b1': ['front-squat', 'pogo-hop'],
-      // Friday: the springs (the jumps come next)
-      'd40-c1': ['pogo-hop'],
+      // Wednesday: the empty-bar front squat, then the hang power clean
+      'd40-b1': ['front-squat', 'db-hang-clean'],
+      // Friday: the springs, then two easy broad jumps (the max ones next)
+      'd40-c1': ['pogo-hop', 'broad-jump'],
     };
+    const REHEARSAL = { 'd40-b1': 'db-hang-clean' };
     for (const s of DENSITY40_SESSIONS) {
       const pool = s.blocks[0].rotate;
       const shapes = pool.map((w) => w.members.map((m) => m.ex).join(','));
@@ -950,16 +1031,41 @@ describe('rotation (the mechanism outlives the hinge)', () => {
             WARM_LAST[s.id],
           );
         }
-        // every warm-up move is timed, unlogged and never a set
+        // every warm-up move is timed OR counted (2026-11-03: a count is
+        // the number, then Done — never "five reps" on a clock), unlogged and
+        // never a set; a note that names a count is a counted move
         for (const m of w.members) {
-          expect(m.secs, `${s.id} ${m.ex}`).toBeGreaterThan(0);
+          if (m.secs) {
+            expect(m.reps, `${s.id} ${m.ex}`).toBeUndefined();
+          } else {
+            expect(m.reps, `${s.id} ${m.ex}`).toMatch(/^\d+(\/side)?$/);
+            expect(m.estSecs, `${s.id} ${m.ex}`).toBeGreaterThan(0);
+          }
           expect(m.logWeight, `${s.id} ${m.ex}`).toBe(false);
           expect(m.countsAsSet, `${s.id} ${m.ex}`).toBe(false);
+          if (/\b(five|eight|ten|two) (easy|slow)\b/i.test(m.note || '')) {
+            expect(m.reps, `${s.id} ${m.ex} counted`).toBeDefined();
+          }
+          // "a side" on one clock never said when to switch: a per-side hold
+          // is two timers, LEFT then RIGHT
+          if (m.secs && /a side/i.test(m.note || '')) {
+            throw new Error(`${s.id} ${m.ex}: a per-side note on one timer`);
+          }
         }
-        // the pogo is ballistic (amber / short / tired drop it); the empty
-        // bar swaps to a box squat on an amber morning
-        const pogo = w.members.find((m) => m.ex === 'pogo-hop');
-        if (pogo) expect(pogo.ballistic).toBe(true);
+        // the clean rehearsal, the pogo and the easy broad jumps are
+        // ballistic (amber / short / tired / unchecked drop them); the clean
+        // is light — five easy reps; the springs are Friday's alone. The
+        // empty bar swaps to a box squat on an amber morning
+        for (const ex of ['pogo-hop', 'broad-jump']) {
+          const j = w.members.find((m) => m.ex === ex);
+          expect(!!j, `${s.id} wk${i + 1} ${ex}`).toBe(s.id === 'd40-c1');
+          if (j) expect(j.ballistic).toBe(true);
+        }
+        if (REHEARSAL[s.id]) {
+          const r = w.members.find((m) => m.ex === REHEARSAL[s.id]);
+          expect(r, `${s.id} wk${i + 1}`).toMatchObject({ ballistic: true, reps: '5' });
+          expect(r.note, `${s.id} wk${i + 1}`).toMatch(/easy reps/);
+        }
         const bar = w.members.find((m) => m.ex === 'front-squat');
         if (bar) expect(bar.amberEx).toBe('box-squat');
       }
@@ -976,10 +1082,27 @@ describe('rotation (the mechanism outlives the hinge)', () => {
         );
       }
     }
-    // Monday has no springs at all
+    // Monday has no power rehearsal — nothing ballistic at all
     for (const w of getProgramSession('d40-a1').blocks[0].rotate) {
       expect(w.members.some((m) => m.ballistic), 'Monday warm-up').toBe(false);
     }
+    // the player: a counted move is YOUR PACE with its number and a Done, no
+    // clock, its estimate the old timer's; the side plank is a timer a side
+    // with a switch between (Wednesday, week 4)
+    const wed4 = buildStepQueue(getProgramSession('d40-b1'), {}, 3).filter(
+      (st) => st.blockLabel === 'Warm-Up',
+    );
+    const bar = wed4.find((st) => st.exId === 'front-squat' && st.kind === 'work');
+    expect(bar).toMatchObject({ manual: true, secs: null, phase: 'YOUR PACE', reps: '5', estSecs: 40, logWeight: false, countsAsSet: false, warmup: true });
+    const plank = wed4.filter((st) => st.exId === 'side-plank');
+    expect(plank.map((st) => [st.kind, st.phase, st.side ?? null, st.secs])).toEqual([
+      ['work', 'HOLD', 'LEFT', 15],
+      ['rest', 'SWITCH SIDES', null, 5],
+      ['work', 'HOLD', 'RIGHT', 15],
+      // …then the usual short rest before the empty-bar squat
+      ['rest', 'REST', null, 5],
+    ]);
+    expect(plank[1].meta).toBe('RIGHT NEXT');
   });
 
   // No two days share a shape: Monday closes on Wings (moved after the hinge
@@ -1039,6 +1162,11 @@ describe('rotation (the mechanism outlives the hinge)', () => {
       'The Anchor',
       'Dips, Pull-Ups & Curls',
       'Legs & Back',
+    ]);
+    const jumps = rows.find((r) => r.title === 'Jumps');
+    expect(jumps.members).toEqual([
+      { name: 'Broad Jump', detail: '3' },
+      { name: 'Skater Bound', detail: '3/side' },
     ]);
     const dips = rows.find((r) => r.title === 'Dips, Pull-Ups & Curls');
     expect(dips.members.map((m) => m.name)).toEqual(['Ring Dip', 'Strict Pull-Up', 'Cable Leg Curl']);
@@ -1251,44 +1379,63 @@ describe('Density 40 program', () => {
   });
 
   // Power before the heavy lift (2026-10-10, both reviews): Wednesday's
-  // Power EMOM — broad jumps + push press, fresh legs, real rest — before
-  // the squat, and (round 2) Friday's own Jumps EMOM — broad jumps and
-  // skater bounds, unloaded — before the press. Monday has none. The old
-  // Prime blocks are gone; the hang snatch and the hang clean & press are no
-  // longer served anywhere.
-  it('jumps come before the anchor on Wed and Fri, never as volume', () => {
-    const BALLISTIC = ['pogo-hop', 'broad-jump', 'power-pushup', 'skater-bound'];
-    for (const id of ['d40-b1', 'd40-c1']) {
+  // Power EMOM before the squat, Friday's Jumps EMOM before the press, fresh,
+  // on a forced-rest clock. Monday has none. The old Prime blocks are gone.
+  // 2026-10-20 (his call): Wednesday's power is the DB hang power clean +
+  // push press (the clean & press capped the clean at what he can press).
+  // 2026-11-03 (his call, "actually pretty fun"): Friday keeps its broad
+  // jumps and skater bounds.
+  it('power comes before the anchor on Wed and Fri: DB lifts Wednesday, jumps Friday', () => {
+    const WORK = {
+      'd40-b1': { piece: 'Power', ex: ['db-hang-clean', 'db-push-press'], secs: 60 },
+      'd40-c1': { piece: 'Jumps', ex: ['broad-jump', 'skater-bound'], secs: 45 },
+    };
+    for (const [id, want] of Object.entries(WORK)) {
       for (let v = 0; v < 4; v++) {
         const q = buildStepQueue(getProgramSession(id), {}, v);
-        const jumps = q.filter((s) => BALLISTIC.includes(s.exId) && s.kind === 'work');
-        expect(jumps.length, `${id} v${v}`).toBeGreaterThan(0);
+        // the working power minutes (the warm-up's rehearsal and pogo aside)
+        const power = q.filter((s) => want.ex.includes(s.exId) && s.kind === 'work' && !s.warmup);
+        expect(power.length, `${id} v${v}`).toBeGreaterThan(0);
         const anchorAt = q.findIndex((s) => s.piece === 'The Anchor');
-        for (const j of jumps) {
-          expect(j.logWeight).not.toBe(true);
-          expect(q.indexOf(j)).toBeLessThan(anchorAt);
+        for (const p of power) {
+          expect(q.indexOf(p), `${id} v${v}`).toBeLessThan(anchorAt);
+          // forced rest: each set owns its interval, never an open pace
+          expect(p, `${id} v${v} ${p.exId}`).toMatchObject({ piece: want.piece, emom: true, secs: want.secs });
+          expect(p.amrap, `${id} v${v}`).toBeFalsy();
         }
       }
     }
-    // Wednesday: the jumps are the Power EMOM, flagged ballistic at the source
+    // Wednesday: the Power EMOM, flagged ballistic at the source — the hang
+    // power clean then the push press, triples pinned, heavier doubles in
+    // phase 3
     const wed = getProgramSession('d40-b1');
     const power = wed.blocks.find((b) => b.name === 'Power');
     expect(power).toMatchObject({ mode: 'emom', ballistic: true, rounds: 3 });
-    expect(power.members.map((m) => m.ex)).toEqual(['broad-jump', 'db-push-press']);
+    expect(power.members.map((m) => [m.ex, m.reps, m.phaseReps])).toEqual([
+      ['db-hang-clean', '3', { 3: '2' }],
+      ['db-push-press', '3', { 3: '2' }],
+    ]);
+    for (const m of power.members) expect(m.fixedReps, m.ex).toBe(true);
+    expect(power.members[0].note).toMatch(/From the hang, above the knee/);
+    expect(power.members[0].note).toMatch(/Heavier than your press/);
     expect(wed.blocks.indexOf(power)).toBeLessThan(wed.blocks.findIndex((b) => b.rotate?.[0]?.anchor));
-    // Wednesday's warm-ups (all four, round 3) warm the springs: an easy pogo
-    // member, flagged ballistic so an amber or tired morning drops it
+    expect(wed.blocks.some((b) => b.name === 'Jumps')).toBe(false);
+    // Wednesday's warm-ups (all four) end on a light hang power clean,
+    // flagged ballistic so an amber or tired morning drops it
     for (const wedWarm of wed.blocks[0].rotate) {
       expect(wedWarm.warmup).toBe(true);
-      expect(wedWarm.members.find((m) => m.ex === 'pogo-hop')).toMatchObject({
+      expect(wedWarm.members.at(-1)).toMatchObject({
+        ex: 'db-hang-clean',
         ballistic: true,
         countsAsSet: false,
+        logWeight: false,
       });
     }
     // Friday: the Jumps EMOM — unloaded, pinned, and flagged ballistic +
     // prime (a short day spends these minutes first). Round 3: three rounds
     // on a 45 s clock — +50% contacts in the same minutes
     const friS = getProgramSession('d40-c1');
+    expect(friS.blocks.some((b) => b.name === 'Power')).toBe(false);
     const jumpsBlock = friS.blocks.find((b) => b.name === 'Jumps');
     expect(jumpsBlock).toMatchObject({
       mode: 'emom',
@@ -1308,17 +1455,22 @@ describe('Density 40 program', () => {
     expect(friS.blocks.indexOf(jumpsBlock)).toBeLessThan(
       friS.blocks.findIndex((b) => b.rotate?.[0]?.anchor),
     );
-    // Friday's warm-ups (round 3) all end on the springs — the jumps come next
+    // Friday's warm-ups all end on the springs and two easy broad jumps —
+    // the max ones come next
     for (const w of friS.blocks[0].rotate) {
-      expect(w.members.at(-1)).toMatchObject({ ex: 'pogo-hop', ballistic: true });
+      expect(w.members.slice(-2)).toMatchObject([
+        { ex: 'pogo-hop', ballistic: true, secs: 20 },
+        { ex: 'broad-jump', ballistic: true, reps: '2' },
+      ]);
     }
-    const fri = buildStepQueue(friS);
-    const friJumps = fri.filter((s) => s.piece === 'Jumps');
+    const friJumps = buildStepQueue(friS).filter((s) => s.piece === 'Jumps');
     expect(friJumps).toHaveLength(6); // 2 stations × 3 rounds
-    expect(friJumps.every((s) => s.logWeight === false && s.emom && s.secs === 45)).toBe(true);
+    expect(friJumps.every((s) => s.logWeight === false)).toBe(true);
+    // Monday has no power work; no lift day serves the snatch or the clean
+    // & press
     for (let v = 0; v < 4; v++) {
       const mon = buildStepQueue(getProgramSession('d40-a1'), {}, v);
-      expect(mon.some((s) => BALLISTIC.includes(s.exId)), `mon v${v}`).toBe(false);
+      expect(mon.some((s) => s.ballistic), `mon v${v}`).toBe(false);
     }
     for (const s of DENSITY40_SESSIONS) {
       for (let v = 0; v < 4; v++) {
@@ -1330,6 +1482,9 @@ describe('Density 40 program', () => {
         ).toBe(false);
       }
     }
+    // the hang power clean is open-pace banned and never goes heavy, like
+    // the snatch: a forced-rest clock and pinned reps only
+    expect(OPEN_PACE_BANNED).toContain('db-hang-clean');
   });
 
   it('carries are timed steps with sides that flip the demo', () => {
@@ -1403,8 +1558,8 @@ describe('Density 40 program', () => {
   // supersets with rest timers. These guard the two things that make that
   // safe: volume stays exactly auditable, and AMRAP never carries programmed
   // volume.
-  // The one non-anchor EMOM left on a lift day is Wednesday's Power piece:
-  // the broad jump and the push press stay on forced rest.
+  // Wednesday's Power piece: the hang power clean and the push press stay
+  // on forced rest (the broad jump left it on 2026-10-20).
   it('an EMOM emits one interval step per minute, no preps mid-piece', () => {
     const q = buildStepQueue(getProgramSession('d40-b1'));
     const piece = q.filter((s) => s.piece === 'Power');
@@ -1432,12 +1587,18 @@ describe('Density 40 program', () => {
     for (const s of press) {
       expect(s.logWeight).toBe(true);
       expect(s.countsAsSet).toBe(true);
-      expect(s.reps).toBe('4'); // fixed dose — never descended or maxed
+      expect(s.reps).toBe('3'); // fixed dose — never descended or maxed
     }
-    // the broad jump is bodyweight: scored by intent, never by kilograms
-    const jumps = power.filter((s) => s.exId === 'broad-jump');
-    expect(jumps).toHaveLength(3);
-    for (const s of jumps) expect(s.logWeight).toBe(false);
+    // the hang power clean is a loaded DB lift (it replaced the bodyweight
+    // broad jump, 2026-10-20): it logs its kilos too, at a fixed 3
+    const cleans = power.filter((s) => s.exId === 'db-hang-clean');
+    expect(cleans).toHaveLength(3);
+    for (const s of cleans) {
+      expect(s.logWeight).toBe(true);
+      expect(s.countsAsSet).toBe(true);
+      expect(s.reps).toBe('3');
+    }
+    expect(power.some((s) => s.exId === 'broad-jump')).toBe(false);
   });
 
   // THE RULE THAT MUST NOT BREAK: a format whose volume is "whatever you
@@ -1714,7 +1875,7 @@ describe('the Sunday rest day', () => {
   const wod = getRehabSession('wod');
   const METCON = new Set(['emom', 'fortime', 'tabata', 'amrap', 'circuit']);
 
-  it('carries the openers, the primer and the folds — nothing metcon-shaped', () => {
+  it('carries the openers, the core holds and the folds — nothing metcon-shaped', () => {
     for (const b of sunday.blocks) {
       for (const v of b.rotate || [b]) {
         expect(METCON.has(v?.mode), `${v?.name || v?.ex} is a metcon`).toBe(
@@ -1732,13 +1893,18 @@ describe('the Sunday rest day', () => {
         't-spine-reach',
         'couch-stretch',
         'hip-internal-rotation',
-        'mcgill-curlup',
+        'hollow-hold',
         'side-plank',
         'bird-dog',
       ]);
       expect(ids.slice(-2)).toEqual(['elephant-walk', 'seated-good-morning']);
-      // the Pallof press follows the two-set Big 3 (sprint round)
+      // the Pallof press follows the core holds (one set of each, Thursday's
+      // version — Sunday is the rest day, a day after Saturday)
       expect(ids[6]).toBe('pallof-press');
+      // no McGill 10 s rep-holds on Sunday either (2026-10-20), no leg raises
+      expect(ids).not.toContain('mcgill-curlup');
+      expect(ids).not.toContain('lying-leg-raise');
+      expect(sessionBlocks(sunday, v).some((b) => b.mode === 'reps')).toBe(false);
       expect(ids).toHaveLength(10);
       expect(
         buildStepQueue(sunday, {}, v).some((st) => st.exId === 'back-extension'),
@@ -1853,10 +2019,152 @@ describe('hold-mode movements carry a work model', () => {
     expect(st.cueNote).toBe(sgm.note);
   });
 
+  // 2026-10-20 (his ask): the elephant walk is the number, no count — 24 in
+  // total at his own pace, then Done. No tempo ticking, no weight dial; it
+  // brings its own time estimate (no rep tempo to size it from).
+  it('the elephant walk is 24 at your own pace, no count, no dial', () => {
+    for (const id of ['daily', 'sunday']) {
+      const s = getRehabSession(id);
+      const ew = s.blocks.find((b) => b.ex === 'elephant-walk');
+      expect(ew, id).toMatchObject({
+        mode: 'lift',
+        sets: 1,
+        reps: '24',
+        logWeight: false,
+        restSecs: 0,
+        fold: true,
+        estSecs: 100,
+      });
+      expect(ew.note, id).toMatch(/^Twenty-four: .*Your pace\.$/);
+      expect(ew.tempo, id).toBeUndefined();
+      for (const v of [0, 1, 2]) {
+        const steps = buildStepQueue(s, {}, v).filter(
+          (st) => st.exId === 'elephant-walk' && st.kind === 'work',
+        );
+        expect(steps, `${id} v${v}`).toHaveLength(1);
+        expect(steps[0], `${id} v${v}`).toMatchObject({
+          manual: true,
+          logWeight: false,
+          phase: 'YOUR PACE',
+          reps: '24',
+          meta: 'SET 1 OF 1 · 24 REPS',
+          cueNote: ew.note,
+          estSecs: 100,
+          countsAsSet: true,
+        });
+        expect(steps[0].secs, `${id} v${v}`).toBeNull();
+        expect(steps[0].tempo, `${id} v${v}`).toBeUndefined();
+      }
+    }
+    // the estimate is what the session clock counts: 100 s, not the 35 s
+    // default a self-paced set with no rep tempo gets
+    const est = (extra) =>
+      estimateSessionSecs({
+        id: 'x',
+        blocks: [{ ex: 'elephant-walk', mode: 'lift', sets: 1, reps: '24', logWeight: false, ...extra }],
+      });
+    expect(est({ estSecs: 100 }) - est({})).toBe(100 - 35);
+    expect(REHAB_EXERCISES['elephant-walk'].how).toMatch(/Your pace, no count to follow/);
+  });
+
+  // the step engine's self-paced `lift` sets (2026-10-20): `logWeight: false`
+  // on the block reaches every step, and the block's note rides each set as
+  // its cue — the last set's own note wins on the last set
+  it('a lift block honours logWeight: false and carries its note on every set', () => {
+    const lift = (extra) => ({
+      id: 'x',
+      blocks: [{ ex: 'lying-leg-raise', mode: 'lift', sets: 3, reps: '10', restSecs: 30, ...extra }],
+    });
+    const work = (s) => buildStepQueue(s).filter((st) => st.kind === 'work');
+    // a lift logs weight unless the block says otherwise
+    expect(work(lift({})).map((st) => st.logWeight)).toEqual([true, true, true]);
+    expect(work(lift({})).map((st) => st.cueNote)).toEqual([undefined, undefined, undefined]);
+    expect(work(lift({ logWeight: false })).map((st) => st.logWeight)).toEqual([false, false, false]);
+    expect(work(lift({ note: 'n' })).map((st) => st.cueNote)).toEqual(['n', 'n', 'n']);
+    expect(work(lift({ note: 'n' })).every((st) => st.blockNote === 'n')).toBe(true);
+    expect(work(lift({ note: 'n', lastSetNote: 'last' })).map((st) => st.cueNote)).toEqual([
+      'n',
+      'n',
+      'last',
+    ]);
+    expect(work(lift({ lastSetNote: 'last' })).map((st) => st.cueNote)).toEqual([
+      undefined,
+      undefined,
+      'last',
+    ]);
+  });
+
   it('the McGill core carries progression ladders like everything else', () => {
-    for (const ex of ['mcgill-curlup', 'side-plank', 'bird-dog', 'plank']) {
+    for (const ex of [
+      'mcgill-curlup',
+      'side-plank',
+      'bird-dog',
+      'plank',
+      'hollow-hold',
+      'lying-leg-raise',
+    ]) {
       expect(REHAB_EXERCISES[ex].scale, ex).toBeTruthy();
     }
+  });
+
+  // 2026-10-20: the side plank and bird dog are straight holds on Back &
+  // Hips now, so they say so — and the two new core moves come with the
+  // full coaching card, each how line one glanceable line
+  it('the core holds and the leg raise state their work model', () => {
+    for (const ex of ['hollow-hold', 'side-plank', 'bird-dog', 'lying-leg-raise']) {
+      const def = REHAB_EXERCISES[ex];
+      expect(def.name && def.cue && def.why && def.feel && def.avoid && def.yt, ex).toBeTruthy();
+      expect(def.how, ex).toBeTruthy();
+      expect(def.how.length, ex).toBeLessThanOrEqual(120);
+    }
+    for (const ex of ['hollow-hold', 'side-plank', 'bird-dog']) {
+      expect(REHAB_EXERCISES[ex].how, ex).toMatch(/hold/i);
+    }
+    // the hollow hold's escape hatch: the low back lifts → bend the knees
+    expect(REHAB_EXERCISES['hollow-hold'].how).toMatch(/low back lifts, bend the knees/);
+    expect(REHAB_EXERCISES['lying-leg-raise'].how).toMatch(/low back would lift/);
+    expect(REHAB_EXERCISES['hollow-hold'].name).toBe('Hollow Hold');
+    expect(REHAB_EXERCISES['lying-leg-raise'].name).toBe('Lying Leg Raise');
+  });
+
+  // the hip IR as HOLDS (2026-10-21, his ask: "so it's a better hit"): 45 s
+  // with the ankle up, then 45 s with the knee up too, straight through on
+  // the left, one switch, then the right. Same every phase and every day it
+  // is served, Sunday too.
+  it('the hip internal rotation is ankle up 45 s then knee up 45 s, a side at a time', () => {
+    const hir = REHAB_EXERCISES['hip-internal-rotation'];
+    expect(hir.cue).toMatch(/lift the ankle off the floor\. Hold\. Then lift the knee too/);
+    expect(hir.how).toMatch(/Ankle up for the clock, then the knee up too, no rest between/);
+    expect(hir.scale).toMatch(/^Easier: lower the knee and keep the ankle up/);
+    const daily = getRehabSession('daily');
+    for (const ph of [1, 2, 3]) {
+      for (const id of ['daily', 'sunday']) {
+        const s = applyPhase(getRehabSession(id), ph);
+        for (const v of id === 'daily' ? [0, 1, 2] : [0, 1]) {
+          const q = buildStepQueue(s, {}, v);
+          const at = `p${ph} ${id} v${v}`;
+          const work = q.filter((st) => st.exId === 'hip-internal-rotation' && st.kind === 'work');
+          expect(
+            work.map((st) => [st.side, st.secs, st.setNum, st.cueNote.split(':')[0]]),
+            at,
+          ).toEqual([
+            ['LEFT', 45, 1, 'Ankle up'],
+            ['LEFT', 45, 2, 'Knee up too'],
+            ['RIGHT', 45, 1, 'Ankle up'],
+            ['RIGHT', 45, 2, 'Knee up too'],
+          ]);
+          // no tempo, and the only break is the one switch of sides
+          expect(work.every((st) => !st.tempo), at).toBe(true);
+          const first = q.indexOf(work[0]);
+          const last = q.indexOf(work.at(-1));
+          const between = q.slice(first, last + 1).filter((st) => st.kind === 'rest');
+          expect(between.map((st) => [st.phase, st.secs]), at).toEqual([['SWITCH SIDES', 15]]);
+        }
+      }
+    }
+    // the phase step is absolute, and leaves no spec behind
+    const p3 = applyPhase(daily, 3);
+    expect(applyPhase(p3, 3).blocks).toEqual(p3.blocks);
   });
 });
 
@@ -1910,7 +2218,7 @@ describe('Saturday sprints', () => {
     }
   });
 
-  it('sits right after the Big 3, Saturdays only, and runs on the clock', () => {
+  it('sits right after the core holds, Saturdays only, and runs on the clock', () => {
     for (let w = 0; w < 12; w++) {
       for (const k of [0, 1, 2]) {
         const ids = sessionBlocks(daily, w * 4 + k).map((b) => b.ex ?? b.name);
@@ -1966,39 +2274,192 @@ describe('Saturday sprints', () => {
     expect(PROGRAM_DEMOS.sprint).toBeTruthy();
   });
 
-  // MORE CORE: Tuesday (and Sunday) run the Big 3 twice, descending;
-  // Thursday and Saturday keep one set. Phase 2+ adds one hold to the first
-  // set only.
-  it('serves the two-set Big 3 Tue/Sun, one set Thu/Sat, phase-stepped', () => {
-    const big3 = (s, v) =>
+  // MORE CORE, HELD STRAIGHT (2026-10-20, his ask: "longer holds instead of
+  // chopped", the hollow hold in for the curl-up, "harder"). Three tiers:
+  // Tuesday the full version (3 hollow holds, 2 side planks and 2 bird dogs
+  // a side; 30 s from week 1 since 2026-10-21, his ask, so only the side
+  // plank's clock still grows); Thursday and Sunday one set of each;
+  // Saturday a short primer before the sprints. They get harder by POSITION
+  // (the note names the variation) more than by the clock, which caps at 30 s
+  // (hollow, bird dog) and 45 s (side plank).
+  it('serves the full core holds Tue, one set Thu/Sun, a primer Sat — harder by position', () => {
+    const CORE = ['hollow-hold', 'side-plank', 'bird-dog'];
+    const core = (s, v) =>
       sessionBlocks(s, v)
-        .filter((b) => b.mode === 'reps')
-        .map((b) => [b.ex, b.repScheme]);
-    // 45-min round: phase 3 adds one more hold again (singles 6/5/5,
-    // doubles curl-up [6,3], side plank and bird dog [5,2])
-    const X2 = {
-      1: [['mcgill-curlup', [4, 3]], ['side-plank', [3, 2]], ['bird-dog', [3, 2]]],
-      2: [['mcgill-curlup', [5, 3]], ['side-plank', [4, 2]], ['bird-dog', [4, 2]]],
-      3: [['mcgill-curlup', [6, 3]], ['side-plank', [5, 2]], ['bird-dog', [5, 2]]],
+        .filter((b) => CORE.includes(b.ex))
+        .map((b) => [b.ex, b.sets, b.holdSecs]);
+    // [exercise, sets, seconds per hold (a side)]
+    const FULL = {
+      1: [['hollow-hold', 3, 30], ['side-plank', 2, 30], ['bird-dog', 2, 30]],
+      2: [['hollow-hold', 3, 30], ['side-plank', 2, 40], ['bird-dog', 2, 30]],
+      3: [['hollow-hold', 3, 30], ['side-plank', 2, 45], ['bird-dog', 2, 30]],
     };
-    const X1 = {
-      1: [['mcgill-curlup', [4]], ['side-plank', [3]], ['bird-dog', [3]]],
-      2: [['mcgill-curlup', [5]], ['side-plank', [4]], ['bird-dog', [4]]],
-      3: [['mcgill-curlup', [6]], ['side-plank', [5]], ['bird-dog', [5]]],
+    const LONG = [['hollow-hold', 1, 30], ['side-plank', 1, 45], ['bird-dog', 1, 30]];
+    const PRIMER = [['hollow-hold', 1, 15], ['side-plank', 1, 20], ['bird-dog', 1, 15]];
+    // the position each phase asks for, read off the hold's note
+    const NOTES = {
+      'hollow-hold': {
+        1: 'Knees bent, arms by your sides.',
+        2: 'Legs straighter now: as straight as the low back stays flat.',
+        3: 'Legs straight, arms overhead.',
+      },
+      'side-plank': { 1: 'Feet staggered, hips tall.', 2: 'Feet stacked.', 3: 'Feet stacked, top leg raised.' },
+      'bird-dog': {
+        1: 'Reach long and hold still.',
+        2: /three small squares/,
+        3: /Slower squares/,
+      },
     };
-    for (const [ph, key] of [[1, 1], [2, 2], [3, 3]]) {
+    const sunday = getRehabSession('sunday');
+    for (const ph of [1, 2, 3]) {
+      const s = applyPhase(daily, ph);
+      const sun = applyPhase(sunday, ph);
+      for (let w = 0; w < 12; w++) {
+        expect(core(s, w * 4), `p${ph} tue`).toEqual(FULL[ph]);
+        expect(core(s, w * 4 + 1), `p${ph} thu`).toEqual(LONG);
+        expect(core(s, w * 4 + 2), `p${ph} sat`).toEqual(PRIMER);
+      }
+      for (const v of [0, 1]) expect(core(sun, v), `p${ph} sun`).toEqual(LONG);
+      // Tue / Thu / Sun name the phase's position; Saturday's primer keeps
+      // its own note — switch the trunk on, don't tire it
+      for (const [at, x, v] of [['tue', s, 0], ['thu', s, 1], ['sun', sun, 0]]) {
+        for (const b of sessionBlocks(x, v).filter((y) => CORE.includes(y.ex))) {
+          const want = NOTES[b.ex][ph];
+          if (want instanceof RegExp) expect(b.note, `p${ph} ${at} ${b.ex}`).toMatch(want);
+          else expect(b.note, `p${ph} ${at} ${b.ex}`).toBe(want);
+        }
+      }
+      for (const b of sessionBlocks(s, 2).filter((y) => CORE.includes(y.ex))) {
+        expect(b.note, `p${ph} sat ${b.ex}`).toMatch(/^A primer: switch the trunk on, don’t tire it/);
+      }
+      // idempotent: the target is absolute
+      expect(applyPhase(s, ph).blocks, `p${ph}`).toEqual(s.blocks);
+      // the clock never runs past its cap, on any day, in any phase
+      const CAP = { 'hollow-hold': 30, 'bird-dog': 30, 'side-plank': 45 };
+      for (let v = 0; v < 48; v++) {
+        for (const [ex, , secs] of core(s, v)) expect(secs, `p${ph} v${v} ${ex}`).toBeLessThanOrEqual(CAP[ex]);
+      }
+    }
+    // straight holds, not McGill's rep-holds: one timed HOLD per set (a
+    // side), no re-brace steps; the two per-side holds switch sides
+    for (const v of [0, 1, 2]) {
+      for (const b of sessionBlocks(daily, v).filter((x) => CORE.includes(x.ex))) {
+        expect(b, `v${v} ${b.ex}`).toMatchObject({ mode: 'hold', phase: 'HOLD' });
+        expect(b.repScheme, `v${v} ${b.ex}`).toBeUndefined();
+        expect(b.resetSecs, `v${v} ${b.ex}`).toBeUndefined();
+        expect(Boolean(b.perSide), `v${v} ${b.ex}`).toBe(b.ex !== 'hollow-hold');
+      }
+    }
+    // Tuesday's queue: 3 × 30 s hollow, 2 × (L + R) 30 s side plank, 2 ×
+    // (L + R) 30 s bird dog — every hold one counted set
+    const tue = buildStepQueue(daily, {}, 0);
+    const holds = (ex) => tue.filter((st) => st.exId === ex && st.kind === 'work');
+    expect(holds('hollow-hold').map((st) => [st.secs, st.side])).toEqual([
+      [30, null],
+      [30, null],
+      [30, null],
+    ]);
+    expect(holds('side-plank').map((st) => [st.secs, st.side])).toEqual([
+      [30, 'LEFT'],
+      [30, 'RIGHT'],
+      [30, 'LEFT'],
+      [30, 'RIGHT'],
+    ]);
+    expect(holds('bird-dog').map((st) => [st.secs, st.side])).toEqual([
+      [30, 'LEFT'],
+      [30, 'RIGHT'],
+      [30, 'LEFT'],
+      [30, 'RIGHT'],
+    ]);
+    for (const ex of CORE) {
+      expect(holds(ex).every((st) => st.phase === 'HOLD' && st.countsAsSet), ex).toBe(true);
+      expect(tue.some((st) => st.exId === ex && st.phase === 'BREATHE'), ex).toBe(false);
+    }
+    // the side plank switches in 8 s, the bird dog in 5
+    const sw = (ex) => tue.filter((st) => st.exId === ex && st.phase === 'SWITCH SIDES');
+    expect(sw('side-plank').map((st) => st.secs)).toEqual([8, 8]);
+    expect(sw('bird-dog').map((st) => st.secs)).toEqual([5, 5]);
+    // a stiff morning eases every hold to its McGill 10-second version
+    // (`amberBlock`): the curl-up for the hollow hold — two sets on Tuesday,
+    // one elsewhere — and three re-braced holds a side for the other two.
+    // Only the hollow hold (the one with the low back flattened) is a
+    // `morning` move too.
+    const AMBER = {
+      0: { 'hollow-hold': ['mcgill-curlup', [4, 3]], 'side-plank': ['side-plank', [3]], 'bird-dog': ['bird-dog', [3]] },
+      1: { 'hollow-hold': ['mcgill-curlup', [4]], 'side-plank': ['side-plank', [3]], 'bird-dog': ['bird-dog', [3]] },
+    };
+    for (const [id, v, key] of [['daily', 0, 0], ['daily', 1, 1], ['daily', 2, 1], ['sunday', 0, 1]]) {
+      for (const b of sessionBlocks(getRehabSession(id), v).filter((x) => CORE.includes(x.ex))) {
+        const [ex, scheme] = AMBER[key][b.ex];
+        expect(b.amberBlock, `${id} v${v} ${b.ex}`).toMatchObject({
+          ex,
+          mode: 'reps',
+          repScheme: scheme,
+          holdSecs: 10,
+          resetSecs: 3,
+        });
+        expect(Boolean(b.amberBlock.perSide), `${id} v${v} ${b.ex}`).toBe(b.ex !== 'hollow-hold');
+        expect(Boolean(b.morning), `${id} v${v} ${b.ex}`).toBe(b.ex === 'hollow-hold');
+      }
+    }
+  });
+
+  // LEG RAISES (2026-10-20, his ask; the cable crunch left out for the
+  // disc): Tuesday and Saturday, 3 × 10, 12 from phase 2 and never past it —
+  // harder by straightening the legs, three seconds down. Self-paced, no
+  // kilos to log: the number, the rep counter and a Done
+  it('serves the leg raises Tue and Sat, 3 × 10 → 12, legs straighter by phase, unweighted', () => {
+    const lr = (s, v) => sessionBlocks(s, v).find((b) => b.ex === 'lying-leg-raise');
+    const NOTE = {
+      1: 'Knees bent, three seconds down.',
+      2: 'Legs straighter now, three seconds down.',
+      3: 'Legs straight, three seconds down, stopping before the tailbone lifts.',
+    };
+    for (const [ph, reps] of [[1, '10'], [2, '12'], [3, '12']]) {
       const s = applyPhase(daily, ph);
       for (let w = 0; w < 12; w++) {
-        expect(big3(s, w * 4), `p${ph} tue`).toEqual(X2[key]);
-        expect(big3(s, w * 4 + 1), `p${ph} thu`).toEqual(X1[key]);
-        expect(big3(s, w * 4 + 2), `p${ph} sat`).toEqual(X1[key]);
+        for (const k of [0, 2]) {
+          expect(lr(s, w * 4 + k), `p${ph} w${w} k${k}`).toMatchObject({
+            mode: 'lift',
+            sets: 3,
+            reps,
+            note: NOTE[ph],
+            logWeight: false,
+            restSecs: 30,
+          });
+        }
+        expect(lr(s, w * 4 + 1), `p${ph} w${w} thu`).toBeUndefined();
       }
-      const sun = applyPhase(getRehabSession('sunday'), ph);
-      for (const v of [0, 1]) expect(big3(sun, v), `p${ph} sun`).toEqual(X2[key]);
     }
-    for (const b of sessionBlocks(daily, 0).filter((x) => x.mode === 'reps')) {
-      expect(b.holdSecs).toBe(10);
-      expect(b.resetSecs).toBe(3);
+    expect(lr(getRehabSession('sunday'), 0)).toBeUndefined();
+    // the exercise carries the rep counter: one up, three down
+    expect(REHAB_EXERCISES['lying-leg-raise'].repTempo).toEqual([
+      ['UP', 1],
+      ['DOWN', 3],
+    ]);
+    for (const v of [0, 2]) {
+      const q = buildStepQueue(daily, {}, v).filter(
+        (st) => st.exId === 'lying-leg-raise' && st.kind === 'work',
+      );
+      expect(q, `v${v}`).toHaveLength(3);
+      for (const [i, st] of q.entries()) {
+        expect(st, `v${v}`).toMatchObject({
+          manual: true,
+          logWeight: false,
+          phase: 'YOUR PACE',
+          reps: '10',
+          repTarget: 10,
+          countsAsSet: true,
+          cueNote: NOTE[1],
+          meta: `SET ${i + 1} OF 3 · 10 REPS`,
+        });
+        expect(st.secs).toBeNull();
+      }
+      // 30 s between sets, no rest after the last
+      const rests = buildStepQueue(daily, {}, v).filter(
+        (st) => st.exId === 'lying-leg-raise' && st.kind === 'rest',
+      );
+      expect(rests.map((st) => st.secs), `v${v}`).toEqual([30, 30]);
     }
   });
 

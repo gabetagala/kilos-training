@@ -7,8 +7,9 @@ test.beforeEach(async ({ page }) => {
   await checkInGood(page);
 });
 
-// Since 2026-10-10 the one non-anchor EMOM on a lift day is Wednesday's
-// Power piece (broad jump + DB push press, three rounds, before the squat).
+// Since 2026-10-10 Wednesday's Power piece is the lift day's non-anchor
+// EMOM read here (since 2026-10-20 the DB hang power clean + DB push press,
+// three rounds, before the squat — no jumps).
 // What has to hold wherever an EMOM runs: a metcon reads as ONE workout,
 // an EMOM minute can show a clock and a load at the same time, and a minute
 // that runs out logs its set by itself — a logged set is never lost.
@@ -46,21 +47,23 @@ test('an EMOM minute shows the piece, a running clock AND a weight row', async (
   // the header becomes the PIECE — these minutes are one workout, not 6 items
   await expect(page.locator('#rp-session-name')).toContainText('POWER · EMOM 6');
   await expect(page.locator('#rp-meta')).toContainText('MIN 1 OF 6');
-  // minute 1 is the broad jump: bodyweight, max intent — a clock, no load
-  await expect(page.locator('#rp-exname')).toHaveText('Broad Jump');
+  // minute 1 is the hang power clean (it replaced the broad jump,
+  // 2026-10-20): a loaded DB lift on the clock — both at once, the clock
+  // runs the piece and the weight row sets the load
+  await expect(page.locator('#rp-exname')).toHaveText('DB Hang Power Clean');
   await expect(page.locator('#rp-meta')).toContainText('×3');
   // the NEXT station shows during the minute so the transition needs no memory
   await expect(page.locator('#rp-next')).toContainText('NEXT · DB PUSH PRESS');
-  await expect(page.locator('#rp-lift .rp-weight-row')).toBeHidden();
+  await expect(page.locator('#rp-clock')).toBeVisible();
+  await expect(page.locator('#rp-lift .rp-weight-row')).toBeVisible();
   // neither power station has a sanctioned swap — the header icon stays off
   await expect(page.locator('#rp-swap')).toBeHidden();
 
-  // minute 2, the push press: both at once — the clock runs the piece, the
-  // weight row sets the load
+  // minute 2, the push press: the same — clock and load
   await page.locator('#rp-skip').click();
   await expect(page.locator('#rp-meta')).toContainText('MIN 2 OF 6');
   await expect(page.locator('#rp-exname')).toHaveText('DB Push Press');
-  await expect(page.locator('#rp-meta')).toContainText('×4');
+  await expect(page.locator('#rp-meta')).toContainText('×3');
   await expect(page.locator('#rp-clock')).toBeVisible();
   await expect(page.locator('#rp-lift .rp-weight-row')).toBeVisible();
   await expect(page.locator('#rp-time')).toHaveText('1:00');
@@ -95,8 +98,10 @@ test('the overview lists a piece as one row, not as its minutes', async ({
   await expect(rows).toContainText('Cable Leg Curl'); // no sliders — the cable
   // DBs at the sides: no second front-rack exercise on squat day
   await expect(rows).not.toContainText('Front-Rack');
-  // the hang clean & press and the hang snatch are no longer served
-  await expect(rows).not.toContainText(/Hang (Clean|Power Snatch)/);
+  // Wednesday's power is the hang power clean and the push press — no
+  // jumps (those are Friday's), no clean & press, no snatch
+  await expect(rows).toContainText(/DB Hang Power Clean\s*3\s*DB Push Press\s*3/);
+  await expect(rows).not.toContainText(/Broad Jump|Pogo Hop|Clean & Press|Power Snatch/);
 });
 
 // SLOW (~70s) on purpose: the only honest way to prove the auto-log is to let
@@ -131,5 +136,81 @@ test('an EMOM minute logs itself when the interval runs out', async ({
     JSON.parse(localStorage.getItem('kilos-guided-weights') || '{}'),
   );
   expect(Object.keys(saved)).toContain('db-push-press');
+  expect(errors).toEqual([]);
+});
+
+// 2026-10-20: the broad jump left Wednesday (his call). The post-session
+// BEST BROAD JUMP prompt is Friday's now (it kept its jumps, 2026-11-03) —
+// so a Wednesday that ran its Power minutes must finish without ever asking
+// for a jump, and log none.
+test('a Wednesday that ran its power minutes never asks for a broad jump', async ({
+  page,
+}) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto('/');
+  await dismissOnboarding(page);
+  await openHalf(page, 'd40-b1');
+  await skipTo(page, atPower(page), 40);
+  await expect(page.locator('#rp-meta')).toContainText('MIN 1 OF 6');
+  // all six power minutes, each logged as it is skipped
+  for (let i = 0; i < 6; i++) {
+    await expect(page.locator('#rp-meta')).toContainText(`MIN ${i + 1} OF 6`);
+    await page.locator('#rp-skip').click();
+  }
+  await page.locator('#rp-overview-btn').click();
+  await page.locator('#rpo-finish').click();
+  await page.locator('#btn-rhfinish-yes').click();
+  // the prompt used to queue at 800 ms — give it well past that
+  await page.waitForTimeout(1500);
+  await expect(page.locator('#bm-score-title')).not.toHaveText(/BROAD JUMP/);
+  const entry = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('workoutHistory') || '[]').findLast(
+      (h) => h.programId === 'd40-b1',
+    ),
+  );
+  expect(entry, 'the Wednesday was logged').toBeTruthy();
+  expect(entry.broadJump).toBeUndefined();
+  expect(errors).toEqual([]);
+});
+
+// …and a Friday that ran its jumps asks once, and logs the answer on that
+// session — the Broad Jump row on the block card reads it
+test('a Friday that ran its jumps asks for the best broad jump and logs it', async ({
+  page,
+}) => {
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto('/');
+  await dismissOnboarding(page);
+  await openHalf(page, 'd40-c1');
+  const atJumps = async () =>
+    !!(await page.locator('#rp-session-name').textContent())?.startsWith('JUMPS');
+  await skipTo(page, atJumps, 40);
+  expect(await atJumps(), 'reached the Jumps EMOM').toBe(true);
+  // every jump set, each logged as it is skipped
+  for (let i = 0; i < 12 && (await atJumps()); i++) {
+    await page.locator('#rp-skip').click();
+    await page.waitForTimeout(60);
+  }
+  await page.locator('#rp-overview-btn').click();
+  await page.locator('#rpo-finish').click();
+  await page.locator('#btn-rhfinish-yes').click();
+  await expect(page.locator('#bm-score')).toHaveClass(/open/);
+  await expect(page.locator('#bm-score-title')).toHaveText('BEST BROAD JUMP');
+  await expect(page.locator('#bm-unit')).toHaveText('cm');
+  await expect(page.locator('#bm-val')).toHaveText('200');
+  await page.locator('#bm-plus').click();
+  await page.locator('#bm-score-save').click();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          JSON.parse(localStorage.getItem('workoutHistory') || '[]').findLast(
+            (h) => h.programId === 'd40-c1',
+          )?.broadJump,
+      ),
+    )
+    .toBe(201);
   expect(errors).toEqual([]);
 });

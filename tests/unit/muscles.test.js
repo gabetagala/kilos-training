@@ -4,7 +4,7 @@ import { ART_MANIFEST } from '../../scripts/art-manifest.mjs';
 import { EXERCISES_DB, MUSCLES } from '../../src/data.js';
 import { PROGRAM_EXERCISES } from '../../src/workout/program.js';
 import { REHAB_EXERCISES } from '../../src/workout/rehab.js';
-import { PROGRAM_DEMOS } from '../../src/workout/rehabDemos.js';
+import { PROGRAM_DEMOS, REHAB_DEMOS } from '../../src/workout/rehabDemos.js';
 import { EXPECTED_LOW, MUSCLE_MAP, TARGETS } from '../../src/workout/volume.js';
 import {
   loggedExercisesOf,
@@ -100,8 +100,10 @@ describe('new movements (2026-10-10)', () => {
   }
 
   it('the two leg gaps they close carry a weekly target', () => {
-    // calves had no work at all; hamstrings had only the RDL (coach QA)
-    expect(TARGETS.calves).toBe(8);
+    // calves had no work at all; hamstrings had only the RDL (coach QA).
+    // Calves 8 → 6 on 2026-10-20: twice a week now (Monday's Hinge & Calf
+    // and Thursday's pump), Tuesday's calves left
+    expect(TARGETS.calves).toBe(6);
     expect(TARGETS.hams).toBe(8);
   });
 
@@ -133,5 +135,53 @@ describe('new movements (2026-10-10)', () => {
     expect(TARGETS.lats).toBe(11);
     expect(TARGETS.chest).toBe(12);
     expect(TARGETS.sidedelt).toBe(12);
+  });
+});
+
+// ── The 2026-10-20 movements: the hollow hold, the lying leg raise and the
+// DB hang power clean ─────────────────────────────────────────────────────
+// Full citizens the day they ship, like the 2026-10-10 four: a definition, a
+// group on the history screens, a demo, generated art and a spoken name. The
+// two core moves are rehab movements (REHAB_EXERCISES, Core, the drawn
+// curl-up figure as their fallback demo); the clean is a lift-day power move
+// (PROGRAM_EXERCISES, Legs, credited like the snatch: hip power, not a press).
+describe('new movements (2026-10-20)', () => {
+  const root = new URL('../../', import.meta.url);
+  const drawn = (id) =>
+    ['a', 'b'].every((pose) => existsSync(new URL(`public/rehab/${id}-${pose}.webp`, root)));
+  const voiced = (id) => existsSync(new URL(`public/voice/name-${id}.m4a`, root));
+
+  for (const id of ['hollow-hold', 'lying-leg-raise']) {
+    it(`${id} is defined, grouped as Core, demoed, drawn and voiced`, () => {
+      const ex = REHAB_EXERCISES[id];
+      expect(ex?.name, id).toBeTruthy();
+      expect(ex.cue && ex.why && ex.feel && ex.avoid && ex.how && ex.scale, id).toBeTruthy();
+      expect(resolveMuscleGroup(ex.name, EXERCISES_DB), id).toBe('Core');
+      expect(REHAB_DEMOS[id], `${id} demo`).toBe(REHAB_DEMOS['mcgill-curlup']);
+      expect(ART_MANIFEST[id], `${id} art prompt`).toBeTruthy();
+      expect(drawn(id), `${id} art`).toBe(true);
+      expect(voiced(id), `${id} voice`).toBe(true);
+    });
+  }
+
+  it('db-hang-clean is defined, grouped, credited, demoed, drawn and voiced', () => {
+    const ex = PROGRAM_EXERCISES['db-hang-clean'];
+    expect(ex?.name).toBe('DB Hang Power Clean');
+    expect(ex.cue && ex.why && ex.feel && ex.avoid).toBeTruthy();
+    // from the hang only, like the snatch
+    expect(ex.cue).toMatch(/hinge only to the knee/);
+    expect(resolveMuscleGroup(ex.name, EXERCISES_DB)).toBe('Legs');
+    expect(MUSCLE_MAP['db-hang-clean']).toEqual({ upperback: 0.5, hams: 0.5, glutes: 0.5 });
+    expect(PROGRAM_DEMOS['db-hang-clean']).toBeTruthy();
+    expect(ART_MANIFEST['db-hang-clean']).toBeTruthy();
+    expect(drawn('db-hang-clean')).toBe(true);
+    expect(voiced('db-hang-clean')).toBe(true);
+  });
+
+  // the Pallof press got an explicit Core alias with them
+  it('the core extras display as Core', () => {
+    for (const name of ['Hollow Hold', 'Lying Leg Raise', 'Pallof Press', 'Side Plank', 'Bird Dog']) {
+      expect(resolveMuscleGroup(name, EXERCISES_DB), name).toBe('Core');
+    }
   });
 });

@@ -54,6 +54,7 @@ export const MUSCLE_ALIASES = {
   'DB Kickback': 'Triceps',
   'Diamond Push-Up': 'Triceps',
   'DB Hang Clean & Press': 'Shoulders',
+  'DB Hang Power Clean': 'Legs',
   'Reverse Lunge': 'Legs',
   'High Knees': 'Legs',
   Sprint: 'Legs',
@@ -78,6 +79,9 @@ export const MUSCLE_ALIASES = {
   'McGill Curl-Up': 'Core',
   'Side Plank': 'Core',
   'Bird Dog': 'Core',
+  'Hollow Hold': 'Core',
+  'Lying Leg Raise': 'Core',
+  'Pallof Press': 'Core',
   'Hamstring Stretch': 'Legs',
   'Hip Flexor Stretch': 'Legs',
   // rehab.js — Lower Back & Hips. The hip work all displays as Legs; only the

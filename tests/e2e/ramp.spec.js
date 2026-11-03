@@ -135,9 +135,10 @@ test('a ramp lift day: anchor one set down, piece at two rounds, and a refresh r
   expect(hist).toBe(0); // nothing got salvaged as "interrupted"
 });
 
-// A ramp Back & Hips day is the openers, the McGill primer, the back
-// extension and the folds — and since round 4 the PUMPS too, shaped down like
-// any piece. The carry and Saturday's scored finisher still wait for week 1.
+// A ramp Back & Hips day is the openers, the core holds (as written — a ramp
+// never shapes them), the back extension and the folds — and since round 4
+// the PUMPS too, shaped down like any piece. The carry and Saturday's scored
+// finisher still wait for week 1.
 test('a ramp rehab day keeps the pumps shaped down — no carry, no scored finisher', async ({
   page,
 }) => {
@@ -148,13 +149,17 @@ test('a ramp rehab day keeps the pumps shaped down — no carry, no scored finis
   await page.locator('#rp-overview-btn').click();
   const ov = page.locator('#rpo-list');
   await expect(ov).toContainText('Elephant Walk');
-  await expect(ov).toContainText('McGill Curl-Up');
+  await expect(ov).toContainText('Hollow Hold');
+  await expect(ov).toContainText('Side Plank');
+  await expect(ov).not.toContainText('McGill Curl-Up');
   await expect(ov).not.toContainText(
     /Farmer Carry|Suitcase Carry|Sprints:|The (Redline|Sprint|Climb)|Death by/,
   );
   // whichever pump day the card serves, it runs fewer rounds than written
   const txt = (await ov.textContent())?.replace(/\s+/g, ' ') || '';
   const pumps = [...txt.matchAll(/(Arms|Calves|Row & Raise|Curl & Lateral) SETS · (\d) rounds/g)];
-  const FULL = { Arms: 4, Calves: 3, 'Row & Raise': 3, 'Curl & Lateral': 4 };
+  // (45-min round: Curl & Lateral runs five; calves Thursday only since
+  // 2026-10-20)
+  const FULL = { Arms: 4, Calves: 3, 'Row & Raise': 3, 'Curl & Lateral': 5 };
   for (const [, name, n] of pumps) expect(Number(n), name).toBeLessThan(FULL[name]);
 });
