@@ -27,9 +27,13 @@ import {
   subGreeting,
 } from './profile.js';
 import {
+  addDays,
   blockDetail,
   blockForDay,
+  COUNTDOWN,
   dayNumber,
+  daysBetween,
+  daysToBirthday,
   daysToGo,
   getMovement,
   getSession,
@@ -37,6 +41,7 @@ import {
   HOTMUM_SESSIONS,
   hasKneeSwap,
   MOVEMENTS,
+  phKey,
   playable,
   SEASON,
   sessionForToday,
@@ -111,12 +116,15 @@ const drop = (k) => {
   }
 };
 
-// LOCAL date, never toISOString(). In Manila (UTC+8) a 7am session stamped
+// MANILA date, never toISOString(). In Manila (UTC+8) a 7am session stamped
 // with the UTC date lands on YESTERDAY, so by that evening the app had
 // forgotten she'd trained and invited her to do the session again.
-const dayKey = (d = new Date()) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-const todayKey = () => dayKey();
+//
+// Since 2026-11-06 it's PH time explicitly rather than the phone's local time
+// (identical while the phone is in the Philippines), so the day she logs, the
+// box that lights up, and the birthday countdown all turn over at the same
+// Manila midnight.
+const todayKey = () => phKey();
 const history = () => get(K.history, []);
 
 // ─── One session, start to finish ──────────────────────────────────────────
@@ -248,6 +256,15 @@ const prettyDate = (iso) =>
     month: 'short',
   });
 
+// The countdown, as a label: "92 DAYS TO GO", then "1 DAY TO GO", then the day.
+function countdownLabel() {
+  const n = daysToBirthday();
+  if (n > 1) return `${n} DAYS TO GO`;
+  if (n === 1) return '1 DAY TO GO';
+  if (n === 0) return 'BIRTHDAY TODAY';
+  return 'SHE MADE IT';
+}
+
 const RAIL_STEP = 5; // one bar per five days — twenty bars across the hundred
 function seasonRail() {
   const at = Math.ceil(dayNumber() / RAIL_STEP);
@@ -351,13 +368,14 @@ function renderProgram() {
         </div>
       </div>
       <div class="season-row">
-        <span class="lbl lbl-sm">DAY ${day} OF ${SEASON.days} · ${esc(current.name)}</span>
-        <span class="lbl lbl-sm lbl-hot">${daysToGo()} LEFT</span>
+        <span class="lbl lbl-sm">DAY ${day} · ${esc(current.name)}</span>
+        <span class="lbl lbl-sm lbl-hot">${countdownLabel()}</span>
       </div>
       <div class="season">${seasonRail()}</div>
-      <p class="fine">${SEASON.days} days, ${prettyDate(SEASON.startDate)} to
-        ${prettyDate(SEASON.endDate)}. Thirty minutes of movement on every one
-        of them.</p>
+      <p class="fine">The five blocks run ${prettyDate(SEASON.startDate)} to
+        ${prettyDate(SEASON.endDate)}, then PEAK holds all the way to your
+        birthday on ${prettyDate(COUNTDOWN.to)}. Thirty minutes of movement
+        every day.</p>
 
       <div class="pane pane-a">
         <h2 class="sec-h">The five blocks</h2>
@@ -841,44 +859,51 @@ async function autoApplyUpdate() {
 // month — the season IS the motivation, so it's the thing the page is mostly
 // made of.
 
-const DAY_MS = 86400000;
-
-// ONE BOX PER DAY OF THE HUNDRED. Filled when something was logged, marked on
-// today, dim once it's behind her. A missed day just stays empty — no red, no
-// broken streak, nothing to feel bad about. That's the whole reason the season
-// replaced streaks: with a newborn, a missed day is information, not a failure.
-function hundredGrid() {
-  const start = new Date(`${SEASON.startDate}T00:00:00`);
+// ONE BOX PER DAY TO HER BIRTHDAY (since 2026-11-06 — it was one per day of
+// the hundred). The first box is the day the countdown started, the last is
+// the birthday itself, so the boxes still to come ARE the days left.
+//
+// Filled when something was logged, marked on today, dim once it's behind
+// her. A missed day just stays empty — no red, no broken streak, nothing to
+// feel bad about. That's the whole reason the season replaced streaks: with a
+// newborn, a missed day is information, not a failure.
+function birthdayGrid() {
   const today = todayKey();
   const done = new Set(history().map((h) => h.date));
+  const total = daysBetween(COUNTDOWN.from, COUNTDOWN.to) + 1;
 
   const cells = [];
-  let filled = 0;
-  for (let i = 0; i < SEASON.days; i++) {
-    const k = dayKey(new Date(start.getTime() + i * DAY_MS));
+  for (let i = 0; i < total; i++) {
+    const k = addDays(COUNTDOWN.from, i);
     let cls = '';
-    if (done.has(k)) {
-      cls = 'done';
-      filled++;
-    } else if (k === today) cls = 'today';
+    if (done.has(k)) cls = 'done';
+    else if (k === today) cls = 'today';
     else if (k < today) cls = 'past';
+    // The birthday box is hers whatever else it is — hot, not cream.
+    if (k === COUNTDOWN.to) cls += ' bday';
     // A day that has already happened is tappable — that's how she logs the
     // walk she did on Tuesday and forgot to open the app for. A day that
     // hasn't happened yet is just a box.
+    const label = `${dayLabel(k)}${k === COUNTDOWN.to ? ' — birthday' : ''}`;
     cells.push(
       k <= today
-        ? `<button class="bx ${cls}" data-day="${k}" aria-label="${dayLabel(k)}${cls === 'done' ? ' — logged' : ''}"></button>`
-        : `<i class="bx ${cls}"></i>`,
+        ? `<button class="bx ${cls}" data-day="${k}" aria-label="${label}${done.has(k) ? ' — logged' : ''}"></button>`
+        : `<i class="bx ${cls}"${k === COUNTDOWN.to ? ` role="img" aria-label="${label}"` : ''}></i>`,
     );
   }
-  return { html: cells.join(''), filled, total: SEASON.days };
+  return { html: cells.join(''), total };
 }
+
+// Every day she's ever shown up, not just the ones on the grid. The grid only
+// starts on 6 Nov; the 74 days before it are still hers, and a counter that
+// reset to zero the day the countdown began would read as losing them.
+const daysShowedUp = () => new Set(history().map((h) => h.date)).size;
 
 function renderHome() {
   const day = dayNumber();
   const block = blockForDay(day);
   const done = doneToday();
-  const grid = hundredGrid();
+  const grid = birthdayGrid();
 
   // NO "RECENT" LIST. There was one — two rows of what she last did — and it
   // is exactly what the calendar above now shows, only worse: the calendar
@@ -917,19 +942,19 @@ function renderHome() {
       <div class="pane pane-a">
         <div class="hello">
           <h1 class="page-h">${esc(greeting(profile.name, new Date(), done))}</h1>
-          <p class="row-s">${esc(subGreeting({ doneToday: done, day, days: SEASON.days }))}</p>
+          <p class="row-s">${esc(subGreeting({ doneToday: done, daysLeft: daysToBirthday() }))}</p>
         </div>
       </div>
 
       <div class="pane pane-b">
         <div class="season-row">
-          <span class="lbl lbl-sm">DAY ${day} OF ${SEASON.days} · ${esc(block.name)}</span>
-          <span class="lbl lbl-sm lbl-hot">${daysToGo()} LEFT</span>
+          <span class="lbl lbl-sm">DAY ${day} · ${esc(block.name)}</span>
+          <span class="lbl lbl-sm lbl-hot">${countdownLabel()}</span>
         </div>
         <div class="boxes">${grid.html}</div>
         <div class="season-row boxes-key">
-          <span class="lbl lbl-sm">${grid.filled} DAYS SHOWED UP</span>
-          <span class="lbl lbl-sm">DAY ${SEASON.days} →</span>
+          <span class="lbl lbl-sm">${daysShowedUp()} DAYS SHOWED UP</span>
+          <span class="lbl lbl-sm">BIRTHDAY · ${prettyDate(COUNTDOWN.to).toUpperCase()}</span>
         </div>
       </div>
 
@@ -1021,7 +1046,7 @@ function openDay(dateKey) {
     sheet.innerHTML = `<div class="sheet-card sheet-session" role="dialog" aria-label="${esc(dayLabel(dateKey))}">
       <div class="sheet-top">
         <div>
-          <span class="lbl lbl-sm">DAY ${dayNumber(dateKey)} OF ${SEASON.days}</span>
+          <span class="lbl lbl-sm">DAY ${dayNumber(dateKey)}</span>
           <h3 class="sheet-day">${esc(dayLabel(dateKey).toUpperCase())}</h3>
         </div>
         <button class="icon-btn" id="sheet-x" aria-label="Close">✕</button>
@@ -1097,10 +1122,7 @@ function lastDoneLabel(match) {
   const hits = history().filter(match);
   if (!hits.length) return 'not yet';
   const last = hits[hits.length - 1];
-  const days = Math.round(
-    (new Date(`${todayKey()}T00:00:00`) - new Date(`${last.date}T00:00:00`)) /
-      DAY_MS,
-  );
+  const days = daysBetween(last.date, todayKey());
   if (days <= 0) return 'today';
   if (days === 1) return 'yesterday';
   return `${days} days ago`;
@@ -1223,7 +1245,7 @@ function openSession(id) {
     sheet.innerHTML = `<div class="sheet-card sheet-session" role="dialog" aria-label="${esc(s.name)}">
       <div class="sheet-top">
         <div>
-          <span class="lbl lbl-sm">DAY ${dayNumber()} OF ${SEASON.days} · ${esc(blockForDay(dayNumber()).name)}</span>
+          <span class="lbl lbl-sm">DAY ${dayNumber()} · ${esc(blockForDay(dayNumber()).name)}</span>
           <h3 class="sheet-day">${dayTitle(s.sub)}</h3>
         </div>
         <button class="icon-btn" id="sheet-x" aria-label="Close">✕</button>
@@ -1318,7 +1340,7 @@ function openMoveSheet(id) {
   sheet.innerHTML = `<div class="sheet-card" role="dialog" aria-label="${esc(move.name)}">
       <div class="sheet-top">
         <div>
-          <span class="lbl lbl-sm">DAY ${dayNumber()} OF ${SEASON.days}</span>
+          <span class="lbl lbl-sm">DAY ${dayNumber()}</span>
           <h3 class="sheet-day">${dayTitle(move.name)}</h3>
         </div>
         <button class="icon-btn" id="sheet-x" aria-label="Close">✕</button>
@@ -1859,7 +1881,7 @@ function renderFinish(rec) {
     <div class="screen finish">
       <div class="top">
         <span class="lbl lbl-sm">${isWalk ? 'MOVEMENT LOGGED' : 'SESSION COMPLETE'}</span>
-        <span class="lbl lbl-sm">DAY ${day} OF ${SEASON.days}</span>
+        <span class="lbl lbl-sm">DAY ${day}</span>
       </div>
       <div class="poster-type">
         <div class="pt-row"><span>${esc(SEASON.label)}</span><u>${isWalk ? 'SHE SHOWED UP' : 'SHE LIFTED IT'}</u><span>2026</span></div>
@@ -1876,7 +1898,7 @@ function renderFinish(rec) {
             ? `<div class="fin-cell"><b>${history().filter((h) => h.kind === 'walk').length}</b><span class="lbl lbl-sm">MOVEMENT DAYS</span></div>`
             : `<div class="fin-cell"><b>${mmss(rec.tut)}</b><span class="lbl lbl-sm">UNDER TENSION</span></div>`
         }
-        <div class="fin-cell"><b>${daysToGo()}</b><span class="lbl lbl-sm">DAYS TO GO</span></div>
+        <div class="fin-cell"><b>${daysToGo()}</b><span class="lbl lbl-sm">TO BIRTHDAY</span></div>
       </div>
       <div class="fin-tag">
         <div class="fin-mark">HOT<br><em>MUM</em></div>

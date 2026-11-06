@@ -387,6 +387,9 @@ export const HOTMUM_EXERCISES = {
 // reintroduce a second deadline — one finish line is the entire reason this
 // mechanic works. (The dates live in SEASON below; don't restate them here,
 // which is how this comment came to name the wrong day.)
+//
+// Since 2026-11-06 that one finish line is her BIRTHDAY, not day 100 — see
+// COUNTDOWN below. SEASON is still the training: five blocks over 100 days.
 
 export const SEASON = {
   id: 'hundred-days',
@@ -445,29 +448,82 @@ export const SEASON = {
   ],
 };
 
-const DAY_MS = 86400000;
-// Local midnight either way, so a countdown doesn't tick down mid-afternoon.
-const asDate = (d) =>
-  d instanceof Date
-    ? new Date(d.getFullYear(), d.getMonth(), d.getDate())
-    : new Date(`${d}T00:00:00`);
+// ─── The countdown: her birthday ────────────────────────────────────────────
+// CHANGED 2026-11-06 — the home screen stopped counting the hundred and now
+// counts down to Sam's birthday, 6 Feb 2027. The grid starts the day the
+// countdown did (6 Nov), one box per day, ending on the birthday itself.
+//
+// The TRAINING is untouched: the five blocks above still run day 1–100 from
+// 24 Aug, and from day 101 PEAK simply holds until the birthday. Her history,
+// her block, her loads — none of it moved. Only the finish line did.
+//
+// ONE finish line still: the birthday. `daysToGo` is the only countdown in the
+// app, so the home screen, the finish card and the share card can't disagree.
 
-/**
- * Days left of the hundred. Derived from the day number rather than measured
- * to the end date, so the two can never disagree — before day 1 the raw
- * distance to 1 Dec is 101, which would have read "DAY 1 OF 100 · 101 LEFT".
- */
-export const daysToGo = (today = new Date()) => SEASON.days - dayNumber(today);
+export const COUNTDOWN = {
+  from: '2026-11-06', // the day she asked for it — the grid's first box
+  to: '2027-02-06', // her birthday — the grid's last box
+};
 
-/** Which of the 100 days it is, 1-based and clamped to both ends. */
-export function dayNumber(today = new Date()) {
-  const elapsed = Math.floor(
-    (asDate(today) - asDate(SEASON.startDate)) / DAY_MS,
+// PH TIME, ALWAYS. Her day starts at midnight in Manila, whatever timezone the
+// phone happens to think it's in — a countdown that ticked over at 4pm because
+// the phone was set to London would be wrong on the one day that matters.
+export const TZ = 'Asia/Manila';
+const PH_DATE = new Intl.DateTimeFormat('en-CA', {
+  timeZone: TZ,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+/** "2026-11-06" — the calendar date in Manila at the given instant. */
+export function phKey(d = new Date()) {
+  const p = Object.fromEntries(
+    PH_DATE.formatToParts(d).map((x) => [x.type, x.value]),
   );
-  return Math.min(SEASON.days, Math.max(1, elapsed + 1));
+  return `${p.year}-${p.month}-${p.day}`;
 }
 
-/** The twenty-day block a given season day falls in. */
+const DAY_MS = 86400000;
+// A Date is read as its Manila calendar date; a "YYYY-MM-DD" key is taken as
+// written. Either becomes a whole-day number (UTC-based, so no DST or device
+// timezone can slip an hour in), which is why the countdown never ticks down
+// mid-afternoon.
+const dayIndex = (d) => {
+  const [y, m, dd] = (d instanceof Date ? phKey(d) : d).split('-').map(Number);
+  return Date.UTC(y, m - 1, dd) / DAY_MS;
+};
+
+/** The key `n` days after `key` — date-string arithmetic, timezone-free. */
+export const addDays = (key, n) =>
+  new Date((dayIndex(key) + n) * DAY_MS).toISOString().slice(0, 10);
+
+/** Whole days from `a` to `b`. Negative when `b` is earlier. */
+export const daysBetween = (a, b) => dayIndex(b) - dayIndex(a);
+
+/**
+ * Days until her birthday, unclamped: 0 on the day, negative after it. The
+ * home screen needs the sign to tell "it's today" from "it's been".
+ */
+export const daysToBirthday = (today = new Date()) =>
+  daysBetween(today, COUNTDOWN.to);
+
+/** Days left to her birthday, clamped at zero. THE countdown. */
+export const daysToGo = (today = new Date()) =>
+  Math.max(0, daysToBirthday(today));
+
+/**
+ * Which day of her season it is, counted from 24 Aug. It keeps counting past
+ * day 100 now — through to the birthday — and `blockForDay` holds PEAK for
+ * anything beyond the five blocks, so the sessions don't change at day 101.
+ */
+export function dayNumber(today = new Date()) {
+  const last = daysBetween(SEASON.startDate, COUNTDOWN.to) + 1;
+  const elapsed = daysBetween(SEASON.startDate, today);
+  return Math.min(last, Math.max(1, elapsed + 1));
+}
+
+/** The twenty-day block a given season day falls in — PEAK after day 100. */
 export const blockForDay = (day) =>
   SEASON.blocks.find((b) => day >= b.days[0] && day <= b.days[1]) ||
   SEASON.blocks[SEASON.blocks.length - 1];

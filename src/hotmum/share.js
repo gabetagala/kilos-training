@@ -198,7 +198,7 @@ const mmss = (s) => {
 
 function drawCountdown(ctx, d) {
   field(ctx);
-  rail(ctx, d.seasonLabel, '100 DAYS', '2026');
+  rail(ctx, d.seasonLabel, 'BIRTHDAY · 6 FEB', '2026');
 
   ctx.fillStyle = INK;
   display(ctx, String(d.daysToGo), W / 2, H * 0.47, 400, 'center');
@@ -210,7 +210,7 @@ function drawCountdown(ctx, d) {
   ctx.fillStyle = 'rgba(255,255,255,.85)';
   tracked(
     ctx,
-    `DAY ${d.day} OF ${d.days}`,
+    `DAY ${d.day}`,
     W / 2,
     H * 0.68 + 44,
     22,
@@ -223,7 +223,7 @@ function drawCountdown(ctx, d) {
 
 function drawWorkout(ctx, d) {
   field(ctx);
-  rail(ctx, d.seasonLabel, `DAY ${d.day} OF ${d.days}`, '2026');
+  rail(ctx, d.seasonLabel, `DAY ${d.day}`, '2026');
 
   ctx.fillStyle = INK;
   display(ctx, d.activity, PAD, PAD + 190, 150);
@@ -284,7 +284,7 @@ function drawWorkout(ctx, d) {
 
 function drawMark(ctx, d) {
   field(ctx, true);
-  rail(ctx, d.seasonLabel, '100 DAYS', '2026');
+  rail(ctx, d.seasonLabel, 'BIRTHDAY · 6 FEB', '2026');
 
   ctx.save();
   ctx.fillStyle = INK;
@@ -302,7 +302,7 @@ function drawMark(ctx, d) {
   tracked(ctx, `${d.daysToGo} DAYS TO GO`, PAD, H - PAD - 8, 20, 0.18);
   tracked(
     ctx,
-    `DAY ${d.day} OF ${d.days}`,
+    `DAY ${d.day}`,
     W - PAD,
     H - PAD - 8,
     20,

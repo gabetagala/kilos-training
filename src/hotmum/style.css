@@ -1018,13 +1018,15 @@ body {
   color: var(--hot);
 }
 
-/* ─── A hundred boxes ──────────────────────────────────────────────────── */
-/* One box per day of the hundred. A missed day just stays empty — no red,
-   no broken streak, nothing to feel bad about with a newborn in the house.
+/* ─── The boxes to her birthday ────────────────────────────────────────── */
+/* One box per day from 6 Nov to her birthday on 6 Feb — 93 of them, the last
+   one hot. (Until 2026-11-06 it was one per day of the hundred.) A missed day
+   just stays empty — no red, no broken streak, nothing to feel bad about with
+   a newborn in the house.
 
-   TWENTY COLUMNS, so the hundred lands as five clean rows — and a row is
-   exactly one twenty-day training block. The grid and the program are the
-   same shape, which is why it isn't fourteen columns any more. */
+   TWENTY COLUMNS on desktop, ten on a phone — kept from the hundred, which
+   is why 93 lands as an almost-square: nine full rows and a short last one
+   ending on the birthday. */
 
 .boxes {
   flex-shrink: 0;
@@ -1063,15 +1065,30 @@ button.bx.done:hover {
   background: var(--cream);
   box-shadow: 0 0 0 2px rgba(255, 233, 168, 0.35);
 }
+/* Behind her and not logged: dimmer than a day still to come, so what's left
+   between today and the hot box reads as the countdown at a glance. Still no
+   red — a missed day is quieter, never louder. */
+.bx.past {
+  background: rgba(255, 255, 255, 0.08);
+}
+/* Her birthday — the finish line, in the brand colour. */
+.bx.bday {
+  background: var(--hot);
+  box-shadow: 0 0 0 2px rgba(255, 30, 142, 0.35);
+}
+/* Logged on the day itself: still hot, with the white of a done box inside. */
+.bx.bday.done {
+  box-shadow: inset 0 0 0 3px #fff;
+}
 .boxes-key {
   margin-top: 10px;
 }
 
 /* ─── The phone home screen is ONE FOLD ─────────────────────────────────────
-   Ten across, ten down: a hundred boxes as an actual square, each one twice
-   the size of the twenty-column strip it replaces (which was 14px specks with
-   a third of the screen sitting empty underneath). Two rows per twenty-day
-   training block, so the reading survives.
+   Ten across, ten down: the boxes as an actual square, each one twice the
+   size of the twenty-column strip it replaces (which was 14px specks with a
+   third of the screen sitting empty underneath). Built for the hundred; the
+   93 days to her birthday fill it with three in the last row.
 
    The day card then takes every pixel that's left, which is what keeps the
    page to a single fold with nothing to scroll and no dead band at the
@@ -1446,9 +1463,8 @@ button.bx.done:hover {
   .today-card {
     position: relative;
   }
-  /* Still twenty across — a row is one twenty-day training block, and that
-     reading is the whole reason the grid is shaped the way it is. Fourteen
-     was left over from the old 20-week season. */
+  /* Still twenty across — built for the hundred (a row was one twenty-day
+     block); the 93 days to her birthday land as four rows and a short fifth. */
   .boxes {
     grid-template-columns: repeat(20, 1fr);
     gap: 6px;

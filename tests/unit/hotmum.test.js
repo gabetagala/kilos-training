@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  addDays,
   blockDetail,
   blockForDay,
   blockWorkSecs,
+  COUNTDOWN,
   dayNumber,
+  daysBetween,
+  daysToBirthday,
   daysToGo,
   estimateMins,
   getMovement,
@@ -16,6 +20,7 @@ import {
   MOVEMENTS,
   PARTS,
   PHASES,
+  phKey,
   playable,
   progress,
   SEASON,
@@ -327,17 +332,44 @@ describe('season — a hundred days, not a streak', () => {
     }
   });
 
-  it('counts down to day one hundred and clamps at zero after it', () => {
-    expect(daysToGo('2026-08-24')).toBe(99);
-    expect(daysToGo('2026-11-30')).toBe(1);
-    expect(daysToGo('2027-01-05')).toBe(0);
+  // Since 2026-11-06 the countdown is to her birthday, not day 100.
+  it('counts down to her birthday and clamps at zero after it', () => {
+    expect(COUNTDOWN).toEqual({ from: '2026-11-06', to: '2027-02-06' });
+    expect(daysToGo('2026-11-06')).toBe(92);
+    expect(daysToGo('2026-12-01')).toBe(67); // day 100 is no longer the end
+    expect(daysToGo('2027-02-05')).toBe(1);
+    expect(daysToGo('2027-02-06')).toBe(0);
+    expect(daysToGo('2027-03-01')).toBe(0);
+    expect(daysToBirthday('2027-03-01')).toBe(-23); // the sign survives
+  });
+
+  // The grid runs from the day the countdown started to the birthday itself,
+  // so the boxes after today are exactly the days left.
+  it('the grid is 93 boxes: today plus the 92 days to go', () => {
+    expect(daysBetween(COUNTDOWN.from, COUNTDOWN.to) + 1).toBe(93);
+    expect(addDays(COUNTDOWN.from, 92)).toBe(COUNTDOWN.to);
+    expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
   });
 
   it('reports the day number, clamped at both ends', () => {
     expect(dayNumber('2026-08-24')).toBe(1);
     expect(dayNumber('2026-08-25')).toBe(2);
     expect(dayNumber('2026-07-01')).toBe(1); // before the start
-    expect(dayNumber('2027-03-01')).toBe(100); // long after the end
+    expect(dayNumber('2026-11-06')).toBe(75);
+    // keeps counting past the hundred, up to the birthday
+    expect(dayNumber('2026-12-02')).toBe(101);
+    expect(dayNumber('2027-02-06')).toBe(167);
+    expect(dayNumber('2027-03-01')).toBe(167); // long after the end
+  });
+
+  // Her progress didn't move when the finish line did: the blocks are the
+  // same days they always were, and after day 100 PEAK simply holds.
+  it('holds PEAK after day one hundred, so the sessions do not change', () => {
+    expect(blockForDay(dayNumber('2026-11-06')).name).toBe('LOAD');
+    expect(blockForDay(101).name).toBe('PEAK');
+    expect(blockForDay(167).name).toBe('PEAK');
+    const s = getSession('lower');
+    expect(progress(s, 140)).toEqual(progress(s, 100));
   });
 
   // Her plan is written Monday-to-Sunday, so day 1 has to BE a Monday —
@@ -867,10 +899,8 @@ describe('profile — greeting and units', () => {
     const lines = [
       greeting('Sam'),
       greeting('Sam', new Date(), true),
-      ...[1, 42, 100].flatMap((day) =>
-        [true, false].map((doneToday) =>
-          subGreeting({ doneToday, day, days: 100 }),
-        ),
+      ...[92, 1, 0, -3].flatMap((daysLeft) =>
+        [true, false].map((doneToday) => subGreeting({ doneToday, daysLeft })),
       ),
     ];
     for (const line of lines) expect(line, line).not.toMatch(appearance);
@@ -878,14 +908,21 @@ describe('profile — greeting and units', () => {
     expect(greeting('Sam')).toMatch(/hot mum/i);
   });
 
-  it('counts the hundred days, and never a date beyond them', () => {
-    expect(subGreeting({ doneToday: false, day: 1, days: 100 })).toMatch(
-      /Day 1 of 100/,
+  it('counts down to her birthday, and never past it', () => {
+    expect(subGreeting({ doneToday: false, daysLeft: 92 })).toMatch(
+      /^92 days to your birthday\./,
     );
-    expect(subGreeting({ doneToday: false, day: 42, days: 100 })).toMatch(
-      /Day 42 of 100/,
+    expect(subGreeting({ doneToday: false, daysLeft: 1 })).toMatch(
+      /^One day to your birthday\./,
     );
-    expect(subGreeting({ doneToday: true, day: 42, days: 100 })).toBe(
+    expect(subGreeting({ doneToday: false, daysLeft: 0 })).toMatch(
+      /^Happy birthday\./,
+    );
+    // after it: no negative count, no birthday that never ends
+    expect(subGreeting({ doneToday: false, daysLeft: -3 })).toBe(
+      "Today's yours to pick.",
+    );
+    expect(subGreeting({ doneToday: true, daysLeft: 42 })).toBe(
       "That's today done.",
     );
   });
@@ -906,31 +943,39 @@ describe('profile — greeting and units', () => {
   });
 });
 
-describe('dates are LOCAL, not UTC', () => {
+describe('dates are MANILA dates, not UTC and not the phone', () => {
   // In Manila (UTC+8) a 7am session stamped with the UTC date lands on
   // yesterday, so by that evening the app had forgotten she'd trained.
-  const localKey = (d) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
+  // Every instant below carries its own offset, so these pass in any timezone
+  // the tests happen to run in.
   it('stamps a 7am session with today, not yesterday', () => {
-    const morning = new Date(2026, 8, 1, 7, 0, 0); // 1 Sep, local
-    expect(localKey(morning)).toBe('2026-09-01');
+    const morning = new Date('2026-09-01T07:00:00+08:00');
+    expect(phKey(morning)).toBe('2026-09-01');
     // the old behaviour, for the record
-    if (morning.getTimezoneOffset() < 0) {
-      expect(morning.toISOString().slice(0, 10)).toBe('2026-08-31');
-    }
+    expect(morning.toISOString().slice(0, 10)).toBe('2026-08-31');
   });
 
   it('the countdown does not drift through the day', () => {
-    const morning = daysToGo(new Date(2026, 8, 1, 7, 0, 0));
-    const evening = daysToGo(new Date(2026, 8, 1, 22, 0, 0));
+    const morning = daysToGo(new Date('2026-09-01T07:00:00+08:00'));
+    const evening = daysToGo(new Date('2026-09-01T22:00:00+08:00'));
     expect(morning).toBe(evening);
   });
 
   it('the day number is the same all day', () => {
-    expect(dayNumber(new Date(2026, 8, 1, 6, 0, 0))).toBe(
-      dayNumber(new Date(2026, 8, 1, 23, 0, 0)),
+    expect(dayNumber(new Date('2026-09-01T06:00:00+08:00'))).toBe(
+      dayNumber(new Date('2026-09-01T23:00:00+08:00')),
     );
+  });
+
+  // The birthday turns over at MANILA midnight. A phone set to another
+  // timezone would otherwise flip the count hours early or late.
+  it('the birthday arrives at midnight in Manila, wherever the phone thinks it is', () => {
+    expect(daysToBirthday(new Date('2027-02-05T23:59:00+08:00'))).toBe(1);
+    expect(daysToBirthday(new Date('2027-02-06T00:00:00+08:00'))).toBe(0);
+    // 4pm in London on the 5th is already midnight-plus in Manila
+    expect(daysToBirthday(new Date('2027-02-05T16:30:00Z'))).toBe(0);
+    // and 8am on the 6th in New York is 9pm the same day in Manila
+    expect(daysToBirthday(new Date('2027-02-06T08:00:00-05:00'))).toBe(0);
   });
 });
 
