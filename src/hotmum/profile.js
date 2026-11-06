@@ -69,8 +69,14 @@ export function greeting(name, _date = new Date(), doneToday = false) {
 /**
  * The second line. There is no schedule — she chooses each day — so this
  * states the fact and gets out of the way rather than assigning her a session.
+ *
+ * The fact is the birthday countdown (since 2026-11-06). `daysLeft` is
+ * unclamped — 0 is the day itself, negative is after it.
  */
-export function subGreeting({ doneToday, day, days }) {
+export function subGreeting({ doneToday, daysLeft }) {
   if (doneToday) return "That's today done.";
-  return `Day ${day} of ${days}. Today's yours to pick.`;
+  if (daysLeft === 0) return "Happy birthday. Today's yours to pick.";
+  if (daysLeft < 0) return "Today's yours to pick.";
+  const n = daysLeft === 1 ? 'One day' : `${daysLeft} days`;
+  return `${n} to your birthday. Today's yours to pick.`;
 }

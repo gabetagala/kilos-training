@@ -20,6 +20,16 @@
 > **Christmas is OUT — 2026-08-20.** Not demoted to a second milestone: gone.
 > It's no longer the season name, the countdown, the share card, the manifest
 > or the app description. One finish line, and it's day 100.
+>
+> **The finish line is her BIRTHDAY — 2026-11-06.** Sam asked for the home
+> screen to count down to her birthday, **6 Feb 2027**, instead of the hundred.
+> The grid is now one box per day from 6 Nov (the day she asked) to 6 Feb —
+> 93 boxes, the last one hot — and every countdown in the app (home, Program,
+> finish card, share card) counts to it, in **PH time** (Asia/Manila
+> midnight, whatever the phone's timezone). Her progress didn't move: history,
+> "days showed up" (all-time, not just on the grid), and the training are as
+> they were. The five blocks still run day 1–100 from 24 Aug; from day 101
+> PEAK holds to the birthday. Still one finish line — it just moved.
 
 ---
 
