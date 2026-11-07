@@ -931,7 +931,10 @@ test('the stall rule: a tired day is never the yardstick — no RESET', async ({
 // THE ANCHOR'S OWN GATE (round 2): a heavy lift rises only with his explicit
 // "≥2 reps left" on last time's final set — a skipped answer (null) is not a
 // yes, and neither is 1. Read on Wednesday's front squat, 60 × 5 last week.
-async function squatAnchor(page, { anchorRIR, back = 'good', shortSleep = false } = {}) {
+async function squatAnchor(
+  page,
+  { anchorRIR, back = 'good', shortSleep = false, build = false } = {},
+) {
   await page.clock.setFixedTime(WED);
   await page.addInitScript(
     ({ day, b, ss }) => {
@@ -972,11 +975,14 @@ async function squatAnchor(page, { anchorRIR, back = 'good', shortSleep = false 
   for (let i = 0; i < 60; i++) {
     const head = (await page.locator('#rp-session-name').textContent()) || '';
     const meta = (await page.locator('#rp-meta').textContent()) || '';
-    if (/^THE ANCHOR/.test(head) && new RegExp(`SET 1 OF ${of}`).test(meta)) break;
+    // `build`: stop one step earlier, on the unlogged build round
+    const want = build ? /WORKING/ : new RegExp(`SET 1 OF ${of}`);
+    if (/^THE ANCHOR/.test(head) && want.test(meta)) break;
     await page.locator('#rp-skip').click();
     await page.waitForTimeout(60);
   }
   await expect(page.locator('#rp-session-name')).toContainText('THE ANCHOR · E2:30');
+  if (build) return page.locator('#rp-meta');
   await expect(page.locator('#rp-exname')).toHaveText('Front Squat');
   // QA round: a working anchor set reads SET n OF m (build rounds excluded)
   await expect(page.locator('#rp-meta')).toContainText(`SET 1 OF ${of}`);
@@ -1000,6 +1006,27 @@ test('the anchor gate: 2 reps left on a Good morning opens the target', async ({
   const ctx = await squatAnchor(page, { anchorRIR: 2 });
   await expect(ctx).toContainText(/TARGET 62\.5\s*(kg|lbs)/);
   await expect(ctx).not.toContainText('HOLD');
+});
+
+// THE BUILD IN KILOS (2026-11-06, his ask): the build round names its weights
+// off the working set's OWN number — the target when the gate opens, the
+// held weight when it doesn't — and the line stays one line at phone width.
+test('the build round shows its kilos, worked out from the working set', async ({ page }) => {
+  const meta = await squatAnchor(page, { anchorRIR: 2, build: true });
+  // TARGET 62.5 → ~50% ×5 = 32.5, ~70% ×3 = 45 (the dial's 2.5 steps)
+  await expect(meta.locator('.rp-rx')).toHaveText('32.5×5 → 45×3');
+  await expect(meta).toContainText(/WORKING 62\.5$/);
+  const box = await meta.boundingBox();
+  expect(box.height).toBeLessThanOrEqual(30); // one line, no reflow
+  // nothing to log on a build round
+  await expect(page.locator('#rp-lift')).toBeHidden();
+});
+
+test('a held squat builds to the held weight', async ({ page }) => {
+  const meta = await squatAnchor(page, { build: true });
+  // HOLD 60 → 30 ×5, 42.5 ×3
+  await expect(meta.locator('.rp-rx')).toHaveText('30×5 → 42.5×3');
+  await expect(meta).toContainText(/WORKING 60$/);
 });
 
 // QA round: a short night holds the squat again, even with GOOD tapped and

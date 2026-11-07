@@ -95,8 +95,9 @@ const PHASE_SWAPS = { 1: {}, 2: {}, 3: {} };
 export const phaseSwaps = (phase) => ({ ...(PHASE_SWAPS[phase] || {}) });
 
 // ── Phase volume steps ──────────────────────────────────────────────────────
-// What a phase changes now (2026-10-10): only members that declare
-// `phaseReps` — no session uses it today; the bodyweight ladders (Monday's
+// What a phase changes now (2026-10-10): members that declare `phaseReps`,
+// and blocks that gain a movement via `phaseMembers` (2026-11-06: Wednesday's
+// laterals from phase 2); the bodyweight ladders (Monday's
 // pull-up anchor, Friday's pull-ups and ring dips) step by WEEK instead
 // (`weekReps`, applied in applyFormats). Legs grow since 2026-10-10 — the old
 // "quads at maintenance" note no longer holds.
@@ -139,13 +140,38 @@ export function applyPhase(session, phase) {
           : {}),
       };
     }
-    if (!v?.members?.some((m) => m.phaseReps?.[phase])) return v;
+    // A MOVEMENT THAT JOINS WITH A PHASE (2026-11-06): `phaseMembers` names
+    // what a block gains from that phase on — Wednesday's laterals come back
+    // in phase 2, once the side delts have had their weeks off. Appended
+    // once: a member already there is never added twice (idempotent).
+    const add = (
+      v?.members && v.phaseMembers?.[phase] ? v.phaseMembers[phase] : []
+    ).filter((a) => !v.members.some((m) => m.ex === a.ex));
+    const rounds = v?.members && v.phaseRounds?.[phase];
+    if (
+      !add.length &&
+      !rounds &&
+      !v?.members?.some((m) => m.phaseReps?.[phase])
+    ) {
+      return v;
+    }
     touched = true;
     return {
       ...v,
-      members: v.members.map((m) =>
-        m.phaseReps?.[phase] ? { ...m, reps: m.phaseReps[phase] } : m,
-      ),
+      // a piece can run a round shorter in a phase (`phaseRounds`) — the
+      // minutes Wednesday's laterals cost come out of its longest finisher
+      ...(rounds ? { rounds } : {}),
+      // the joining movement can bring its own rest: the laterals fill the
+      // gap the legs used to rest in, so the round's rest shortens with them
+      ...(add.length && v.phaseRestSecs?.[phase] != null
+        ? { restSecs: v.phaseRestSecs[phase] }
+        : {}),
+      members: [
+        ...v.members.map((m) =>
+          m.phaseReps?.[phase] ? { ...m, reps: m.phaseReps[phase] } : m,
+        ),
+        ...add,
+      ],
     };
   };
   const blocks = session.blocks.map((b) =>
@@ -866,7 +892,8 @@ export function applyAmber(session) {
     const { amberEx, amberReps, amberNote, amberBlock, amberDrop, ...rest } = m;
     if (!amberEx) return rest;
     // the old move's cue goes with it ("elbows high" on a box squat is a lie)
-    const { alts, fixedReps, effort, note, warmupNote, ...plain } = rest;
+    const { alts, fixedReps, effort, note, warmupNote, warmupSets, ...plain } =
+      rest;
     return {
       ...plain,
       ex: amberEx,
@@ -916,6 +943,7 @@ export function applyNoFolds(session) {
       effort,
       note,
       warmupNote,
+      warmupSets,
       ...rest
     } = m;
     return {

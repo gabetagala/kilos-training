@@ -4116,6 +4116,177 @@ function rhRenderVoiceBtn() {
   );
 }
 
+// THE LOAD TARGET (one copy since 2026-11-06): the last session of this lift
+// and what today asks for — TARGET, HOLD, EASE or RESET. The working set reads
+// it for its context line and its dial; the build round in front of it reads
+// the SAME number, so "~50% ×5" is half of what the set will actually ask for.
+// null when the lift has no history yet.
+function rhLoadTarget(step) {
+  const ex = GUIDED_EXERCISES[step.exId];
+  // superset sets read the last session of their own week type
+  const [lastLogs0, prevLogs] =
+    step.build || step.anchor
+      ? getSessionsLike(ex?.name, step.heavy, 2)
+      : [getLastSession(ex?.name)];
+  const lastLogs = lastLogs0 || null;
+  if (!lastLogs?.length) return null;
+  const top = lastLogs.reduce((b, l) =>
+    (parseFloat(l.weight) || 0) > (parseFloat(b.weight) || 0) ? l : b,
+  );
+  if (step.logReps) return { top, sugg: null, label: null };
+  // The +2.5 target only makes sense on the ANCHOR. With single-
+  // number prescriptions an EMOM auto-logs exactly the prescribed
+  // reps, so "hit every rep" carries no information — a station
+  // that shows a target would suggest +2.5 every exposure, up to
+  // three times a week on the rotating slots. The anchor comes
+  // round ~monthly per variant, where +2.5 per exposure is sane.
+  // A RAMP week eases in instead: ~10% under the last weight, and
+  // the label says RAMP so the step back reads as the plan, not a
+  // bug (rampWeight in progression.js).
+  // a ramp week and a week away are the same problem: the last
+  // weight was set by a fitter, fresher version of today
+  const easing = !!rhSession?.ramp || rhEaseLoad;
+  // THE LOAD GATE (2026-10-10, physio QA; split in round 3): a
+  // spine-loaded lift goes up only on a Good morning whose last
+  // session's next morning was fine too (SPINE_LIFTS); anything
+  // else unless today is amber or red. On the anchor, the last
+  // heavy set must also have left ≥2 reps. Otherwise: HOLD.
+  // an anchor needs his explicit "≥2 left" — a skipped answer is
+  // not a yes; the RDL needs its own ≥2 and never rises twice running
+  const anchorOK =
+    !step.anchor || (lastAnchorRIR(rhSession?.id, step.exId) ?? -1) >= 2;
+  const rdlOK =
+    step.exId !== 'rdl' || ((lastRDLRIR() ?? -1) >= 2 && !rdlRoseLastTime());
+  const level = backLevel();
+  // A short night (or a skipped check) may still move the SPLIT
+  // SQUATS — his main leg-growth lifts, unilateral and light on the
+  // disc — when the back answered their last session well. The
+  // heavy axial lifts (the front squat anchor, the RDL) wait for a
+  // Good morning (round-3 physio QA: the old rule had it backwards).
+  // …and the front squat on a short night when the BACK said Good:
+  // sleep doesn't change disc tolerance (round-4 physio + coach)
+  // round 6 (physio): a short night or a skipped check holds EVERY
+  // spine-loaded lift — nothing is lost by waiting a week, and the
+  // reps-first split squats still get their extra rep under a HOLD
+  const spineOK = SPINE_LIFTS.has(step.exId)
+    ? level === 'green' && morningAfterOK(lastLogs.date, step.exId)
+    : level !== 'amber' && level !== 'red';
+  const hold = !spineOK || !anchorOK || !rdlOK;
+  // superset sets earn one too (2026-10-09) — their reps are
+  // confirmed at log time, so "every set hit the number" is real
+  const repsFirst = (step.build || step.anchor) && REPS_FIRST.has(step.exId);
+  // THE STALL RULE (round-3 coach QA): two sessions running short of
+  // the reps at the same weight → reset ~10% and build back, rather
+  // than a HOLD forever
+  const topOf = (logs) =>
+    Math.max(0, ...logs.map((l) => parseFloat(l.weight) || 0));
+  const missed = (logs) =>
+    logs.some(
+      (l) => l.reps && parseInt(l.reps, 10) < (repTargetTop(step.reps) ?? 0),
+    );
+  // only load-first lifts, only full-dose days, never an anchor
+  // that still had ≥2 reps left (missed reps there were pacing)
+  const stalled =
+    !step.logReps &&
+    prevLogs &&
+    lastLogs.full &&
+    prevLogs.full &&
+    topOf(lastLogs) > 0 &&
+    topOf(lastLogs) === topOf(prevLogs) &&
+    missed(lastLogs) &&
+    missed(prevLogs) &&
+    !(step.anchor && anchorOK);
+  const raw =
+    !step.anchor && !step.build
+      ? null
+      : easing
+        ? { weight: rampWeight(lastLogs), reps: null }
+        : repsFirst
+          ? suggestRepsFirst(lastLogs, step.reps)
+          : {
+              weight: suggestNextWeight(lastLogs, step.reps),
+              reps: null,
+            };
+  const topW = parseFloat(top.weight) || 0;
+  // a HOLD never raises the load — it may still ask for a rep
+  const sugg =
+    stalled && !easing
+      ? {
+          // ~10% down, but always at least one loadable step
+          weight: Math.max(
+            0,
+            Math.min(
+              topOf(lastLogs) - 2.5,
+              Math.floor((topOf(lastLogs) * 0.9) / 2.5) * 2.5,
+            ),
+          ),
+          reps: null,
+          reset: true,
+        }
+      : raw && hold && !easing && raw.weight > topW
+        ? { weight: topW, reps: null, held: true }
+        : // a HOLD still earns a rep when reps-first offered one
+          raw && hold && !easing && raw.reps
+          ? { ...raw, held: true }
+          : raw;
+  if (!sugg?.weight) return { top, sugg: null, label: null };
+  const label = easing
+    ? 'EASE'
+    : sugg.reset
+      ? 'RESET'
+      : sugg.held
+        ? 'HOLD'
+        : 'TARGET';
+  return { top, sugg, label };
+}
+
+// THE BUILD IN KILOS (2026-11-06, his ask): a warm-up / build round names its
+// weights off the working set it leads into — the same TARGET, HOLD, EASE or
+// RESET that set will show, so an amber or ramp day builds to the eased
+// number, never last week's. `rampSets` are [fraction, reps] pairs from the
+// program; each rounds to the dial's 2.5 and a barbell never asks for less
+// than the empty bar. A lift with no weight on record shows no number — the
+// "~50%" note stands rather than a guess. `from` is the step's queue index.
+const BAR_LIFTS = new Set(['front-squat', 'rdl', 'floor-press']);
+function rhRampLoads(step, from = rhIdx) {
+  if (!step?.rampSets?.length) return null;
+  const work = rhQueue
+    .slice(from + 1)
+    .find(
+      (s) =>
+        s.kind === 'work' &&
+        s.exId === step.exId &&
+        s.phase !== 'RAMP' &&
+        s.logWeight !== false &&
+        !s.logReps,
+    );
+  if (!work) return null;
+  const t = rhLoadTarget(work);
+  // no target yet (a first heavy week, say): the dial's memory, then the
+  // heaviest set on record anywhere — never the hardcoded default
+  const known = () => {
+    const map = get(GUIDED_WEIGHTS_KEY) || {};
+    if (map[step.exId] > 0) return map[step.exId];
+    const logs = getLastSession(GUIDED_EXERCISES[step.exId]?.name);
+    return logs?.length
+      ? Math.max(0, ...logs.map((l) => parseFloat(l.weight) || 0))
+      : 0;
+  };
+  const w = t?.sugg?.weight || parseFloat(t?.top?.weight) || known();
+  if (!(w > 0)) return null;
+  // the empty bar is 20 whatever the label says — weights are unit-agnostic
+  // numbers (lbs is only the default LABEL), and calcPlates assumes 20 too
+  const floor = BAR_LIFTS.has(step.exId) ? 20 : 2.5;
+  const sets = step.rampSets
+    .map(([pct, reps]) => ({
+      w: Math.max(floor, Math.round((w * pct) / 2.5) * 2.5),
+      reps,
+    }))
+    // a build set at (or over) the working weight is not a build set
+    .filter((s) => s.w < w);
+  return sets.length ? { work: w, sets } : null;
+}
+
 // nextWorkLabel plus the coming station's NUMBER — "JUMPING JACK 45s",
 // "DB LATERAL RAISE ×12" — so an EMOM transition needs zero memory. Only
 // EMOM steps carry a number here; rehab holds keep the plain name (their
@@ -4127,11 +4298,16 @@ function rhNextWorkPreview() {
     const name = GUIDED_EXERCISES[s.exId]?.name || s.exId;
     // any work step carries its number now (2026-08-14) — the finishers and
     // the anchor sets deserve the same forward glance the EMOM stations got
-    const num = s.workSecs
-      ? `${s.workSecs}s`
-      : s.reps && s.reps !== 'build' && !s.holdSet
-        ? `×${s.reps}`
-        : '';
+    // …and a build round its first weight, so the bar is loaded in the
+    // seconds before it (2026-11-06)
+    const ramp = s.phase === 'RAMP' ? rhRampLoads(s, i) : null;
+    const num = ramp
+      ? `${toDisplayWeight(ramp.sets[0].w)}${weightUnit()} ×${ramp.sets[0].reps}`
+      : s.workSecs
+        ? `${s.workSecs}s`
+        : s.reps && s.reps !== 'build' && !s.holdSet
+          ? `×${s.reps}`
+          : '';
     const side = s.side ? ` · ${s.side}` : '';
     return `${name}${num ? ` ${num}` : ''}${side}`;
   }
@@ -4204,8 +4380,13 @@ function rhRenderStep() {
   // not a 12px accent). Warm-up rounds say 'build', which is not a number
   // worth shouting. ANY work step now — the finishers run fortime/manual, and
   // their reps deserve the same prominence the EMOM stations got.
-  const rx =
-    step.kind === 'work' && !step.ladder && step.phase !== 'RAMP'
+  // …and a build round leads with its WEIGHTS (2026-11-06, his ask): "20×5 →
+  // 30×3", worked out from the working set's target (rhRampLoads)
+  const ramp =
+    step.kind === 'work' && step.phase === 'RAMP' ? rhRampLoads(step) : null;
+  const rx = ramp
+    ? ramp.sets.map((s) => `${toDisplayWeight(s.w)}×${s.reps}`).join(' → ')
+    : step.kind === 'work' && !step.ladder && step.phase !== 'RAMP'
       ? step.workSecs
         ? `${step.workSecs}s`
         : /length/i.test(String(step.reps || ''))
@@ -4223,13 +4404,17 @@ function rhRenderStep() {
     metaEl.appendChild(b);
   }
   // the big rx makes a trailing "· 12 REPS" in the meta pure noise — drop
-  // exactly that fragment, and only when the number matches
-  const metaTail = String(step.meta || '').replace(
-    rx.startsWith('×')
-      ? new RegExp(`( · )?${rx.slice(1).replace('/', '\\/')} REPS$`, 'i')
-      : /$^/,
-    '',
-  );
+  // exactly that fragment, and only when the number matches. A build round
+  // names what it builds TO instead — no unit: every number on the line is
+  // the same unit, and a 102.5 front squat must still fit one line at 375px
+  const metaTail = ramp
+    ? `WORKING ${toDisplayWeight(ramp.work)}`
+    : String(step.meta || '').replace(
+        rx.startsWith('×')
+          ? new RegExp(`( · )?${rx.slice(1).replace('/', '\\/')} REPS$`, 'i')
+          : /$^/,
+        '',
+      );
   metaEl.appendChild(
     document.createTextNode(`${rx && metaTail ? ' · ' : ''}${metaTail}`),
   );
@@ -4370,143 +4555,23 @@ function rhRenderStep() {
     if (ctxEl) {
       let ctx = '';
       if (showWeight) {
-        // superset sets read the last session of their own week type
-        const [lastLogs0, prevLogs] =
-          step.build || step.anchor
-            ? getSessionsLike(ex?.name, step.heavy, 2)
-            : [getLastSession(ex?.name)];
-        const lastLogs = lastLogs0 || null;
-        if (lastLogs?.length) {
-          const top = lastLogs.reduce((b, l) =>
-            (parseFloat(l.weight) || 0) > (parseFloat(b.weight) || 0) ? l : b,
-          );
-          if (step.logReps) {
-            ctx = `LAST ${top.reps || '—'} REPS`;
-          } else {
-            // The +2.5 target only makes sense on the ANCHOR. With single-
-            // number prescriptions an EMOM auto-logs exactly the prescribed
-            // reps, so "hit every rep" carries no information — a station
-            // that shows a target would suggest +2.5 every exposure, up to
-            // three times a week on the rotating slots. The anchor comes
-            // round ~monthly per variant, where +2.5 per exposure is sane.
-            // A RAMP week eases in instead: ~10% under the last weight, and
-            // the label says RAMP so the step back reads as the plan, not a
-            // bug (rampWeight in progression.js).
-            // a ramp week and a week away are the same problem: the last
-            // weight was set by a fitter, fresher version of today
-            const easing = !!rhSession?.ramp || rhEaseLoad;
-            // THE LOAD GATE (2026-10-10, physio QA; split in round 3): a
-            // spine-loaded lift goes up only on a Good morning whose last
-            // session's next morning was fine too (SPINE_LIFTS); anything
-            // else unless today is amber or red. On the anchor, the last
-            // heavy set must also have left ≥2 reps. Otherwise: HOLD.
-            // an anchor needs his explicit "≥2 left" — a skipped answer is
-            // not a yes; the RDL needs its own ≥2 and never rises twice running
-            const anchorOK =
-              !step.anchor ||
-              (lastAnchorRIR(rhSession?.id, step.exId) ?? -1) >= 2;
-            const rdlOK =
-              step.exId !== 'rdl' ||
-              ((lastRDLRIR() ?? -1) >= 2 && !rdlRoseLastTime());
-            const level = backLevel();
-            // A short night (or a skipped check) may still move the SPLIT
-            // SQUATS — his main leg-growth lifts, unilateral and light on the
-            // disc — when the back answered their last session well. The
-            // heavy axial lifts (the front squat anchor, the RDL) wait for a
-            // Good morning (round-3 physio QA: the old rule had it backwards).
-            // …and the front squat on a short night when the BACK said Good:
-            // sleep doesn't change disc tolerance (round-4 physio + coach)
-            // round 6 (physio): a short night or a skipped check holds EVERY
-            // spine-loaded lift — nothing is lost by waiting a week, and the
-            // reps-first split squats still get their extra rep under a HOLD
-            const spineOK = SPINE_LIFTS.has(step.exId)
-              ? level === 'green' && morningAfterOK(lastLogs.date, step.exId)
-              : level !== 'amber' && level !== 'red';
-            const hold = !spineOK || !anchorOK || !rdlOK;
-            // superset sets earn one too (2026-10-09) — their reps are
-            // confirmed at log time, so "every set hit the number" is real
-            const repsFirst =
-              (step.build || step.anchor) && REPS_FIRST.has(step.exId);
-            // THE STALL RULE (round-3 coach QA): two sessions running short of
-            // the reps at the same weight → reset ~10% and build back, rather
-            // than a HOLD forever
-            const topOf = (logs) =>
-              Math.max(0, ...logs.map((l) => parseFloat(l.weight) || 0));
-            const missed = (logs) =>
-              logs.some(
-                (l) =>
-                  l.reps &&
-                  parseInt(l.reps, 10) < (repTargetTop(step.reps) ?? 0),
-              );
-            // only load-first lifts, only full-dose days, never an anchor
-            // that still had ≥2 reps left (missed reps there were pacing)
-            const stalled =
-              !step.logReps &&
-              prevLogs &&
-              lastLogs.full &&
-              prevLogs.full &&
-              topOf(lastLogs) > 0 &&
-              topOf(lastLogs) === topOf(prevLogs) &&
-              missed(lastLogs) &&
-              missed(prevLogs) &&
-              !(step.anchor && anchorOK);
-            const raw =
-              !step.anchor && !step.build
-                ? null
-                : easing
-                  ? { weight: rampWeight(lastLogs), reps: null }
-                  : repsFirst
-                    ? suggestRepsFirst(lastLogs, step.reps)
-                    : {
-                        weight: suggestNextWeight(lastLogs, step.reps),
-                        reps: null,
-                      };
-            const topW = parseFloat(top.weight) || 0;
-            // a HOLD never raises the load — it may still ask for a rep
-            const sugg =
-              stalled && !easing
-                ? {
-                    // ~10% down, but always at least one loadable step
-                    weight: Math.max(
-                      0,
-                      Math.min(
-                        topOf(lastLogs) - 2.5,
-                        Math.floor((topOf(lastLogs) * 0.9) / 2.5) * 2.5,
-                      ),
-                    ),
-                    reps: null,
-                    reset: true,
-                  }
-                : raw && hold && !easing && raw.weight > topW
-                  ? { weight: topW, reps: null, held: true }
-                  : // a HOLD still earns a rep when reps-first offered one
-                    raw && hold && !easing && raw.reps
-                    ? { ...raw, held: true }
-                    : raw;
-            ctx = `LAST ${toDisplayWeight(top.weight)}×${top.reps || '—'}`;
-            if (sugg?.weight) {
-              const label = easing
-                ? 'EASE'
-                : sugg.reset
-                  ? 'RESET'
-                  : sugg.held
-                    ? 'HOLD'
-                    : 'TARGET';
-              ctx += ` · ${label} ${toDisplayWeight(sugg.weight)}${weightUnit()}${sugg.reps ? ` × ${sugg.reps}` : ''}`;
-              // THE DIAL STARTS AT THE SUGGESTION (round-6 app QA): one
-              // sweaty tap logs what the gate asked for — on a HOLD, an EASE
-              // or a RESET day that is the safe number, not last week's
-              rhWeightKg = sugg.weight;
-              rhRenderWeight();
-              // …and the reps row at the rep the target asks for
-              if (
-                sugg.reps &&
-                rhAnchorReps != null &&
-                rhArSaved?.idx !== rhIdx
-              ) {
-                rhAnchorReps = sugg.reps;
-                document.getElementById('rp-ar-val').textContent = rhAnchorReps;
-              }
+        const t = rhLoadTarget(step);
+        if (t && step.logReps) {
+          ctx = `LAST ${t.top.reps || '—'} REPS`;
+        } else if (t) {
+          const { top, sugg, label } = t;
+          ctx = `LAST ${toDisplayWeight(top.weight)}×${top.reps || '—'}`;
+          if (sugg?.weight) {
+            ctx += ` · ${label} ${toDisplayWeight(sugg.weight)}${weightUnit()}${sugg.reps ? ` × ${sugg.reps}` : ''}`;
+            // THE DIAL STARTS AT THE SUGGESTION (round-6 app QA): one
+            // sweaty tap logs what the gate asked for — on a HOLD, an EASE
+            // or a RESET day that is the safe number, not last week's
+            rhWeightKg = sugg.weight;
+            rhRenderWeight();
+            // …and the reps row at the rep the target asks for
+            if (sugg.reps && rhAnchorReps != null && rhArSaved?.idx !== rhIdx) {
+              rhAnchorReps = sugg.reps;
+              document.getElementById('rp-ar-val').textContent = rhAnchorReps;
             }
           }
         }

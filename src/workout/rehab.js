@@ -1180,14 +1180,14 @@ export const REHAB_SESSIONS = [
   {
     // REWORKED 2026-10-10 (physio + coach QA). Tue/Thu/Sat share the openers,
     // the McGill primer and the folds; the back extension runs Thu + Sat; the
-    // day-specific work closes it: Tue core + arms + calves, Thu rows / delts
+    // day-specific work closes it: Tue core + arms + calves, Thu rows / curls
     // / calves, Sat sprints + supporting move + carries.
     // 2026-10-10 (his ask): Saturday's scored finisher became the sprints.
     id: 'daily',
     name: 'Back & Hips',
     freq: 'Tue · Thu · Sat',
     blurb:
-      'Open up, brace, then work: hip and thoracic openers, the core holds (hollow hold, side plank, bird dog), Saturday’s sprints, back extensions (Thu and Sat), then Tuesday’s arms and leg raises, Thursday’s rows and delts, or Saturday’s carries and leg raises, and the two forward folds last of all. Up less than an hour? The morning check skips the folds.',
+      'Open up, brace, then work: hip and thoracic openers, the core holds (hollow hold, side plank, bird dog), Saturday’s sprints, back extensions (Thu and Sat), then Tuesday’s arms and leg raises, Thursday’s rows and curls, or Saturday’s carries and leg raises, and the two forward folds last of all. Up less than an hour? The morning check skips the folds.',
     blocks: [
       // the openers, the couch stretch on Tue/Thu only (Saturday's waits
       // until after the sprints)
@@ -1304,17 +1304,16 @@ export const REHAB_SESSIONS = [
         finisher: true,
         pump: true,
         rotate: byDay({
-          // four rounds: Thursday carries the side delts the triangle needs
-          1: PUMP(
-            'Curl & Lateral',
-            [
-              { ex: 'hammer-curl', reps: '10' },
-              { ex: 'db-lateral-raise', reps: '12' },
-            ],
-            // five rounds (2026-10-11, the 45-minute cap): side delts off
-            // their floor
-            { rounds: 5, betweenSecs: 10 },
-          ),
+          // CURLS ONLY (2026-11-06, his call: "too much day on day lat raises,
+          // side delts are cooked"). Thursday's laterals sat between
+          // Wednesday's push press and Friday's press-and-laterals — delts
+          // three days running. The side delts now train Mon + Fri (the
+          // anchor pairs), plus Wednesday from week 5 — never two days
+          // running; Thursday is their day off.
+          // Five rounds stay: the biceps keep their dose.
+          1: PUMP('Hammer Curls', [{ ex: 'hammer-curl', reps: '10' }], {
+            rounds: 5,
+          }),
         }),
       },
       // Thursday's calves are two sets — the back extension moved there

@@ -1241,6 +1241,37 @@ const muscles = [...new Set(weekVol.flatMap(Object.keys))];
   );
 }
 {
+  // SIDE DELTS NEVER TWO DAYS RUNNING (2026-11-06, his call: "too much day
+  // on day lat raises, side delts are cooked"). Any lateral raise counts —
+  // a light band warm-up the day after still lands on cooked delts. Weeks
+  // are read as a cycle, so Sunday → Monday is a pair too.
+  const byWeek = new Map();
+  for (const { w, d, s, q } of allQueues()) {
+    const hits = q.some(
+      (st) => st.kind === 'work' && (MAP[st.exId]?.sidedelt ?? 0) >= 1,
+    );
+    if (!hits) continue;
+    if (!byWeek.has(w)) byWeek.set(w, new Map());
+    byWeek.get(w).set(d, s.id);
+  }
+  const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const bad = [];
+  const days = new Set();
+  for (const [w, m] of byWeek) {
+    for (const d of m.keys()) {
+      days.add(DAY[d]);
+      if (m.has((d + 1) % 7)) bad.push(`${w}: ${DAY[d]} + ${DAY[(d + 1) % 7]}`);
+    }
+  }
+  check(
+    'GOALS',
+    'side delts never train two days running',
+    bad.length === 0,
+    bad.slice(0, 3).join(', ') ||
+      `lateral days: ${DAY.filter((d) => days.has(d)).join(' · ')}`,
+  );
+}
+{
   // LATS RISE BY REPS now (2026-08-11): the anchor round steps died with the
   // EMOM40 cap, so the phase progression is Friday's pull-up reps (3 → 4 → 5)
   // — invisible to a set count, real in the rep count.

@@ -157,9 +157,9 @@ test('a ramp rehab day keeps the pumps shaped down — no carry, no scored finis
   );
   // whichever pump day the card serves, it runs fewer rounds than written
   const txt = (await ov.textContent())?.replace(/\s+/g, ' ') || '';
-  const pumps = [...txt.matchAll(/(Arms|Calves|Row & Raise|Curl & Lateral) SETS · (\d) rounds/g)];
-  // (45-min round: Curl & Lateral runs five; calves Thursday only since
+  const pumps = [...txt.matchAll(/(Arms|Calves|Row & Raise|Hammer Curls) SETS · (\d) rounds/g)];
+  // (45-min round: Hammer Curls runs five; calves Thursday only since
   // 2026-10-20)
-  const FULL = { Arms: 4, Calves: 3, 'Row & Raise': 3, 'Curl & Lateral': 5 };
+  const FULL = { Arms: 4, Calves: 3, 'Row & Raise': 3, 'Hammer Curls': 5 };
   for (const [, name, n] of pumps) expect(Number(n), name).toBeLessThan(FULL[name]);
 });

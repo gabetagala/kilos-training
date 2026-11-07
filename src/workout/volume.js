@@ -122,7 +122,10 @@ export const WASTEFUL = 30;
 export const TARGETS = {
   lats: 11,
   chest: 12,
-  sidedelt: 12,
+  // 8 since 2026-11-06 (his call: "side delts are cooked"): weeks 1–4 run
+  // Mon + Fri only (8 sets) to recover; from week 5 Wednesday's three sets
+  // come back (11) — Mon / Wed / Fri, never two days running, never Thursday.
+  sidedelt: 8,
   biceps: 10,
   triceps: 10,
   forearm: 10,

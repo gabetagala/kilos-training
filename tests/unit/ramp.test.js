@@ -138,19 +138,19 @@ describe('applyRamp', () => {
     const daily = getRehabSession('daily');
     const ramped = applyRamp(daily, 1);
     const finishers = daily.blocks.filter((b) => b.finisher);
-    // pump A, farmer carry, suitcase carry (round 6), curl & lateral, the
+    // pump A, farmer carry, suitcase carry (round 6), hammer curls, the
     // scored finisher, calves
     expect(finishers).toHaveLength(6);
     const pumps = finishers.filter((b) => b.pump);
     expect(pumps).toHaveLength(3);
     expect(ramped.blocks.length).toBe(daily.blocks.length - (finishers.length - pumps.length));
     expect(ramped.blocks.filter((b) => b.finisher).every((b) => b.pump)).toBe(true);
-    // Tue Arms 4; Thu Row & Raise 3 · Curl & Lateral 5 · Calves 3 (45-min
+    // Tue Arms 4; Thu Row & Raise 3 · Hammer Curls 5 · Calves 3 (45-min
     // round; calves Thursday only since 2026-10-20); ramp 1 is two rounds
     // short (capped at 2), ramp 2 one short (capped at 3)
     const ROUNDS = {
-      1: { 0: { Arms: 2 }, 1: { 'Row & Raise': 1, 'Curl & Lateral': 2, Calves: 1 } },
-      2: { 0: { Arms: 3 }, 1: { 'Row & Raise': 2, 'Curl & Lateral': 3, Calves: 2 } },
+      1: { 0: { Arms: 2 }, 1: { 'Row & Raise': 1, 'Hammer Curls': 2, Calves: 1 } },
+      2: { 0: { Arms: 3 }, 1: { 'Row & Raise': 2, 'Hammer Curls': 3, Calves: 2 } },
     };
     for (const ramp of [1, 2]) {
       for (const k of [0, 1]) {
@@ -174,7 +174,7 @@ describe('applyRamp', () => {
         expect(q.some((st) => st.exId === 'suitcase-carry'), `v${v}`).toBe(false);
         const labels = [...new Set(q.map((st) => st.blockLabel).filter(Boolean))];
         expect(labels, `v${v}`).toEqual(
-          [['Arms'], ['Row & Raise', 'Curl & Lateral', 'Calves'], []][k],
+          [['Arms'], ['Row & Raise', 'Hammer Curls', 'Calves'], []][k],
         );
         const ids = new Set(q.map((st) => st.exId));
         for (const ex of [

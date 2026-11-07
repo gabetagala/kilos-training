@@ -95,13 +95,13 @@ describe('rehab program data', () => {
       'lying-leg-raise',
       ...FOLDS,
     ]);
-    // Thursday: back extension (72 h after the hinge), row & raise, curl &
+    // Thursday: back extension (72 h after the hinge), row & raise, hammer
     // lateral, calves — then the folds. No leg raises on Thursday.
     expect(day(1)).toEqual([
       ...SHARED_OPEN,
       'back-extension',
       'Row & Raise',
-      'Curl & Lateral',
+      'Hammer Curls',
       'Calves',
       ...FOLDS,
     ]);
@@ -280,7 +280,7 @@ describe('rehab program data', () => {
   // and ramp days drop it first — except the one `shortKeep` pump slot.
   // 2026-10-20: calves are Thursday only (Monday's Hinge & Calf carries the
   // other half), and the leg raises close Tuesday's and Saturday's work.
-  it('Tue pumps arms + leg raises, Thu row & raise / curl & lateral / calves, Sat sprints + carries + leg raises', () => {
+  it('Tue pumps arms + leg raises, Thu row & raise / hammer curls / calves, Sat sprints + carries + leg raises', () => {
     const daily = getRehabSession('daily');
     // the day's work, without the two folds that close it
     const work = (v) => sessionBlocks(daily, v).filter((b) => !b.fold);
@@ -297,14 +297,12 @@ describe('rehab program data', () => {
         'reverse-curl',
         'lying-db-extension',
       ]);
-      // Thursday: the row pairs with the raise; the curl with the lateral
+      // Thursday: the row pairs with the raise; the curls run alone — no
+      // laterals on Thursday (2026-11-06: side delts never two days running)
       const thu = work(w * 4 + 1).slice(-3);
-      expect(thu.map((b) => b.name)).toEqual(['Row & Raise', 'Curl & Lateral', 'Calves']);
+      expect(thu.map((b) => b.name)).toEqual(['Row & Raise', 'Hammer Curls', 'Calves']);
       expect(thu[0].members.map((m) => m.ex)).toEqual(['chest-supported-row', 'incline-y-raise']);
-      expect(thu[1].members.map((m) => [m.ex, m.reps])).toEqual([
-        ['hammer-curl', '10'],
-        ['db-lateral-raise', '12'],
-      ]);
+      expect(thu[1].members.map((m) => [m.ex, m.reps])).toEqual([['hammer-curl', '10']]);
       // Saturday: two farmer carries, then a suitcase carry a side (left
       // then right), then the leg raises — then the couch stretch
       const sat = work(w * 4 + 2).slice(-4, -2);
@@ -328,16 +326,15 @@ describe('rehab program data', () => {
     }
     // every pump is a real superset with timed rest. Tuesday's arm pump runs
     // FOUR rounds (it has the room since the back extension left Tuesday);
-    // Thursday's curl & lateral runs four too (the triangle's side delts),
     // its calves two (the back extension moved there).
     // And no forced max-out every week — pumps run the lift days' "1–2 left",
     // so no member carries a LAST SET rep-out note.
-    // 45-min round: Thursday's Curl & Lateral runs FIVE rounds (10 s
-    // between), and the calves three rounds, 20 s rest — Thursday only since
-    // 2026-10-20
+    // 45-min round: Thursday's Hammer Curls runs FIVE rounds (the laterals
+    // left it 2026-11-06), and the calves three rounds, 20 s rest — Thursday
+    // only since 2026-10-20
     const ROUNDS = {
       0: { Arms: 4 },
-      1: { 'Row & Raise': 3, 'Curl & Lateral': 5, Calves: 3 },
+      1: { 'Row & Raise': 3, 'Hammer Curls': 5, Calves: 3 },
     };
     let pumps = 0;
     for (const [k, want] of Object.entries(ROUNDS)) {
@@ -364,7 +361,7 @@ describe('rehab program data', () => {
       betweenSecs: 15,
       restSecs: 40,
     });
-    expect(sessionBlocks(daily, 1).find((b) => b.name === 'Curl & Lateral')).toMatchObject({
+    expect(sessionBlocks(daily, 1).find((b) => b.name === 'Hammer Curls')).toMatchObject({
       betweenSecs: 10,
       restSecs: 40,
     });
@@ -742,9 +739,9 @@ describe('buildStepQueue', () => {
     expect(sessionSetTotal(getRehabSession('daily'))).toBe(40);
     // Thursday: tspine 2 + couch 2 + hipIR 4 + one set of each hold
     // (hollow 1 + side plank 2 + bird dog 2) + elephant 1 + seated-gm 1 = 15,
-    // + back extension 3, then Row & Raise 2 × 3 + Curl & Lateral 2 × 5
-    // + Calves 1 × 3 = 37
-    expect(sessionSetTotal(getRehabSession('daily'), 1)).toBe(37);
+    // + back extension 3, then Row & Raise 2 × 3 + Hammer Curls 1 × 5
+    // + Calves 1 × 3 = 32
+    expect(sessionSetTotal(getRehabSession('daily'), 1)).toBe(32);
     // Saturday: tspine 2 + hipIR 4 + the primer holds 5 = 11, five working
     // sprints (the three build rounds never count), back extension 3,
     // side-hip abduction 2, farmer 2, suitcase 2, leg raises 3, couch 2,
@@ -1315,6 +1312,33 @@ describe('Density 40 program', () => {
     expect(anchorOf('d40-a1').filter((s) => !s.pair).map((s) => s.meta)).toEqual(
       [1, 2, 3, 4, 5].map((n) => `SET ${n} OF 5`),
     );
+  });
+
+  // THE BUILD IN KILOS (2026-11-06, his ask): every build carries its sets as
+  // [fraction of working weight, reps] so the player can name the kilos —
+  // and only on the lift it was written for.
+  it('build rounds and the RDL ramp carry their sets for the kilo display', () => {
+    const ramps = (s, swaps = {}) =>
+      buildStepQueue(s, swaps).filter((st) => st.phase === 'RAMP');
+    const wed = ramps(getProgramSession('d40-b1'));
+    expect(wed.map((st) => [st.exId, st.rampSets])).toEqual([
+      ['front-squat', [[0.5, 5], [0.7, 3]]],
+    ]);
+    const fri = ramps(getProgramSession('d40-c1'));
+    expect(fri.map((st) => [st.exId, st.rampSets])).toEqual([
+      ['incline-db-press', [[0.5, 8], [0.75, 3]]],
+    ]);
+    const mon = ramps(getProgramSession('d40-a1'));
+    expect(mon.map((st) => [st.exId, st.rampSets])).toEqual([['rdl', [[0.5, 5]]]]);
+    // an alt is a different lift: it never borrows the primary's build
+    const swapped = ramps(getProgramSession('d40-c1'), {
+      'incline-db-press': 'floor-press',
+    });
+    expect(swapped.map((st) => st.exId)).toEqual(['floor-press']);
+    expect(swapped[0].rampSets).toBeUndefined();
+    // …nor does an amber day's stand-in (front squat → DB split squat)
+    const amber = ramps(applyAmber(getProgramSession('d40-b1')));
+    for (const st of amber) expect(st.rampSets, st.exId).toBeUndefined();
   });
 
   // THE ANCHOR'S PAIR (round 3): a spine-quiet lateral raise rides each

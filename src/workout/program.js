@@ -799,6 +799,8 @@ const HINGE_RAMP = {
   changeoverSecs: 45,
   ex: 'rdl',
   note: 'One easy set of 5 at about half your working weight — groove the hinge. Not logged.',
+  // shown in kilos off today's RDL target (2026-11-06)
+  warmupSets: [[0.5, 5]],
 };
 
 // ── The three days ──────────────────────────────────────────────────────────
@@ -823,8 +825,10 @@ const HINGE_RAMP = {
 // rotates" call, deliberately, with the reviews' reasoning.
 //
 // ISOLATION MOVED TO THE BACK & HIPS DAYS (rehab.js pumps, Tue/Thu): curls,
-// triceps, extra laterals, rows and calves — spine-quiet real sets that buy the
-// lift days their minutes. Lift days carry compounds, legs and power.
+// triceps, rows and calves — spine-quiet real sets that buy the lift days
+// their minutes. Lift days carry compounds, legs and power. The side delts
+// are the exception (2026-11-06): Mon + Fri on the anchor pairs, plus a
+// Wednesday superset from week 5 — never two days running (verifier-enforced).
 //
 // SINGLE NUMBERS, STEPPED BY THE APP (his rule): `weekReps` steps the
 // bodyweight anchors week by week; isolation progresses reps-first in the
@@ -1067,6 +1071,16 @@ const SET = (name, rounds, members, opts = {}) => ({
   members,
 });
 
+// Wednesday's lateral raise, from phase 2 (see Split Squat & Curl)
+const WED_LATERAL = {
+  ex: 'db-lateral-raise',
+  reps: '12',
+  // never a max set: these are the delts' way back in, and Friday presses
+  // and raises again 48 h later (they still progress reps-first)
+  fixedReps: true,
+  note: 'Light DBs set out beforehand. Strict, a beat at the top.',
+};
+
 // Wednesday's metcon pool (see the session): one per week, rotating.
 // no push-ups (2026-10-20): Mon and Tue already press chest, Fri again —
 // ring rows keep the metcon full-body without a third chest day running
@@ -1087,6 +1101,9 @@ const WED_METCONS = [
     name: 'Every Minute',
     formatLabel: 'EMOM',
     rounds: 4,
+    // six minutes from phase 2 (2026-11-06): Wednesday's laterals cost the
+    // two, and week 10's max-set Wednesday ran 46 min against the 45 cap
+    phaseRounds: { 2: 3, 3: 3 },
     note: 'Odd minutes step-ups, even minutes ring rows — rest what’s left of each minute.',
     members: [
       { ex: 'box-step-up', reps: '14', logWeight: false },
@@ -1230,7 +1247,7 @@ export const DENSITY40_SESSIONS = [
     name: 'Full Body II',
     freq: 'Wed · squat anchor',
     blurb:
-      'Leg and power day. DB hang power cleans and push presses while you’re fresh, the front squat, split squats with cable leg curls, then a short metcon that changes every week.',
+      'Leg and power day. DB hang power cleans and push presses while you’re fresh, the front squat, split squats with cable leg curls (and lateral raises from week 5), then a short metcon that changes every week.',
     blocks: [
       // a different warm-up each week, same job (round 3, his ask)
       { rotate: WED_WARMUPS },
@@ -1273,6 +1290,12 @@ export const DENSITY40_SESSIONS = [
           note: '2–4 reps left in the tank, every set. A grinding rep ends the set.',
           warmupNote:
             'Build round: ~50% ×5, then ~70% ×3 — working weight next round.',
+          // the same build as numbers (2026-11-06, his ask): the player turns
+          // them into kilos off today's working-set target
+          warmupSets: [
+            [0.5, 5],
+            [0.7, 3],
+          ],
           // a stiff-back morning swaps to the split squat: the front rack
           // also loads a sore mid-back
           amberEx: 'db-split-squat',
@@ -1304,6 +1327,19 @@ export const DENSITY40_SESSIONS = [
           restSecs: 75,
           formats: ['sets', 'sets-heavy', 'sets-repout'],
           formatOffset: 2,
+          // THE LATERALS COME BACK IN PHASE 2 (2026-11-06, his call): weeks
+          // 1–4 the side delts recover on Mon + Fri only (8 sets); from week 5
+          // three Wednesday sets join here — Mon / Wed / Fri, 48 h apart,
+          // 11 sets. Never Thursday: that was the day-on-day that cooked them.
+          // DBs, not the cable: the leg curl's ankle strap stays on the pulley
+          phaseMembers: {
+            2: [WED_LATERAL],
+            3: [WED_LATERAL],
+          },
+          // …and the round's rest drops 75 → 30 s with them (the 45-minute
+          // cap): the laterals ARE the legs' rest. Split squat start-to-start
+          // stays ~3:40, far over the 2:30 floor; quads still get ~2:45.
+          phaseRestSecs: { 2: 30, 3: 30 },
         },
       ),
       // THE METCON (2026-10-11, his ask: "are we missing metcons?" — the
@@ -1368,6 +1404,10 @@ export const DENSITY40_SESSIONS = [
             intervalSecs: 150,
             warmupNote:
               'Build round: ~50% ×8, then ~75% ×3 — working weight next round.',
+            warmupSets: [
+              [0.5, 8],
+              [0.75, 3],
+            ],
             alts: [
               { ex: 'db-floor-press', reps: '8' },
               { ex: 'floor-press', reps: '6' },

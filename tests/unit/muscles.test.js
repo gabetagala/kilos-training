@@ -134,7 +134,9 @@ describe('new movements (2026-10-10)', () => {
   it('the triangle carries its round-3 floors', () => {
     expect(TARGETS.lats).toBe(11);
     expect(TARGETS.chest).toBe(12);
-    expect(TARGETS.sidedelt).toBe(12);
+    // 12 → 8 on 2026-11-06 (his call: side delts cooked) — the recovery
+    // weeks' Mon + Fri floor; Wednesday adds three more from week 5
+    expect(TARGETS.sidedelt).toBe(8);
   });
 });
 

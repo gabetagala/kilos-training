@@ -159,9 +159,10 @@ describe('phases', () => {
   it('phases step only the power work: Wednesday heavier doubles, Friday more jumps, Monday untouched', () => {
     const mon = getProgramSession('d40-a1');
     for (const p of [1, 2, 3]) expect(applyPhase(mon, p), `mon p${p}`).toBe(mon);
-    // Wednesday: phases 1 and 2 serve the session as written
+    // Wednesday: phase 1 serves the session as written (phase 2 adds the
+    // laterals — tested on its own below)
     const wed = getProgramSession('d40-b1');
-    for (const p of [1, 2]) expect(applyPhase(wed, p), `wed p${p}`).toBe(wed);
+    expect(applyPhase(wed, 1), 'wed p1').toBe(wed);
     const WANT = {
       1: [['db-hang-clean', '3'], ['db-push-press', '3']],
       3: [['db-hang-clean', '2'], ['db-push-press', '2']],
@@ -179,9 +180,11 @@ describe('phases', () => {
     }
     // idempotent: the target is absolute
     expect(applyPhase(applyPhase(wed, 3), 3).blocks).toEqual(applyPhase(wed, 3).blocks);
-    // the only thing phase 3 changes on Wednesday is the power reps
+    // phase 3 changes Wednesday's power reps — and, like phase 2, brings the
+    // laterals and the shorter Every Minute (tested below); nothing else
     applyPhase(wed, 3).blocks.forEach((b, i) => {
-      if (b.name !== 'Power') expect(b, `wed block ${i}`).toEqual(wed.blocks[i]);
+      if (b.name === 'Power' || b.name === 'Split Squat & Curl' || b.rotate) return;
+      expect(b, `wed block ${i}`).toEqual(wed.blocks[i]);
     });
     expect(power(1).members[0].note).toMatch(/Heavier than your press/);
     // Friday: the jumps
@@ -205,6 +208,41 @@ describe('phases', () => {
 
   // PHASE FIRST, DOSE SECOND (round 5): the player re-applies the phase to a
   // session the preview already dosed — that must never undo the dose
+  // THE LATERALS COME BACK IN PHASE 2 (2026-11-06, his call): weeks 1–4 the
+  // side delts recover on Mon + Fri; from week 5 three Wednesday sets join
+  // the split-squat superset, its rest drops 75 → 30 s, and Every Minute
+  // runs three rounds to pay for the minutes.
+  it('Wednesday gains its laterals from phase 2, and pays for them', () => {
+    const wed = getProgramSession('d40-b1');
+    const ss = (p) => applyPhase(wed, p).blocks.find((b) => b.name === 'Split Squat & Curl');
+    expect(ss(1).members.map((m) => m.ex)).toEqual(['db-split-squat', 'cable-leg-curl']);
+    expect(ss(1).restSecs).toBe(75);
+    for (const p of [2, 3]) {
+      expect(ss(p).members.map((m) => m.ex), `p${p}`).toEqual([
+        'db-split-squat',
+        'cable-leg-curl',
+        'db-lateral-raise',
+      ]);
+      expect(ss(p).members[2], `p${p}`).toMatchObject({ reps: '12', fixedReps: true });
+      expect(ss(p).restSecs, `p${p}`).toBe(30);
+      expect(ss(p).rounds, `p${p}`).toBe(3);
+      // three real lateral sets in the queue
+      const q = buildStepQueue(applyPhase(wed, p)).filter(
+        (st) => st.exId === 'db-lateral-raise' && st.countsAsSet,
+      );
+      expect(q, `p${p}`).toHaveLength(3);
+      // idempotent: applied twice, still one lateral and a 30 s rest
+      expect(applyPhase(applyPhase(wed, p), p).blocks).toEqual(applyPhase(wed, p).blocks);
+    }
+    const everyMinute = (p) =>
+      applyPhase(wed, p)
+        .blocks.find((b) => b.rotate?.some((x) => x?.name === 'Every Minute'))
+        .rotate.find((x) => x.name === 'Every Minute');
+    expect(everyMinute(1).rounds).toBe(4);
+    expect(everyMinute(2).rounds).toBe(3);
+    expect(everyMinute(3).rounds).toBe(3);
+  });
+
   it('applyPhase is a no-op on an already-dosed session', () => {
     const daily = getRehabSession('daily');
     const fri = getProgramSession('d40-c1');

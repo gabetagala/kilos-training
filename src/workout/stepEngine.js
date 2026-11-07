@@ -214,6 +214,9 @@ export function createStepEngine(exercises = {}) {
     'lastRoundNote',
     'warmupNote',
     'warmupReps',
+    // the build's percentages belong to the lift (a floor press must never
+    // borrow the incline press's ramp)
+    'warmupSets',
     'logWeight',
     'secs',
     'repsPerRound',
@@ -286,6 +289,8 @@ export function createStepEngine(exercises = {}) {
           phase: 'RAMP',
           meta: 'WARM-UP · NOT LOGGED',
           blockNote: block.note,
+          // the player turns these into kilos off the working set's target
+          ...(r.warmupSets ? { rampSets: r.warmupSets } : {}),
           countsAsSet: false,
           ...swapMeta(block),
         });
@@ -496,6 +501,9 @@ export function createStepEngine(exercises = {}) {
                       `SET ${round - (block.warmupRounds || 0)} OF ${block.rounds - (block.warmupRounds || 0)}`
                     : `MIN ${minute} OF ${total} · ROUND ${round} OF ${block.rounds}`,
               reps: warm ? r.warmupReps || 'build' : (ladderReps ?? r.reps),
+              // a build round's sets as fractions of the working weight
+              // (2026-11-06) — the player shows them in kilos
+              ...(warm && r.warmupSets ? { rampSets: r.warmupSets } : {}),
               // timed members (carries) work part of the interval, not all of it
               workSecs: r.secs,
               side: r.side,

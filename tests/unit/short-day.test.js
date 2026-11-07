@@ -743,15 +743,15 @@ describe('the tired day', () => {
     const labels = (k) =>
       new Set(buildStepQueue(tired, {}, k).map((st) => st.blockLabel).filter(Boolean));
     expect([...labels(0)]).toEqual(['Arms']);
-    // Thursday keeps all three pumps — Curl & Lateral included (round 3)
-    expect([...labels(1)].sort()).toEqual(['Calves', 'Curl & Lateral', 'Row & Raise']);
+    // Thursday keeps all three pumps — Hammer Curls included (round 3)
+    expect([...labels(1)].sort()).toEqual(['Calves', 'Hammer Curls', 'Row & Raise']);
     // every pump one round lighter (round 4): Arms 4 → 3, Row & Raise 3 → 2,
-    // Curl & Lateral 5 → 4, Thursday's calves 3 → 2 (45-min round counts)
+    // Hammer Curls 5 → 4, Thursday's calves 3 → 2 (45-min round counts)
     const sets = (k, n) =>
       buildStepQueue(tired, {}, k).filter((st) => st.blockLabel === n && st.countsAsSet).length;
     expect(sets(0, 'Arms')).toBe(9); // three moves × three rounds
     expect(sets(1, 'Row & Raise')).toBe(4);
-    expect(sets(1, 'Curl & Lateral')).toBe(8);
+    expect(sets(1, 'Hammer Curls')).toBe(4); // one move × four rounds
     expect(sets(1, 'Calves')).toBe(2);
     // …a rep further from failure
     for (const st of buildStepQueue(tired, {}, 0).filter((x) => x.blockLabel && x.kind === 'work')) {

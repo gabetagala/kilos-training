@@ -108,7 +108,7 @@ test('a short rehab day keeps the holds and drops the pumps and finisher', async
   // Tuesday, Row & Raise on a Thursday; which one depends on the weekday the
   // test runs)
   await expect(page.locator('#rpo-list')).not.toContainText(
-    /\b(Curl & Lateral|Calves|Farmer Carry|Suitcase Carry|Pallof Press|Lying Leg Raise)\b|Sprints|The (Redline|Climb)|Death by/,
+    /\b(Hammer Curls|Calves|Farmer Carry|Suitcase Carry|Pallof Press|Lying Leg Raise)\b|Sprints|The (Redline|Climb)|Death by/,
   );
 });
 
