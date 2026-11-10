@@ -448,16 +448,16 @@ describe('the short Friday', () => {
     const short = applyShort(fri);
     const names = blocksOf(short).map((b) => b.name);
     expect(names).not.toContain('Jumps');
-    // four rotating warm-ups (round 3), then the press, the dips (fresh,
-    // round 4) and the legs
+    // four rotating warm-ups (round 3), then the press, the legs (big
+    // compounds first, 2026-11-10) and the dips
     expect(names).toEqual([
       'Warm-Up',
       'Warm-Up',
       'Warm-Up',
       'Warm-Up',
       'The Anchor',
-      'Dips, Pull-Ups & Calves',
       'Legs & Back',
+      'Dips, Pull-Ups & Calves',
     ]);
     // every warm-up loses its springs (the pogo and the easy broad jumps),
     // keeps the rest of its shape

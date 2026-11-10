@@ -1082,13 +1082,14 @@ describe('rotation (the mechanism outlives the hinge)', () => {
 
   // No two days share a shape: Monday closes on Wings (moved after the hinge
   // in round 2 — the RDL goes first, fresh), Wednesday on a metcon (week 1:
-  // the seven-minute AMRAP), Friday on legs and back.
+  // the seven-minute AMRAP), Friday on the dips, pull-ups and calves (the
+  // legs moved up behind the press, 2026-11-10 — big compounds first).
   it('each day closes on a different kind of block', () => {
     const lasts = DENSITY40_SESSIONS.map((s) => sessionBlocks(s, 0).at(-1));
     expect(lasts.map((b) => b.name)).toEqual([
       'Wings',
       'Seven',
-      'Legs & Back',
+      'Dips, Pull-Ups & Calves',
     ]);
     expect(lasts.map((b) => b.mode)).toEqual(['circuit', 'amrap', 'circuit']);
     // the one conditioning finisher on a lift day is Wednesday's
@@ -1130,13 +1131,14 @@ describe('rotation (the mechanism outlives the hinge)', () => {
     ]);
     expect(c1.blocks.flatMap((b) => b.rotate || [b]).find((b) => b?.name === 'Legs & Back').betweenSecs).toBe(20);
     // Friday's four blocks, in order, after the warm-up (round 2: the Jumps
-    // EMOM before the press; round 4: the dips while fresh, then the legs)
+    // EMOM before the press; 2026-11-10, his call: the legs straight after
+    // the press while there's energy, then the dips, pull-ups and calves)
     expect(rows.map((r) => r.title)).toEqual([
       'Warm-Up',
       'Jumps',
       'The Anchor',
-      'Dips, Pull-Ups & Calves',
       'Legs & Back',
+      'Dips, Pull-Ups & Calves',
     ]);
     const jumps = rows.find((r) => r.title === 'Jumps');
     expect(jumps.members).toEqual([

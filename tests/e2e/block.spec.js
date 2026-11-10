@@ -209,13 +209,13 @@ const PRESS_SLOTS = [
   /The Anchor/,
   /30° Incline DB Press/, // the FIXED anchor, every week
   /\+ DB Lateral Raise 12 in the rest/, // the pair
-  /Dips, Pull-Ups & Calves/, // round 4: the dips while fresh
+  /Legs & Back/, // 2026-11-10: legs straight after the press, big lifts first
+  /Rear-Foot-Elevated Split Squat/,
+  /Lat Pulldown/, // QA round: the row moved to Monday's Wings
+  /Dips, Pull-Ups & Calves/,
   /Ring Dip/,
   /Strict Pull-Up/,
   /DB Calf Raise/, // Thursday's calves, since 2026-11-10
-  /Legs & Back/,
-  /Rear-Foot-Elevated Split Squat/,
-  /Lat Pulldown/, // QA round: the row moved to Monday's Wings
 ];
 function expectPressSlots(t) {
   let at = 0;

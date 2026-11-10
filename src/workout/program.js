@@ -1326,7 +1326,7 @@ export const DENSITY40_SESSIONS = [
     name: 'Full Body III',
     freq: 'Fri · press anchor',
     blurb:
-      'Press day. Jumps and bounds, the incline press with laterals in its rest, ring dips, pull-ups and calf raises while fresh, then split squats and pulldowns. No hinge today: Monday has it.',
+      'Press day. Jumps and bounds, the incline press with laterals in its rest, then split squats and pulldowns while the legs are fresh, then ring dips, pull-ups and calf raises. No hinge today: Monday has it.',
     blocks: [
       // a different warm-up each week, same job (round 3, his ask)
       { rotate: FRI_WARMUPS },
@@ -1388,8 +1388,37 @@ export const DENSITY40_SESSIONS = [
           },
         ],
       ),
-      // DIPS WHILE FRESH (round-3 QA): his named priority, a 5–8 rep skill
-      // lift — it can't come after 30 minutes of work
+      // LEGS RIGHT AFTER THE PRESS (2026-11-10, his call: "I'd rather have big
+      // compounds at the start … so I do them with the highest energy").
+      // They were the last block, ~30 minutes in; now they follow the anchor,
+      // which still goes first (the anchor-first rule). Three rounds since
+      // the three-set cap.
+      SET(
+        'Legs & Back',
+        3,
+        [
+          {
+            ex: 'rfe-split-squat',
+            reps: '8/leg',
+            note: 'Right leg first — left matches its reps.',
+            // amber keeps the legs (round-4 physio QA: split squats are light
+            // on the disc) — the rear foot comes off the box, which takes the
+            // low-back extension out, and the range shortens
+            amberEx: 'db-split-squat',
+            amberReps: '8/leg',
+            amberNote:
+              'Both feet on the floor, a shorter range, 3–4 reps left. Any back pull ends the set.',
+            alts: [{ ex: 'db-split-squat', reps: '8/leg' }],
+          },
+          { ex: 'lat-pulldown', reps: '10' },
+        ],
+        // 20 s: the split-squat DBs go down, the pulldown bar goes on
+        { betweenSecs: 20, formats: ['sets', 'sets-heavy', 'sets-repout'] },
+      ),
+      // the dips, pull-ups and calves close the day (2026-11-10): legs moved
+      // ahead of them, so the dips start ~25 min in — still inside round-3
+      // QA's "can't come after 30 minutes of work" for his 5–8 rep skill lift.
+      // Bodyweight, and the lowering-only fallback covers a tired rep
       SET(
         'Dips, Pull-Ups & Calves',
         3,
@@ -1446,29 +1475,6 @@ export const DENSITY40_SESSIONS = [
         ],
         // 45 s: dips, pull-ups and calves share the load around
         { restSecs: 45, formats: ['sets', 'sets-repout'], formatOffset: 1 },
-      ),
-      // then the legs — three rounds (2026-11-10, the three-set cap; was four)
-      SET(
-        'Legs & Back',
-        3,
-        [
-          {
-            ex: 'rfe-split-squat',
-            reps: '8/leg',
-            note: 'Right leg first — left matches its reps.',
-            // amber keeps the legs (round-4 physio QA: split squats are light
-            // on the disc) — the rear foot comes off the box, which takes the
-            // low-back extension out, and the range shortens
-            amberEx: 'db-split-squat',
-            amberReps: '8/leg',
-            amberNote:
-              'Both feet on the floor, a shorter range, 3–4 reps left. Any back pull ends the set.',
-            alts: [{ ex: 'db-split-squat', reps: '8/leg' }],
-          },
-          { ex: 'lat-pulldown', reps: '10' },
-        ],
-        // 20 s: the split-squat DBs go down, the pulldown bar goes on
-        { betweenSecs: 20, formats: ['sets', 'sets-heavy', 'sets-repout'] },
       ),
     ],
   },
