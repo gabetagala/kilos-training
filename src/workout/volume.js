@@ -119,21 +119,29 @@ export const WASTEFUL = 30;
 // ROUND 3 (2026-10-10, coach QA: "the triangle is dosed at the floor"): the
 // three muscles that make the triangle read wide now sit above the generic
 // 10 — the anchor pairs and Tuesday's bench press pay for it in zero minutes.
+// FIVE DAYS, THREE SETS (2026-11-10, his call: "I cannot do almost every
+// day" and "the most I can do is 3 sets"). The targets above were set while
+// the week ran six training days with 4–5 sets a slot; what he could not
+// recover from was the surplus ABOVE the productive floor, not the floor.
+// Re-cut in three tiers, each at or below what the five-day week delivers:
+//   the triangle (lats, chest, side delts) — 10, the bottom of the 10–20 band
+//   arms and legs                         — 8
+//   support (upper back 7, hams 7, calves 6); rear delts keep the MEV floor
+// Growth per set is steepest at the low end, so this is the cheap part kept.
 export const TARGETS = {
-  lats: 11,
-  chest: 12,
-  sidedelt: 12,
-  biceps: 10,
-  triceps: 10,
-  forearm: 10,
+  lats: 10,
+  chest: 10,
+  sidedelt: 10,
+  biceps: 8,
+  triceps: 8,
+  forearm: 8,
   upperback: 7,
-  reardelt: 7,
-  quads: 10,
-  glutes: 10,
-  // 2026-10-10 (coach QA): the last two leg gaps — knee-flexion hamstrings
-  // (slider curls) and calves (they had none at all)
-  hams: 8,
-  // 6 since 2026-10-20: calves twice a week (Mon + Thu), not three times
+  quads: 8,
+  glutes: 8,
+  // one RDL (Mon) and the cable curls (Wed); Saturday's sprints add the
+  // uncounted rest
+  hams: 7,
+  // Mon + Fri
   calves: 6,
 };
 
@@ -157,4 +165,6 @@ export const HYPERTROPHY_EXEMPT = new Set(['sunday']);
 // not train. The audited numbers are the FLOOR — the required days on their
 // own. 'wod' being here is what makes the Sunday rest day real: every
 // volume target above must be provable without it.
-export const OPTIONAL_SESSIONS = new Set(['wod', 'open-up', 'engine']);
+// 'sunday' joined 2026-11-10: the easy back session moved to Thursday, a rest
+// day, as an opt-in — the week's numbers never lean on it.
+export const OPTIONAL_SESSIONS = new Set(['wod', 'open-up', 'engine', 'sunday']);

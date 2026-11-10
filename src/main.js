@@ -77,6 +77,7 @@ import {
   getBenchmark,
   getProgramSession,
   PROGRAM_EXERCISES,
+  REST_WEEKDAYS,
   WEEK_PLAN,
 } from './workout/program.js';
 import {
@@ -548,7 +549,7 @@ document.getElementById('prc-share').addEventListener('click', () => {
       cfRoundsCompleted:
         activeWorkout.type === 'amrap' ? cfRoundsCompleted : cfCurrentRound,
       duration: dur,
-      streak: currentStreak(get('workoutHistory') || []),
+      streak: currentStreak(get('workoutHistory') || [], undefined, REST_WEEKDAYS),
     });
     currentShareStyle = get('kilos-share-style') || 'editorial';
     currentShareColor = get('kilos-share-color') || '#FFFFFF';
@@ -1081,10 +1082,10 @@ function renderHome() {
 
 function updateStreak() {
   const history = get('workoutHistory') || [];
-  const streak = currentStreak(history);
+  const streak = currentStreak(history, undefined, REST_WEEKDAYS);
   // High-water mark: persist so a record survives history pruning and the
   // 90-day look-back cap once it's been earned.
-  const best = Math.max(get('bestStreak') || 0, longestStreak(history));
+  const best = Math.max(get('bestStreak') || 0, longestStreak(history, REST_WEEKDAYS));
   set('bestStreak', best);
 
   const chip = document.getElementById('streak-count');
@@ -2320,15 +2321,15 @@ const rehabVariantIdx = (sessionId) => {
   if (sessionId === 'daily') {
     const w = blockNow().rotWeek;
     const day = new Date().getDay();
-    // rehab days in week order (Mon-start): Tue → Thu → Sat. An OFF-day
-    // (Mon/Wed/Fri) resolves to the NEXT rehab day's slot — browsing on a
-    // Friday used to always show Tuesday's Pump, which read as "the
-    // finishers never change" (2026-08-15, his report). Sunday (rest day
-    // since 2026-08-16) looks ahead to NEXT week's Tuesday.
+    // rehab days in week order (Mon-start): Tue → Sat (Thursday, slot 1,
+    // is a rest day since 2026-11-10). An OFF-day resolves to the NEXT rehab
+    // day's slot — browsing on a Friday used to always show Tuesday's Pump,
+    // which read as "the finishers never change" (2026-08-15, his report).
+    // Sunday looks ahead to NEXT week's Tuesday.
     if (day === 0) {
       return w == null ? 0 : w * 4;
     }
-    const slot = { 1: 0, 2: 0, 3: 1, 4: 1, 5: 2, 6: 2 }[day];
+    const slot = { 1: 0, 2: 0, 3: 2, 4: 2, 5: 2, 6: 2 }[day];
     return w == null ? slot : (w - 1) * 4 + slot;
   }
   // Sunday's pair (2026-08-16) is calendar-pinned to the block week, exactly
@@ -5517,7 +5518,8 @@ function renderBlockCalendar() {
           plans.reduce((a, p) => a + (p && !p.optional ? p.mins : 0), 0);
         const rehabDone = doneOn.has(`${k}|daily`);
         // A day is done when its REQUIRED work is done: the lift on lift days,
-        // the daily back program on rehab days, the rest-day holds on Sunday.
+        // the daily back program on rehab days. A rest day has no required
+        // work, so it never ticks — the walk is marked from the week view.
         // Judging by any plan meant Sunday's tick tracked the optional extras.
         const isDone = hasRehab
           ? rehabDone
@@ -5549,17 +5551,19 @@ function renderBlockCalendar() {
           .join('');
         // the headline is the day's REQUIRED work; optional extras stay in
         // the part rows below ("Rest Day", not "Rest Day + three extras")
+        const walkDay = WEEK_PLAN[offset].some((i) => i.type === 'walk');
         const dayName =
           plans
             .filter((p) => p && !p.optional)
             .map((p) => p.name)
-            .join(' + ') || (hasRehab ? rehabTitle : 'Rest');
+            .join(' + ') ||
+          (hasRehab ? rehabTitle : walkDay ? 'Rest · walk' : 'Rest');
         rows.push(`
           <div class="cal-day${k === todayK ? ' cal-today' : ''}${isDone ? ' cal-done' : ''}">
             <div class="cal-day-top">
               <span class="cal-dow">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][offset]}</span>
               <span class="cal-name">${esc(dayName)}</span>
-              <span class="cal-mins">${isDone ? '✓ ' : ''}${mins}m</span>
+              <span class="cal-mins">${isDone ? '✓ ' : ''}${mins || isDone ? `${mins}m` : ''}</span>
             </div>
             ${
               hasRehab
@@ -5943,7 +5947,8 @@ const spTestWaits = () =>
   isBenchmarkSession(_spFull) && spBack() !== 'green' && spBack() !== 'red';
 const spBack = () => (isTrainingSession(_spFull) ? backLevel() : null);
 // The Bonus WOD is scored and raced — it waits for a Good morning. Amber or
-// tired, the Sunday card runs the Rest Day instead (round-3 physio QA).
+// tired, its card runs the Easy Back instead (round-3 physio QA; the WOD
+// left Sunday's plan on 2026-11-10 but stays in the library, opt-in).
 const spWodWaits = () =>
   _spFull?.id === 'wod' && ['amber', 'tired', null].includes(spBack());
 function spRender(animateFrom = null) {
@@ -6187,7 +6192,7 @@ function spRenderBack() {
             ? ''
             : `One tap first${hasPower ? ` — until you answer, the ${powerName}${hasMetcon ? ' and the metcon' : ''} sit out` : ' — it sets today’s dose'}.`,
     spWodWaits()
-      ? 'The Bonus WOD waits for a Good morning — today runs the Rest Day.'
+      ? 'The Bonus WOD waits for a Good morning — today runs the Easy Back.'
       : '',
     spTestWaits()
       ? 'A test needs a Good morning — on any other it measures the morning, not you.'
@@ -6327,7 +6332,7 @@ function renderRehabToday() {
     : '';
   slot.innerHTML = `
     <button class="rhs-card rh-today" id="rh-today-btn">
-      <div class="rhs-top"><div class="rhs-name">Today · ${next.label}</div><div class="rhs-go">→</div></div>
+      <div class="rhs-top"><div class="rhs-name">${next.optional ? 'Optional' : 'Today'} · ${next.label}</div><div class="rhs-go">→</div></div>
       <div class="rhs-meta">${doneStr}~${estimateSessionMins(session, rehabVariantIdx(session.id))} MIN · START NOW</div>
     </button>`;
   document.getElementById('rh-today-btn').addEventListener('click', () => {
@@ -7079,11 +7084,18 @@ function renderTodayCard() {
   }
   const plan = todayPlan();
   const undone = plan.filter((i) => !i.done);
-  if (!undone.length) {
+  // OPTIONAL NEVER HEADLINES (2026-11-10): Thursday is a walk, with the easy
+  // back session there if he wants it — the card says WALK and offers the
+  // session underneath, it doesn't serve it as the day's ask
+  const due = undone.filter((i) => !i.optional);
+  if (!due.length) {
     card.style.display = 'none'; // everything done — recovery card can speak
     return;
   }
-  const first = undone.find((i) => i.sessionId) || undone[0];
+  const first =
+    due.find((i) => i.sessionId) ||
+    undone.find((i) => i.sessionId) ||
+    due[0];
   const session = first.sessionId ? getGuidedSession(first.sessionId) : null;
   const variant = session ? rehabVariantIdx(session.id) : 0;
   const mins = session
@@ -7111,15 +7123,18 @@ function renderTodayCard() {
     }
     const extra = names.length - out.length;
     moveLine = out.join(' · ') + (extra > 0 ? ` +${extra}` : '');
+    if (first.optional) {
+      moveLine = `OPTIONAL: ${first.label.toUpperCase()} — IF YOUR BACK WANTS IT`;
+    }
   }
   card.innerHTML = `
-    <span class="tl-text">${undone.map((i) => i.label.toUpperCase()).join(' + ')}</span>
+    <span class="tl-text">${due.map((i) => i.label.toUpperCase()).join(' + ')}</span>
     ${moveLine ? `<span class="tl-sub">${moveLine}${mins.toUpperCase()}</span>` : ''}
     <span class="tl-arrow">→</span>`;
   fitLineFont(card.querySelector('.tl-text'), isLaptop() ? 104 : 82, 32);
   card.onclick = () => {
     if (session) {
-      const rest = undone.filter((i) => i.sessionId && i !== first);
+      const rest = due.filter((i) => i.sessionId && i !== first);
       openSessionPreview(
         session,
         rest.length ? rest[0].label : null,
@@ -7153,7 +7168,8 @@ function renderRestDayCard() {
   // Scheduled work owns Home — the recovery card only speaks on a true
   // rest day (nothing due, nothing active).
   const hasWorkDue =
-    history.length > 0 && todayPlan().some((i) => !i.done && i.sessionId);
+    history.length > 0 &&
+    todayPlan().some((i) => !i.done && i.sessionId && !i.optional);
   if (!history.length || trainedToday || activeWorkout || hasWorkDue) {
     card.style.display = 'none'; // day-one card owns the empty state
     return;
@@ -9492,7 +9508,7 @@ function showWorkoutSummary(workout, duration, entry) {
 
   // Streak — the reward moment. The finished session is already in history,
   // so this reflects the extended chain.
-  const streak = currentStreak(get('workoutHistory') || []);
+  const streak = currentStreak(get('workoutHistory') || [], undefined, REST_WEEKDAYS);
   const eyebrowEl = document.getElementById('wsum-eyebrow');
   const flared = rhFlaredRecently();
   if (eyebrowEl) {
@@ -9696,7 +9712,7 @@ function showShareCard(workout, duration, entry) {
     workout,
     cfRoundsCompleted: cfRounds,
     duration,
-    streak: currentStreak(get('workoutHistory') || []),
+    streak: currentStreak(get('workoutHistory') || [], undefined, REST_WEEKDAYS),
   });
   currentShareStyle = get('kilos-share-style') || 'editorial';
   currentShareColor = get('kilos-share-color') || '#FFFFFF';

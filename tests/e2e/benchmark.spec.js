@@ -181,14 +181,14 @@ test('a lift day is a warm-up, the anchor, named supersets — and the hinge ram
 test('the anchor stays fixed as the weeks advance — only its reps and the delivery move', async ({ page }) => {
   // week 4: the same pull-up anchor, one rep up the ladder (5,5,6,6…), and
   // Hinge & Calf on its staggered HEAVY week — same exercises, same sets.
-  // Round 3: five working pull-up sets, the laterals riding their rest, and
-  // Wings at three rounds.
+  // Four working pull-up sets (the three-set cap, 2026-11-10 — pull-ups keep
+  // a fourth), the laterals riding their rest, and Wings at three rounds.
   const wk4 = await a1Overview(page, 4);
   console.log('A1 wk4:', wk4?.slice(-200));
-  expect(wk4).toMatch(/E2M 10 · 5 rounds\s*Strict Pull-Up\s*6\s*\+ DB Lateral Raise\s*12 in the rest/);
+  expect(wk4).toMatch(/E2M 8 · 4 rounds\s*Strict Pull-Up\s*6\s*\+ DB Lateral Raise\s*12 in the rest/);
   expect(wk4).toContain('Hinge & Calf HEAVY · 3 rounds');
   expect(wk4).toContain('Romanian Deadlift 8'); // the hinge never goes heavy
-  expect(wk4).toContain('Wings SETS · 4 rounds'); // four rounds (45-min round)
+  expect(wk4).toContain('Wings SETS · 3 rounds'); // the three-set cap
   // round 5: Wings' push-up is feet-elevated
   // QA round: Wings = the chest-supported row, the elevated push-up, the band
   expect(wk4).toMatch(/Chest-Supported DB Row\s*10\s*Feet-Elevated Push-Up\s*12\s*Band Pull-Apart\s*15/);

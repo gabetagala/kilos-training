@@ -1,5 +1,32 @@
 # BLOCK 01 — 12 weeks · "Armored V-Taper"
 
+> ⚠️ **2026-11-10 — five days, three sets, two real rest days.** His call:
+> six training days plus a Sunday of holds was more than he could recover from
+> ("I cannot do almost every day"), Saturday had quietly stopped happening, and
+> "the most I can do is 3 sets, 4 if we really need — after that my body just
+> gives out". The week is now **Mon lift · Tue Back & Hips · Wed lift · THU
+> REST · Fri lift · Sat Back & Hips · SUN REST**. Thursday and Sunday are a
+> walk; Thursday's **Easy Back** (the old Sunday holds session, no lifting, no
+> back extension) is there if the back wants it, opt-in and never the day's
+> ask. **No exercise runs more than three sets** — the one exception is
+> Monday's pull-up anchor at four, because at three the lats fell to 9 a week.
+> Thursday's work was re-homed, not just deleted: its laterals joined Tuesday's
+> pump (now **Arms & Delts**), its calves took the cable leg curl's seat on
+> Friday (**Dips, Pull-Ups & Calves** — the hamstrings reach Saturday's sprints
+> fresher), its rows and curls left (they were the surplus). The back
+> extension runs **Saturday only** — it can't move to Tuesday, the morning
+> after the RDL. The volume targets were re-cut to what a five-day week
+> delivers: the triangle (lats, chest, side delts) at 10, arms and legs at 8,
+> support at 6–7, rear delts at MEV. Before → after, weekly fractional sets:
+> lats 12 → 10, side delts 13 → 10, chest 14 → 12, biceps 18.5–20.5 →
+> 9.5–11.5, triceps 14 → 12, quads 11–15 → 9–13, glutes 13.5–15.5 → 12–14,
+> hams 10.5 → 7.5, upper back 14.5–18.5 → 7–11; weekly time ~272 → ~200 min.
+> Neither rest day breaks the streak (`REST_WEEKDAYS`). The restart ramp now
+> steps anchors relative to each lift (ramp 1 one set short, ramp 2 the
+> lift's own count) — the old absolute 3/4 would have asked MORE than a
+> normal week once the anchors dropped to three. `scripts/verify-program.mjs`
+> passes all 41 checks on it.
+
 > ⚠️ **2026-10-10 — reworked after independent coach + physio QA.** Fixed
 > anchors (pull-up / front squat / incline DB press) that progress weekly;
 > isolation moved to Tue/Thu pump blocks; morning back check (Good / Stiffer /

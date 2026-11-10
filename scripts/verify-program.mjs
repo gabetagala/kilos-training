@@ -13,6 +13,7 @@ import {
   BENCHMARK_SESSIONS,
   DENSITY40_SESSIONS,
   PROGRAM_EXERCISES,
+  REST_WEEKDAYS,
   WEEK_PLAN,
   getProgramSession,
 } from '../src/workout/program.js';
@@ -74,9 +75,10 @@ const check = (area, name, pass, detail = '') =>
 // of a week the SAME variant and judged weeks that can never occur — a
 // four-Popeye week read forearms at 40 sets and failed a program whose real
 // weeks serve each topper exactly once.
-// Sunday left the map 2026-08-16: it serves the 'sunday' rest session (and
-// the optional 'wod'), both of which ride the generic w−1 variant path.
-const REHAB_DAY_SLOT = { 2: 0, 4: 1, 6: 2 }; // getDay() → k
+// Sunday left the map 2026-08-16, Thursday 2026-11-10: both are rest days
+// now (a walk; Thursday's optional Easy Back rides the generic w−1 path).
+// k=1 stays unused so the index never shifts.
+const REHAB_DAY_SLOT = { 2: 0, 6: 2 }; // getDay() → k
 // THE CAP HOLDS WHILE HE PROGRESSES (round-4 coach QA): reps-first lifts climb
 // to +3 before the load moves, so every day is timed with them at +2.
 const estMinsExact = (s, v) => {
@@ -819,9 +821,8 @@ const CABLE_SETUP = {
         longest = mins;
         where = `wk${w} ${DAYS[d]}`;
       }
-      // Sunday is exempt from the floor: it is the REST day (2026-08-16),
-      // and a short Sunday is the promise kept, not a day gone token.
-      if (d !== 0) shortest = Math.min(shortest, mins);
+      // a rest day has no required minutes, so it never reaches here
+      shortest = Math.min(shortest, mins);
     });
   }
   // THE CAP, UNROUNDED — 45 minutes since 2026-10-11 (his call: "until 45
@@ -840,7 +841,7 @@ const CABLE_SETUP = {
   // What actually matters is that no required day shrinks into a token effort.
   check(
     'RESTRICTIONS',
-    'no required training day shrinks below 30 minutes (Sunday rests)',
+    'no required training day shrinks below 30 minutes (Thu and Sun rest)',
     shortest >= 30,
     `${shortest.toFixed(1)}–${longest.toFixed(1)} min`,
   );
@@ -956,8 +957,9 @@ const CABLE_SETUP = {
 }
 
 // THE TIRED DAY IS REAL, THE RAMP KEEPS THE PUMPS (round-3 QA): a short
-// night takes at least 10% off every lift and Tue/Thu day; a ramp week's
-// Back & Hips still serves its pumps.
+// night takes at least 10% off every lift and Back & Hips day; a ramp week's
+// Tuesday still serves its pumps (Saturday has none — its carries and
+// sprints are what a tired or ramp day drops).
 {
   const bad = [];
   for (const sess of DENSITY40_SESSIONS) {
@@ -969,10 +971,11 @@ const CABLE_SETUP = {
     }
   }
   const daily = getRehabSession('daily');
-  for (const k of [0, 1]) {
+  for (const k of [0, 2]) {
     const full = estimateSessionSecs(daily, k);
     const tired = estimateSessionSecs(applyTired(daily), k);
     if (tired > full * 0.9) bad.push(`daily k${k} ${Math.round((tired / full) * 100)}%`);
+    if (k !== 0) continue;
     for (const r of [1, 2]) {
       const q = buildStepQueue(applyRamp(daily, r), {}, k);
       if (!q.some((st) => st.blockLabel && st.kind === 'work')) bad.push(`ramp${r} k${k} has no pump`);
@@ -1092,36 +1095,48 @@ const CABLE_SETUP = {
   );
 }
 
-// ── SUNDAY IS A REST DAY (2026-08-16, his ask) ──────────────────────────────
-// The properties that make it real rather than polite: Sunday's only
-// required session is the all-medicine 'sunday' (holds + the McGill cap —
-// no metcon-shaped block, nothing scored), everything else on the day is
-// audited as optional, and the medicine stays under half an hour.
+// ── TWO REAL REST DAYS (2026-11-10, his call) ───────────────────────────────
+// Was "Sunday is a rest day" (2026-08-16), when Sunday still carried 21
+// minutes of required holds. Now Thursday and Sunday are a walk and nothing
+// required. What makes them real rather than polite: no required session on
+// either, both listed in REST_WEEKDAYS (so the streak walks past them), and
+// Thursday's Easy Back is opt-in, medicine only — nothing metcon-shaped,
+// nothing scored — and under half an hour.
 {
-  const sunday = WEEK_PLAN[0];
-  const required = sunday.filter(
-    (i) => !(i.type === 'rehab' && OPTIONAL.has(i.session)),
-  );
-  const restOk =
-    required.length === 1 &&
-    required[0].type === 'rehab' &&
-    required[0].session === 'sunday';
-  const rest = getRehabSession('sunday');
   const METCON = new Set(['emom', 'fortime', 'tabata', 'amrap', 'circuit']);
-  const noMetcon =
-    !!rest &&
-    rest.blocks.every((b) =>
-      (b.rotate || [b]).every((v) => !METCON.has(v?.mode)),
+  const bad = [];
+  for (const d of [0, 4]) {
+    const day = WEEK_PLAN[d];
+    const required = day.filter(
+      (i) =>
+        i.type === 'lift' ||
+        (i.type === 'rehab' && !OPTIONAL.has(i.session)),
     );
-  let restMins = 0;
-  for (let w = 1; w <= BLOCK_WEEKS; w++) {
-    restMins = Math.max(restMins, rest ? estimateSessionMins(rest, w - 1) : 99);
+    if (required.length) bad.push(`day ${d} requires ${required.map((i) => i.session || i.type).join('+')}`);
+    if (!day.some((i) => i.type === 'walk')) bad.push(`day ${d} has no walk`);
+    if (!REST_WEEKDAYS.includes(d)) bad.push(`day ${d} not in REST_WEEKDAYS`);
+    for (const i of day.filter((x) => x.type === 'rehab' && x.session)) {
+      const s = getRehabSession(i.session);
+      const medicine =
+        !!s &&
+        s.blocks.every((b) =>
+          (b.rotate || [b]).every((v) => !METCON.has(v?.mode)),
+        );
+      if (!medicine) bad.push(`${i.session} is not medicine-only`);
+      for (let w = 1; w <= BLOCK_WEEKS; w++) {
+        if (s && estimateSessionMins(s, w - 1) >= 30) {
+          bad.push(`${i.session} wk${w} ≥30 min`);
+          break;
+        }
+      }
+    }
   }
+  if (REST_WEEKDAYS.length !== 2) bad.push(`REST_WEEKDAYS = ${REST_WEEKDAYS}`);
   check(
     'GOALS',
-    'Sunday is a rest day — medicine only, the WOD is opt-in, under 30 min',
-    restOk && noMetcon && OPTIONAL.has('wod') && restMins < 30,
-    `required: ${required.map((i) => i.session).join('+') || 'none'} · ${restMins} min`,
+    'Thursday and Sunday are rest days — a walk, nothing required, the Easy Back opt-in',
+    bad.length === 0,
+    bad.slice(0, 3).join(' · ') || `rest: ${REST_WEEKDAYS.join(',')}`,
   );
 }
 
@@ -1294,9 +1309,23 @@ const muscles = [...new Set(weekVol.flatMap(Object.keys))];
   check('GOALS', 'the power primer runs at least twice a week, every week', perWeek.every((n) => n >= 2), `sessions/wk: ${[...new Set(perWeek)].join(',')}`);
 }
 {
-  const hasEngine = !!getRehabSession('engine');
+  // SCHEDULED, not merely defined (2026-11-10): 'engine' left the week with
+  // Sunday's extras, so the conditioning has to be a required day's block —
+  // Wednesday's metcon and Saturday's sprints
+  const required = WEEK_PLAN.flat().flatMap((i) =>
+    i.type === 'lift'
+      ? [getProgramSession(i.session)]
+      : i.type === 'rehab' && !OPTIONAL.has(i.session)
+        ? [getRehabSession(i.session || 'daily')]
+        : [],
+  );
+  const conditioning = new Set(
+    required
+      .filter((s) => s?.blocks.some((b) => b.conditioning))
+      .map((s) => s.id),
+  ).size;
   const tested = [1, 4, 6, 8, 12].every((w) => testsForWeek(w).length > 0);
-  check('GOALS', 'a conditioning session exists and the block is tested', hasEngine && tested, `engine ${hasEngine ? 'yes' : 'no'}, tests wk 1/4/6/8/12`);
+  check('GOALS', 'conditioning is on the required week and the block is tested', conditioning >= 2 && tested, `conditioning on ${conditioning} sessions, tests wk 1/4/6/8/12`);
 }
 {
   // the tests must be safe to actually max on
@@ -1369,6 +1398,7 @@ const muscles = [...new Set(weekVol.flatMap(Object.keys))];
   // weekly Back & Hips finishers became PUMPS of real sets (coach QA — "five
   // scored max efforts a week" for a sleep-deprived new dad), so the scored
   // pool is Wed's Tabata (4) + Sat's finisher (4) + Sunday's optional WOD (4).
+  // (2026-11-10: the WOD left the schedule; its pieces still exist, unserved.)
   check('VARIETY', 'the named-piece pool covers a month on every day', fins.size >= 12 && fmts.size >= 3, `${fins.size} named pieces · ${fmts.size} formats`);
 }
 

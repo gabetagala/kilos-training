@@ -102,7 +102,8 @@ function dayPlan(sessionId, week, isRehabSession = false, variant = null) {
 // not train.
 // The daily's topper COUNTS (2026-08-11) — its holds don't. The skip mirrors
 // the verifier exactly: session 'daily' AND a rehab-dictionary movement.
-const REHAB_DAY_SLOT = { 2: 0, 4: 1, 6: 2 }; // getDay() → k (Sunday rests)
+// getDay() → k. Thursday (k=1) and Sunday rest since 2026-11-10.
+const REHAB_DAY_SLOT = { 2: 0, 6: 2 };
 function weekVolume(week) {
   const phase = phaseOf(week);
   const swaps = phaseSwaps(phase);
@@ -167,10 +168,9 @@ for (let w = 1; w <= BLOCK_WEEKS; w++) {
       // minutes are its own — adding the rehab here overstated every one.
       days.push({ day: DAY_NAMES[offset], date: d, ...dayPlan(lift.session, w) });
     } else {
-      // A rehab day: Back & Hips (~25 min of holds) + the topper EMOM on
-      // Tue/Thu/Sat. Sunday (2026-08-16) serves the 'sunday' rest session
-      // instead — holds only — with the Bonus WOD, Open Up and The Long Way
-      // all explicitly optional.
+      // A rehab day: Back & Hips on Tue/Sat. A REST day (Thu, Sun — 2026-11-10)
+      // has no required session at all: a walk, plus Thursday's optional
+      // Easy Back listed as an extra.
       const bare = items.some((i) => i.type === 'rehab' && !i.session);
       const requiredId = bare
         ? 'daily'
@@ -179,7 +179,9 @@ for (let w = 1; w <= BLOCK_WEEKS; w++) {
           )?.session;
       const p = bare
         ? dayPlan('daily', w, true, (w - 1) * 4 + (REHAB_DAY_SLOT[offset] ?? 0))
-        : dayPlan(requiredId, w, true);
+        : requiredId
+          ? dayPlan(requiredId, w, true)
+          : { name: 'Rest · walk', focus: '', mins: 0, partA: [], partB: [] };
       const extras = items
         .filter(
           (i) =>
@@ -192,7 +194,7 @@ for (let w = 1; w <= BLOCK_WEEKS; w++) {
         ...p,
         focus: bare
           ? 'the back program'
-          : 'the rest day — extras optional',
+          : 'the rest day — a walk, the rest optional',
         // APPEND the optional extras — replacing partB silently deleted the
         // topper row, and a fridge sheet that can't say which topper a day
         // serves defeats the whole point of calendar-pinning. The optional
@@ -222,7 +224,7 @@ const movesOf = (row) =>
 const q = (s) => `"${String(s).replace(/"/g, '""')}"`;
 const csv = [];
 csv.push(q('KILOS — BLOCK 01 · 12 weeks · Armored V-Taper'));
-csv.push(q(`Starts ${fmtDate(start)} ${start.getFullYear()}. EMOM40: every day fits 40 minutes. Mon/Wed/Fri lift; Tue/Thu/Sat are Back & Hips holds + a finisher. Sunday is the REST DAY — holds only, the Bonus WOD is opt-in.`));
+csv.push(q(`Starts ${fmtDate(start)} ${start.getFullYear()}. Mon/Wed/Fri lift; Tue/Sat are Back & Hips. Thursday and Sunday are REST DAYS — a walk; Thursday's Easy Back is there if your back wants it. Three sets, never more.`));
 csv.push('');
 csv.push(['Week', 'Phase', 'Day', 'Date', 'Session', 'Part A — quality', 'Part B — the piece', 'Min', 'Test'].map(q).join(','));
 for (const wk of weeks) {
@@ -331,7 +333,7 @@ const html = `<!doctype html>
 
 <h1>Kilos · Block 01</h1>
 <p class="sub"><strong>12 weeks · “Armored V-Taper”.</strong> ${fmtDate(start)} ${start.getFullYear()} → ${fmtDate(new Date(start.getTime() + 83 * 864e5))}.</p>
-<p class="sub"><strong>EMOM40 — every day fits 40 minutes.</strong> <strong>Mon / Wed / Fri</strong> lift: the anchor, then one EMOM straight to the end. <strong>Tue / Thu / Sat</strong>: ~25 minutes of Back &amp; Hips holds, then a finisher. <strong>Sunday rests</strong> — holds only, no clock; the Bonus WOD is opt-in. One session a day. Start the clock — that is it.</p>
+<p class="sub"><strong>Five days, three sets.</strong> <strong>Mon / Wed / Fri</strong> lift: the anchor, then the pieces. <strong>Tue / Sat</strong>: Back &amp; Hips holds, then the day's work. <strong>Thursday and Sunday rest</strong> — a walk; Thursday's Easy Back is there if your back wants it. No exercise runs more than three sets. One session a day.</p>
 <p class="sub">Each lift day is <strong>two clocks</strong>, read top to bottom. THE ANCHOR runs <strong>E2M or E3M</strong> (a heavy set per interval — the interval is the rest, and the build rounds ride the same clock); THE PIECE is <strong>one EMOM straight to the end</strong>: a minute per station, twenty seconds of air between trips where the day has headroom; Mon/Fri carry the hinge and a cardio minute inside it. Every slot rotates on a four-week cycle, so no session repeats inside a month, and every other week the piece runs its reps descending.</p>
 <p class="legend" style="margin-top:10px">
 <span><i class="tag" style="position:static">A</i> the rehab days — positional holds, no clock pressure</span>
@@ -386,8 +388,8 @@ press saturates it. It's the only muscle under MEV, and that's intentional.
 (wk 9-12)</strong> — the anchor round steps died for the 40-minute cap; anchor progression
 is load. The app applies this automatically; you don't have to do anything.
 <br><br>
-<strong>The volume table is the floor</strong> — Sunday's optional Open Up and The Long Way
-are listed on the day rows but never counted, so these numbers describe the week you'll
+<strong>The volume table is the floor</strong> — Thursday's optional Easy Back is
+listed on its day row but never counted, so these numbers describe the week you'll
 actually train, not the best case.
 </div>
 

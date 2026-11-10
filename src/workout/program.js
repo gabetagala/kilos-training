@@ -741,9 +741,13 @@ export const POWER_BLOCKS = [
 // The 2:00 rest floor (TRAINING.md IRON RULE 2) still binds everything on the
 // SPINE_LOADED list, and E2M cannot clear it — which is exactly why the two
 // lifts that drop to two minutes are the two that aren't on it.
+//
+// THREE WORKING SETS, EVERY ANCHOR (2026-11-10, his call: "the most I can do
+// is 3 sets, 4 if we really need — after that my body just gives out"). The
+// fourth and fifth sets were costing more than they bought.
 const ANCHOR = (
   specs,
-  { warmupRounds = 1, intervalSecs = 180, sets = 4 } = {},
+  { warmupRounds = 1, intervalSecs = 180, sets = 3 } = {},
 ) => ({
   rotate: specs.map(({ alts, intervalSecs: own, pair, ...m }) => {
     const iv = own ?? intervalSecs;
@@ -1164,8 +1168,10 @@ export const DENSITY40_SESSIONS = [
             },
           },
         ],
-        // five working sets: the lats' floor with Wings at three rounds
-        { warmupRounds: 0, sets: 5 },
+        // FOUR, the one anchor that gets the "4 if we really need" (2026-11-10,
+        // was five): pull-ups are the V-taper's lat work, and at three sets
+        // lats fell to 9 a week — under the triangle's floor
+        { warmupRounds: 0, sets: 4 },
       ),
       // THE ONE HINGE DAY (2026-10-10, both final reviews): the RDL comes
       // before the shoulder work — fresh grip, fresh back — and it is the
@@ -1194,9 +1200,8 @@ export const DENSITY40_SESSIONS = [
       ),
       SET(
         'Wings',
-        // four rounds again (2026-10-11, the 45-minute cap): chest, upper
-        // back and rear delts get headroom above their floors
-        4,
+        // three rounds (2026-11-10, the three-set cap; was four)
+        3,
         [
           // the row lives here now and the pulldown moved to Friday (round-6
           // coach QA): Monday carried 8 of the week's 11 lat sets
@@ -1321,7 +1326,7 @@ export const DENSITY40_SESSIONS = [
     name: 'Full Body III',
     freq: 'Fri · press anchor',
     blurb:
-      'Press day. Jumps and bounds, the incline press with laterals in its rest, ring dips, pull-ups and cable leg curls while fresh, then split squats and pulldowns. No hinge today: Monday has it.',
+      'Press day. Jumps and bounds, the incline press with laterals in its rest, ring dips, pull-ups and calf raises while fresh, then split squats and pulldowns. No hinge today: Monday has it.',
     blocks: [
       // a different warm-up each week, same job (round 3, his ask)
       { rotate: FRI_WARMUPS },
@@ -1382,12 +1387,11 @@ export const DENSITY40_SESSIONS = [
             },
           },
         ],
-        { sets: 3 },
       ),
       // DIPS WHILE FRESH (round-3 QA): his named priority, a 5–8 rep skill
       // lift — it can't come after 30 minutes of work
       SET(
-        'Dips, Pull-Ups & Curls',
+        'Dips, Pull-Ups & Calves',
         3,
         [
           {
@@ -1429,24 +1433,24 @@ export const DENSITY40_SESSIONS = [
               '8',
             ],
           },
-          // the hamstring curl rides here, not in Legs & Back: the ankle strap
-          // goes on the pulley once and comes off once, never every round
+          // THE CALVES TOOK THE LEG CURL'S SEAT (2026-11-10): Thursday's calf
+          // day became a rest day, and every other home pushed a day past 45
+          // minutes. The leg curl was the lighter, fixed six a leg — and with
+          // it gone the hamstrings reach Saturday's sprints fresh. Hams keep
+          // Monday's RDL, Wednesday's curls and the sprints themselves.
           {
-            ex: 'cable-leg-curl',
-            reps: '6/leg',
-            // never a max set the day before the sprints (round-6 QA), and a
-            // lighter six a leg — Wednesday's tens are the growth set
-            fixedReps: true,
+            ex: 'db-calf-raise',
+            reps: '10/leg',
+            note: 'One leg at a time, the DB in the same-side hand.',
           },
         ],
-        // 45 s: dips, pull-ups and a leg curl share the load around
+        // 45 s: dips, pull-ups and calves share the load around
         { restSecs: 45, formats: ['sets', 'sets-repout'], formatOffset: 1 },
       ),
-      // then the legs — four rounds (2026-10-11, the 45-minute cap): quads
-      // and lats off their floors
+      // then the legs — three rounds (2026-11-10, the three-set cap; was four)
       SET(
         'Legs & Back',
-        4,
+        3,
         [
           {
             ex: 'rfe-split-squat',
@@ -1589,34 +1593,43 @@ export const getProgramSession = (id) =>
 // that exact day; a bare 'lift' falls back to the rotating queue.
 // 'walk'/'engine' are manual mark-done items.
 //
-// REWRITTEN 2026-08-10 — three lift days, four rehab days, nothing doubled up.
+// TWO REAL REST DAYS (2026-11-10, his call). Six training days a week plus a
+// Sunday of holds was more than he could recover from on newborn sleep — and
+// Saturday had quietly stopped happening. What worked before is back:
 //
-// The rehab days run Back & Hips (~25 min of holds) + the 12-minute topper
-// EMOM; Mon/Wed/Fri are the EMOM40 lift days with NO rehab stacked. Every
-// day in the week lands 35–40 minutes (2026-08-11) — one shape, one press
-// of start.
+//   Mon lift · Tue Back & Hips · Wed lift · THU REST · Fri lift · Sat Back &
+//   Hips · SUN REST
 //
-// THE BACK STILL WINS THE ARGUMENT: 4×/week beats the source program's own
-// 3×/week prescription, and the hardest lift days are the ones with a full
-// rehab day either side of them.
+// Thursday is the mid-week break: a walk, and the easy back session ('sunday',
+// holds only — no lifting, no back extension, no clock) one tap away IF the
+// back wants it. It is optional, so it never counts as the day's ask and
+// skipping it costs nothing. Sunday is a walk and nothing else. Thursday's old
+// Back & Hips content (rows, Y-raises, curls, laterals, calves, the second
+// back extension) left with it — that was the week's surplus volume.
 //
-// SUNDAY IS THE REST DAY (2026-08-16, his ask — "rest days on Sundays").
-// It carries the 'sunday' session: the same distillate holds, and then it
-// ENDS — no finisher, no clock, no score. Sunday's old mini-WOD column is
-// 'wod', opt-in and audited as optional alongside Open Up and The Long Way.
-// The audited week must prove every volume target WITHOUT the optional
-// Sunday work — that is what makes the rest day real instead of polite.
+// Neither rest day breaks the streak (REST_WEEKDAYS, streak.js).
+// The audited week must prove every volume target on the five training days
+// alone — nothing optional is counted.
 export const WEEK_PLAN = [
-  /* Sun */ [
-    { type: 'rehab', session: 'sunday' },
-    { type: 'rehab', session: 'wod' },
-    { type: 'rehab', session: 'open-up' },
-    { type: 'rehab', session: 'engine' },
-  ],
+  /* Sun */ [{ type: 'walk' }],
   /* Mon */ [{ type: 'lift', session: 'd40-a1' }],
   /* Tue */ [{ type: 'rehab' }],
   /* Wed */ [{ type: 'lift', session: 'd40-b1' }],
-  /* Thu */ [{ type: 'rehab' }],
+  /* Thu */ [{ type: 'walk' }, { type: 'rehab', session: 'sunday' }],
   /* Fri */ [{ type: 'lift', session: 'd40-c1' }],
   /* Sat */ [{ type: 'rehab' }],
 ];
+
+// The planned rest days — a weekday with no required session on it. A missed
+// rest day is the plan working, so the streak walks straight past it.
+const OPTIONAL_REST = new Set(['sunday']);
+export const REST_WEEKDAYS = WEEK_PLAN.map((items, day) =>
+  items.some(
+    (i) =>
+      i.type === 'lift' ||
+      (i.type === 'rehab' && !OPTIONAL_REST.has(i.session)),
+  )
+    ? -1
+    : day,
+).filter((d) => d >= 0);
+

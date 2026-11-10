@@ -61,3 +61,33 @@ describe('longestStreak', () => {
     expect(longestStreak(hist(0, 1, 2, 4, 5, 6, 7, 8, 9, 11, 12, 13))).toBe(12);
   });
 });
+
+// TWO REAL REST DAYS (2026-11-10): Thursday and Sunday are planned off. NOW
+// (31 May 2026) is a Sunday, so dayAgo(3) and dayAgo(10) are Thursdays and
+// dayAgo(7) the Sunday before.
+describe('planned rest days', () => {
+  const REST = [0, 4]; // Sun, Thu — REST_WEEKDAYS
+  // Mon–Wed + Fri–Sat, two weeks running
+  const twoWeeks = hist(1, 2, 4, 5, 6, 8, 9, 11, 12, 13);
+
+  it('walk straight past a rest day — no grace spent, no day added', () => {
+    expect(currentStreak(twoWeeks, NOW, REST)).toBe(10);
+    // without them, the second rest day in a week broke every streak
+    expect(currentStreak(twoWeeks, NOW)).toBe(5);
+  });
+
+  it('still count a day trained on a rest day', () => {
+    expect(currentStreak(hist(1, 2, 3, 4), NOW, REST)).toBe(4);
+  });
+
+  it('never cover a missed training day — that still spends the grace', () => {
+    // Saturday missed (grace), Friday, Thursday rests, Wednesday, then a
+    // missed Tuesday breaks it
+    expect(currentStreak(hist(2, 4), NOW, REST)).toBe(2);
+  });
+
+  it('reach the longest streak too', () => {
+    expect(longestStreak(twoWeeks, REST)).toBe(10);
+    expect(longestStreak(twoWeeks)).toBe(5);
+  });
+});

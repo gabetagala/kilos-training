@@ -101,10 +101,11 @@ describe('new movements (2026-10-10)', () => {
 
   it('the two leg gaps they close carry a weekly target', () => {
     // calves had no work at all; hamstrings had only the RDL (coach QA).
-    // Calves 8 → 6 on 2026-10-20: twice a week now (Monday's Hinge & Calf
-    // and Thursday's pump), Tuesday's calves left
+    // Calves 8 → 6 on 2026-10-20: twice a week (Monday's Hinge & Calf and,
+    // since Thursday became a rest day on 2026-11-10, Friday). Hams 8 → 7 the
+    // same day: Friday's leg curl gave its seat to the calves.
     expect(TARGETS.calves).toBe(6);
-    expect(TARGETS.hams).toBe(8);
+    expect(TARGETS.hams).toBe(7);
   });
 
   // round 3: the triangle's floors rose — lats with Monday's five pull-up
@@ -131,10 +132,12 @@ describe('new movements (2026-10-10)', () => {
     expect([...EXPECTED_LOW].sort()).toEqual(['frontdelt', 'obliques']);
   });
 
-  it('the triangle carries its round-3 floors', () => {
-    expect(TARGETS.lats).toBe(11);
-    expect(TARGETS.chest).toBe(12);
-    expect(TARGETS.sidedelt).toBe(12);
+  // 2026-11-10 (five days, three sets): the triangle sits at 10, the bottom
+  // of the productive band — what the five-day week delivers
+  it('the triangle carries its five-day floors', () => {
+    expect(TARGETS.lats).toBe(10);
+    expect(TARGETS.chest).toBe(10);
+    expect(TARGETS.sidedelt).toBe(10);
   });
 });
 
