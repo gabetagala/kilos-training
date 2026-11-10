@@ -82,6 +82,13 @@
 
 ## Week at a glance
 
+> **Current week (2026-11-10):** Mon lift · Tue Back & Hips · Wed lift ·
+> **Thu rest** (walk; optional Easy Back) · Fri lift · Sat Back & Hips ·
+> **Sun rest** (walk). No exercise above three sets. The table below is the
+> original 2026-07 design, kept for its rationale — see
+> [BLOCK-01.md](BLOCK-01.md) and `src/workout/program.js` for what the app
+> serves.
+
 Every day: the **10-minute rehab** first, then the day's half. Nothing here
 repeats the rehab — rehab ends, first set begins.
 

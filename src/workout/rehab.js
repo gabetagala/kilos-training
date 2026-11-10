@@ -20,7 +20,8 @@ import { createStepEngine } from './stepEngine.js';
 // seated good morning), ONE rotating supporting-cast slot (8-deep — the other
 // seven source movements, each ~once per two weeks), then a 12-minute topper
 // EMOM (4-deep pool, axially quiet, ends on core). ~25 min of holds + 12 of
-// topper; runs Tue/Thu/Sat, calendar-pinned — Sunday is the REST DAY since
+// topper; ran Tue/Thu/Sat (Tue/Sat since 2026-11-10, when Thursday became a
+// rest day), calendar-pinned — Sunday is the REST DAY since
 // 2026-08-16 (holds only, its old mini-WOD column opt-in as 'wod'). Stated
 // plainly: the
 // supporting cast went from 4×/wk to ~0.5×/wk — a real dose cut, traded
@@ -1026,14 +1027,12 @@ const CLOSERS = [
   },
 ];
 
-// BACK EXTENSIONS 2×/WEEK (physio QA, major): 40 reps to a burn four days a
-// week — rest day included — never let the extensors recover. Now Thu + Sat:
-// never the morning after the RDL (Thursday is 72 h after Monday's hinge).
-// THURSDAY HOLDS, SATURDAY REPS (2026-10-10, round-3 physio QA) — until
-// 2026-10-21, his call: "just tell me how many". Both days are now a number at
-// your pace, no count and no clock. Thursday is 24 h after Wednesday's front
-// squat, so it stays a couple of reps lighter than Saturday. An amber morning,
-// or the morning rule, still serves the hold on either day.
+// BACK EXTENSIONS (physio QA, major): 40 reps to a burn four days a week —
+// rest day included — never let the extensors recover. They ran Thu + Sat
+// until 2026-11-10, when Thursday became a rest day: now SATURDAY ONLY. It
+// can't move to Tuesday — never the morning after the RDL. A number at your
+// pace, no count and no clock (2026-10-21, his call: "just tell me how
+// many"); an amber morning, or the morning rule, serves the hold instead.
 const EXT_HOLD = {
   cue: 'Hips on the bench end, ankles pinned, lift to straight and STAY there — glutes tight, ribs down, breathe. Never past straight.',
   how: 'No reps — hold level with the floor for the clock. Shaking is fine; the low back rounding ends the set.',
@@ -1064,16 +1063,10 @@ const BACK_EXTENSION = {
   // from a hinged bottom is the bend the rule exists to avoid)
   morning: true,
 };
-const BACK_EXTENSION_THU = {
-  ...BACK_EXTENSION,
-  // a day after the squat: 10 → 12 → 12, two under Saturday
-  reps: '10',
-  phaseBlockReps: { 2: '12', 3: '12' },
-  changeoverSecs: undefined,
-};
 
 // A slot that serves different things on different rehab days. The calendar
-// index is (w−1)·4 + k (Tue k=0, Thu 1, Sat 2), so position i of a 48-deep
+// index is (w−1)·4 + k (Tue k=0, Sat 2 — k=1 was Thursday, a rest day since
+// 2026-11-10, and stays unused so the index never shifts), so position i of a 48-deep
 // pool is day i%4 of week ⌊i/4⌋+1. `days` maps k → a block, or a function of
 // the week index for things that rotate; a missing day sits the slot out.
 // 48 deep = the whole 12-week block (round-4 coach QA: at 16 deep the pool
@@ -1101,17 +1094,6 @@ const PUMP = (name, members, opts = {}) => ({
   ...opts,
   members,
 });
-const CALVES = PUMP(
-  'Calves',
-  [
-    {
-      ex: 'db-calf-raise',
-      reps: '10/leg',
-      note: 'One leg at a time, the DB in the same-side hand.',
-    },
-  ],
-  { restSecs: 20 },
-);
 
 // Saturday's supporting move — the Movementgems cast, four of them, one a
 // week. Long burn-holds are broken into short sets (physio QA: a 2-minute QL
@@ -1178,26 +1160,26 @@ const SUNDAY_CAST = ['hip-flexor-lift', 'side-hip-adduction'].map((ex) => ({
 
 export const REHAB_SESSIONS = [
   {
-    // REWORKED 2026-10-10 (physio + coach QA). Tue/Thu/Sat share the openers,
-    // the McGill primer and the folds; the back extension runs Thu + Sat; the
-    // day-specific work closes it: Tue core + arms + calves, Thu rows / delts
-    // / calves, Sat sprints + supporting move + carries.
-    // 2026-10-10 (his ask): Saturday's scored finisher became the sprints.
+    // REWORKED 2026-10-10 (physio + coach QA). Tue/Sat share the openers,
+    // the McGill primer and the folds; the day-specific work closes it: Tue
+    // core + arms + laterals, Sat sprints + back extension + supporting move +
+    // carries. 2026-10-10 (his ask): Saturday's scored finisher
+    // became the sprints. 2026-11-10: Thursday left — it is a rest day now.
     id: 'daily',
     name: 'Back & Hips',
-    freq: 'Tue · Thu · Sat',
+    freq: 'Tue · Sat',
     blurb:
-      'Open up, brace, then work: hip and thoracic openers, the core holds (hollow hold, side plank, bird dog), Saturday’s sprints, back extensions (Thu and Sat), then Tuesday’s arms and leg raises, Thursday’s rows and delts, or Saturday’s carries and leg raises, and the two forward folds last of all. Up less than an hour? The morning check skips the folds.',
+      'Open up, brace, then work: hip and thoracic openers, the core holds (hollow hold, side plank, bird dog), then Tuesday’s arms, laterals and leg raises, or Saturday’s sprints, back extensions, carries and leg raises, and the two forward folds last of all. Up less than an hour? The morning check skips the folds.',
     blocks: [
-      // the openers, the couch stretch on Tue/Thu only (Saturday's waits
+      // the openers, the couch stretch on Tuesday only (Saturday's waits
       // until after the sprints)
       OPENERS[0],
-      { rotate: byDay({ 0: COUCH, 1: COUCH }) },
+      { rotate: byDay({ 0: COUCH }) },
       OPENERS[2],
-      // the core holds: full on Tuesday, one set each Thursday, a short
-      // primer before Saturday's sprints
+      // the core holds: full on Tuesday, a short primer before Saturday's
+      // sprints
       ...CORE_FULL.map((full, i) => ({
-        rotate: byDay({ 0: full, 1: CORE_LONG[i], 2: CORE_PRIMER[i] }),
+        rotate: byDay({ 0: full, 2: CORE_PRIMER[i] }),
       })),
       // Saturday's sprints: fresh, warm, before anything loads the back
       {
@@ -1215,10 +1197,11 @@ export const REHAB_SESSIONS = [
           0: PALLOF,
         }),
       },
-      { rotate: byDay({ 1: BACK_EXTENSION_THU, 2: BACK_EXTENSION }) },
+      { rotate: byDay({ 2: BACK_EXTENSION }) },
       // `cast` and `finisher` are what a SHORT / AMBER / RAMP day drops
-      // first. `pump` marks the Tue/Thu volume a TIRED day keeps; the carry
-      // and the sprints are not pumps, so a tired Saturday loses them.
+      // first. `pump` marks the volume a TIRED day keeps (Tuesday's arms);
+      // the carry and the sprints are not pumps, so a tired Saturday loses
+      // them.
       // one supporting move per PHASE, four weeks each (round-3 physio QA: a
       // weekly rotation met each move three times — too few to learn it)
       {
@@ -1234,9 +1217,13 @@ export const REHAB_SESSIONS = [
         shortKeep: true,
         rotate: byDay({
           // press BEFORE the extensions — tired triceps would cap the chest;
-          // 15 s between: lay the next pair of DBs out before the first round
+          // 15 s between: lay the next pair of DBs out before the first round.
+          // THREE ROUNDS, AND THE DELTS MOVED IN (2026-11-10): the three-set
+          // cap took the fourth round; Thursday's laterals had to land
+          // somewhere (side delts are the triangle), and so did its rear-delt
+          // work.
           0: PUMP(
-            'Arms',
+            'Arms & Delts',
             [
               { ex: 'db-bench-press', reps: '10' },
               // reverse curl (round-6 coach QA): honest forearm work now the
@@ -1246,22 +1233,20 @@ export const REHAB_SESSIONS = [
               // from the rope pushdown 2026-11-03, his call: he likes it)
               { ex: 'lying-db-extension', reps: '10' },
               // the wrist curl left (2026-10-10): its four minutes pay for
-              // Tuesday's second McGill set — forearms keep 10 from the
-              // carries and hammer curls
-            ],
-            { rounds: 4, betweenSecs: 15 },
-          ),
-          // the row pairs with the raise, not the curl — a row already
-          // works the biceps, so the curl gets fresh arms in the next pair
-          1: PUMP(
-            'Row & Raise',
-            [
+              // Tuesday's second McGill set
+              { ex: 'db-lateral-raise', reps: '12' },
+              // REAR DELTS (2026-11-10, his call): Thursday's rows and
+              // Y-raises left with Thursday and took rear delts to 4.5–6.5 a
+              // week. A band costs no setup and almost no fatigue — back to ~8
               {
-                ex: 'chest-supported-row',
-                reps: '10',
-                alts: [{ ex: 'ring-row', reps: '10' }],
+                ex: 'band-pull-apart',
+                reps: '15',
+                logWeight: false,
+                note: 'Arms long, squeeze the shoulder blades. The band is the load knob.',
+                // a short or amber Tuesday keeps one round of the arms and
+                // laterals; this one sits out (it pushed the short day to 23)
+                shortDrop: true,
               },
-              { ex: 'incline-y-raise', reps: '12' },
             ],
             { betweenSecs: 15 },
           ),
@@ -1300,31 +1285,8 @@ export const REHAB_SESSIONS = [
           },
         }),
       },
-      {
-        finisher: true,
-        pump: true,
-        rotate: byDay({
-          // four rounds: Thursday carries the side delts the triangle needs
-          1: PUMP(
-            'Curl & Lateral',
-            [
-              { ex: 'hammer-curl', reps: '10' },
-              { ex: 'db-lateral-raise', reps: '12' },
-            ],
-            // five rounds (2026-10-11, the 45-minute cap): side delts off
-            // their floor
-            { rounds: 5, betweenSecs: 10 },
-          ),
-        }),
-      },
-      // Thursday's calves are two sets — the back extension moved there
-      {
-        finisher: true,
-        pump: true,
-        // Thursday only (2026-10-20, his ask: "do we really do it almost
-        // every day?") — Monday's Hinge & Calf carries the other half
-        rotate: byDay({ 1: CALVES }),
-      },
+      // (Thursday's calves moved to Friday's Legs & Back on 2026-11-10 — on
+      // Saturday they pushed the day past 45 minutes)
       // `morning`: a flexed-pelvis move sits out in the first waking hour
       {
         cast: true,
@@ -1340,11 +1302,16 @@ export const REHAB_SESSIONS = [
     // THE REST DAY (2026-08-16, his ask; 2026-10-10 physio QA): genuinely
     // low-load now — the openers, the McGill primer, the folds and one
     // supporting move. No back extension, no clock, no score.
+    // THURSDAY'S, AND OPTIONAL (2026-11-10, his call: "if I need another
+    // back/rehab it can be Thursday walk + rehab, but no workout"). The id
+    // stays 'sunday' so history and paused sessions still resolve.
     id: 'sunday',
-    name: 'Rest Day',
-    freq: 'Sun',
+    // renamed from 'Rest Day': on a rest day, "optional: rest day" read as
+    // nonsense — this is the easy back session the rest day can hold
+    name: 'Easy Back',
+    freq: 'Thu · optional',
     blurb:
-      'Openers, one set of each core hold, the Pallof press, one easy extra and the forward folds: no back extensions, no clock, no score. Feeling fresh? The Bonus WOD is one tap away, and skipping it costs nothing.',
+      'Only if your back wants it: openers, one set of each core hold, the Pallof press, one easy extra and the forward folds. No lifting, no back extensions, no clock, no score. The walk is the day — skipping this costs nothing.',
     blocks: [
       ...OPENERS,
       ...CORE_LONG,
@@ -1359,7 +1326,7 @@ export const REHAB_SESSIONS = [
     // hidden homework.
     id: 'wod',
     name: 'The Bonus WOD',
-    freq: 'Sun · optional',
+    freq: 'Optional',
     blurb:
       'Seven pieces in rotation — The Classic, The Porter, The Chase, The Century, The Redline, Death by Step-Ups, The Climb — one per week, only if you want it. Good mornings only.',
     blocks: [{ rotate: SUNDAY_WODS }],
@@ -1431,7 +1398,7 @@ export const REHAB_SESSIONS = [
   {
     id: 'open-up',
     name: 'Open Up',
-    freq: 'Sun · the easy day',
+    freq: 'Optional · the easy day',
     blurb:
       'Glutes awake, hamstrings and hip flexors long. Nothing hard — this is the day off that still counts.',
     // ADDED 2026-08-07 with the rehab trim. The glute bridges and the two
@@ -1449,7 +1416,7 @@ export const REHAB_SESSIONS = [
   {
     id: 'engine',
     name: 'The Long Way',
-    freq: 'Sun · steady, not hard',
+    freq: 'Optional · steady, not hard',
     blurb:
       'Twelve minutes of easy, unbroken work. Conversational the whole way — if you are breathing hard you are doing it wrong.',
     // BUILT 2026-08-07. Sunday's engine slot had been a mark-done checkbox

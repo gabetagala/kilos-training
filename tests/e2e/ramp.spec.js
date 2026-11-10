@@ -95,9 +95,10 @@ test('a ramp lift day: anchor one set down, piece at two rounds, and a refresh r
   await expect(page.locator('#rehab-player')).toHaveClass(/open/);
   // skip through the anchor into the piece — and stop there: the ramp day
   // is short enough that skipping blindly runs off the end of it
-  // Round 3 order: warm-up → pull-up anchor (5 sets, a lateral-raise pair in
-  // each rest → THREE in ramp 1) → RDL ramp → Hinge & Calf (3 rounds → ONE
-  // in ramp 1) → Wings (4 rounds → TWO in ramp 1: ramp 1 is two rounds short)
+  // Round 3 order: warm-up → pull-up anchor (4 sets since 2026-11-10, a
+  // lateral-raise pair in each rest → THREE in ramp 1: one set short) → RDL
+  // ramp → Hinge & Calf (3 rounds → ONE in ramp 1) → Wings (3 rounds → ONE in
+  // ramp 1: ramp 1 is two rounds short)
   const metas = [];
   for (let i = 0; i < 60; i++) {
     const head = (await page.locator('#rp-session-name').textContent()) || '';
@@ -110,15 +111,15 @@ test('a ramp lift day: anchor one set down, piece at two rounds, and a refresh r
   await expect(page.locator('#rp-session-name')).toContainText('WINGS');
   const all = metas.join(' | ');
   console.log('RAMP METAS:', all.slice(0, 600));
-  expect(all).toContain('SET 1 OF 3'); // pull-ups: 3 sets, not 5
+  expect(all).toContain('SET 1 OF 3'); // pull-ups: 3 sets, not 4
   expect(all).toContain('PAIR · ROUND 3 OF 3'); // the pair rides every one
   expect(all).not.toContain('OF 5');
   // Hinge & Calf ramps from three rounds to one — and the RDL keeps its own
   // effort target on the way
   expect(all).toContain('2–3 LEFT · ROUND 1 OF 1');
-  // Wings: two rounds, not four (45-min round: Wings is four rounds; ramp 1
-  // is two rounds short)
-  expect(metas.at(-1)).toContain('1–2 LEFT · ROUND 1 OF 2');
+  // Wings: one round, not three (the three-set cap, 2026-11-10; ramp 1 is
+  // two rounds short, never below one)
+  expect(metas.at(-1)).toContain('1–2 LEFT · ROUND 1 OF 1');
 
   expect(errors).toEqual([]);
 
@@ -157,9 +158,8 @@ test('a ramp rehab day keeps the pumps shaped down — no carry, no scored finis
   );
   // whichever pump day the card serves, it runs fewer rounds than written
   const txt = (await ov.textContent())?.replace(/\s+/g, ' ') || '';
-  const pumps = [...txt.matchAll(/(Arms|Calves|Row & Raise|Curl & Lateral) SETS · (\d) rounds/g)];
-  // (45-min round: Curl & Lateral runs five; calves Thursday only since
-  // 2026-10-20)
-  const FULL = { Arms: 4, Calves: 3, 'Row & Raise': 3, 'Curl & Lateral': 5 };
+  const pumps = [...txt.matchAll(/(Arms & Delts) SETS · (\d) rounds/g)];
+  // Tuesday's is the only pump since Thursday became a rest day (2026-11-10)
+  const FULL = { 'Arms & Delts': 3 };
   for (const [, name, n] of pumps) expect(Number(n), name).toBeLessThan(FULL[name]);
 });

@@ -4,6 +4,11 @@
 // Rule: a day counts if there's a workout on it. One grace miss is allowed
 // before the streak breaks, and that grace resets every 7 trained days.
 // Missing *today* never breaks the streak (you might still train later today).
+//
+// PLANNED REST DAYS (2026-11-10): `restDays` lists weekdays (0 = Sun … 6 =
+// Sat) the plan keeps free. An empty one is the plan working — the walk-back
+// steps straight past it, spending no grace and adding no day. Training on
+// one still counts. Without this, two rest days a week broke every streak.
 
 function startOfDay(date) {
   const d = new Date(date);
@@ -22,10 +27,11 @@ function trainedDaySet(history) {
 }
 
 // Current streak as of `now`, walking back up to 90 days.
-export function currentStreak(history, now = new Date()) {
+export function currentStreak(history, now = new Date(), restDays = []) {
   const days = trainedDaySet(history);
   if (!days.size) return 0;
   const cursor = startOfDay(now);
+  const rest = new Set(restDays);
 
   let streak = 0;
   let restDayUsed = false;
@@ -36,6 +42,8 @@ export function currentStreak(history, now = new Date()) {
     if (found) {
       streak++;
       if (streak % 7 === 0) restDayUsed = false; // earn back the grace
+    } else if (rest.has(d.getDay())) {
+      continue; // a planned rest day — neither a day trained nor a miss
     } else if (i > 0) {
       if (!restDayUsed) {
         restDayUsed = true; // one grace miss
@@ -50,12 +58,12 @@ export function currentStreak(history, now = new Date()) {
 // Longest streak ever, applying the same grace rule. The longest trailing run
 // always *ends* on a trained day, so we take the max of currentStreak() over
 // every trained day. (Bounded by currentStreak's 90-day look-back per day.)
-export function longestStreak(history) {
+export function longestStreak(history, restDays = []) {
   const days = trainedDaySet(history);
   if (!days.size) return 0;
   let max = 0;
   for (const ts of days) {
-    const s = currentStreak(history, new Date(ts));
+    const s = currentStreak(history, new Date(ts), restDays);
     if (s > max) max = s;
   }
   return max;

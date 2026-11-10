@@ -129,12 +129,14 @@ describe('phases', () => {
   // alone — progression there is load and reps, not clock length.
   // Round 2 (2026-10-10): Friday's incline press runs 1 build + 3 working
   // sets — its own count, but still one a phase never moves.
-  // Round 3: Monday's pull-ups run FIVE working sets (no build round), and
-  // Monday and Friday carry a lateral-raise PAIR on every working round —
-  // one pair per working set, none on Wednesday's squat.
+  // Round 3: Monday and Friday carry a lateral-raise PAIR on every working
+  // round — one pair per working set, none on Wednesday's squat.
+  // 2026-11-10 (the three-set cap): every anchor runs 3 working sets except
+  // Monday's pull-ups at 4 (no build round) — the lats' one "if we really
+  // need it".
   it('phases leave the anchor round-counts alone, in every variant', () => {
-    const SETS = { 'd40-a1': 5, 'd40-b1': 4, 'd40-c1': 3 };
-    const PAIRS = { 'd40-a1': 5, 'd40-b1': 0, 'd40-c1': 3 };
+    const SETS = { 'd40-a1': 4, 'd40-b1': 3, 'd40-c1': 3 };
+    const PAIRS = { 'd40-a1': 4, 'd40-b1': 0, 'd40-c1': 3 };
     for (const [id, n] of Object.entries(SETS)) {
       for (const v of [0, 1, 2, 3]) {
         for (const ph of [1, 2, 3]) {
@@ -217,12 +219,13 @@ describe('phases', () => {
     ]) {
       for (const p of [2, 3]) expect(applyPhase(dosed, p), `${dosed.dose} p${p}`).toBe(dosed);
     }
-    // the right order still phases first, then doses
+    // the right order still phases first, then doses (Saturday's extension:
+    // 15 in phase 3)
     const right = applyShort(applyPhase(daily, 3));
-    const thuExt = buildStepQueue(right, {}, 1).find(
+    const satExt = buildStepQueue(right, {}, 2).find(
       (st) => st.exId === 'back-extension' && st.kind === 'work',
     );
-    expect(thuExt.reps).toBe('12');
+    expect(satExt.reps).toBe('15');
   });
 
   it('steps the Friday pull-ups by week (4,4,5,5,6,6,7,7,7,7,8,8), sets unchanged', () => {
@@ -264,41 +267,41 @@ describe('phases', () => {
 
   // ROUND 4: Back & Hips stops being identical in weeks 1 and 12 — the back
   // extension steps by PHASE. 2026-10-21 (his call, "just tell me how
-  // many"): both days are a number at your pace, Thursday 10 → 12 → 12 (a
-  // day after the squat), Saturday 12 → 14 → 15. 2026-10-20: the core holds
+  // many"): a number at your pace, Saturday 12 → 14 → 15. (Thursday's
+  // 10 → 12 → 12 left with Thursday on 2026-11-10 — a rest day now.) 2026-10-20: the core holds
   // step by position (Tuesday's side plank also by the clock; the hollow
   // hold and bird dog sit at their 30 s cap from week 1 since 2026-10-21),
   // the leg raises 10 → 12 (and stop there). The hip IR is two 45 s holds a
   // side every phase. Absolute targets.
-  it('steps the back extension by phase: Thu reps 10/12/12, Sat reps 12/14/15', () => {
+  it('steps the back extension by phase: Sat reps 12/14/15, none on Tuesday', () => {
     const daily = getRehabSession('daily');
     expect(applyPhase(daily, 1)).toBe(daily);
     const ext = (s, v) =>
       buildStepQueue(s, {}, v).filter((st) => st.exId === 'back-extension' && st.kind === 'work');
-    for (const [ph, thuReps, satReps] of [
-      [1, '10', '12'],
-      [2, '12', '14'],
-      [3, '12', '15'],
+    for (const [ph, satReps] of [
+      [1, '12'],
+      [2, '14'],
+      [3, '15'],
     ]) {
       const s = applyPhase(daily, ph);
       expect(applyPhase(s, ph).blocks, `p${ph}`).toEqual(s.blocks);
       for (let w = 0; w < 4; w++) {
-        const thu = ext(s, w * 4 + 1);
-        expect(thu.map((st) => st.reps), `p${ph} thu`).toEqual([thuReps, thuReps, thuReps]);
+        // never the morning after Monday's RDL — so never Tuesday
+        expect(ext(s, w * 4), `p${ph} tue`).toEqual([]);
         const sat = ext(s, w * 4 + 2);
         expect(sat.map((st) => st.reps), `p${ph} sat`).toEqual([satReps, satReps, satReps]);
         // a number and a Done: no clock, no tempo, nothing to weigh
-        for (const st of [...thu, ...sat]) {
+        for (const st of sat) {
           expect(st, `p${ph} w${w}`).toMatchObject({ manual: true, secs: null, logWeight: false });
           expect(st.tempo, `p${ph} w${w}`).toBeUndefined();
         }
       }
       // the step never leaks its own spec into the served block
-      expect(ext(s, 1).every((st) => st.countsAsSet)).toBe(true);
+      expect(ext(s, 2).every((st) => st.countsAsSet)).toBe(true);
       // the core holds: Tuesday's full version steps its seconds (hollow /
-      // side plank / bird dog); Thursday's one set and Saturday's primer keep
-      // theirs — straight holds, no rep-holds, on any day
-      for (const v of [0, 1, 2]) {
+      // side plank / bird dog); Saturday's primer keeps its own — straight
+      // holds, no rep-holds, on any day
+      for (const v of [0, 2]) {
         expect(sessionBlocks(s, v).some((b) => b.mode === 'reps'), `p${ph} v${v}`).toBe(false);
       }
       const holdSecs = (v) =>
@@ -306,7 +309,6 @@ describe('phases', () => {
           .filter((b) => ['hollow-hold', 'side-plank', 'bird-dog'].includes(b.ex))
           .map((b) => b.holdSecs);
       expect(holdSecs(0), `p${ph} tue`).toEqual({ 1: [30, 30, 30], 2: [30, 40, 30], 3: [30, 45, 30] }[ph]);
-      expect(holdSecs(1), `p${ph} thu`).toEqual([30, 45, 30]);
       expect(holdSecs(2), `p${ph} sat`).toEqual([15, 20, 15]);
       // the leg raises (Tue + Sat) step by reps, 10 → 12, never past 12
       const repsOf = (v, ex) => sessionBlocks(s, v).find((b) => b.ex === ex)?.reps;
@@ -314,7 +316,7 @@ describe('phases', () => {
         expect(repsOf(v, 'lying-leg-raise'), `p${ph} v${v}`).toBe({ 1: '10', 2: '12', 3: '12' }[ph]);
       }
       // the hip IR (every day): two 45 s holds a side, the same every phase
-      for (const v of [0, 1, 2]) {
+      for (const v of [0, 2]) {
         const hir = buildStepQueue(s, {}, v).filter(
           (st) => st.exId === 'hip-internal-rotation' && st.kind === 'work',
         );
@@ -435,17 +437,18 @@ describe('the effort target on every set', () => {
       .filter((s) => s.exId === ex && s.kind === 'work')
       .map((s) => s.meta);
   // QA round: Wings is the chest-supported row, the elevated push-up and the
-  // band pull-apart; the row carries the loaded target. Wings is 4 rounds.
+  // band pull-apart; the row carries the loaded target. Wings is 3 rounds
+  // (the three-set cap, 2026-11-10).
   it('plain weeks ask for 1–2 reps left, every round', () => {
     const m = metas('d40-a1', 1, 'chest-supported-row');
-    expect(m).toHaveLength(4); // Wings is 4 rounds (45-min round)
+    expect(m).toHaveLength(3); // Wings is 3 rounds
     for (const x of m) expect(x).toMatch(/^1–2 LEFT · ROUND/);
   });
   it('a heavy week says HEAVY too', () => {
     // Friday's Legs & Back goes heavy in week 2 (Monday is that week's EMOM
     // day, so Wings runs as an EMOM instead) — read on its lat pulldown
     const m = metas('d40-c1', 2, 'lat-pulldown');
-    expect(m).toHaveLength(4); // Legs & Back is 4 rounds
+    expect(m).toHaveLength(3); // Legs & Back is 3 rounds
     for (const x of m) expect(x).toMatch(/^HEAVY · 1–2 LEFT · ROUND/);
   });
   it('the last round of a rep-out week says MAX SET, the rest 1–2 LEFT', () => {
@@ -453,14 +456,14 @@ describe('the effort target on every set', () => {
     // the push-up takes the max set
     const m = metas('d40-a1', 3, 'elevated-pushup');
     for (const x of metas('d40-a1', 3, 'chest-supported-row')) expect(x).not.toMatch(/MAX SET/);
-    expect(m.at(-1)).toMatch(/^MAX SET · ROUND 4 OF 4/);
+    expect(m.at(-1)).toMatch(/^MAX SET · ROUND 3 OF 3/);
     for (const x of m.slice(0, -1)) expect(x).toMatch(/^1–2 LEFT/);
   });
   it('the anchor pair says PAIR, never an effort target of its own', () => {
     for (const w of [1, 2, 3]) {
       const m = metas('d40-a1', w, 'db-lateral-raise');
-      expect(m, `wk${w}`).toHaveLength(5);
-      m.forEach((x, i) => expect(x, `wk${w}`).toBe(`PAIR · ROUND ${i + 1} OF 5`));
+      expect(m, `wk${w}`).toHaveLength(4);
+      m.forEach((x, i) => expect(x, `wk${w}`).toBe(`PAIR · ROUND ${i + 1} OF 4`));
     }
   });
   // round 4: HEAVY leads only on a member the week made heavier — the pinned
@@ -599,15 +602,15 @@ describe('format rotation', () => {
       expect(m.heavy, ex).toBeUndefined();
       expect(m.reps, ex).toBe('5');
     }
-    // the hamstring curl is on the cable now (no sliders): Wednesday's 8/leg
-    // is loadable and goes heavy (10/leg → 7/leg); Friday's pinned 6/leg never does
+    // the hamstring curl is on the cable now (no sliders): Wednesday's is
+    // loadable and goes heavy (10/leg → 7/leg). Friday's left on 2026-11-10 —
+    // its seat went to the calves, and the hams reach Saturday's sprints fresh
     const wedCurl = applyPieceFormat(pieceIn('d40-b1', 'Split Squat & Curl'), 'sets-heavy')
       .members.find((m) => m.ex === 'cable-leg-curl');
     expect(wedCurl).toMatchObject({ reps: '7/leg', heavy: true }); // 10/leg × 0.7
-    const friCurl = pieceIn('d40-c1', 'Dips, Pull-Ups & Curls').members.find(
-      (m) => m.ex === 'cable-leg-curl',
-    );
-    expect(friCurl).toMatchObject({ reps: '6/leg', fixedReps: true });
+    const fri = pieceIn('d40-c1', 'Dips, Pull-Ups & Calves').members;
+    expect(fri.some((m) => m.ex === 'cable-leg-curl')).toBe(false);
+    expect(fri.find((m) => m.ex === 'db-calf-raise')).toMatchObject({ reps: '10/leg' });
     // the slider curl is served nowhere any more
     expect(JSON.stringify(DENSITY40_SESSIONS)).not.toContain('slider-leg-curl');
     // the heavy note says what to do (round 4): fewer reps, heavier only
@@ -647,7 +650,7 @@ describe('format rotation', () => {
       formatsFor({ ...squat, formats: ['sets', 'fortime'] }),
     ).not.toContain('fortime');
     // Friday's ring dips fail at the shoulder — banned too
-    const dpc = pieceIn('d40-c1', 'Dips, Pull-Ups & Curls');
+    const dpc = pieceIn('d40-c1', 'Dips, Pull-Ups & Calves');
     expect(
       formatsFor({ ...dpc, formats: ['sets', 'fortime'] }),
     ).not.toContain('fortime');
@@ -797,12 +800,13 @@ describe('format rotation', () => {
     expect(legs.members.map((m) => m.ex)).toEqual(['rfe-split-squat', 'lat-pulldown']);
     expect(legs.members.find((m) => m.ex === 'rfe-split-squat').lastRoundNote).toBeUndefined();
     expect(legs.members.find((m) => m.ex === 'lat-pulldown').lastRoundNote).toMatch(/LAST SET/);
-    // Friday's Dips, Pull-Ups & Curls: the ring dip fails at the shoulder
-    // (banned), the cable curl is pinned (fixedReps) — only the pull-up reps out
-    const dpc = applyPieceFormat(pieceIn('d40-c1', 'Dips, Pull-Ups & Curls'), 'sets-repout');
-    expect(dpc.members.map((m) => m.ex)).toEqual(['ring-dip', 'pull-up-bw', 'cable-leg-curl']);
+    // Friday's Dips, Pull-Ups & Calves: the ring dip fails at the shoulder
+    // (banned); the pull-up and the calf raise (2026-11-10, in for the cable
+    // curl) both fail safely and rep out
+    const dpc = applyPieceFormat(pieceIn('d40-c1', 'Dips, Pull-Ups & Calves'), 'sets-repout');
+    expect(dpc.members.map((m) => m.ex)).toEqual(['ring-dip', 'pull-up-bw', 'db-calf-raise']);
     expect(dpc.members.find((m) => m.ex === 'ring-dip').lastRoundNote).toBeUndefined();
-    expect(dpc.members.find((m) => m.ex === 'cable-leg-curl').lastRoundNote).toBeUndefined();
+    expect(dpc.members.find((m) => m.ex === 'db-calf-raise').lastRoundNote).toMatch(/LAST SET/);
     expect(dpc.members.find((m) => m.ex === 'pull-up-bw').lastRoundNote).toMatch(/LAST SET/);
     expect(dpc.members.some((m) => m.ex === 'rdl')).toBe(false);
     // Wednesday: the DB split squat is banned now (round 4), the curl reps out
@@ -827,12 +831,12 @@ describe('format rotation', () => {
     const sets = buildStepQueue(applyFormats(a1, 1), {}, 0); // Wings: SETS
     // Wings' loaded row
     const lat = (q) => q.filter((s) => s.exId === 'chest-supported-row' && s.countsAsSet);
-    expect(lat(sets)).toHaveLength(4);
+    expect(lat(sets)).toHaveLength(3);
     expect(lat(sets).every((s) => s.build && !s.heavy)).toBe(true);
     // the heavy week, read on Friday's Legs & Back pulldown (week 2)
     const heavy = buildStepQueue(applyFormats(getProgramSession('d40-c1'), 2), {}, 1);
     const row = heavy.filter((s) => s.exId === 'lat-pulldown' && s.countsAsSet);
-    expect(row).toHaveLength(4);
+    expect(row).toHaveLength(3);
     expect(row.every((s) => s.build && s.heavy)).toBe(true);
     expect(row[0].reps).toBe('7'); // 10 × 0.7
     // Friday's pinned cable curl never goes heavy
@@ -851,11 +855,10 @@ describe('format rotation', () => {
     expect(roLat.map((s) => /LAST SET/.test(s.cueNote || ''))).toEqual([
       false,
       false,
-      false,
       true,
     ]);
     // and the last round says MAX SET — the estimate budgets it longer
-    expect(roLat.map((s) => !!s.maxSet)).toEqual([false, false, false, true]);
+    expect(roLat.map((s) => !!s.maxSet)).toEqual([false, false, true]);
   });
 
   // HONEST MINUTES (2026-10-09): a paced set is estimated at its own tempo,
@@ -941,7 +944,7 @@ describe('format rotation', () => {
     const ft = applyPieceFormat(wings, 'fortime');
     expect(ft.mode).toBe('fortime');
     const q = buildStepQueue({ id: 'x', blocks: [ft] });
-    expect(q.filter((s) => s.countsAsSet)).toHaveLength(12); // 3 members × 4 rounds
+    expect(q.filter((s) => s.countsAsSet)).toHaveLength(9); // 3 members × 3 rounds
     expect(q.every((s) => s.kind !== 'rest')).toBe(true); // no prescribed rest
     expect(q.find((s) => s.kind === 'work').piece).toBe('Wings');
   });
@@ -974,11 +977,12 @@ describe('weekly rep steps', () => {
   it('steps Monday\'s pull-up anchor 5,5,6,6,7,7,8,8 then 5,6,7,8 with a pack', () => {
     const reps = Array.from({ length: 12 }, (_, i) => anchorSets(i + 1)[0].reps);
     expect(reps).toEqual(['5', '5', '6', '6', '7', '7', '8', '8', '5', '6', '7', '8']);
-    // every set of the week serves the same number — five of them, always
-    // (round 3: five working sets, no build round for a bodyweight pull)
+    // every set of the week serves the same number — four of them, always
+    // (no build round for a bodyweight pull; five until the three-set cap on
+    // 2026-11-10, when pull-ups kept the one "4 if we really need")
     for (let w = 1; w <= 12; w++) {
       const sets = anchorSets(w);
-      expect(sets, `wk${w}`).toHaveLength(5);
+      expect(sets, `wk${w}`).toHaveLength(4);
       expect(new Set(sets.map((s) => s.reps)).size, `wk${w}`).toBe(1);
     }
   });

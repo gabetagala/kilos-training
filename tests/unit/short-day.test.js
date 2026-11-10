@@ -120,14 +120,16 @@ describe('the short rehab day', () => {
       const halved = new Set();
       const kept = new Set();
       for (let v = 0; v < 48; v++) {
-        if (v % 4 === 3) continue; // never served
+        // never served: k=3 (no fourth Back & Hips day) and, since
+        // 2026-11-10, k=1 — Thursday is a rest day
+        if (v % 4 === 3 || v % 4 === 1) continue;
         const shortHolds = sessionBlocks(short, v).filter((b) => b.mode === 'hold');
         for (const b of sessionBlocks(full, v).filter((x) => x.mode === 'hold')) {
           const match = shortHolds.find((x) => x.ex === b.ex);
           if (!match) continue; // the supporting cast and the carries are dropped
           const at = `p${ph} v${v} ${b.ex}`;
           if (CORE.includes(b.ex)) {
-            // every set, every second — even Thursday's 60 s side plank
+            // every set, every second — even Tuesday's 45 s side plank
             expect([match.sets, match.holdSecs], at).toEqual([b.sets, b.holdSecs]);
             kept.add(b.ex);
           } else if (b.holdSecs >= SHORT.holdFloorSecs) {
@@ -147,32 +149,33 @@ describe('the short rehab day', () => {
       expect([...halved].sort(), `p${ph}`).toEqual(['couch-stretch', 'seated-good-morning']);
       expect([...kept].sort(), `p${ph}`).toEqual(['bird-dog', 'hip-internal-rotation', 'hollow-hold', 'side-plank']);
     }
-    // the core holds keep their places, Tue / Thu / Sat
+    // the core holds keep their places, Tue / Sat
     const short = applyShort(daily);
-    for (const v of [0, 1, 2]) {
+    for (const v of [0, 2]) {
       const core = (s) => sessionBlocks(s, v).filter((b) => CORE.includes(b.ex));
       expect(core(short).map((b) => b.ex), `v${v}`).toEqual(CORE);
       expect(core(short), `v${v}`).toEqual(core(daily));
     }
     // and no McGill rep-holds come back on a short day
-    for (const v of [0, 1, 2]) {
+    for (const v of [0, 2]) {
       expect(sessionBlocks(short, v).some((b) => b.mode === 'reps'), `v${v}`).toBe(false);
     }
   });
 
   // Round 3 (plan QA): a short day keeps ONE round of the `shortKeep` pump
-  // — Tuesday's Arms, Thursday's Row & Raise — so the triangle stays alive
-  // through the newborn weeks. Everything else day-specific goes.
+  // — Tuesday's Arms & Delts (Thursday's Row & Raise left with Thursday on
+  // 2026-11-10) — so the triangle stays alive through the newborn weeks.
+  // Everything else day-specific goes.
   it('drops the supporting cast and the finishers, keeps one round of the shortKeep pump', () => {
     const short = applyShort(daily);
     expect(short.blocks.some((b) => b.cast)).toBe(false);
     const fin = short.blocks.filter((b) => b.finisher);
     expect(fin).toHaveLength(1);
     expect(fin[0].shortKeep).toBe(true);
-    // Arms is three moves since the sprint round
-    const KEEP = { 0: ['Arms', 3], 1: ['Row & Raise', 2], 2: null };
+    // Arms & Delts is four moves since the laterals moved in (2026-11-10)
+    const KEEP = { 0: ['Arms & Delts', 4], 2: null };
     for (let w = 0; w < 4; w++) {
-      for (const k of [0, 1, 2]) {
+      for (const k of [0, 2]) {
         const v = w * 4 + k;
         const q = buildStepQueue(short, {}, v);
         // no scored finisher, no carry, no other pump
@@ -201,21 +204,23 @@ describe('the short rehab day', () => {
         for (const ex of ['t-spine-reach', 'hollow-hold', 'side-plank', 'bird-dog', 'elephant-walk']) {
           expect(ids.has(ex), `v${v} ${ex}`).toBe(true);
         }
-        // the back extension keeps its Thu/Sat days on a short day too
-        expect(ids.has('back-extension'), `v${v}`).toBe(k !== 0);
+        // the back extension keeps its Saturday on a short day too
+        expect(ids.has('back-extension'), `v${v}`).toBe(k === 2);
       }
     }
   });
 
   it('is about a quarter of an hour, not a token', () => {
-    // every SERVED variant: Tue/Thu/Sat on the daily (k = 3 is never served
-    // — rehabVariantIdx maps every weekday to 0, 1 or 2), both Sundays
-    const SERVED = { daily: [0, 1, 2, 4, 5, 6, 44, 45, 46], sunday: [0, 1] };
+    // every SERVED variant: Tue/Sat on the daily (k = 1 and 3 are never
+    // served since 2026-11-10 — rehabVariantIdx maps every weekday to 0 or
+    // 2), both Easy Back variants. ≤22, the verifier's band: the lateral
+    // raise that joined Tuesday's kept round (2026-11-10) costs a minute.
+    const SERVED = { daily: [0, 2, 4, 6, 44, 46], sunday: [0, 1] };
     for (const [id, vs] of Object.entries(SERVED)) {
       for (const v of vs) {
         const mins = estimateSessionMins(applyShort(getRehabSession(id)), v);
         expect(mins).toBeGreaterThanOrEqual(10);
-        expect(mins).toBeLessThanOrEqual(20);
+        expect(mins).toBeLessThanOrEqual(22);
       }
     }
   });
@@ -349,8 +354,8 @@ describe('the amber day', () => {
     // (supported or lying — a stiff back tolerates it), no scored finisher,
     // and NO folds — a stiff back skips the held forward flexion outright
     const daily = getRehabSession('daily');
-    const KEEP = { 0: 'Arms', 1: 'Row & Raise', 2: null };
-    for (const k of [0, 1, 2]) {
+    const KEEP = { 0: 'Arms & Delts', 2: null };
+    for (const k of [0, 2]) {
       const q = buildStepQueue(applyAmber(daily), {}, k);
       expect(q.some((st) => st.piece), `k${k}`).toBe(false);
       const labels = [...new Set(q.map((st) => st.blockLabel).filter(Boolean))];
@@ -385,7 +390,7 @@ describe('the amber day', () => {
     const CURL = { 0: [4, 3] }; // Tuesday; every other day one set of 4
     for (const id of ['daily', 'sunday']) {
       const amber = applyAmber(getRehabSession(id));
-      for (const v of id === 'daily' ? [0, 1, 2] : [0, 1]) {
+      for (const v of id === 'daily' ? [0, 2] : [0, 1]) {
         const q = buildStepQueue(amber, {}, v);
         const at = `${id} v${v}`;
         expect(q.some((st) => st.exId === 'hollow-hold'), at).toBe(false);
@@ -451,7 +456,7 @@ describe('the short Friday', () => {
       'Warm-Up',
       'Warm-Up',
       'The Anchor',
-      'Dips, Pull-Ups & Curls',
+      'Dips, Pull-Ups & Calves',
       'Legs & Back',
     ]);
     // every warm-up loses its springs (the pogo and the easy broad jumps),
@@ -589,10 +594,10 @@ describe('the amber day, round 2', () => {
     expect(hc(applyAmber(heavy)).formatLabel).toBe('SETS');
   });
 
-  it('Back & Hips: the back extension becomes 3 × 20 s holds on Thu and Sat only', () => {
+  it('Back & Hips: the back extension becomes 3 × 20 s holds on Saturday only', () => {
     const amber = applyAmber(getRehabSession('daily'));
     for (let w = 0; w < 4; w++) {
-      for (const k of [0, 1, 2]) {
+      for (const k of [0, 2]) {
         const v = w * 4 + k;
         const q = buildStepQueue(amber, {}, v);
         const ext = q.filter((st) => st.exId === 'back-extension' && st.kind === 'work');
@@ -607,8 +612,8 @@ describe('the amber day, round 2', () => {
         }
       }
     }
-    const thu = blocksOf(amber).find((b) => b.ex === 'back-extension');
-    expect(thu).toMatchObject({ mode: 'hold', sets: 3, holdSecs: 20 });
+    const sat = blocksOf(amber).find((b) => b.ex === 'back-extension');
+    expect(sat).toMatchObject({ mode: 'hold', sets: 3, holdSecs: 20 });
   });
 });
 
@@ -659,9 +664,9 @@ describe('the tired day', () => {
     for (const st of mon.filter((x) => x.exId === 'lat-pulldown' && x.kind === 'work')) {
       expect(st.meta).toMatch(/^2–3 LEFT · ROUND \d OF 2/);
     }
-    // the pull-up anchor runs four of its five sets, each with its pair
-    expect(mon.filter((st) => st.exId === 'pull-up-bw' && st.anchor && st.countsAsSet)).toHaveLength(4);
-    expect(mon.filter((st) => st.pair)).toHaveLength(4);
+    // the pull-up anchor runs three of its four sets, each with its pair
+    expect(mon.filter((st) => st.exId === 'pull-up-bw' && st.anchor && st.countsAsSet)).toHaveLength(3);
+    expect(mon.filter((st) => st.pair)).toHaveLength(3);
     // it is genuinely lighter
     expect(estimateSessionMins(applyTired(getProgramSession('d40-a1')))).toBeLessThan(
       estimateSessionMins(getProgramSession('d40-a1')),
@@ -680,10 +685,11 @@ describe('the tired day', () => {
         expect(q.some((st) => st.exId === ex), `v${v} ${ex}`).toBe(false);
       }
       expect(q.some((st) => st.piece && /^Tabata/.test(st.piece)), `v${v}`).toBe(false);
-      // the squat stays, not swapped — one working set lighter (round 5)
+      // the squat stays, not swapped — one working set lighter (round 5):
+      // two of its three since the three-set cap (2026-11-10)
       expect(
         q.filter((st) => st.piece === 'The Anchor' && st.countsAsSet).map((st) => st.exId),
-      ).toEqual(['front-squat', 'front-squat', 'front-squat']);
+      ).toEqual(['front-squat', 'front-squat']);
     }
     // the empty-bar warm-up stays as written — no amber swap on a tired day
     expect(blocksOf(wed).find((b) => b.warmup).members.map((m) => m.ex)).toContain(
@@ -739,20 +745,17 @@ describe('the tired day', () => {
   it('on Back & Hips: the holds and pumps stay; the extras, carry and score go', () => {
     const daily = getRehabSession('daily');
     const tired = applyTired(daily);
-    // the pumps ARE Tuesday's and Thursday's volume — a short night keeps them
+    // the pump IS Tuesday's volume — a short night keeps it (Thursday's
+    // three pumps left with Thursday on 2026-11-10)
     const labels = (k) =>
       new Set(buildStepQueue(tired, {}, k).map((st) => st.blockLabel).filter(Boolean));
-    expect([...labels(0)]).toEqual(['Arms']);
-    // Thursday keeps all three pumps — Curl & Lateral included (round 3)
-    expect([...labels(1)].sort()).toEqual(['Calves', 'Curl & Lateral', 'Row & Raise']);
-    // every pump one round lighter (round 4): Arms 4 → 3, Row & Raise 3 → 2,
-    // Curl & Lateral 5 → 4, Thursday's calves 3 → 2 (45-min round counts)
+    expect([...labels(0)]).toEqual(['Arms & Delts']);
+    // one round lighter (round 4): Arms & Delts 3 → 2
     const sets = (k, n) =>
       buildStepQueue(tired, {}, k).filter((st) => st.blockLabel === n && st.countsAsSet).length;
-    expect(sets(0, 'Arms')).toBe(9); // three moves × three rounds
-    expect(sets(1, 'Row & Raise')).toBe(4);
-    expect(sets(1, 'Curl & Lateral')).toBe(8);
-    expect(sets(1, 'Calves')).toBe(2);
+    // five moves × two rounds — a tired day keeps the pull-aparts (only a
+    // short or amber day drops them)
+    expect(sets(0, 'Arms & Delts')).toBe(10);
     // …a rep further from failure
     for (const st of buildStepQueue(tired, {}, 0).filter((x) => x.blockLabel && x.kind === 'work')) {
       expect(st.meta).toMatch(/^2–3 LEFT · ROUND/);
@@ -761,7 +764,7 @@ describe('the tired day', () => {
     // the Pallof press and the leg raises sit out (~24 vs ~34 min)
     expect(estimateSessionMins(tired, 0)).toBeLessThanOrEqual(estimateSessionMins(daily, 0) - 8);
     expect(labels(2).size).toBe(0);
-    for (const k of [0, 1, 2]) {
+    for (const k of [0, 2]) {
       const q = buildStepQueue(tired, {}, k);
       // the openers, the core holds as written and the folds all stay
       for (const ex of ['t-spine-reach', 'hollow-hold', 'side-plank', 'bird-dog', 'seated-good-morning']) {
@@ -780,7 +783,7 @@ describe('the tired day', () => {
       }
       // the back extension is served as written (reps, not the amber hold)
       const ext = q.filter((st) => st.exId === 'back-extension' && st.kind === 'work');
-      expect(ext.length, `k${k}`).toBe(k === 0 ? 0 : 3);
+      expect(ext.length, `k${k}`).toBe(k === 2 ? 3 : 0);
     }
     expect(tired.blocks.some((b) => b.cast)).toBe(false);
     // the non-pump `finisher` slots go — Saturday's carry sits in one, and
@@ -873,12 +876,9 @@ describe('applyNoFolds', () => {
       buildStepQueue(s, {}, v).filter((st) => st.exId === 'back-extension' && st.kind === 'work');
     const out = applyNoFolds(daily);
     for (let w = 0; w < 12; w++) {
-      // Thursday and Saturday (reps on both since 2026-10-21): 3 × reps →
-      // 3 × 20 s holds — reps from a hinged bottom are the early bend
-      for (const [k, day] of [
-        [1, 'thu'],
-        [2, 'sat'],
-      ]) {
+      // Saturday (reps since 2026-10-21; Thursday's left on 2026-11-10):
+      // 3 × reps → 3 × 20 s holds — reps from a hinged bottom are the early bend
+      for (const [k, day] of [[2, 'sat']]) {
         expect(ext(daily, w * 4 + k).every((st) => st.manual && st.reps), `w${w} ${day}`).toBe(true);
         expect(ext(out, w * 4 + k).map((st) => [st.secs, st.tempo]), `w${w} ${day}`).toEqual([
           [20, undefined],
@@ -926,8 +926,8 @@ describe('applyNoFolds', () => {
       expect(q.some((st) => st.exId === 'rdl'), `v${v}`).toBe(false);
       expect(q.filter((st) => st.exId === 'glute-bridge' && st.countsAsSet), `v${v}`).toHaveLength(3);
       // the anchor and Wings are as written
-      expect(q.filter((st) => st.exId === 'pull-up-bw' && st.anchor && st.countsAsSet)).toHaveLength(5);
-      expect(q.filter((st) => st.exId === 'chest-supported-row' && st.countsAsSet)).toHaveLength(4);
+      expect(q.filter((st) => st.exId === 'pull-up-bw' && st.anchor && st.countsAsSet)).toHaveLength(4);
+      expect(q.filter((st) => st.exId === 'chest-supported-row' && st.countsAsSet)).toHaveLength(3);
     }
   });
 
@@ -944,20 +944,16 @@ describe('applyNoFolds', () => {
   });
 });
 
-// ── A NUMBER ON BOTH DAYS (2026-10-21, his call: "just tell me how many") ───
-// Round 3 held Thursday (24 h after the front squat) and tempo-repped
-// Saturday. Now both are reps at your pace, no count and no clock: Thursday
-// 3 × 10, a couple under Saturday's 3 × 12. An amber morning still holds on
-// either day, shorter.
+// ── A NUMBER, NOT A CLOCK (2026-10-21, his call: "just tell me how many") ───
+// Reps at your pace, no count and no clock: Saturday 3 × 12. Thursday's
+// 3 × 10 left with Thursday (2026-11-10 — a rest day now). An amber morning
+// still holds, shorter.
 describe('the back extension, by day', () => {
   const daily = getRehabSession('daily');
   const ext = (s, v) =>
     buildStepQueue(s, {}, v).filter((st) => st.exId === 'back-extension' && st.kind === 'work');
 
-  for (const [k, day, reps] of [
-    [1, 'Thursday', '10'],
-    [2, 'Saturday', '12'],
-  ]) {
+  for (const [k, day, reps] of [[2, 'Saturday', '12']]) {
     it(`${day} is 3 × ${reps} at your pace on the movement’s own cue`, () => {
       for (let w = 0; w < 4; w++) {
         const sets = ext(daily, w * 4 + k);
@@ -975,13 +971,13 @@ describe('the back extension, by day', () => {
     });
   }
 
-  it('Tuesday has no back extension', () => {
-    // Tuesday has none
+  it('Tuesday has no back extension — and nor does the rest-day column', () => {
     expect(ext(daily, 0)).toHaveLength(0);
+    expect(ext(daily, 1)).toHaveLength(0);
   });
 
-  it('an amber morning holds 3 × 20 s on both days, with the hold cue', () => {
-    for (const v of [1, 2]) {
+  it('an amber morning holds 3 × 20 s, with the hold cue', () => {
+    for (const v of [2, 6]) {
       const a = ext(applyAmber(daily), v);
       expect(a.map((st) => st.secs), `v${v}`).toEqual([20, 20, 20]);
       for (const st of a) expect(st.how, `v${v}`).toMatch(/^No reps/);
@@ -1081,17 +1077,17 @@ describe('applyUnchecked', () => {
   it('drops Saturday\'s sprints, keeps the pumps, carries, core holds and extras', () => {
     const daily = getRehabSession('daily');
     const u = applyUnchecked(daily);
-    for (const v of [0, 1, 2]) {
+    for (const v of [0, 2]) {
       const q = buildStepQueue(u, {}, v);
       expect(q.some((st) => /^Sprints/.test(st.piece || '')), `v${v}`).toBe(false);
       for (const ex of ['hollow-hold', 'side-plank', 'bird-dog']) {
         expect(q.some((st) => st.exId === ex), `v${v} ${ex}`).toBe(true);
       }
       // the leg raises are volume, not risk: Tue + Sat keep them
-      expect(q.some((st) => st.exId === 'lying-leg-raise'), `v${v}`).toBe(v !== 1);
+      expect(q.some((st) => st.exId === 'lying-leg-raise'), `v${v}`).toBe(true);
     }
     expect(buildStepQueue(u, {}, 2).some((st) => st.exId === 'farmer-carry')).toBe(true);
-    expect(buildStepQueue(u, {}, 0).some((st) => st.blockLabel === 'Arms')).toBe(true);
+    expect(buildStepQueue(u, {}, 0).some((st) => st.blockLabel === 'Arms & Delts')).toBe(true);
     expect(buildStepQueue(u, {}, 0).some((st) => st.exId === 'pallof-press')).toBe(true);
   });
 });

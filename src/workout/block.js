@@ -556,9 +556,13 @@ export function applyFormats(session, week) {
 // three untrue. In front of the block, the ramp is a separate overlay with its
 // own checks in verify-program.mjs, and the block stays as designed.
 export const RAMP_WEEKS = 2;
+// The anchor steps RELATIVE to the lift's own working sets (2026-11-10): the
+// absolute 3 / 4 it used to set was written for 4-set anchors, and once the
+// three-set cap landed, ramp 2 would have asked for MORE than a normal week.
+// Ramp 1 is one set short (never below one), ramp 2 is the lift's own count.
 export const RAMP = {
-  1: { pieceRounds: 2, anchorSets: 3 },
-  2: { pieceRounds: 3, anchorSets: 4 },
+  1: { pieceRounds: 2, anchorDrop: 1 },
+  2: { pieceRounds: 3, anchorDrop: 0 },
 };
 // His original pre-EMOM40 spec: a full minute off between trips.
 export const RAMP_REST_SECS = 60;
@@ -627,7 +631,9 @@ export function applyRamp(session, ramp) {
   const shape = (b) => {
     if (!b) return b;
     if (b.anchor) {
-      return { ...b, rounds: (b.warmupRounds || 0) + r.anchorSets };
+      const warm = b.warmupRounds || 0;
+      const sets = Math.max(1, b.rounds - warm - r.anchorDrop);
+      return { ...b, rounds: warm + sets };
     }
     if (b.isPiece) {
       const { formats, formatLabel, formatOffset, ...rest } = b;
@@ -755,9 +761,11 @@ export function applyShort(session) {
         ...rest,
         mode: b.mode === 'circuit' ? 'circuit' : 'emom',
         rounds: SHORT.pieceRounds,
-        // a bad night (or a deload) is no day for a heavy week or a max set
+        // a bad night (or a deload) is no day for a heavy week or a max set;
+        // `shortDrop` members are the piece's extras (2026-11-10: Tuesday's
+        // band pull-aparts) — the one kept round is the core of the piece
         members: b.members
-          .filter((m) => !m.ballistic)
+          .filter((m) => !m.ballistic && !m.shortDrop)
           .map((m) => {
             const { lastRoundNote, repsPerRound, ...rest } = unHeavy(m);
             return rest;

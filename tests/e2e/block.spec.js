@@ -60,8 +60,9 @@ test('week 6 is phase 2 and serves that week of the rotation', async ({ page }) 
 
 // The anchor round steps are RETIRED (2026-08-11, EMOM40) — the only phase
 // step left is Friday's pull-up reps. These prove phases leave anchors alone.
-// Round 3: Monday's pull-ups run FIVE working sets, a lateral raise in each rest.
-test('phases leave the pull anchor at five working rounds (EMOM40)', async ({ page }) => {
+// Round 3: a lateral raise in each rest. 2026-11-10 (the three-set cap):
+// Monday's pull-ups run FOUR working sets — the one anchor that keeps a fourth.
+test('phases leave the pull anchor at four working rounds', async ({ page }) => {
   await openProgram(page, { startWeeksAgo: 5 });
   await page.locator('[data-d40="d40-a1"]').click();
   await page.locator('#sp-start').click();
@@ -69,14 +70,14 @@ test('phases leave the pull anchor at five working rounds (EMOM40)', async ({ pa
   const rows = (await page.locator('#rpo-list').textContent())?.replace(/\s+/g, ' ');
   console.log('WK6 a1 overview:', rows?.slice(0, 220));
   // bodyweight pull-ups: two-minute clock, no build rounds — and the anchor
-  // round steps are retired (EMOM40): five working rounds in every phase,
+  // round steps are retired (EMOM40): four working rounds in every phase,
   // the pair listed under the lift
-  expect(rows).toContain('E2M 10 · 5 rounds');
+  expect(rows).toContain('E2M 8 · 4 rounds');
   expect(rows).toMatch(/Strict Pull-Up\s*\d+\s*\+ DB Lateral Raise\s*12 in the rest/);
   expect(rows).not.toContain('to build');
 });
 
-test('phases leave the squat anchor at five total rounds (EMOM40)', async ({ page }) => {
+test('phases leave the squat anchor at four total rounds', async ({ page }) => {
   await openProgram(page, { startWeeksAgo: 9 }); // week 10
   await expect(page.locator('.blk-phase')).toContainText('PEAK');
   await page.locator('[data-d40="d40-b1"]').click();
@@ -85,8 +86,9 @@ test('phases leave the squat anchor at five total rounds (EMOM40)', async ({ pag
   const rows = (await page.locator('#rpo-list').textContent())?.replace(/\s+/g, ' ');
   console.log('WK10 b1 overview:', rows?.slice(0, 200));
   // the squat runs on a 2:30 clock since round 2 (a ~20 s set still leaves
-  // 2:10, over the 2:00 floor): one build round + four working sets
-  expect(rows).toContain('E2:30 13 · 5 rounds (1 to build)');
+  // 2:10, over the 2:00 floor): one build round + three working sets (the
+  // three-set cap, 2026-11-10)
+  expect(rows).toContain('E2:30 10 · 4 rounds (1 to build)');
 });
 
 test('the deload checkpoint asks at week 4 and does not impose', async ({ page }) => {
@@ -164,7 +166,9 @@ test('a tiny gain reads as flat, not as progress', async ({ page }) => {
   expect(txt).toContain('flat — inside the noise');
 });
 
-test('Sunday now has a real engine session, not a checkbox', async ({ page }) => {
+// Sunday is a walk since 2026-11-10, but The Long Way stays in the library,
+// opt-in, any day
+test('The Long Way is still in the library, opt-in', async ({ page }) => {
   await openProgram(page, { startWeeksAgo: 0 });
   const card = page.locator('[data-rehab="engine"]');
   await expect(card).toContainText('The Long Way');
@@ -183,7 +187,8 @@ test('Sunday now has a real engine session, not a checkbox', async ({ page }) =>
 // EMOM, the press runs 1 build + 3 working on a 2:30 clock, and there is no
 // RDL on Friday at all — Monday's is the week's only hinge. Round 3: three
 // rounds of jumps on a 45 s clock and laterals in the press's rest. Round 4:
-// the dips while fresh (with the cable leg curls), then Legs & Back.
+// the dips while fresh, then Legs & Back. 2026-11-10: the calves took the
+// cable leg curl's seat (Thursday's calf day became a rest day).
 // 2026-11-03 (his call): Friday kept its jumps when Wednesday's went to the
 // DB clean.
 async function pressOverview(page, week) {
@@ -204,10 +209,10 @@ const PRESS_SLOTS = [
   /The Anchor/,
   /30° Incline DB Press/, // the FIXED anchor, every week
   /\+ DB Lateral Raise 12 in the rest/, // the pair
-  /Dips, Pull-Ups & Curls/, // round 4: the dips while fresh
+  /Dips, Pull-Ups & Calves/, // round 4: the dips while fresh
   /Ring Dip/,
   /Strict Pull-Up/,
-  /Cable Leg Curl/, // no sliders: the curl is on the cable, pinned 6/leg
+  /DB Calf Raise/, // Thursday's calves, since 2026-11-10
   /Legs & Back/,
   /Rear-Foot-Elevated Split Squat/,
   /Lat Pulldown/, // QA round: the row moved to Monday's Wings
@@ -228,8 +233,8 @@ function expectPressSlots(t) {
 test('week 1: everything runs plain SETS — nothing heavy or maxed on first exposure', async ({ page }) => {
   const t = await pressOverview(page, 1);
   console.log('FRI wk1:', t?.slice(-260));
-  expect(t).toContain('Dips, Pull-Ups & Curls SETS · 3 rounds');
-  expect(t).toContain('Legs & Back SETS · 4 rounds'); // 45-min round: four
+  expect(t).toContain('Dips, Pull-Ups & Calves SETS · 3 rounds');
+  expect(t).toContain('Legs & Back SETS · 3 rounds'); // the three-set cap
   expect(t).not.toMatch(/HEAVY|LAST SET MAX|for time/);
   expect(t).toContain('E2:30 10 · 4 rounds (1 to build)');
   expectPressSlots(t);
@@ -239,9 +244,9 @@ test('week 1: everything runs plain SETS — nothing heavy or maxed on first exp
 test('week 2 is the heavy week for legs & back — same exercises, same sets', async ({ page }) => {
   const t = await pressOverview(page, 2);
   console.log('FRI wk2:', t?.slice(-260));
-  expect(t).toContain('Legs & Back HEAVY · 4 rounds');
+  expect(t).toContain('Legs & Back HEAVY · 3 rounds');
   expect(t).toContain('Rear-Foot-Elevated Split Squat 6/leg'); // ~70% of 8
-  expect(t).toContain('Dips, Pull-Ups & Curls SETS · 3 rounds');
+  expect(t).toContain('Dips, Pull-Ups & Calves SETS · 3 rounds');
   expect(t).not.toContain('for time');
   expectPressSlots(t);
 });
@@ -252,7 +257,7 @@ test('week 3: nothing on Friday goes for time — split squat and ring dip keep 
   expect(t).not.toContain('for time');
   // both supersets run their rep-out week together — on real rest
   expect(t.match(/LAST SET MAX/g)).toHaveLength(2);
-  expect(t).toContain('Dips, Pull-Ups & Curls LAST SET MAX · 3 rounds');
+  expect(t).toContain('Dips, Pull-Ups & Calves LAST SET MAX · 3 rounds');
   expectPressSlots(t);
 });
 
@@ -265,14 +270,14 @@ test('Monday\'s Wings never runs for time — week 3 is its rep-out week', async
   for (let i = 0; i < 60; i++) {
     const head = (await page.locator('#rp-session-name').textContent()) || '';
     const meta = (await page.locator('#rp-meta').textContent()) || '';
-    if (/WINGS/.test(head) && /ROUND 1 OF 4/.test(meta)) break;
+    if (/WINGS/.test(head) && /ROUND 1 OF 3/.test(meta)) break;
     await page.locator('#rp-skip').click();
     await page.waitForTimeout(60);
   }
   await expect(page.locator('#rp-session-name')).toHaveText('WINGS');
   // the effort target leads the meta; MAX SET only lands on the last round
-  // (Wings is three rounds since round 3)
-  await expect(page.locator('#rp-meta')).toContainText('1–2 LEFT · ROUND 1 OF 4');
+  // (Wings is three rounds since the three-set cap, 2026-11-10)
+  await expect(page.locator('#rp-meta')).toContainText('1–2 LEFT · ROUND 1 OF 3');
   await expect(page.locator('#rp-meta')).not.toContainText('FOR TIME');
   await page.locator('#rp-overview-btn').click();
   await expect(page.locator('#rpo-list')).toContainText('LAST SET MAX');
@@ -318,7 +323,7 @@ test('a superset set shows a same-week-type target and confirms its reps', async
   for (let i = 0; i < 60; i++) {
     const name = (await page.locator('#rp-exname').textContent()) || '';
     const meta = (await page.locator('#rp-meta').textContent()) || '';
-    if (name === 'Chest-Supported DB Row' && /ROUND 1 OF 4/.test(meta)) break;
+    if (name === 'Chest-Supported DB Row' && /ROUND 1 OF 3/.test(meta)) break;
     await page.locator('#rp-skip').click();
     await page.waitForTimeout(60);
   }
@@ -339,10 +344,10 @@ test('a superset set shows a same-week-type target and confirms its reps', async
       ),
     );
   await page.locator('#rp-skip').click();
-  await expect(page.locator('#rp-meta')).toContainText('ROUND 1 OF 4');
+  await expect(page.locator('#rp-meta')).toContainText('ROUND 1 OF 3');
   expect(await pdSets()).toHaveLength(0);
   await page.locator('#rp-skip').click();
-  await expect(page.locator('#rp-meta')).not.toContainText('ROUND 1 OF 4 ·');
+  await expect(page.locator('#rp-meta')).not.toContainText('ROUND 1 OF 3 ·');
   await expect.poll(async () => (await pdSets()).length).toBe(1);
   const logged = await pdSets();
   expect(logged).toHaveLength(1);
@@ -380,7 +385,7 @@ test('the anchor pair: laterals in the pull-up rest, own target, reps done logge
   await expect(page.locator('#rp-exname')).toHaveText('DB Lateral Raise');
   // the pair rides the anchor's piece, straight after its first set
   await expect(page.locator('#rp-session-name')).toContainText('THE ANCHOR');
-  await expect(page.locator('#rp-meta')).toContainText('PAIR · ROUND 1 OF 5');
+  await expect(page.locator('#rp-meta')).toContainText('PAIR · ROUND 1 OF 4');
   // reps first: one more rep at the same weight, never a +2.5 on 10 kg
   await expect(page.locator('#rp-context')).toContainText('LAST 10×12');
   await expect(page.locator('#rp-context')).toContainText(/TARGET 10\s*(kg|lbs) × 13/);
@@ -402,7 +407,7 @@ test('the anchor pair: laterals in the pull-up rest, own target, reps done logge
   await page.locator('#rp-skip').click();
   // straight back to the next pull-up set
   await expect(page.locator('#rp-exname')).toHaveText('Strict Pull-Up');
-  await expect(page.locator('#rp-meta')).toContainText('SET 2 OF 5');
+  await expect(page.locator('#rp-meta')).toContainText('SET 2 OF 4');
   await expect.poll(async () => (await latSets()).length).toBe(1);
   expect((await latSets())[0].reps).toBe(11);
 });
@@ -614,9 +619,9 @@ test('a short night on the squat day keeps the squat, drops Power and Tabata', a
   await expect(list).not.toContainText('DB Push Press');
   await expect(list).not.toContainText(/Seven|Tabata/i); // the week's metcon
   await expect(list).not.toContainText('DB Hang Power Clean');
-  // the squat stays — not swapped, one working set lighter (round 5: build
-  // + three) — and so does the superset
-  await expect(list).toContainText(/THE ANCHOR — E2:30 10 · 4 ROUNDS \(1 TO BUILD\)\s*Front Squat/);
+  // the squat stays — not swapped, one working set lighter (round 5; build
+  // + two since the three-set cap) — and so does the superset
+  await expect(list).toContainText(/THE ANCHOR — E2:30 8 · 3 ROUNDS \(1 TO BUILD\)\s*Front Squat/);
   // the superset stays, one round lighter on a short night (round 4)
   await expect(list).toContainText('SPLIT SQUAT & CURL — SETS · 2 ROUNDS');
   await page.locator('#sp-start').click();
@@ -624,7 +629,7 @@ test('a short night on the squat day keeps the squat, drops Power and Tabata', a
   await page.locator('#rp-overview-btn').click();
   const ov = page.locator('#rpo-list');
   await expect(ov).toContainText('Front Squat');
-  await expect(ov).toContainText('4 rounds (1 to build)'); // one set lighter
+  await expect(ov).toContainText('3 rounds (1 to build)'); // one set lighter
   await expect(ov).not.toContainText('Power');
   await expect(ov).not.toContainText(/Seven|Tabata/i);
 });
@@ -735,8 +740,8 @@ async function supersetContext(
   {
     sessionId = 'd40-a1',
     exName = 'Chest-Supported DB Row',
-    // Wings and Legs & Back run four rounds (45-min round), Wednesday three
-    rounds = sessionId === 'd40-b1' ? 3 : 4,
+    // every superset runs three rounds since the three-set cap (2026-11-10)
+    rounds = 3,
     logs,
     history,
     checks = [],
@@ -778,8 +783,8 @@ const pulldownContext = (page, checks, rounds) =>
   supersetContext(page, {
     logs: pd(),
     // a tired morning runs every superset one round lighter (round 4)
-    // Wings: four rounds, one fewer on a short night (45-min round)
-    rounds: rounds ?? (checks?.some((c) => c.shortSleep) ? 3 : 4),
+    // Wings: three rounds, one fewer on a short night
+    rounds: rounds ?? (checks?.some((c) => c.shortSleep) ? 2 : 3),
     checks: (checks || []).map((c) => ({ date: today(), ...c })),
   });
 const splitContext = (page, checks) =>
@@ -942,8 +947,9 @@ async function squatAnchor(page, { anchorRIR, back = 'good', shortSleep = false 
     },
     { day: localDay(WED), b: back, ss: shortSleep },
   );
-  // a tired day runs the anchor one working set lighter (round 5)
-  const of = shortSleep ? 3 : 4;
+  // a tired day runs the anchor one working set lighter (round 5) — three
+  // working sets since the three-set cap (2026-11-10), two on a short night
+  const of = shortSleep ? 2 : 3;
   const monday = new Date(WED);
   monday.setHours(1, 0, 0, 0);
   monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
@@ -1033,7 +1039,7 @@ test('a heavy-lift set logs the reps done, not the target', async ({ page }) => 
   await expect(row).toBeHidden();
   await page.locator('#rp-skip').click();
   // the first working set: the row, at the target
-  await expect(page.locator('#rp-meta')).toContainText('SET 1 OF 4');
+  await expect(page.locator('#rp-meta')).toContainText('SET 1 OF 3');
   await expect(row).toBeVisible();
   await expect(row).toContainText('REPS DONE');
   await expect(page.locator('#rp-ar-val')).toHaveText('5');
@@ -1048,7 +1054,7 @@ test('a heavy-lift set logs the reps done, not the target', async ({ page }) => 
   await expect(page.locator('#rp-ar-val')).toHaveText('3');
   // moving on logs the set with the reps he set
   await page.locator('#rp-skip').click();
-  await expect(page.locator('#rp-meta')).toContainText('SET 2 OF 4');
+  await expect(page.locator('#rp-meta')).toContainText('SET 2 OF 3');
   const sets = () =>
     page.evaluate(() =>
       (JSON.parse(localStorage.getItem('kilos-rehab-state') || '{}').liftSets || []).filter(
@@ -1065,7 +1071,7 @@ test('a heavy-lift set logs the reps done, not the target', async ({ page }) => 
 // ── ROUND 3 ─────────────────────────────────────────────────────────────────
 const TUE = new Date(2026, 9, 13, 7, 30); // Back & Hips: Arms + leg raises
 const FRI = new Date(2026, 9, 16, 7, 30); // the press day
-const SUN = new Date(2026, 9, 18, 7, 30); // the rest day + the Bonus WOD
+const SUN = new Date(2026, 9, 18, 7, 30); // a rest day — the WOD opened from the library
 
 // THE MORNING RULE (round-3 physio QA): within an hour of waking the discs
 // are fully hydrated and bending stress peaks. UP UNDER 1 HR drops the two
@@ -1177,7 +1183,7 @@ test('an amber Back & Hips day drops the folds and keeps one round of the pump',
   const list = page.locator('#sp-list');
   await expect(list).not.toContainText('Elephant Walk');
   await expect(list).not.toContainText('Seated Good Morning');
-  await expect(list).toContainText(/ARMS — SETS · 1 ROUND\b/);
+  await expect(list).toContainText(/ARMS & DELTS — SETS · 1 ROUND\b/);
   await expect(list).toContainText('DB Bench Press');
   // every core hold eases to its McGill 10-second version; the extras
   // (Pallof, leg raises) sit out with the short dose
@@ -1237,21 +1243,21 @@ test('three red mornings say physio, never deload', async ({ page }) => {
 });
 
 // THE BONUS WOD WAITS FOR A GOOD MORNING (round-3 physio QA): it is scored
-// and raced — an amber or tired Sunday runs the Rest Day instead.
-test('the Bonus WOD waits for a Good morning — amber or tired runs the Rest Day', async ({ page }) => {
+// and raced — an amber or tired morning runs the Easy Back instead.
+test('the Bonus WOD waits for a Good morning — amber or tired runs the Easy Back', async ({ page }) => {
   await page.clock.setFixedTime(SUN);
   await openProgram(page, { startWeeksAgo: 0 });
   await page.locator('[data-rehab="wod"]').click();
   await expect(page.locator('#session-preview')).toHaveClass(/open/);
   const check = page.locator('#sp-backcheck');
   const note = page.locator('#sp-back-note');
-  const WAITS = 'The Bonus WOD waits for a Good morning — today runs the Rest Day.';
+  const WAITS = 'The Bonus WOD waits for a Good morning — today runs the Easy Back.';
   // QA round ★2: unanswered, it waits too
-  await expect(page.locator('#sp-title')).toHaveText('REST DAY');
+  await expect(page.locator('#sp-title')).toHaveText('EASY BACK');
   await expect(note).toContainText(WAITS);
 
   await check.locator('[data-back="stiff"]').click();
-  await expect(page.locator('#sp-title')).toHaveText('REST DAY');
+  await expect(page.locator('#sp-title')).toHaveText('EASY BACK');
   await expect(note).toContainText(WAITS);
   await expect(page.locator('#sp-list')).toContainText('McGill Curl-Up');
 
@@ -1262,9 +1268,9 @@ test('the Bonus WOD waits for a Good morning — amber or tired runs the Rest Da
 
   // a short night on a good back waits too
   await page.locator('#sp-back-sleep').click();
-  await expect(page.locator('#sp-title')).toHaveText('REST DAY');
+  await expect(page.locator('#sp-title')).toHaveText('EASY BACK');
   await expect(note).toContainText(WAITS);
-  // and Start runs the Rest Day, not the WOD
+  // and Start runs the Easy Back, not the WOD
   await page.locator('#sp-start').click();
   await expect(page.locator('#rehab-player')).toHaveClass(/open/);
   await expect(page.locator('#rp-exname')).toHaveText('T-Spine Reach');
@@ -1326,11 +1332,11 @@ async function finishAfterOnePullUpSet(page, { started = false } = {}) {
   for (let i = 0; i < 40; i++) {
     const name = (await page.locator('#rp-exname').textContent()) || '';
     const meta = (await page.locator('#rp-meta').textContent()) || '';
-    if (name === 'Strict Pull-Up' && /SET 1 OF 5/.test(meta)) break;
+    if (name === 'Strict Pull-Up' && /SET 1 OF 4/.test(meta)) break;
     await page.locator('#rp-skip').click();
     await page.waitForTimeout(60);
   }
-  await expect(page.locator('#rp-meta')).toContainText('SET 1 OF 5');
+  await expect(page.locator('#rp-meta')).toContainText('SET 1 OF 4');
   await page.locator('#rp-skip').click(); // logs the first pull-up set
   await page.locator('#rp-overview-btn').click();
   await page.locator('#rpo-finish').click();
@@ -1358,7 +1364,7 @@ test('week 9, pack earned: the anchor runs as written and the pack weight is log
   for (let i = 0; i < 40; i++) {
     const name = (await page.locator('#rp-exname').textContent()) || '';
     const meta = (await page.locator('#rp-meta').textContent()) || '';
-    if (name === 'Strict Pull-Up' && /SET 1 OF 5/.test(meta)) break;
+    if (name === 'Strict Pull-Up' && /SET 1 OF 4/.test(meta)) break;
     await page.locator('#rp-skip').click();
     await page.waitForTimeout(60);
   }
@@ -1388,11 +1394,11 @@ test('week 9, pack NOT earned: bodyweight, chasing 8s, and no pack prompt', asyn
   for (let i = 0; i < 40; i++) {
     const name = (await page.locator('#rp-exname').textContent()) || '';
     const meta = (await page.locator('#rp-meta').textContent()) || '';
-    if (name === 'Strict Pull-Up' && /SET 1 OF 5/.test(meta)) break;
+    if (name === 'Strict Pull-Up' && /SET 1 OF 4/.test(meta)) break;
     await page.locator('#rp-skip').click();
     await page.waitForTimeout(60);
   }
-  await expect(page.locator('#rp-meta')).toContainText('SET 1 OF 5');
+  await expect(page.locator('#rp-meta')).toContainText('SET 1 OF 4');
   await expect(page.locator('#rp-cue')).toContainText(
     'No pack yet — bodyweight, chasing every 8. Own them all and it goes on.',
   );
@@ -1446,29 +1452,22 @@ test('the calendar flags week 9 as the pack, and nothing at week 5', async ({ pa
   await expect(page.locator('#rehab-page')).not.toContainText('PHASE 2');
 });
 
-// 2026-10-21 (his call, "just tell me how many"): Thursday's back extension
-// is a number at your pace — the movement's own cue, no hold, no tempo, and
-// nothing to weigh (it was a hold since round 4)
-test('Thursday: the back extension is 3 × 10 at your pace', async ({ page }) => {
+// TWO REAL REST DAYS (2026-11-10, his call): Thursday is a walk, with the
+// Easy Back there if the back wants it — never served as the day's ask, and
+// nothing in it loads: no lifting, no back extension
+test('Thursday: a walk, and the Easy Back is optional', async ({ page }) => {
   const THU = new Date(2026, 9, 15, 7, 30);
-  await openToday(page, THU);
-  await expect(page.locator('#sp-list')).toContainText('Back Extension');
-  await page.locator('#sp-start').click();
-  await expect(page.locator('#rehab-player')).toHaveClass(/open/);
-  for (let i = 0; i < 80; i++) {
-    const name = (await page.locator('#rp-exname').textContent()) || '';
-    if (name === 'Back Extension') break;
-    await page.locator('#rp-skip').click();
-    await page.waitForTimeout(40);
-  }
-  await expect(page.locator('#rp-exname')).toHaveText('Back Extension');
-  await expect(page.locator('#rp-phase')).toHaveText('GET SET');
-  await expect(page.locator('#rp-cue')).not.toContainText('STAY there');
-  await page.locator('#rp-skip').click();
-  await expect(page.locator('#rp-phase')).toHaveText('YOUR PACE');
-  await expect(page.locator('#rp-meta')).toContainText('×10 · SET 1 OF 3');
-  await expect(page.locator('#rp-cue')).toContainText('Lift to straight, never past it. Your pace.');
-  await expect(page.locator('#rp-lift .rp-weight-row')).toBeHidden();
+  await page.clock.setFixedTime(THU);
+  await openProgram(page, { startWeeksAgo: 0 });
+  const today = page.locator('#rh-today-btn');
+  await expect(today).toContainText('Optional · Easy Back');
+  await today.click();
+  await expect(page.locator('#session-preview')).toHaveClass(/open/);
+  await expect(page.locator('#sp-title')).toHaveText('EASY BACK');
+  const list = page.locator('#sp-list');
+  await expect(list).toContainText('Side Plank');
+  await expect(list).not.toContainText('Back Extension');
+  await expect(list).not.toContainText(/SETS ·|EMOM|Sprints/);
 });
 
 // ROUND 4: the morning rule reaches Monday — a loaded hinge in the first
@@ -1652,7 +1651,7 @@ test('week 2 Monday is the EMOM day — supersets on the minute, reps confirmed'
   await page.locator('[data-d40="d40-a1"]').click();
   const list = page.locator('#sp-list');
   // week 2 is Wings' heavy week too — the EMOM day keeps it
-  await expect(list).toContainText('WINGS — EMOM · HEAVY 12 · 4 ROUNDS');
+  await expect(list).toContainText('WINGS — EMOM · HEAVY 9 · 3 ROUNDS');
   // the per-leg calf minute runs 90 s: 60 + 90 per round, three rounds
   await expect(list).toContainText('HINGE & CALF — EMOM 8 · 3 ROUNDS');
   // only Wings is heavy this week — the hinge never is
@@ -1666,7 +1665,7 @@ test('week 2 Monday is the EMOM day — supersets on the minute, reps confirmed'
     await page.locator('#rp-skip').click();
     await page.waitForTimeout(40);
   }
-  await expect(page.locator('#rp-session-name')).toContainText('WINGS · EMOM · HEAVY 12');
+  await expect(page.locator('#rp-session-name')).toContainText('WINGS · EMOM · HEAVY 9');
   // a working minute: REPS DONE at the heavy prescription (10 × 0.7)
   await expect(page.locator('#rp-anchor-reps')).toBeVisible();
   await expect(page.locator('#rp-ar-val')).toHaveText('7');
@@ -1790,11 +1789,11 @@ test('the REPS DONE value survives a refresh', async ({ page }) => {
   for (let i = 0; i < 60; i++) {
     const head = (await page.locator('#rp-session-name').textContent()) || '';
     const meta = (await page.locator('#rp-meta').textContent()) || '';
-    if (/^THE ANCHOR/.test(head) && /SET 1 OF 4/.test(meta)) break;
+    if (/^THE ANCHOR/.test(head) && /SET 1 OF 3/.test(meta)) break;
     await page.locator('#rp-skip').click();
     await page.waitForTimeout(60);
   }
-  await expect(page.locator('#rp-meta')).toContainText('SET 1 OF 4');
+  await expect(page.locator('#rp-meta')).toContainText('SET 1 OF 3');
   await page.locator('#rp-ar-minus').click();
   await page.locator('#rp-ar-minus').click();
   await expect(page.locator('#rp-ar-val')).toHaveText('3');
@@ -1803,6 +1802,6 @@ test('the REPS DONE value survives a refresh', async ({ page }) => {
     .toBe(3);
   await page.reload();
   await expect(page.locator('#rehab-player')).toHaveClass(/open/);
-  await expect(page.locator('#rp-meta')).toContainText('SET 1 OF 4');
+  await expect(page.locator('#rp-meta')).toContainText('SET 1 OF 3');
   await expect(page.locator('#rp-ar-val')).toHaveText('3');
 });
