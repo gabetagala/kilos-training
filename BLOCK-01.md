@@ -26,6 +26,15 @@
 > lift's own count) — the old absolute 3/4 would have asked MORE than a
 > normal week once the anchors dropped to three. `scripts/verify-program.mjs`
 > passes all 41 checks on it.
+>
+> **Big lifts first (same day, his call):** "I'd rather have big compounds at
+> the start … so I do them with the highest energy." Friday was the one day
+> that broke it — the split squats were the last block, ~30 min in. They now
+> follow the press: Warm-up → Jumps → incline press → **Legs & Back** → Dips,
+> Pull-Ups & Calves. The press stays first (the anchor-first rule); the dips
+> start ~25 min in, still inside round 3's 30-minute line. Monday (pull-ups →
+> RDL) and Wednesday (power → front squat → split squats) already led with
+> their big lifts.
 
 > ⚠️ **2026-10-10 — reworked after independent coach + physio QA.** Fixed
 > anchors (pull-up / front squat / incline DB press) that progress weekly;
